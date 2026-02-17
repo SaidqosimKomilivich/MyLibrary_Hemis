@@ -14,6 +14,8 @@ import TeacherDashboard from './pages/teacher/TeacherDashboard'
 import StudentDashboard from './pages/student/StudentDashboard'
 import ProfilePage from './pages/ProfilePage'
 import MyReadings from './pages/MyReadings'
+import ChangePassword from './pages/ChangePassword'
+
 
 function App() {
   return (
@@ -32,6 +34,8 @@ function App() {
         <Routes>
           {/* Login */}
           <Route path="/login" element={<Login />} />
+          <Route path="/change-password" element={<ChangePassword />} />
+
 
           {/* Admin */}
           <Route path="/admin" element={<DashboardLayout role="admin" />}>

@@ -19,6 +19,8 @@ use crate::handlers::book_handler;
 use crate::handlers::control_handler;
 use crate::handlers::reading_handler;
 use crate::handlers::rental_handler;
+
+use crate::handlers::notification_handler;
 use crate::handlers::upload_handler;
 
 #[actix_web::main]
@@ -135,6 +137,23 @@ async fn main() -> std::io::Result<()> {
                     .route("", web::post().to(reading_handler::start_reading))
                     .route("", web::get().to(reading_handler::get_readings))
                     .route("/{id}", web::delete().to(reading_handler::remove_reading)),
+            )
+            // Notification routes
+            .service(
+                web::scope("/api/notifications")
+                    .route("", web::post().to(notification_handler::send_notification))
+                    .route(
+                        "/my",
+                        web::get().to(notification_handler::get_my_notifications),
+                    )
+                    .route(
+                        "/{id}/read",
+                        web::put().to(notification_handler::mark_as_read),
+                    )
+                    .route(
+                        "/read-all",
+                        web::put().to(notification_handler::mark_all_as_read),
+                    ),
             )
             // Static files (uploads papkasini brauzerdan ko'rish)
             .service(actix_files::Files::new("/uploads", upload_dir.clone()))

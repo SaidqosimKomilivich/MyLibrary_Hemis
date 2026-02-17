@@ -82,7 +82,26 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
     return data as T
 }
 
+
+// Notification types
+export interface Notification {
+    id: string
+    title: string
+    message: string
+    type: 'info' | 'warning' | 'success' | 'error'
+    is_read: boolean
+    created_at: string
+    sender_name?: string
+}
+
+export interface NotificationListResponse {
+    success: boolean
+    data: Notification[]
+    unread_count: number
+}
+
 export const api = {
+    // ... existing endpoints ...
     login(user_id: string, password: string) {
         return request<LoginResponse>('/auth/login', {
             method: 'POST',
@@ -110,6 +129,30 @@ export const api = {
         return request<MessageResponse>('/auth/change-password', {
             method: 'POST',
             body: JSON.stringify({ old_password, new_password }),
+        })
+    },
+
+    // Notification endpoints
+    getNotifications(limit = 10, offset = 0) {
+        return request<NotificationListResponse>(`/notifications/my?limit=${limit}&offset=${offset}`)
+    },
+
+    sendNotification(user_id: string, title: string, message: string, type: 'info' | 'warning' | 'success' | 'error') {
+        return request<MessageResponse>('/notifications', {
+            method: 'POST',
+            body: JSON.stringify({ user_id, title, message, type }),
+        })
+    },
+
+    markNotificationRead(id: string) {
+        return request<MessageResponse>(`/notifications/${id}/read`, {
+            method: 'PUT',
+        })
+    },
+
+    markAllNotificationsRead() {
+        return request<MessageResponse>('/notifications/read-all', {
+            method: 'PUT',
         })
     },
 

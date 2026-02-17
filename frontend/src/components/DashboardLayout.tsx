@@ -18,8 +18,11 @@ import {
     Loader2,
     ScanLine,
 } from 'lucide-react'
+
 import { toast } from 'react-toastify'
 import { useAuth } from '../context/AuthContext'
+import NotificationBell from './NotificationBell'
+
 
 export type UserRole = 'admin' | 'employee' | 'teacher' | 'student'
 
@@ -108,6 +111,12 @@ export default function DashboardLayout({ role }: DashboardLayoutProps) {
         return <Navigate to="/login" replace />
     }
 
+    // Force password update if required
+    if (user && !user.is_password_update) {
+        // Prevent infinite loop if we are already on the change password page (though DashboardLayout shouldn't be used there)
+        return <Navigate to="/change-password" replace />
+    }
+
     const displayName = user?.full_name || user?.user_id || roleLabels[role]
 
     return (
@@ -172,10 +181,9 @@ export default function DashboardLayout({ role }: DashboardLayoutProps) {
                     </button>
                     <div className="topbar-role-badge">{roleLabels[role]}</div>
                     <div className="topbar-right">
-                        <button className="topbar-icon-btn">
-                            <Bell size={20} />
-                        </button>
+                        <NotificationBell />
                         <div className="topbar-avatar" title={displayName}>
+
                             {displayName.charAt(0).toUpperCase()}
                         </div>
                     </div>
