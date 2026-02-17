@@ -45,6 +45,7 @@ function App() {
             <Route path="employees" element={<ComingSoon title="Xodimlar" />} />
             <Route path="stats" element={<ComingSoon title="Statistika" />} />
             <Route path="profile" element={<ProfilePage />} />
+
           </Route>
 
           {/* Employee (backend: staff) */}
@@ -56,6 +57,7 @@ function App() {
             <Route path="returns" element={<AccessControl />} />
             <Route path="readers" element={<ComingSoon title="O'quvchilar" />} />
             <Route path="profile" element={<ProfilePage />} />
+
           </Route>
 
           {/* Teacher */}
@@ -65,6 +67,7 @@ function App() {
             <Route path="my-books" element={<MyReadings />} />
             <Route path="requests" element={<ComingSoon title="So'rovlar" />} />
             <Route path="profile" element={<ProfilePage />} />
+
           </Route>
 
           {/* Student */}
@@ -74,6 +77,7 @@ function App() {
             <Route path="my-books" element={<MyReadings />} />
             <Route path="requests" element={<ComingSoon title="So'rovlar" />} />
             <Route path="profile" element={<ProfilePage />} />
+
           </Route>
 
           {/* Default redirect */}

@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { GraduationCap, Briefcase, BookUser, Search, RefreshCw, X, ArrowDownToLine, CheckCircle2, Eye, ToggleLeft, ToggleRight, Mail, Phone, Calendar, MapPin, Hash, Bell } from 'lucide-react'
-import SendNotificationModal from '../../components/SendNotificationModal'
+
 
 
 // Types
@@ -576,14 +576,7 @@ export default function UsersPage() {
                 document.body
             )}
 
-            {/* Notification Modal */}
-            {notificationTarget && (
-                <SendNotificationModal
-                    userId={notificationTarget.id}
-                    userName={notificationTarget.name}
-                    onClose={() => setNotificationTarget(null)}
-                />
-            )}
+
         </div>
     )
 }
