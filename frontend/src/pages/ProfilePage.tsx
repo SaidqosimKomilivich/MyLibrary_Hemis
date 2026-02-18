@@ -307,135 +307,25 @@ export default function ProfilePage() {
                         <div className="id-card-flipper-container">
                             <div className={`id-card-flipper ${cardFlipped ? 'id-card-flipper--flipped' : ''}`} ref={cardRef}>
                                 {/* ===== FRONT SIDE ===== */}
-                                <div className="id-card id-card-front">
-                                    {/* Header band */}
-                                    <div className="id-card-header">
-                                        <img src="/logo.png" alt="Logo" className="id-card-logo" />
-                                        <div className="id-card-header-text">
-                                            <div className="id-card-uni-name">MIRZO ULUG'BEK NOMIDAGI</div>
-                                            <div className="id-card-uni-name">O'ZBEKISTON MILLIY UNIVERSITETI</div>
-                                            <div className="id-card-branch">JIZZAX FILIALI</div>
+                                <div className="bg-white w-[420px] h-[280px] rounded-[15px] text-black">
+                                    <div className='absolute top-0 left-0 w-full h-full'>
+                                        {/* Yuqori Ko'k va Tillarang To'lqin */}
+                                        <div className="absolute top-0 left-0 w-full h-full">
+                                            {/* Tillarang Hoshiya (Orqa fon) */}
+                                            <div
+                                                className="absolute top-0 left-0 w-full h-2/3 bg-card-gold"
+                                                style={{
+                                                    clipPath: 'polygon(0 0, 100% 0, 100% 25%, 0 65%)'
+                                                }}
+                                            ></div>
+                                            {/* Asosiy Ko'k Shakl */}
+                                            <div
+                                                className="absolute top-0 left-0 w-full h-2/3 bg-card-blue"
+                                                style={{
+                                                    clipPath: 'polygon(0 0, 100% 0, 100% 20%, 0 60%)'
+                                                }}
+                                            ></div>
                                         </div>
-                                    </div>
-
-                                    {/* Gold stripe */}
-                                    <div className="id-card-gold-stripe" />
-
-                                    {/* Body */}
-                                    <div className="id-card-body">
-                                        {/* Photo */}
-                                        <div className="id-card-photo-wrap">
-                                            {user.image_url ? (
-                                                <img src={user.image_url} alt={user.full_name} className="id-card-photo" />
-                                            ) : (
-                                                <div className="id-card-photo-placeholder">
-                                                    <User size={32} />
-                                                </div>
-                                            )}
-                                        </div>
-                                        {/* Info */}
-                                        <div className="id-card-info">
-                                            <div className="id-card-name">{user.full_name || user.user_id}</div>
-                                            <div className="id-card-role-badge">{displayRole}</div>
-                                            {user.department_name && (
-                                                <div className="id-card-detail">
-                                                    <span className="id-card-detail-label">
-                                                        {(role === 'student') ? 'Fakultet:' : (role === 'teacher') ? 'Kafedra:' : "Bo'lim:"}
-                                                    </span> {user.department_name}
-                                                </div>
-                                            )}
-                                            {user.group_name && (
-                                                <div className="id-card-detail">
-                                                    <span className="id-card-detail-label">Guruh:</span> {user.group_name}
-                                                </div>
-                                            )}
-                                            <div className="id-card-detail">
-                                                <span className="id-card-detail-label">ID Raqam:</span> {user.user_id}
-                                            </div>
-                                            {user.staff_position && (
-                                                <div className="id-card-detail">
-                                                    <span className="id-card-detail-label">Lavozim:</span> {user.staff_position}
-                                                </div>
-                                            )}
-                                            {user.specialty_name && (
-                                                <div className="id-card-detail">
-                                                    <span className="id-card-detail-label">
-                                                        {role === 'student' ? "Yo'nalish:" : 'Mutaxassislik:'}
-                                                    </span> {user.specialty_name}
-                                                </div>
-                                            )}
-                                        </div>
-                                        {/* QR / Badge */}
-                                        <div className="id-card-qr-area">
-                                            <div className="id-card-qr">
-                                                <svg viewBox="0 0 80 80" width="80" height="80">
-                                                    <rect x="0" y="0" width="80" height="80" fill="#fff" />
-                                                    <rect x="4" y="4" width="20" height="20" fill="#1a237e" />
-                                                    <rect x="56" y="4" width="20" height="20" fill="#1a237e" />
-                                                    <rect x="4" y="56" width="20" height="20" fill="#1a237e" />
-                                                    <rect x="8" y="8" width="12" height="12" fill="#fff" />
-                                                    <rect x="60" y="8" width="12" height="12" fill="#fff" />
-                                                    <rect x="8" y="60" width="12" height="12" fill="#fff" />
-                                                    <rect x="11" y="11" width="6" height="6" fill="#1a237e" />
-                                                    <rect x="63" y="11" width="6" height="6" fill="#1a237e" />
-                                                    <rect x="11" y="63" width="6" height="6" fill="#1a237e" />
-                                                    <rect x="28" y="4" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="36" y="4" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="44" y="4" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="28" y="12" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="40" y="12" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="48" y="12" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="28" y="20" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="36" y="20" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="44" y="20" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="4" y="28" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="12" y="28" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="20" y="28" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="28" y="28" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="36" y="28" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="44" y="28" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="56" y="28" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="68" y="28" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="4" y="36" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="16" y="36" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="32" y="36" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="40" y="36" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="60" y="36" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="72" y="36" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="4" y="44" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="12" y="44" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="24" y="44" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="36" y="44" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="48" y="44" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="56" y="44" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="68" y="44" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="28" y="56" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="36" y="56" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="48" y="56" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="56" y="56" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="64" y="56" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="28" y="64" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="40" y="64" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="52" y="64" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="60" y="64" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="72" y="64" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="28" y="72" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="36" y="72" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="44" y="72" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="56" y="72" width="4" height="4" fill="#1a237e" />
-                                                    <rect x="68" y="72" width="4" height="4" fill="#1a237e" />
-                                                </svg>
-                                            </div>
-                                            <div className="id-card-purpose">KUTUBXONA<br />TIZIMI UCHUN</div>
-                                        </div>
-                                    </div>
-
-                                    {/* Footer wave */}
-                                    <div className="id-card-footer">
-                                        <svg viewBox="0 0 500 40" preserveAspectRatio="none" className="id-card-wave">
-                                            <path d="M0,25 C80,0 150,40 250,20 C350,0 420,35 500,15 L500,40 L0,40 Z" fill="#1565C0" opacity="0.5" />
-                                            <path d="M0,30 C100,10 200,40 300,25 C400,10 450,35 500,20 L500,40 L0,40 Z" fill="#1976D2" opacity="0.6" />
-                                        </svg>
                                     </div>
                                 </div>
 
