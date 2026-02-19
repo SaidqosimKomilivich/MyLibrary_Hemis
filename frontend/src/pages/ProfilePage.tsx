@@ -21,6 +21,7 @@ import { toast } from 'react-toastify'
 import { useAuth } from '../context/AuthContext'
 import { api } from '../services/api'
 import { toPng } from 'html-to-image'
+import { QRCodeSVG } from 'qrcode.react'
 
 const roleLabels: Record<string, string> = {
     admin: 'Administrator',
@@ -405,6 +406,19 @@ const downloadImage = (dataUrl: string, fileName: string) => {
                                             <path d="M 0 106 C 100 121, 180 111, 240 96 C 300 81, 360 86, 420 96 L 420 101 C 360 91, 300 96, 240 111 C 180 126, 100 136, 0 121 Z" fill="url(#goldGrad)"/>
                                         </g>
                                     </svg>
+                                    <img src="/logo.png" alt=""  className='absolute top-3 left-3 w-20 h-20'/>
+                                    <p className='absolute top-3 left-28 uppercase font-medium'>MIRZO ULUG‘BEK NOMIDAGI O‘ZBEKISTON MILLIY UNIVERSITETI JIZZAX FILIALI</p>
+                                    <div className='absolute top-27 left-6 bg-white border border-black w-25 h-35 rounded-2xl'>
+                                        <img src='https://hemis.jbnuu.uz/static/crop/1/0/320__90_1026103993.jpg' alt="" className='rounded-xl p-1 w-25 h-35' />
+                                    </div>
+                                    <div className='absolute top-32 left-33 text-black'>
+                                        <p className='text-sm font-bold capitalize'>{user.full_name} </p>
+                                        <p className='text-sm'>Familiya</p>
+                                        <p className='text-sm'>Guruh</p>
+                                    </div>
+                                    <div className='absolute top-30 right-3 bg-white border-2 rounded-xl w-30 h-30 flex justify-center items-center'>
+                                        <QRCodeSVG value={user.id} size={105} level='H' />
+                                    </div>
 
                                 </div>
 
@@ -453,10 +467,10 @@ const downloadImage = (dataUrl: string, fileName: string) => {
 
                                             {/* <!-- Oltin wave --> */}
                                             <path d="  M 235 280 C 315 245, 380 215, 427 157 L 427 172 C 375 225, 315 255, 255 280 Z" fill="url(#goldGrad)" />
-
                                         </g>
-
-                                        </svg>
+                                    </svg>
+                                    <img src="/Emblem_of_Uzbekistan.png" alt="" className='absolute w-16 h-16 right-7 top-3.5 bg-white p-1 rounded-full'/>
+                                    <p className='absolute text-white top-8 left-18 text-xl uppercase '>Kutbxona qoidalar</p>
 
                                 </div>
                             </div>

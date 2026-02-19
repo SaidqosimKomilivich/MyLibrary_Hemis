@@ -4760,7 +4760,9 @@ body {
 .pt-5 {
   padding-top: 1.25rem; /* Piksellarda hisoblaganda 20px ga teng */
 }
-
+.p-1 {
+  padding: 0.25rem; /* Odatda bu 4 pikselga (4px) teng bo'ladi */
+}
 /* ═══ Responsive ═══ */
 @media (max-width: 768px) {
   .ac-top-grid {
