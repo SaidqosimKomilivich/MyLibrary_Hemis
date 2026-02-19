@@ -1,8 +1,13 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import {
     ScanLine, UserCheck, UserX, BookPlus, RotateCcw, Clock,
     Search, X, Calendar, BookOpen, AlertTriangle, CheckCircle2,
-    LogIn, LogOut, User, CreditCard
+    LogIn, LogOut, User, CreditCard,
+    RefreshCw,
+    Camera,
+    Settings2,
+    Scan,
+    Loader2
 } from 'lucide-react'
 import { api, type Rental, type Book, type ControlRecord } from '../../services/api'
 import { toast } from 'react-toastify'
@@ -86,6 +91,12 @@ export default function AccessControl() {
     // ──── Today's visitors ────
     const [todayRecords, setTodayRecords] = useState<ControlRecord[]>([])
     const [todayLoading, setTodayLoading] = useState(false)
+    const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
+    const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
+    const [permissionGranted, setPermissionGranted] = useState(false);
+    // const [isScanning, setIsScanning] = useState(false);
+    
+
 
     // Load today's visitors on mount
     useEffect(() => {
@@ -235,6 +246,86 @@ export default function AccessControl() {
         })
     }, [activeRentals])
 
+
+    // 1. Video elementini boshqarish uchun Ref
+    const videoRef = useRef<HTMLVideoElement>(null);
+    // Streamni saqlash (keyinchalik to'xtatish uchun)
+    const [stream, setStream] = useState<MediaStream | null>(null);
+
+    // Kameralar ro'yxatini olish
+    const getDevices = async () => {
+        try {
+            await navigator.mediaDevices.getUserMedia({ video: true });
+            setPermissionGranted(true);
+            
+            const allDevices = await navigator.mediaDevices.enumerateDevices();
+            const videoDevices = allDevices.filter(device => device.kind === 'videoinput');
+            
+            setDevices(videoDevices);
+
+            if (videoDevices.length > 0 && !selectedDeviceId) {
+                setSelectedDeviceId(videoDevices[0].deviceId);
+            }
+        } catch (error) {
+            console.error("Kamera ruxsati berilmadi:", error);
+        }
+    };
+
+    // 2. Tanlangan kamerani ishga tushirish funksiyasi
+    const startCamera = async (deviceId: string) => {
+        if (!deviceId) return;
+
+        // Eski streamni to'xtatish (agar bo'lsa)
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+        }
+
+        try {
+            const newStream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    deviceId: { exact: deviceId } // Aniq shu kamerani tanlash
+                }
+            });
+
+            setStream(newStream);
+
+            // Video elementiga streamni ulash
+            if (videoRef.current) {
+                videoRef.current.srcObject = newStream;
+            }
+        } catch (error) {
+            console.error("Kamerani yoqishda xatolik:", error);
+        }
+    };
+
+    // Dastlabki yuklanish
+    useEffect(() => {
+        getDevices();
+        
+        // Komponent yopilganda kamerani o'chirish (Cleanup)
+        return () => {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+        };
+    }, []);
+
+    // 3. Kamera o'zgarganda uni qayta yoqish
+    useEffect(() => {
+        if (selectedDeviceId) {
+            startCamera(selectedDeviceId);
+        }
+    }, [selectedDeviceId]);
+
+    // const handleScan = async () => {
+    //     if (isScanning) return;
+    //     setIsScanning(true);
+    //     setTimeout(() => {
+    //         setIsScanning(false);
+    //         alert("Skanerlandi!");
+    //     }, 3000); 
+    // };
+
     return (
         <div className="ac-page">
 
@@ -259,7 +350,7 @@ export default function AccessControl() {
             <div className="ac-top-grid">
                 {/* Scanner */}
                 <div className="ac-scanner-card">
-                    <div className="ac-scanner-card__header">
+                    {/* <div className="ac-scanner-card__header">
                         <CreditCard size={20} />
                         <h2>ID Karta Skanerlash</h2>
                     </div>
@@ -309,8 +400,105 @@ export default function AccessControl() {
                                 {u.id_card.substring(0, 8)}...
                             </button>
                         ))}
+                    </div> */}
+
+                    {/* Header */}
+                    <div className="mb-5">
+                        <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                                <Camera className="w-5 h-5 text-white" strokeWidth={2.5} />
+                                <h2 className="text-lg font-bold text-white">ID Karta Skaneri</h2>
+                            </div>
+                            <button 
+                                onClick={getDevices}
+                                className="p-1.5 rounded-full hover:bg-gray-300 text-gray-400 transition-colors"
+                            >
+                                <RefreshCw className="w-4 h-4" />
+                            </button>
+                        </div>
+                        <p className="text-gray-500 text-sm">ID kartani kameraga tutib turing</p>
                     </div>
+
+                    {/* Kamera tanlash (agar 1 tadan ko'p bo'lsa) */}
+                    {devices.length > 1 && (
+                        <div className="mb-4 bg-slate-800/70 p-3 rounded-lg border border-gray-100">
+                            <label className="flex items-center gap-2 text-xs font-semibold text-white mb-2">
+                                <Settings2 className="w-3.5 h-3.5" />
+                                Kamerani tanlash
+                            </label>
+                            <select
+                                value={selectedDeviceId}
+                                onChange={(e) => setSelectedDeviceId(e.target.value)}
+                                disabled={isScanning}
+                                className="w-full bg-slate-800/70 border border-gray-300 text-sm rounded-md p-2.5 outline-none"
+                            >
+                                {devices.map((device, index) => (
+                                    <option key={device.deviceId} value={device.deviceId}>
+                                        {device.label || `Kamera ${index + 1}`}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+                    {/* --- KAMERA MAYDONI (VIDEO QO'SHILDI) --- */}
+                    <div className="w-full aspect-4/3 bg-black rounded-lg border-2 border-gray-200 flex flex-col items-center justify-center mb-6 relative overflow-hidden">
+                        
+                        {permissionGranted ? (
+                            // VIDEO TEGI: Asosiy o'zgarish shu yerda
+                            <video 
+                                ref={videoRef}
+                                autoPlay 
+                                playsInline 
+                                muted
+                                className="absolute inset-0 w-full h-full object-cover" // object-cover tasvirni to'liq qoplaydi
+                            />
+                        ) : (
+                            // Ruxsat yo'q bo'lsa chiqadigan yozuv
+                            <div className="flex flex-col items-center gap-3 text-gray-400 z-10">
+                                <Camera className="w-12 h-12 text-gray-500" strokeWidth={2} />
+                                <span className="text-sm font-medium">Kameraga ruxsat bering</span>
+                            </div>
+                        )}
+
+                        {/* Animatsiya (Skaner chizig'i) */}
+                        {isScanning && (
+                            <div className="absolute inset-0 z-20 pointer-events-none">
+                                <div className="absolute inset-0 bg-green-500/10 animate-pulse"></div>
+                                <div className="absolute left-0 right-0 h-0.5 bg-green-500 shadow-[0_0_15px_rgba(34,197,94,0.8)] animate-[scan_2s_linear_infinite]"></div>
+                            </div>
+                        )}
+                    </div>
+                    {/* Tugma */}
+                    <button
+                        onClick={handleScan}
+                        disabled={isScanning || !permissionGranted}
+                        className={`w-full py-3.5 rounded-lg flex items-center justify-center gap-2 transition-all 
+                            ${isScanning || !permissionGranted 
+                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                                : 'bg-[#1A1A1A] hover:bg-black text-white active:scale-[0.98]'
+                            }`}
+                    >
+                        {isScanning ? (
+                            <>
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                                <span>Skanerlanmoqda...</span>
+                            </>
+                        ) : (
+                            <>
+                                <Scan className="w-5 h-5" />
+                                <span>Skanerlash</span>
+                            </>
+                        )}
+                    </button>
                 </div>
+                <style>{`
+                    @keyframes scan {
+                        0% { top: 0%; opacity: 0; }
+                        10% { opacity: 1; }
+                        90% { opacity: 1; }
+                        100% { top: 100%; opacity: 0; }
+                    }
+                `}</style>
 
                 {/* User Verification Card */}
                 <div className="ac-user-card">

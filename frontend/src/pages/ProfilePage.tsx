@@ -20,7 +20,7 @@ import {
 import { toast } from 'react-toastify'
 import { useAuth } from '../context/AuthContext'
 import { api } from '../services/api'
-import html2canvas from 'html2canvas'
+import { toPng } from 'html-to-image'
 
 const roleLabels: Record<string, string> = {
     admin: 'Administrator',
@@ -41,7 +41,8 @@ export default function ProfilePage() {
     const [showConfirm, setShowConfirm] = useState(false)
     const [loading, setLoading] = useState(false)
     const [cardFlipped, setCardFlipped] = useState(false)
-    const cardRef = useRef<HTMLDivElement>(null)
+    const frontRef = useRef<HTMLDivElement>(null)
+    const backRef = useRef<HTMLDivElement>(null)
 
     if (!user) return null
 
@@ -76,28 +77,81 @@ export default function ProfilePage() {
         }
     }
 
-    const handleDownloadCard = async () => {
-        if (!cardRef.current) return
-        // Make sure front side is visible for download
-        const wasFlipped = cardFlipped
-        if (wasFlipped) setCardFlipped(false)
-        // Small delay for flip animation
-        await new Promise(r => setTimeout(r, wasFlipped ? 400 : 0))
-        try {
-            const canvas = await html2canvas(cardRef.current, {
-                backgroundColor: null,
-                scale: 2,
-                useCORS: true,
-            })
-            const link = document.createElement('a')
-            link.download = `${user.full_name || 'id-card'}.png`
-            link.href = canvas.toDataURL('image/png')
-            link.click()
-        } catch {
-            toast.error("Yuklab olishda xatolik")
+const handleDownloadCard = async () => {
+    const targetRef = cardFlipped ? backRef : frontRef
+    if (!targetRef.current) return
+
+    const currentSideName = cardFlipped
+        ? `${user.full_name || 'id-card'}_orqa`
+        : `${user.full_name || 'id-card'}_old`
+
+    let isTransformed = false
+
+    try {
+        if (cardFlipped && backRef.current) {
+            backRef.current.style.transform = 'rotateY(0deg)'
+            backRef.current.style.backfaceVisibility = 'visible'
+            isTransformed = true
+        }
+
+        await new Promise(r => setTimeout(r, 50))
+
+        const dataUrl = await toPng(targetRef.current, {
+            cacheBust: true,
+            pixelRatio: 1,
+            backgroundColor: '#ffffff',
+        })
+
+        if (cardFlipped && backRef.current) {
+            backRef.current.style.transform = 'rotateY(180deg)'
+            backRef.current.style.backfaceVisibility = 'hidden'
+        }
+
+        // ✅ FIX: navigator.canShare() bilan tekshiring
+        if (navigator.canShare && navigator.canShare({ files: [] })) {
+            try {
+                const blob = await (await fetch(dataUrl)).blob()
+                const file = new File([blob], `${currentSideName}.png`, { type: 'image/png' })
+                
+                await navigator.share({ 
+                    files: [file], 
+                    title: currentSideName 
+                })
+                
+                URL.revokeObjectURL(dataUrl)
+            } catch (shareError) {
+                console.log('Share cancel yoki error:', shareError)
+                downloadImage(dataUrl, currentSideName)
+            }
+        } else {
+            // Browser share qo'llab qolmasa
+            downloadImage(dataUrl, currentSideName)
+        }
+
+    } catch (e) {
+        console.error(e)
+        toast.error("Yuklab olishda xatolik")
+    } finally {
+        if (isTransformed && backRef.current) {
+            backRef.current.style.transform = 'rotateY(180deg)'
+            backRef.current.style.backfaceVisibility = 'hidden'
         }
     }
+}
 
+const downloadImage = (dataUrl: string, fileName: string) => {
+    const link = document.createElement('a')
+    link.download = `${fileName}.png`
+    link.href = dataUrl
+    
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    
+    setTimeout(() => {
+        URL.revokeObjectURL(dataUrl)
+    }, 100)
+}
     // Role-specific info items
     const commonItems = [
         { icon: <User size={18} />, label: 'F.I.Sh', value: user.full_name },
@@ -298,89 +352,123 @@ export default function ProfilePage() {
 
                 {/* ===== ID CARD TAB ===== */}
                 {activeTab === 'card' && (
-                    <div className="profile-card-section">
-                        <p className="profile-card-desc">
-                            Kutubxona tizimida ro'yxatdan o'tganligingizni tasdiqlovchi ID karta
-                        </p>
+                    <div className='grid justify-center'>
+                        <div className='w-105 h-70 cursor-pointer' style={{perspective: '1000px'}} onClick={() => setCardFlipped(!cardFlipped)}>
+                            <div className='relative w-full h-full transition-transform duration-700' style={{transformStyle: 'preserve-3d', transform: cardFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)'}}>
+                                
+                                {/* frontRef shu yerga */}
+                                <div ref={frontRef} className='absolute inset-0 bg-white/40 rounded-2xl p-2 flex items-center justify-center' style={{backfaceVisibility: 'hidden'}}>
+                                    <svg width="420" height="280" viewBox="0 0 420 280" className='rounded-2xl'>
+                                        <defs>
+                                            {/* <!-- Ko‘k gradient --> */}
+                                            <linearGradient id="blueGrad" x1="0" y1="0" x2="1" y2="0">
+                                                <stop offset="0%" stop-color="#1e2a78"/>
+                                                <stop offset="100%" stop-color="#1f6aa5"/>
+                                            </linearGradient>
 
-                        {/* Flip Card */}
-                        <div className="id-card-flipper-container">
-                            <div className={`id-card-flipper ${cardFlipped ? 'id-card-flipper--flipped' : ''}`} ref={cardRef}>
-                                {/* ===== FRONT SIDE ===== */}
-                                <div className="bg-white w-[420px] h-[280px] rounded-[15px] text-black">
-                                    <div className='absolute top-0 left-0 w-full h-full'>
-                                        {/* Yuqori Ko'k va Tillarang To'lqin */}
-                                        <div className="absolute top-0 left-0 w-full h-full">
-                                            {/* Tillarang Hoshiya (Orqa fon) */}
-                                            <div
-                                                className="absolute top-0 left-0 w-full h-2/3 bg-card-gold"
-                                                style={{
-                                                    clipPath: 'polygon(0 0, 100% 0, 100% 25%, 0 65%)'
-                                                }}
-                                            ></div>
-                                            {/* Asosiy Ko'k Shakl */}
-                                            <div
-                                                className="absolute top-0 left-0 w-full h-2/3 bg-card-blue"
-                                                style={{
-                                                    clipPath: 'polygon(0 0, 100% 0, 100% 20%, 0 60%)'
-                                                }}
-                                            ></div>
-                                        </div>
-                                    </div>
+                                            {/* <!-- Oltin gradient --> */}
+                                            <linearGradient id="goldGrad" x1="0" y1="0" x2="1" y2="0">
+                                                <stop offset="0%" stop-color="#caa23a"/>
+                                                <stop offset="50%" stop-color="#f6e27a"/>
+                                                <stop offset="100%" stop-color="#b8860b"/>
+                                            </linearGradient>
+
+                                            {/* <!-- Och oltin (gap uchun) --> */}
+                                            <linearGradient id="lightGold" x1="0" y1="0" x2="1" y2="0">
+                                                <stop offset="0%" stop-color="#f8e9a1"/>
+                                                <stop offset="100%" stop-color="#e6c65c"/>
+                                            </linearGradient>
+
+                                            {/* <!-- Shadow --> */}
+                                            <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+                                                <feDropShadow dx="0" dy="10" stdDeviation="15" flood-opacity="0.2"/>
+                                            </filter>
+
+                                            {/* <!-- Rounded clip --> */}
+                                            <clipPath id="cardClip">
+                                                <rect width="420" height="280" />
+                                            </clipPath>
+                                        </defs>
+
+                                        {/* <!-- Karta --> */}
+                                        <rect width="420" height="280" fill="#f4f4f6" filter="url(#shadow)"/>
+
+                                        <g clip-path="url(#cardClip)">
+                                            
+                                            {/* <!-- Ko‘k qism --> */}
+                                            <path d="M 0 0 L 420 0 L 420 90 C 330 80, 260 75, 200 90 C 140 105, 80 115, 0 100 Z " fill="url(#blueGrad)"/>
+
+                                            {/* <!-- 1px och oltin separator --> */}
+                                            <path d="M 0 100 C 100 115, 180 105, 240 90 C 300 75, 360 80, 420 90 L 420 91 C 360 81, 300 86, 240 101 C 180 116, 100 126, 0 111 Z " fill="url(#lightGold)" />
+
+                                            {/* <!-- Oltin wave (5px ingichkaroq) --> */}
+                                            <path d="M 0 106 C 100 121, 180 111, 240 96 C 300 81, 360 86, 420 96 L 420 101 C 360 91, 300 96, 240 111 C 180 126, 100 136, 0 121 Z" fill="url(#goldGrad)"/>
+                                        </g>
+                                    </svg>
+
                                 </div>
 
-                                {/* ===== BACK SIDE ===== */}
-                                <div className="id-card id-card-back">
-                                    {/* Back header */}
-                                    <div className="id-card-back-header">
-                                        <div className="id-card-back-title">KUTUBXONA QOIDALARI</div>
-                                        <img src="/logo.png" alt="Logo" className="id-card-back-logo" />
-                                    </div>
+                                {/* backRef shu yerga */}
+                                <div ref={backRef} className='absolute inset-0 bg-white/40 rounded-2xl p-2 flex items-center justify-center' style={{backfaceVisibility: 'hidden', transform: 'rotateY(180deg)'}}>
+                                    <svg width="420" height="280" viewBox="0 0 420 280" className='rounded-2xl'>
+                                        <defs>
+                                            <linearGradient id="blueGrad" x1="0" y1="0" x2="1" y2="0">
+                                                <stop offset="0%" stop-color="#1e2a78"/>
+                                                <stop offset="100%" stop-color="#1f6aa5"/>
+                                            </linearGradient>
 
-                                    {/* Gold stripe */}
-                                    <div className="id-card-gold-stripe" />
+                                            <linearGradient id="darkBlue" x1="0" y1="0" x2="1" y2="0">
+                                                <stop offset="0%" stop-color="#1b2a60"/>
+                                                <stop offset="100%" stop-color="#174f7a"/>
+                                            </linearGradient>
 
-                                    {/* Rules content */}
-                                    <div className="id-card-back-body">
-                                        <ol className="id-card-rules">
-                                            <li>Kutubxona tizimi qoidalariga rioya qilish majburiy.</li>
-                                            <li>Kitoblar belgilangan muddatda qaytarilishi shart.</li>
-                                            <li>Kutubxona materiallarini ehtiyotkorlik bilan saqlang.</li>
-                                            <li>Boshqa o'quvchilarga kitob berish man etiladi.</li>
-                                            <li>Yo'qotilgan yoki shikastlangan kitoblar uchun javobgar bo'lasiz.</li>
-                                            <li>Kutubxonada tartib va jimlikni saqlang.</li>
-                                        </ol>
+                                            <linearGradient id="goldGrad" x1="0" y1="0" x2="1" y2="0">
+                                                <stop offset="0%" stop-color="#caa23a"/>
+                                                <stop offset="50%" stop-color="#f6e27a"/>
+                                                <stop offset="100%" stop-color="#b8860b"/>
+                                            </linearGradient>
 
-                                        <div className="id-card-back-contacts">
-                                            <div className="id-card-back-contact-row">
-                                                <span>📧</span> info@jf.nuu.uz
-                                            </div>
-                                            <div className="id-card-back-contact-row">
-                                                <span>📞</span> +998 72 031 33 29 01
-                                            </div>
-                                            <div className="id-card-back-contact-row">
-                                                <span>🌐</span> www.jf.nuu.uz
-                                            </div>
-                                        </div>
-                                    </div>
+                                            <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+                                                <feDropShadow dx="0" dy="8" stdDeviation="12" flood-opacity="0.25"/>
+                                            </filter>
 
-                                    {/* Footer wave */}
-                                    <div className="id-card-footer">
-                                        <svg viewBox="0 0 500 40" preserveAspectRatio="none" className="id-card-wave">
-                                            <path d="M0,25 C80,0 150,40 250,20 C350,0 420,35 500,15 L500,40 L0,40 Z" fill="#1565C0" opacity="0.5" />
-                                            <path d="M0,30 C100,10 200,40 300,25 C400,10 450,35 500,20 L500,40 L0,40 Z" fill="#1976D2" opacity="0.6" />
+                                            <clipPath id="cardClip">
+                                                <rect width="420" height="280" />
+                                            </clipPath>
+                                        </defs>
+
+                                        {/* <!-- Asosiy karta --> */}
+                                        <rect width="420" height="280" fill="#f5f5f5" filter="url(#shadow)"/>
+
+                                        <g clip-path="url(#cardClip)">
+
+                                            {/* <!-- Yuqori ko‘k strip --> */}
+                                            <rect x="0" y="25" width="420" height="45" fill="url(#blueGrad)" />
+
+                                            {/* <!-- Pastki o‘ng ko‘k katta egri (7px past + 7px o‘ng) --> */}
+                                            <path d="M 220 280 C 300 240, 370 220, 427 157 L 427 280 Z" fill="url(#blueGrad)"/>
+
+                                            {/* <!-- To‘q ko‘k layer --> */}
+                                            <path d="M 240 280 C 310 250, 375 225, 427 172 L 427 205 C 370 250, 305 270, 240 280 Z" fill="url(#darkBlue)" />
+
+                                            {/* <!-- Oltin wave --> */}
+                                            <path d="  M 235 280 C 315 245, 380 215, 427 157 L 427 172 C 375 225, 315 255, 255 280 Z" fill="url(#goldGrad)" />
+
+                                        </g>
+
                                         </svg>
-                                    </div>
+
                                 </div>
                             </div>
                         </div>
 
-                        <div className="profile-card-actions">
-                            <button className="profile-flip-btn" onClick={() => setCardFlipped(!cardFlipped)}>
+                        <div className='grid grid-cols-2 pt-5 gap-5'>
+                            <button className='flex justify-center items-center gap-3 p-2.5 bg-gray-400 hover:bg-gray-300 hover:text-black rounded-2xl transition-transform duration-150 active:scale-85' onClick={() => setCardFlipped(!cardFlipped)}>
                                 <RotateCw size={18} />
-                                {cardFlipped ? 'Old tomoni' : 'Orqa tomoni'}
+                                {cardFlipped ? "Old tomon" : "Orqa tomon"}
                             </button>
-                            <button className="profile-download-btn" onClick={handleDownloadCard}>
+
+                            <button className='flex justify-center items-center gap-3 p-2.5 bg-green-400 hover:bg-green-300 hover:text-black transition-transform duration-150 active:scale-75 rounded-2xl' onClick={handleDownloadCard}>
                                 <Download size={18} />
                                 Yuklab olish
                             </button>
