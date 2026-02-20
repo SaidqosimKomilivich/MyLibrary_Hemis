@@ -19,7 +19,7 @@ use crate::handlers::book_handler;
 use crate::handlers::control_handler;
 use crate::handlers::reading_handler;
 use crate::handlers::rental_handler;
-
+use crate::handlers::sync_handler;
 use crate::handlers::upload_handler;
 
 #[actix_web::main]
@@ -136,6 +136,19 @@ async fn main() -> std::io::Result<()> {
                     .route("", web::post().to(reading_handler::start_reading))
                     .route("", web::get().to(reading_handler::get_readings))
                     .route("/{id}", web::delete().to(reading_handler::remove_reading)),
+            )
+            // Sync routes (HEMIS sinxronlash)
+            .service(
+                web::scope("/api/sync")
+                    // Talabalar
+                    .route("/students", web::post().to(sync_handler::sync_students))
+                    .route("/students", web::get().to(sync_handler::get_students))
+                    // O'qituvchilar
+                    .route("/teachers", web::post().to(sync_handler::sync_teachers))
+                    .route("/teachers", web::get().to(sync_handler::get_teachers))
+                    // Xodimlar
+                    .route("/employees", web::post().to(sync_handler::sync_employees))
+                    .route("/employees", web::get().to(sync_handler::get_employees)),
             )
             // Static files (uploads papkasini brauzerdan ko'rish)
             .service(actix_files::Files::new("/uploads", upload_dir.clone()))

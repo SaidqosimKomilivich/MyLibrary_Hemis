@@ -12,6 +12,8 @@ pub struct Config {
     pub admin_parol: String,
     pub admin_name: String,
     pub upload_dir: String,
+    pub hemis_base_url: String,
+    pub hemis_token: String,
 }
 
 impl Config {
@@ -38,6 +40,9 @@ impl Config {
             admin_parol: env::var("ADMIN_PAROL").unwrap_or_else(|_| "admin123".to_string()),
             admin_name: env::var("ADMIN_NAME").unwrap_or_else(|_| "Administrator".to_string()),
             upload_dir: env::var("UPLOAD_DIR").unwrap_or_else(|_| "./uploads".to_string()),
+            hemis_base_url: env::var("HEMIS_BASE_URL")
+                .unwrap_or_else(|_| "https://student.jbnuu.uz".to_string()),
+            hemis_token: env::var("HEMIS_TOKEN").expect("HEMIS_TOKEN must be set"),
         }
     }
 }

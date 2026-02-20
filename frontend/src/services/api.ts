@@ -255,6 +255,21 @@ export const api = {
             body: JSON.stringify({ notes }),
         })
     },
+
+    // HEMIS sync endpoints
+    syncHemisStudents() {
+        return request<{
+            success: boolean;
+            message: string;
+            created: number;
+            updated: number;
+            total: number;
+        }>('/sync/students', { method: 'POST' })
+    },
+
+    getStudents() {
+        return request<{ success: boolean; data: UserData[] }>('/sync/students')
+    },
 }
 
 // Book types

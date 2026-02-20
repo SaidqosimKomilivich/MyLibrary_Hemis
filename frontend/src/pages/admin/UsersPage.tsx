@@ -1,14 +1,11 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { GraduationCap, Briefcase, BookUser, Search, RefreshCw, X, ArrowDownToLine, CheckCircle2, Eye, ToggleLeft, ToggleRight, Mail, Phone, Calendar, MapPin, Hash, Bell } from 'lucide-react'
+import { GraduationCap, Briefcase, BookUser, Search, RefreshCw, X, ArrowDownToLine, CheckCircle2, Eye, ToggleLeft, ToggleRight, Mail, Phone, Calendar, MapPin, Hash, Bell, AlertCircle, Loader2 } from 'lucide-react'
+import { api } from '../../services/api'
+import type { UserData } from '../../services/api'
+import { toast } from 'react-toastify'
 
-
-
-// Types
-interface Student {
-    id: number; name: string; group: string; faculty: string; status: string
-    email: string; phone: string; birthDate: string; address: string; hemis_id: string; enrollYear: number
-}
+// Types (o'qituvchi va xodimlar hali mock)
 interface Teacher {
     id: number; name: string; department: string; position: string; status: string
     email: string; phone: string; birthDate: string; address: string; hemis_id: string; experience: number
@@ -17,19 +14,7 @@ interface Employee {
     id: number; name: string; department: string; position: string; status: string
     email: string; phone: string; birthDate: string; address: string; hemis_id: string; hireDate: string
 }
-type AnyUser = Student | Teacher | Employee
-
-// Demo data
-const initialStudents: Student[] = [
-    { id: 1, name: "Azimov Jasur", group: "CS-21", faculty: "Kompyuter ilmlari", status: "active", email: "j.azimov@jbnuu.uz", phone: "+998901234567", birthDate: "2003-05-14", address: "Jizzax sh., Sharof Rashidov ko'chasi", hemis_id: "12345678", enrollYear: 2021 },
-    { id: 2, name: "Karimova Nilufar", group: "CS-21", faculty: "Kompyuter ilmlari", status: "active", email: "n.karimova@jbnuu.uz", phone: "+998901234568", birthDate: "2003-08-22", address: "Jizzax sh., Navoiy ko'chasi", hemis_id: "12345679", enrollYear: 2021 },
-    { id: 3, name: "Toshmatov Sardor", group: "MT-22", faculty: "Matematika", status: "active", email: "s.toshmatov@jbnuu.uz", phone: "+998901234569", birthDate: "2004-01-10", address: "Jizzax sh., Mustaqillik ko'chasi", hemis_id: "12345680", enrollYear: 2022 },
-    { id: 4, name: "Rahimova Dilfuza", group: "FZ-20", faculty: "Fizika", status: "inactive", email: "d.rahimova@jbnuu.uz", phone: "+998901234570", birthDate: "2002-11-03", address: "Jizzax sh., Amir Temur ko'chasi", hemis_id: "12345681", enrollYear: 2020 },
-    { id: 5, name: "Xolmatov Bekzod", group: "CS-23", faculty: "Kompyuter ilmlari", status: "active", email: "b.xolmatov@jbnuu.uz", phone: "+998901234571", birthDate: "2005-03-28", address: "Jizzax sh., Islom Karimov ko'chasi", hemis_id: "12345682", enrollYear: 2023 },
-    { id: 6, name: "Abdullayeva Sarvinoz", group: "BI-21", faculty: "Biologiya", status: "active", email: "s.abdullayeva@jbnuu.uz", phone: "+998901234572", birthDate: "2003-07-19", address: "Jizzax sh., Bobur ko'chasi", hemis_id: "12345683", enrollYear: 2021 },
-    { id: 7, name: "Raximov Sherzod", group: "MT-22", faculty: "Matematika", status: "active", email: "sh.raximov@jbnuu.uz", phone: "+998901234573", birthDate: "2004-09-15", address: "Jizzax sh., Do'stlik ko'chasi", hemis_id: "12345684", enrollYear: 2022 },
-    { id: 8, name: "Qosimova Madina", group: "CS-23", faculty: "Kompyuter ilmlari", status: "active", email: "m.qosimova@jbnuu.uz", phone: "+998901234574", birthDate: "2005-02-07", address: "Jizzax sh., Universitet ko'chasi", hemis_id: "12345685", enrollYear: 2023 },
-]
+type AnyUser = UserData | Teacher | Employee
 
 const initialTeachers: Teacher[] = [
     { id: 1, name: "Ismoilov Ravshan", department: "Kompyuter ilmlari", position: "Dotsent", status: "active", email: "r.ismoilov@jbnuu.uz", phone: "+998901111001", birthDate: "1985-04-20", address: "Jizzax sh., Navoiy ko'chasi", hemis_id: "T001", experience: 12 },
@@ -60,11 +45,13 @@ interface SyncSectionProps {
     icon: React.ReactNode
     color: string
     count: number
-    progress: number  // 0 = idle, 1-99 = syncing, 100 = done
+    progress: number
     onSync: () => void
+    syncResult?: { created: number; updated: number; total: number } | null
+    isReal?: boolean
 }
 
-function SyncSection({ title, icon, color, count, progress, onSync }: SyncSectionProps) {
+function SyncSection({ title, icon, color, count, progress, onSync, syncResult, isReal }: SyncSectionProps) {
     const isActive = progress > 0 && progress < 100
     const isDone = progress === 100
 
@@ -93,7 +80,7 @@ function SyncSection({ title, icon, color, count, progress, onSync }: SyncSectio
                     ) : isActive ? (
                         <>
                             <RefreshCw size={16} className="spin-animation" />
-                            {progress}%
+                            {isReal ? 'Sinxronlanmoqda...' : `${progress}%`}
                         </>
                     ) : (
                         <>
@@ -107,7 +94,11 @@ function SyncSection({ title, icon, color, count, progress, onSync }: SyncSectio
             {(isActive || isDone) && (
                 <div className="sync-progress">
                     <div className="sync-progress__status">
-                        <span className="sync-progress__label">{getSyncLabel(progress)}</span>
+                        <span className="sync-progress__label">
+                            {isDone && syncResult
+                                ? `${syncResult.created} ta yangi, ${syncResult.updated} ta yangilandi (jami: ${syncResult.total})`
+                                : getSyncLabel(progress)}
+                        </span>
                         <span className={`sync-progress__percent ${isDone ? 'sync-progress__percent--done' : ''}`}>
                             {progress}%
                         </span>
@@ -126,39 +117,51 @@ function SyncSection({ title, icon, color, count, progress, onSync }: SyncSectio
 
 // User Detail Modal
 function UserDetailModal({ user, type, onClose }: { user: AnyUser; type: 'student' | 'teacher' | 'employee'; onClose: () => void }) {
+    const getName = () => 'full_name' in user ? user.full_name : (user as Teacher | Employee).name
     const getInitials = (name: string) => name.split(' ').map(n => n[0]).join('')
+    const getImageUrl = () => 'image_url' in user ? (user as UserData).image_url : null
 
-    const infoRows: { icon: React.ReactNode; label: string; value: string }[] = [
-        { icon: <Hash size={16} />, label: 'HEMIS ID', value: user.hemis_id },
-        { icon: <Mail size={16} />, label: 'Email', value: user.email },
-        { icon: <Phone size={16} />, label: 'Telefon', value: user.phone },
-        { icon: <Calendar size={16} />, label: "Tug'ilgan sana", value: user.birthDate },
-        { icon: <MapPin size={16} />, label: 'Manzil', value: user.address },
-    ]
+    const infoRows: { icon: React.ReactNode; label: string; value: string }[] = []
 
-    // Type-specific info
     if (type === 'student') {
-        const s = user as Student
-        infoRows.splice(1, 0,
-            { icon: <GraduationCap size={16} />, label: 'Guruh', value: s.group },
-            { icon: <BookUser size={16} />, label: 'Fakultet', value: s.faculty },
-            { icon: <Calendar size={16} />, label: "O'qishga kirgan yili", value: String(s.enrollYear) },
+        const s = user as UserData
+        infoRows.push(
+            { icon: <Hash size={16} />, label: 'Student ID', value: s.user_id },
+            { icon: <GraduationCap size={16} />, label: 'Guruh', value: s.group_name || '-' },
+            { icon: <BookUser size={16} />, label: 'Fakultet', value: s.department_name || '-' },
+            { icon: <MapPin size={16} />, label: "Mutaxassislik", value: s.specialty_name || '-' },
+            { icon: <Mail size={16} />, label: 'Email', value: s.email || '-' },
+            { icon: <Phone size={16} />, label: 'Telefon', value: s.phone || '-' },
+            { icon: <Calendar size={16} />, label: "Tug'ilgan sana", value: s.birth_date || '-' },
         )
     } else if (type === 'teacher') {
         const t = user as Teacher
-        infoRows.splice(1, 0,
+        infoRows.push(
+            { icon: <Hash size={16} />, label: 'HEMIS ID', value: t.hemis_id },
             { icon: <BookUser size={16} />, label: 'Kafedra', value: t.department },
             { icon: <Briefcase size={16} />, label: 'Lavozim', value: t.position },
             { icon: <Calendar size={16} />, label: 'Tajriba', value: `${t.experience} yil` },
+            { icon: <Mail size={16} />, label: 'Email', value: t.email },
+            { icon: <Phone size={16} />, label: 'Telefon', value: t.phone },
+            { icon: <Calendar size={16} />, label: "Tug'ilgan sana", value: t.birthDate },
+            { icon: <MapPin size={16} />, label: 'Manzil', value: t.address },
         )
     } else {
         const e = user as Employee
-        infoRows.splice(1, 0,
+        infoRows.push(
+            { icon: <Hash size={16} />, label: 'HEMIS ID', value: e.hemis_id },
             { icon: <Briefcase size={16} />, label: "Bo'lim", value: e.department },
             { icon: <BookUser size={16} />, label: 'Lavozim', value: e.position },
             { icon: <Calendar size={16} />, label: 'Ishga kirgan sana', value: e.hireDate },
+            { icon: <Mail size={16} />, label: 'Email', value: e.email },
+            { icon: <Phone size={16} />, label: 'Telefon', value: e.phone },
+            { icon: <Calendar size={16} />, label: "Tug'ilgan sana", value: e.birthDate },
+            { icon: <MapPin size={16} />, label: 'Manzil', value: e.address },
         )
     }
+
+    const name = getName()
+    const imageUrl = getImageUrl()
 
     return createPortal(
         <div className="user-detail__backdrop" onClick={onClose}>
@@ -169,15 +172,16 @@ function UserDetailModal({ user, type, onClose }: { user: AnyUser; type: 'studen
 
                 {/* Header */}
                 <div className="user-detail__header">
-                    <div className="user-detail__avatar">
-                        {getInitials(user.name)}
-                    </div>
-                    <h3 className="user-detail__name">{user.name}</h3>
-                    <span className={`users-page__status users-page__status--${user.status}`}>
-                        {user.status === 'active' ? 'Faol' : 'Nofaol'}
-                    </span>
+                    {imageUrl ? (
+                        <img src={imageUrl} alt={name} style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover' }} />
+                    ) : (
+                        <div className="user-detail__avatar">
+                            {getInitials(name)}
+                        </div>
+                    )}
+                    <h3 className="user-detail__name">{name}</h3>
                     <span className="user-detail__role-badge">
-                        {type === 'student' ? '🎓 Talaba' : type === 'teacher' ? '👨‍🏫 O\'qituvchi' : '💼 Xodim'}
+                        {type === 'student' ? '🎓 Talaba' : type === 'teacher' ? "👨‍🏫 O'qituvchi" : '💼 Xodim'}
                     </span>
                 </div>
 
@@ -204,8 +208,11 @@ export default function UsersPage() {
     const [activeTab, setActiveTab] = useState<'students' | 'teachers' | 'employees'>('students')
     const [syncModalOpen, setSyncModalOpen] = useState(false)
 
-    // Mutable data
-    const [students, setStudents] = useState<Student[]>(initialStudents)
+    // Talabalar — haqiqiy API dan
+    const [students, setStudents] = useState<UserData[]>([])
+    const [studentsLoading, setStudentsLoading] = useState(false)
+
+    // O'qituvchilar va xodimlar — hali mock
     const [teachers, setTeachers] = useState<Teacher[]>(initialTeachers)
     const [employees, setEmployees] = useState<Employee[]>(initialEmployees)
 
@@ -213,16 +220,71 @@ export default function UsersPage() {
     const [viewUser, setViewUser] = useState<AnyUser | null>(null)
     const [viewUserType, setViewUserType] = useState<'student' | 'teacher' | 'employee'>('student')
 
-    // Notification modal
-    const [notificationTarget, setNotificationTarget] = useState<{ id: string, name: string } | null>(null)
-
-
-    // Sync progress (0 = idle, 1-99 = syncing, 100 = done)
+    // Sync progress
+    const [studentSyncing, setStudentSyncing] = useState(false)
     const [studentProgress, setStudentProgress] = useState(0)
+    const [studentSyncResult, setStudentSyncResult] = useState<{ created: number; updated: number; total: number } | null>(null)
     const [teacherProgress, setTeacherProgress] = useState(0)
     const [employeeProgress, setEmployeeProgress] = useState(0)
     const intervalsRef = useRef<number[]>([])
 
+    // Talabalarni backend dan yuklash
+    const loadStudents = useCallback(async () => {
+        setStudentsLoading(true)
+        try {
+            const resp = await api.getStudents()
+            if (resp.success && resp.data) {
+                setStudents(resp.data)
+            }
+        } catch (e) {
+            console.error('Talabalarni yuklashda xato:', e)
+        } finally {
+            setStudentsLoading(false)
+        }
+    }, [])
+
+    useEffect(() => {
+        loadStudents()
+    }, [loadStudents])
+
+    // Haqiqiy HEMIS sinxronlash
+    const handleSyncStudents = useCallback(async () => {
+        setStudentSyncing(true)
+        setStudentProgress(10)
+        setStudentSyncResult(null)
+
+        // Progressni simulyatsiya (backend ishini kutib)
+        const progressInterval = window.setInterval(() => {
+            setStudentProgress(prev => {
+                if (prev >= 90) return prev
+                return prev + Math.floor(Math.random() * 5) + 1
+            })
+        }, 300)
+
+        try {
+            const resp = await api.syncHemisStudents()
+            clearInterval(progressInterval)
+
+            if (resp.success) {
+                setStudentProgress(100)
+                setStudentSyncResult({ created: resp.created, updated: resp.updated, total: resp.total })
+                toast.success(resp.message || `${resp.total} ta talaba sinxronlandi`)
+                // Talabalar ro'yxatini yangilash
+                await loadStudents()
+            } else {
+                setStudentProgress(0)
+                toast.error(resp.message || 'Sinxronlashda xatolik')
+            }
+        } catch (e) {
+            clearInterval(progressInterval)
+            setStudentProgress(0)
+            toast.error(e instanceof Error ? e.message : 'HEMIS bilan aloqa uzildi')
+        } finally {
+            setStudentSyncing(false)
+        }
+    }, [loadStudents])
+
+    // Mock sync (o'qituvchi/xodimlar uchun)
     const simulateSync = useCallback((setter: React.Dispatch<React.SetStateAction<number>>) => {
         setter(1)
         const id = window.setInterval(() => {
@@ -231,7 +293,6 @@ export default function UsersPage() {
                     clearInterval(id)
                     return 100
                 }
-                // Random jumps between 2-8%, slower near the end
                 const jump = prev < 70
                     ? Math.floor(Math.random() * 7) + 2
                     : Math.floor(Math.random() * 4) + 1
@@ -242,19 +303,16 @@ export default function UsersPage() {
     }, [])
 
     const handleOpenSyncModal = () => {
-        // Clear any running intervals
         intervalsRef.current.forEach(id => clearInterval(id))
         intervalsRef.current = []
         setStudentProgress(0)
         setTeacherProgress(0)
         setEmployeeProgress(0)
+        setStudentSyncResult(null)
         setSyncModalOpen(true)
     }
 
     // Toggle status
-    const toggleStudentStatus = (id: number) => {
-        setStudents(prev => prev.map(s => s.id === id ? { ...s, status: s.status === 'active' ? 'inactive' : 'active' } : s))
-    }
     const toggleTeacherStatus = (id: number) => {
         setTeachers(prev => prev.map(t => t.id === id ? { ...t, status: t.status === 'active' ? 'inactive' : 'active' } : t))
     }
@@ -268,30 +326,11 @@ export default function UsersPage() {
         setViewUserType(type)
     }
 
-    // Send notification
-    const handleSendNotification = (user: AnyUser) => {
-        // Backend expects UUID, but demo data has number IDs.
-        // In real app, IDs are UUIDs. For demo, we might fail or need to mock.
-        // Assuming user.id is string or we cast it. 
-        // Wait, the API expects string UUID.
-        // In the demo data `id` is number.
-        // I should probably cast it to string, but backend will fail if it's not UUID.
-        // However, I can't change the demo data types easily here without breaking everything.
-        // Let's assume for now we just pass it as string, and if it fails, it fails (it's a demo page connected to real backend? No, `UsersPage` seems to carry its own state but `DashboardLayout` uses `useAuth`).
-        // Actually `UsersPage` seems to be fully frontend mock data based on `initialStudents`.
-        // If I want to test real notifications, I need real users from backend.
-        // But the user asked to "integrate" it.
-        // I will add the button and the modal. The API call might fail if IDs don't match backend.
-        // But the UI will be correct.
-        setNotificationTarget({ id: user.id.toString(), name: user.name })
-    }
-
     // Filter
-
     const filteredStudents = students.filter(s =>
-        s.name.toLowerCase().includes(search.toLowerCase()) ||
-        s.group.toLowerCase().includes(search.toLowerCase()) ||
-        s.faculty.toLowerCase().includes(search.toLowerCase())
+        s.full_name.toLowerCase().includes(search.toLowerCase()) ||
+        (s.group_name || '').toLowerCase().includes(search.toLowerCase()) ||
+        (s.department_name || '').toLowerCase().includes(search.toLowerCase())
     )
     const filteredTeachers = teachers.filter(t =>
         t.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -352,55 +391,65 @@ export default function UsersPage() {
             {/* Table */}
             <div className="users-page__table-wrapper">
                 {activeTab === 'students' && (
-                    <table className="users-page__table">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Ism</th>
-                                <th>Guruh</th>
-                                <th>Fakultet</th>
-                                <th>Holat</th>
-                                <th>Amallar</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredStudents.map((s, i) => (
-                                <tr key={s.id}>
-                                    <td>{i + 1}</td>
-                                    <td>
-                                        <div className="users-page__user-cell">
-                                            <div className="users-page__avatar">{s.name.charAt(0)}</div>
-                                            {s.name}
-                                        </div>
-                                    </td>
-                                    <td><span className="users-page__group-badge">{s.group}</span></td>
-                                    <td>{s.faculty}</td>
-                                    <td>
-                                        <span className={`users-page__status users-page__status--${s.status}`}>
-                                            {s.status === 'active' ? 'Faol' : 'Nofaol'}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div className="users-page__actions">
-                                            <button className="users-page__action-btn users-page__action-btn--view" title="Ko'rish" onClick={() => handleView(s, 'student')}>
-                                                <Eye size={15} />
-                                            </button>
-                                            <button className="users-page__action-btn users-page__action-btn--view" title="Xabar yuborish" onClick={() => handleSendNotification(s)}>
-                                                <Bell size={15} />
-                                            </button>
-                                            <button
-                                                className={`users-page__action-btn ${s.status === 'active' ? 'users-page__action-btn--deactivate' : 'users-page__action-btn--activate'}`}
-                                                title={s.status === 'active' ? 'Nofaol qilish' : 'Faol qilish'}
-                                                onClick={() => toggleStudentStatus(s.id)}
-                                            >
-                                                {s.status === 'active' ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
-                                            </button>
-                                        </div>
-                                    </td>
+                    studentsLoading ? (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 0', gap: 12, color: 'var(--color-text-muted)' }}>
+                            <Loader2 size={20} className="spin-animation" />
+                            <span>Talabalar yuklanmoqda...</span>
+                        </div>
+                    ) : students.length === 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 0', gap: 12, color: 'var(--color-text-muted)' }}>
+                            <AlertCircle size={32} />
+                            <p style={{ fontSize: '0.875rem' }}>Talabalar topilmadi</p>
+                            <p style={{ fontSize: '0.75rem', opacity: 0.6 }}>HEMIS sinxronlash tugmasini bosing</p>
+                        </div>
+                    ) : (
+                        <table className="users-page__table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Ism</th>
+                                    <th>Guruh</th>
+                                    <th>Fakultet</th>
+                                    <th>Holat</th>
+                                    <th>Amallar</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {filteredStudents.map((s, i) => (
+                                    <tr key={s.id}>
+                                        <td>{i + 1}</td>
+                                        <td>
+                                            <div className="users-page__user-cell">
+                                                {s.image_url ? (
+                                                    <img src={s.image_url} alt={s.full_name} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                                                ) : (
+                                                    <div className="users-page__avatar">{s.full_name.charAt(0)}</div>
+                                                )}
+                                                {s.full_name}
+                                            </div>
+                                        </td>
+                                        <td><span className="users-page__group-badge">{s.group_name || '-'}</span></td>
+                                        <td>{s.department_name || '-'}</td>
+                                        <td>
+                                            <span className={`users-page__status users-page__status--${s.active ? 'active' : 'inactive'}`}>
+                                                {s.active ? 'Faol' : 'Nofaol'}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div className="users-page__actions">
+                                                <button className="users-page__action-btn users-page__action-btn--view" title="Ko'rish" onClick={() => handleView(s, 'student')}>
+                                                    <Eye size={15} />
+                                                </button>
+                                                <button className="users-page__action-btn users-page__action-btn--view" title="Xabar yuborish">
+                                                    <Bell size={15} />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )
                 )}
 
                 {activeTab === 'teachers' && (
@@ -437,7 +486,7 @@ export default function UsersPage() {
                                             <button className="users-page__action-btn users-page__action-btn--view" title="Ko'rish" onClick={() => handleView(t, 'teacher')}>
                                                 <Eye size={15} />
                                             </button>
-                                            <button className="users-page__action-btn users-page__action-btn--view" title="Xabar yuborish" onClick={() => handleSendNotification(t)}>
+                                            <button className="users-page__action-btn users-page__action-btn--view" title="Xabar yuborish">
                                                 <Bell size={15} />
                                             </button>
                                             <button
@@ -489,7 +538,7 @@ export default function UsersPage() {
                                             <button className="users-page__action-btn users-page__action-btn--view" title="Ko'rish" onClick={() => handleView(e, 'employee')}>
                                                 <Eye size={15} />
                                             </button>
-                                            <button className="users-page__action-btn users-page__action-btn--view" title="Xabar yuborish" onClick={() => handleSendNotification(e)}>
+                                            <button className="users-page__action-btn users-page__action-btn--view" title="Xabar yuborish">
                                                 <Bell size={15} />
                                             </button>
                                             <button
@@ -543,7 +592,9 @@ export default function UsersPage() {
                                 color="var(--stat-blue)"
                                 count={students.length}
                                 progress={studentProgress}
-                                onSync={() => simulateSync(setStudentProgress)}
+                                onSync={handleSyncStudents}
+                                syncResult={studentSyncResult}
+                                isReal
                             />
                             <SyncSection
                                 title="O'qituvchilar"
@@ -565,7 +616,7 @@ export default function UsersPage() {
 
                         <div className="sync-modal__footer">
                             <span className="sync-modal__note">
-                                💡 Har bir bo'limni alohida yangilashingiz mumkin
+                                💡 Talabalar haqiqiy HEMIS dan sinxronlanadi
                             </span>
                             <button className="sync-modal__done-btn" onClick={() => setSyncModalOpen(false)}>
                                 Yopish
@@ -575,7 +626,6 @@ export default function UsersPage() {
                 </div>,
                 document.body
             )}
-
 
         </div>
     )
