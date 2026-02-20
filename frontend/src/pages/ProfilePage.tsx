@@ -412,29 +412,38 @@ export default function ProfilePage() {
                                         {user.image_url ? (
                                             <img src={user.image_url} alt={user.full_name} className='w-full h-full object-cover' />
                                         ) : (
-                                            <span style={{ fontSize: '2rem', fontWeight: 700, color: '#1e2a78' }}>
-                                                {(user.full_name || '?').charAt(0).toUpperCase()}
-                                            </span>
+                                            <div className='w-full h-full flex flex-col items-center justify-center bg-gray-100'>
+                                                <User size={40} className="text-gray-400 mb-2" />
+                                                <span style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e2a78' }}>
+                                                    {(user.full_name || user.user_id || '?').charAt(0).toUpperCase()}
+                                                </span>
+                                            </div>
                                         )}
                                     </div>
-                                    <div className='absolute top-30 left-33 text-black' style={{ maxWidth: '120px' }}>
-                                        <p className='text-sm font-bold capitalize'>{user.full_name}</p>
-                                        <p className='text-sm' style={{ color: '#555' }}>{displayRole}</p>
+                                    <div className='absolute top-30 left-33 text-black flex flex-col gap-1' style={{ maxWidth: '140px' }}>
+                                        <p className='text-sm font-bold capitalize leading-tight'>{user.full_name || user.user_id}</p>
+                                        <p className='text-xs font-semibold' style={{ color: '#1e2a78' }}>{displayRole}</p>
+
                                         {(role || user.role) === 'student' && user.group_name && (
-                                            <p className='text-xs' style={{ color: '#666' }}>{user.group_name}</p>
+                                            <p className='text-[10px] leading-tight' style={{ color: '#444' }}><span className="font-semibold">Guruh:</span> {user.group_name}</p>
                                         )}
                                         {(role || user.role) === 'student' && user.department_name && (
-                                            <p className='text-xs' style={{ color: '#888', marginTop: 2 }}>{user.department_name}</p>
+                                            <p className='text-[10px] leading-tight' style={{ color: '#666' }}>{user.department_name}</p>
                                         )}
-                                        {((role || user.role) === 'teacher' || (role || user.role) === 'staff' || (role || user.role) === 'employee') && user.department_name && (
-                                            <p className='text-xs' style={{ color: '#666' }}>{user.department_name}</p>
+
+                                        {((role || user.role) === 'teacher' || (role || user.role) === 'staff' || (role || user.role) === 'employee' || (role || user.role) === 'admin') && user.department_name && (
+                                            <p className='text-[10px] leading-tight' style={{ color: '#444' }}>{user.department_name}</p>
                                         )}
-                                        {((role || user.role) === 'teacher' || (role || user.role) === 'staff' || (role || user.role) === 'employee') && user.staff_position && (
-                                            <p className='text-xs' style={{ color: '#888', marginTop: 2 }}>{user.staff_position}</p>
+                                        {((role || user.role) === 'teacher' || (role || user.role) === 'staff' || (role || user.role) === 'employee' || (role || user.role) === 'admin') && user.staff_position && (
+                                            <p className='text-[10px] leading-tight' style={{ color: '#666' }}>{user.staff_position}</p>
                                         )}
                                     </div>
-                                    <div className='absolute top-30 right-3 bg-white border-2 rounded-xl w-30 h-30 flex justify-center items-center'>
-                                        <QRCodeSVG value={user.id} size={105} level='H' />
+                                    <div className='absolute top-30 right-3 bg-white border-2 rounded-xl w-30 h-30 flex justify-center items-center overflow-hidden'>
+                                        {user.user_id ? (
+                                            <QRCodeSVG value={user.id} size={105} level='H' />
+                                        ) : (
+                                            <QRCodeSVG value={user.user_id} size={105} level='H' />
+                                        )}
                                     </div>
 
                                 </div>

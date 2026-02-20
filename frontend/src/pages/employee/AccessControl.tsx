@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
     ScanLine, UserCheck, UserX, BookPlus, RotateCcw, Clock,
     Search, X, Calendar, BookOpen, AlertTriangle, CheckCircle2,
@@ -9,9 +9,9 @@ import {
     Scan,
     Loader2
 } from 'lucide-react'
-import { api, type Rental, type Book, type ControlRecord } from '../../services/api'
+import { Html5Qrcode } from 'html5-qrcode'
+import { api, type Rental, type Book, type ControlRecord, type UserData } from '../../services/api'
 import { toast } from 'react-toastify'
-// DeleteConfirmModal o'rniga custom return modal ishlatamiz
 
 /* ────────────────────────────────────────────────
    Muddat ranglari hisoblash
@@ -31,30 +31,6 @@ function getDeadlineInfo(dueDateStr: string): { color: 'safe' | 'warning' | 'dan
     return { color: 'safe', label: `${diff} kun qoldi`, days: diff }
 }
 
-/* ────────────────────────────────────────────────
-   Mock data — foydalanuvchini ID karta bilan qidirish
-   (Backend'da hali endpoint yo'q, shuning uchun simulyatsiya)
-   ──────────────────────────────────────────────── */
-interface MockUser {
-    id: string
-    user_id: string
-    full_name: string
-    role: string
-    image_url: string | null
-    id_card: string
-    department_name: string | null
-    group_name: string | null
-    phone: string | null
-}
-
-const MOCK_USERS: MockUser[] = [
-    { id: '1', user_id: 'u001', full_name: 'Aliyev Sherzod Bahodirovich', role: 'student', image_url: null, id_card: '0cedde08-bb23-4cc0-ac56-2f4432b8dc7a', department_name: 'Axborot texnologiyalari', group_name: 'AT-21', phone: '+998901234567' },
-    { id: '2', user_id: 'u002', full_name: 'Yusupova Madina Rustamovna', role: 'student', image_url: null, id_card: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', department_name: 'Iqtisodiyot', group_name: 'IQ-31', phone: '+998907654321' },
-    { id: '3', user_id: 'u003', full_name: 'Qodirov Anvar Karimovich', role: 'teacher', image_url: null, id_card: 'b2c3d4e5-f6a7-8901-bcde-f12345678901', department_name: 'Matematika', group_name: null, phone: '+998911112233' },
-    { id: '4', user_id: 'u004', full_name: 'Juraeva Sevara Akmalovna', role: 'student', image_url: null, id_card: 'c3d4e5f6-a7b8-9012-cdef-123456789012', department_name: 'Filologiya', group_name: 'FL-22', phone: '+998933334455' },
-    { id: '5', user_id: 'u005', full_name: 'Mirzaev Oybek Tulkinovich', role: 'student', image_url: null, id_card: 'd4e5f6a7-b8c9-0123-defa-234567890123', department_name: 'Axborot texnologiyalari', group_name: 'AT-11', phone: '+998944445566' },
-]
-
 const roleLabels: Record<string, string> = {
     admin: 'Administrator',
     employee: 'Xodim',
@@ -66,7 +42,7 @@ export default function AccessControl() {
     // ──── Scanner state ────
     const [scanInput, setScanInput] = useState('')
     const [isScanning, setIsScanning] = useState(false)
-    const [scannedUser, setScannedUser] = useState<MockUser | null>(null)
+    const [scannedUser, setScannedUser] = useState<UserData | null>(null)
     const [userIsInside, setUserIsInside] = useState(false)
 
     // ──── Rentals ────
@@ -94,8 +70,6 @@ export default function AccessControl() {
     const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
     const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
     const [permissionGranted, setPermissionGranted] = useState(false);
-    // const [isScanning, setIsScanning] = useState(false);
-    
 
 
     // Load today's visitors on mount
@@ -115,35 +89,112 @@ export default function AccessControl() {
         }
     }
 
+    // 1. Scanner instance saqlash
+    const [scannerStatus, setScannerStatus] = useState<'idle' | 'scanning'>('idle');
+
+    // 2. Kamera tanlanganda bevosita html5-qrcode ni ishga tushirish
+    useEffect(() => {
+        if (!selectedDeviceId || !permissionGranted) return;
+
+        const html5QrCode = new Html5Qrcode("qr-reader");
+
+        // Kamerani kutib turish
+        const timer = setTimeout(() => {
+            html5QrCode.start(
+                selectedDeviceId,
+                {
+                    fps: 10,
+                    qrbox: { width: 250, height: 250 },
+                    aspectRatio: 1.333334,
+                },
+                (decodedText) => {
+                    handleScan(decodedText);
+                },
+                (_errorMessage) => {
+                    // ignore
+                }
+            ).then(() => {
+                setScannerStatus('scanning');
+            }).catch(err => {
+                console.error("Kamerani yoqishda xatolik:", err);
+            });
+        }, 100);
+
+        return () => {
+            clearTimeout(timer);
+            if (html5QrCode.isScanning) {
+                html5QrCode.stop().then(() => html5QrCode.clear()).catch(console.error);
+            }
+        };
+    }, [selectedDeviceId, permissionGranted]);
+
+    // ──── Foydalanuvchi ma'lumotlarini tozalash ────
+    const clearUser = () => {
+        setScannedUser(null)
+        setActiveRentals([])
+        setUserIsInside(false)
+        setScanInput('')
+    }
+
     // ──── Scanner logic ────
-    const handleScan = async () => {
-        if (!scanInput.trim()) {
-            toast.warning('ID karta raqamini kiriting')
+    const handleScan = async (scannedId?: string) => {
+        const queryId = typeof scannedId === 'string' ? scannedId.trim() : scanInput.trim()
+
+        if (!queryId) {
+            if (typeof scannedId !== 'string') {
+                toast.warning('ID karta raqamini kiriting')
+            }
             return
         }
+
+        // Agar hozir skanerlanayotgan bo'lsa kutamiz
+        if (isScanning) return;
 
         setIsScanning(true)
         setScannedUser(null)
         setActiveRentals([])
 
-        // Simulate scan delay
-        await new Promise(r => setTimeout(r, 1200))
+        try {
+            // 1. Bugungi barcha yozuvlarni shu foydalanuvchi uchun filtrlash
+            const userRecords = todayRecords.filter(rec => rec.user_id === queryId)
 
-        const cardValue = scanInput.trim().toLowerCase()
-        const found = MOCK_USERS.find(u => u.id_card.toLowerCase() === cardValue)
+            // Eng YANGI yozuvni olish — backend arrival DESC tartibda qaytaradi, shuning uchun [0] eng yangisi
+            const latestRecord = userRecords.length > 0 ? userRecords[0] : null
 
-        if (!found) {
-            toast.error("Foydalanuvchi topilmadi. ID karta raqamini tekshiring.")
+            // Eng oxirgi yozuv bo'yicha holatni aniqlash:
+            // - arrival bor, departure yo'q (yoki arrival === departure) → ICHKARIDA
+            // - arrival bor, departure ham bor (departure !== arrival) → TASHQARIDA (ketgan)
+            const isCurrentlyInside = latestRecord
+                ? !!(latestRecord.arrival && (!latestRecord.departure || latestRecord.arrival === latestRecord.departure))
+                : false
+
+            const hasPreviousVisit = userRecords.length > 0
+
+            // 2. Users jadvalidan to'liq ma'lumotni olamiz
+            const res = await api.getUserById(queryId)
+            const found = res.data
+            setScannedUser(found)
+
+            // Hozirgi holat
+            setUserIsInside(isCurrentlyInside)
+
+            if (found.user_id) {
+                loadUserRentals(found.user_id)
+            }
+
+            setScanInput('');
+            if (isCurrentlyInside) {
+                toast.success("Foydalanuvchi aniqlandi! (Hozir ichkarida)")
+            } else if (hasPreviousVisit) {
+                toast.info(`Foydalanuvchi bugun ${userRecords.length} marta tashrif buyurgan. Qayta kiritish mumkin.`)
+            } else {
+                toast.success("Foydalanuvchi aniqlandi!")
+            }
+        } catch (err: any) {
+            toast.error(err.message || "Foydalanuvchi topilmadi. ID karta raqamini tekshiring.")
+        } finally {
             setIsScanning(false)
-            return
         }
-
-        setScannedUser(found)
-        setIsScanning(false)
-        setUserIsInside(false) // Default — tashqarida deb hisoblaymiz
-
-        // Load active rentals for this user
-        loadUserRentals(found.user_id)
     }
 
     const loadUserRentals = async (userId: string) => {
@@ -160,24 +211,24 @@ export default function AccessControl() {
 
     // ──── Arrive / Depart ────
     const handleArrive = async () => {
-        setUserIsInside(true)
-        toast.success(`${scannedUser?.full_name} — kirish qayd etildi ✅`)
         try {
-            await api.controlArrive()
+            await api.controlArrive(scannedUser?.id)
+            setUserIsInside(true)
+            toast.success(`${scannedUser?.full_name} — kirish qayd etildi ✅`)
             loadTodayRecords()
-        } catch {
-            // API muvaffaqiyatsiz bo'lsa ham, UI holatini o'zgartirmaymiz
+        } catch (err: any) {
+            toast.error(err.message || "Kirishni qayd etishda xatolik yuz berdi")
         }
     }
 
     const handleDepart = async () => {
-        setUserIsInside(false)
-        toast.success(`${scannedUser?.full_name} — chiqish qayd etildi ✅`)
         try {
-            await api.controlDepart()
+            await api.controlDepart(scannedUser?.id)
+            setUserIsInside(false)
+            toast.success(`${scannedUser?.full_name} — chiqish qayd etildi ✅`)
             loadTodayRecords()
-        } catch {
-            // API muvaffaqiyatsiz bo'lsa ham, UI holatini o'zgartirmaymiz
+        } catch (err: any) {
+            toast.error(err.message || "Chiqishni qayd etishda xatolik yuz berdi")
         }
     }
 
@@ -246,21 +297,15 @@ export default function AccessControl() {
         })
     }, [activeRentals])
 
-
-    // 1. Video elementini boshqarish uchun Ref
-    const videoRef = useRef<HTMLVideoElement>(null);
-    // Streamni saqlash (keyinchalik to'xtatish uchun)
-    const [stream, setStream] = useState<MediaStream | null>(null);
-
     // Kameralar ro'yxatini olish
     const getDevices = async () => {
         try {
             await navigator.mediaDevices.getUserMedia({ video: true });
             setPermissionGranted(true);
-            
+
             const allDevices = await navigator.mediaDevices.enumerateDevices();
             const videoDevices = allDevices.filter(device => device.kind === 'videoinput');
-            
+
             setDevices(videoDevices);
 
             if (videoDevices.length > 0 && !selectedDeviceId) {
@@ -271,60 +316,10 @@ export default function AccessControl() {
         }
     };
 
-    // 2. Tanlangan kamerani ishga tushirish funksiyasi
-    const startCamera = async (deviceId: string) => {
-        if (!deviceId) return;
-
-        // Eski streamni to'xtatish (agar bo'lsa)
-        if (stream) {
-            stream.getTracks().forEach(track => track.stop());
-        }
-
-        try {
-            const newStream = await navigator.mediaDevices.getUserMedia({
-                video: {
-                    deviceId: { exact: deviceId } // Aniq shu kamerani tanlash
-                }
-            });
-
-            setStream(newStream);
-
-            // Video elementiga streamni ulash
-            if (videoRef.current) {
-                videoRef.current.srcObject = newStream;
-            }
-        } catch (error) {
-            console.error("Kamerani yoqishda xatolik:", error);
-        }
-    };
-
     // Dastlabki yuklanish
     useEffect(() => {
         getDevices();
-        
-        // Komponent yopilganda kamerani o'chirish (Cleanup)
-        return () => {
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-            }
-        };
     }, []);
-
-    // 3. Kamera o'zgarganda uni qayta yoqish
-    useEffect(() => {
-        if (selectedDeviceId) {
-            startCamera(selectedDeviceId);
-        }
-    }, [selectedDeviceId]);
-
-    // const handleScan = async () => {
-    //     if (isScanning) return;
-    //     setIsScanning(true);
-    //     setTimeout(() => {
-    //         setIsScanning(false);
-    //         alert("Skanerlandi!");
-    //     }, 3000); 
-    // };
 
     return (
         <div className="ac-page">
@@ -350,58 +345,6 @@ export default function AccessControl() {
             <div className="ac-top-grid">
                 {/* Scanner */}
                 <div className="ac-scanner-card">
-                    {/* <div className="ac-scanner-card__header">
-                        <CreditCard size={20} />
-                        <h2>ID Karta Skanerlash</h2>
-                    </div>
-
-                    <div className={`ac-scanner ${isScanning ? 'ac-scanner--active' : ''}`}>
-                        <div className="ac-scanner__visual">
-                            <div className="ac-scanner__icon">
-                                <ScanLine size={64} strokeWidth={1} />
-                            </div>
-                            {isScanning && <div className="ac-scanner__line" />}
-                        </div>
-                        <p className="ac-scanner__hint">
-                            {isScanning ? 'Skanerlash...' : 'ID karta raqamini kiriting'}
-                        </p>
-                    </div>
-
-                    <div className="ac-scanner__input-row">
-                        <input
-                            type="text"
-                            className="ac-scanner__input"
-                            placeholder="ID karta UUID kiriting..."
-                            value={scanInput}
-                            onChange={e => setScanInput(e.target.value)}
-                            onKeyDown={e => e.key === 'Enter' && handleScan()}
-                        />
-                        <button
-                            className="ac-scanner__btn"
-                            onClick={handleScan}
-                            disabled={isScanning}
-                        >
-                            {isScanning ? (
-                                <div className="ac-spinner ac-spinner--sm" />
-                            ) : (
-                                <><Search size={18} /> Qidirish</>
-                            )}
-                        </button>
-                    </div>
-
-                    <div className="ac-scanner__demo-cards">
-                        <span className="ac-scanner__demo-label">Demo:</span>
-                        {MOCK_USERS.slice(0, 3).map(u => (
-                            <button
-                                key={u.id}
-                                className="ac-scanner__demo-btn"
-                                onClick={() => { setScanInput(u.id_card); }}
-                            >
-                                {u.id_card.substring(0, 8)}...
-                            </button>
-                        ))}
-                    </div> */}
-
                     {/* Header */}
                     <div className="mb-5">
                         <div className="flex items-center justify-between mb-2">
@@ -409,7 +352,7 @@ export default function AccessControl() {
                                 <Camera className="w-5 h-5 text-white" strokeWidth={2.5} />
                                 <h2 className="text-lg font-bold text-white">ID Karta Skaneri</h2>
                             </div>
-                            <button 
+                            <button
                                 onClick={getDevices}
                                 className="p-1.5 rounded-full hover:bg-gray-300 text-gray-400 transition-colors"
                             >
@@ -440,20 +383,12 @@ export default function AccessControl() {
                             </select>
                         </div>
                     )}
-                    {/* --- KAMERA MAYDONI (VIDEO QO'SHILDI) --- */}
+
+                    {/* --- QR SKANER MAYDONI (html5-qrcode) --- */}
                     <div className="w-full aspect-4/3 bg-black rounded-lg border-2 border-gray-200 flex flex-col items-center justify-center mb-6 relative overflow-hidden">
-                        
                         {permissionGranted ? (
-                            // VIDEO TEGI: Asosiy o'zgarish shu yerda
-                            <video 
-                                ref={videoRef}
-                                autoPlay 
-                                playsInline 
-                                muted
-                                className="absolute inset-0 w-full h-full object-cover" // object-cover tasvirni to'liq qoplaydi
-                            />
+                            <div id="qr-reader" className="absolute inset-0 w-full h-full" />
                         ) : (
-                            // Ruxsat yo'q bo'lsa chiqadigan yozuv
                             <div className="flex flex-col items-center gap-3 text-gray-400 z-10">
                                 <Camera className="w-12 h-12 text-gray-500" strokeWidth={2} />
                                 <span className="text-sm font-medium">Kameraga ruxsat bering</span>
@@ -468,13 +403,14 @@ export default function AccessControl() {
                             </div>
                         )}
                     </div>
+
                     {/* Tugma */}
                     <button
-                        onClick={handleScan}
+                        onClick={() => handleScan()}
                         disabled={isScanning || !permissionGranted}
                         className={`w-full py-3.5 rounded-lg flex items-center justify-center gap-2 transition-all 
-                            ${isScanning || !permissionGranted 
-                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                            ${isScanning || !permissionGranted
+                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                 : 'bg-[#1A1A1A] hover:bg-black text-white active:scale-[0.98]'
                             }`}
                     >
@@ -515,6 +451,14 @@ export default function AccessControl() {
                                 <span className={`ac-user-card__status ${userIsInside ? 'ac-user-card__status--inside' : 'ac-user-card__status--outside'}`}>
                                     {userIsInside ? '🟢 Ichkarida' : '🔴 Tashqarida'}
                                 </span>
+                                <button
+                                    className="ac-btn ac-btn--outline-sm"
+                                    onClick={clearUser}
+                                    title="Tozalash"
+                                    style={{ marginLeft: 'auto' }}
+                                >
+                                    <X size={16} /> Tozalash
+                                </button>
                             </div>
 
                             <div className="ac-user-card__body">
@@ -574,85 +518,87 @@ export default function AccessControl() {
             {/* ═══════════════════════════════════════
                BORROWED BOOKS LIST
                ═══════════════════════════════════════ */}
-            {scannedUser && (
-                <div className="ac-section">
-                    <div className="ac-section__header">
-                        <h2>
-                            <BookOpen size={20} />
-                            Olingan kitoblar
-                            {activeRentals.length > 0 && (
-                                <span className="ac-section__count">{activeRentals.length}</span>
-                            )}
-                        </h2>
-                    </div>
+            {
+                scannedUser && (
+                    <div className="ac-section">
+                        <div className="ac-section__header">
+                            <h2>
+                                <BookOpen size={20} />
+                                Olingan kitoblar
+                                {activeRentals.length > 0 && (
+                                    <span className="ac-section__count">{activeRentals.length}</span>
+                                )}
+                            </h2>
+                        </div>
 
-                    {rentalsLoading ? (
-                        <div className="ac-loading">
-                            <div className="ac-spinner" />
-                        </div>
-                    ) : sortedRentals.length === 0 ? (
-                        <div className="ac-empty">
-                            <CheckCircle2 size={48} strokeWidth={1} />
-                            <p>Hech qanday aktiv ijara yo'q</p>
-                        </div>
-                    ) : (
-                        <div className="ac-rentals-table-wrap">
-                            <table className="ac-rentals-table">
-                                <thead>
-                                    <tr>
-                                        <th>Kitob</th>
-                                        <th>Muallif</th>
-                                        <th>Olingan sana</th>
-                                        <th>Muddat</th>
-                                        <th>Holat</th>
-                                        <th style={{ width: '120px' }}>Amal</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {sortedRentals.map(rental => {
-                                        const deadline = getDeadlineInfo(rental.due_date)
-                                        return (
-                                            <tr key={rental.id}>
-                                                <td>
-                                                    <div className="ac-rentals-table__book">
-                                                        {rental.book_cover ? (
-                                                            <img src={rental.book_cover} alt="" className="ac-rentals-table__cover" />
-                                                        ) : (
-                                                            <div className="ac-rentals-table__cover-placeholder">
-                                                                <BookOpen size={16} />
-                                                            </div>
-                                                        )}
-                                                        <span>{rental.book_title || 'Noma\'lum'}</span>
-                                                    </div>
-                                                </td>
-                                                <td>{rental.book_author || '—'}</td>
-                                                <td>{rental.loan_date}</td>
-                                                <td>{rental.due_date}</td>
-                                                <td>
-                                                    <span className={`ac-deadline ac-deadline--${deadline.color}`}>
-                                                        {deadline.color === 'danger' && <AlertTriangle size={14} />}
-                                                        {deadline.color === 'warning' && <Clock size={14} />}
-                                                        {deadline.color === 'safe' && <CheckCircle2 size={14} />}
-                                                        {deadline.label}
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <button
-                                                        className="ac-btn ac-btn--return-sm"
-                                                        onClick={() => { setReturningRental(rental); setReturnModalOpen(true) }}
-                                                    >
-                                                        <RotateCcw size={14} /> Qaytarish
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        )
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-                </div>
-            )}
+                        {rentalsLoading ? (
+                            <div className="ac-loading">
+                                <div className="ac-spinner" />
+                            </div>
+                        ) : sortedRentals.length === 0 ? (
+                            <div className="ac-empty">
+                                <CheckCircle2 size={48} strokeWidth={1} />
+                                <p>Hech qanday aktiv ijara yo'q</p>
+                            </div>
+                        ) : (
+                            <div className="ac-rentals-table-wrap">
+                                <table className="ac-rentals-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Kitob</th>
+                                            <th>Muallif</th>
+                                            <th>Olingan sana</th>
+                                            <th>Muddat</th>
+                                            <th>Holat</th>
+                                            <th style={{ width: '120px' }}>Amal</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {sortedRentals.map(rental => {
+                                            const deadline = getDeadlineInfo(rental.due_date)
+                                            return (
+                                                <tr key={rental.id}>
+                                                    <td>
+                                                        <div className="ac-rentals-table__book">
+                                                            {rental.book_cover ? (
+                                                                <img src={rental.book_cover} alt="" className="ac-rentals-table__cover" />
+                                                            ) : (
+                                                                <div className="ac-rentals-table__cover-placeholder">
+                                                                    <BookOpen size={16} />
+                                                                </div>
+                                                            )}
+                                                            <span>{rental.book_title || 'Noma\'lum'}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td>{rental.book_author || '—'}</td>
+                                                    <td>{rental.loan_date}</td>
+                                                    <td>{rental.due_date}</td>
+                                                    <td>
+                                                        <span className={`ac-deadline ac-deadline--${deadline.color}`}>
+                                                            {deadline.color === 'danger' && <AlertTriangle size={14} />}
+                                                            {deadline.color === 'warning' && <Clock size={14} />}
+                                                            {deadline.color === 'safe' && <CheckCircle2 size={14} />}
+                                                            {deadline.label}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <button
+                                                            className="ac-btn ac-btn--return-sm"
+                                                            onClick={() => { setReturningRental(rental); setReturnModalOpen(true) }}
+                                                        >
+                                                            <RotateCcw size={14} /> Qaytarish
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            )
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+                )
+            }
 
             {/* ═══════════════════════════════════════
                TODAY'S VISITORS
@@ -716,156 +662,160 @@ export default function AccessControl() {
             {/* ═══════════════════════════════════════
                BOOK ASSIGNMENT MODAL
                ═══════════════════════════════════════ */}
-            {assignModalOpen && (
-                <div className="ac-modal__backdrop" onClick={() => setAssignModalOpen(false)}>
-                    <div className="ac-modal" onClick={e => e.stopPropagation()}>
-                        <div className="ac-modal__header">
-                            <h3><BookPlus size={20} /> Kitob biriktirish</h3>
-                            <button className="ac-modal__close" onClick={() => setAssignModalOpen(false)}>
-                                <X size={20} />
-                            </button>
-                        </div>
-
-                        <div className="ac-modal__body">
-                            {/* User info */}
-                            <div className="ac-modal__user-info">
-                                <User size={16} />
-                                <strong>{scannedUser?.full_name}</strong>
-                                <span className="ac-user-card__role-badge" style={{ fontSize: '0.7rem' }}>
-                                    {roleLabels[scannedUser?.role || ''] || scannedUser?.role}
-                                </span>
-                            </div>
-
-                            {/* Book search */}
-                            <label className="ac-modal__label">Kitob qidirish</label>
-                            <div className="ac-modal__search-row">
-                                <input
-                                    className="ac-modal__input"
-                                    placeholder="Kitob nomi..."
-                                    value={bookSearch}
-                                    onChange={e => setBookSearch(e.target.value)}
-                                    onKeyDown={e => e.key === 'Enter' && handleSearchBooks()}
-                                />
-                                <button className="ac-btn ac-btn--primary-sm" onClick={handleSearchBooks}>
-                                    <Search size={16} />
+            {
+                assignModalOpen && (
+                    <div className="ac-modal__backdrop" onClick={() => setAssignModalOpen(false)}>
+                        <div className="ac-modal" onClick={e => e.stopPropagation()}>
+                            <div className="ac-modal__header">
+                                <h3><BookPlus size={20} /> Kitob biriktirish</h3>
+                                <button className="ac-modal__close" onClick={() => setAssignModalOpen(false)}>
+                                    <X size={20} />
                                 </button>
                             </div>
 
-                            {/* Search results */}
-                            {searchResults.length > 0 && (
-                                <div className="ac-modal__results">
-                                    {searchResults.map(book => (
-                                        <div
-                                            key={book.id}
-                                            className={`ac-modal__result-item ${selectedBook?.id === book.id ? 'ac-modal__result-item--selected' : ''}`}
-                                            onClick={() => setSelectedBook(book)}
-                                        >
-                                            <div className="ac-modal__result-info">
-                                                <strong>{book.title}</strong>
-                                                <span>{book.author}</span>
+                            <div className="ac-modal__body">
+                                {/* User info */}
+                                <div className="ac-modal__user-info">
+                                    <User size={16} />
+                                    <strong>{scannedUser?.full_name}</strong>
+                                    <span className="ac-user-card__role-badge" style={{ fontSize: '0.7rem' }}>
+                                        {roleLabels[scannedUser?.role || ''] || scannedUser?.role}
+                                    </span>
+                                </div>
+
+                                {/* Book search */}
+                                <label className="ac-modal__label">Kitob qidirish</label>
+                                <div className="ac-modal__search-row">
+                                    <input
+                                        className="ac-modal__input"
+                                        placeholder="Kitob nomi..."
+                                        value={bookSearch}
+                                        onChange={e => setBookSearch(e.target.value)}
+                                        onKeyDown={e => e.key === 'Enter' && handleSearchBooks()}
+                                    />
+                                    <button className="ac-btn ac-btn--primary-sm" onClick={handleSearchBooks}>
+                                        <Search size={16} />
+                                    </button>
+                                </div>
+
+                                {/* Search results */}
+                                {searchResults.length > 0 && (
+                                    <div className="ac-modal__results">
+                                        {searchResults.map(book => (
+                                            <div
+                                                key={book.id}
+                                                className={`ac-modal__result-item ${selectedBook?.id === book.id ? 'ac-modal__result-item--selected' : ''}`}
+                                                onClick={() => setSelectedBook(book)}
+                                            >
+                                                <div className="ac-modal__result-info">
+                                                    <strong>{book.title}</strong>
+                                                    <span>{book.author}</span>
+                                                </div>
+                                                <span className={`ac-modal__result-stock ${(book.available_quantity || 0) > 0 ? '' : 'ac-modal__result-stock--empty'}`}>
+                                                    {(book.available_quantity || 0) > 0 ? `${book.available_quantity} ta` : 'Yo\'q'}
+                                                </span>
                                             </div>
-                                            <span className={`ac-modal__result-stock ${(book.available_quantity || 0) > 0 ? '' : 'ac-modal__result-stock--empty'}`}>
-                                                {(book.available_quantity || 0) > 0 ? `${book.available_quantity} ta` : 'Yo\'q'}
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                                        ))}
+                                    </div>
+                                )}
 
-                            {selectedBook && (
-                                <div className="ac-modal__selected">
-                                    <CheckCircle2 size={16} />
-                                    <span>Tanlangan: <strong>{selectedBook.title}</strong></span>
-                                </div>
-                            )}
+                                {selectedBook && (
+                                    <div className="ac-modal__selected">
+                                        <CheckCircle2 size={16} />
+                                        <span>Tanlangan: <strong>{selectedBook.title}</strong></span>
+                                    </div>
+                                )}
 
-                            {/* Due date */}
-                            <label className="ac-modal__label">
-                                <Calendar size={14} /> Qaytarish muddati (default: 15 kun)
-                            </label>
-                            <input
-                                type="date"
-                                className="ac-modal__input"
-                                value={dueDate || defaultDue}
-                                min={today}
-                                onChange={e => setDueDate(e.target.value)}
-                            />
+                                {/* Due date */}
+                                <label className="ac-modal__label">
+                                    <Calendar size={14} /> Qaytarish muddati (default: 15 kun)
+                                </label>
+                                <input
+                                    type="date"
+                                    className="ac-modal__input"
+                                    value={dueDate || defaultDue}
+                                    min={today}
+                                    onChange={e => setDueDate(e.target.value)}
+                                />
 
-                            {/* Notes */}
-                            <label className="ac-modal__label">
-                                📝 Izoh (ixtiyoriy)
-                            </label>
-                            <textarea
-                                className="ac-modal__input ac-modal__textarea"
-                                placeholder="Izoh yozing..."
-                                value={assignNotes}
-                                onChange={e => setAssignNotes(e.target.value)}
-                                rows={3}
-                            />
-                        </div>
+                                {/* Notes */}
+                                <label className="ac-modal__label">
+                                    📝 Izoh (ixtiyoriy)
+                                </label>
+                                <textarea
+                                    className="ac-modal__input ac-modal__textarea"
+                                    placeholder="Izoh yozing..."
+                                    value={assignNotes}
+                                    onChange={e => setAssignNotes(e.target.value)}
+                                    rows={3}
+                                />
+                            </div>
 
-                        <div className="ac-modal__footer">
-                            <button className="ac-btn ac-btn--cancel" onClick={() => setAssignModalOpen(false)}>
-                                Bekor qilish
-                            </button>
-                            <button
-                                className="ac-btn ac-btn--primary"
-                                onClick={handleAssignBook}
-                                disabled={!selectedBook || (!(dueDate || defaultDue)) || assignLoading}
-                            >
-                                {assignLoading ? <div className="ac-spinner ac-spinner--sm" /> : <><BookPlus size={16} /> Berish</>}
-                            </button>
+                            <div className="ac-modal__footer">
+                                <button className="ac-btn ac-btn--cancel" onClick={() => setAssignModalOpen(false)}>
+                                    Bekor qilish
+                                </button>
+                                <button
+                                    className="ac-btn ac-btn--primary"
+                                    onClick={handleAssignBook}
+                                    disabled={!selectedBook || (!(dueDate || defaultDue)) || assignLoading}
+                                >
+                                    {assignLoading ? <div className="ac-spinner ac-spinner--sm" /> : <><BookPlus size={16} /> Berish</>}
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* ═══════════════════════════════════════
                BOOK RETURN MODAL (IZOH BILAN)
                ═══════════════════════════════════════ */}
-            {returnModalOpen && (
-                <div className="ac-modal__backdrop" onClick={() => { setReturnModalOpen(false); setReturningRental(null); setReturnNotes('') }}>
-                    <div className="ac-modal" onClick={e => e.stopPropagation()}>
-                        <div className="ac-modal__header">
-                            <h3><RotateCcw size={20} /> Kitobni qaytarish</h3>
-                            <button className="ac-modal__close" onClick={() => { setReturnModalOpen(false); setReturningRental(null); setReturnNotes('') }}>
-                                <X size={20} />
-                            </button>
-                        </div>
-
-                        <div className="ac-modal__body">
-                            <div className="ac-modal__selected" style={{ background: 'rgba(245, 158, 11, 0.08)', borderColor: 'rgba(245, 158, 11, 0.2)', color: '#f59e0b' }}>
-                                <AlertTriangle size={16} />
-                                <span>"{returningRental?.book_title}" kitobini qaytarildi deb belgilamoqchimisiz?</span>
+            {
+                returnModalOpen && (
+                    <div className="ac-modal__backdrop" onClick={() => { setReturnModalOpen(false); setReturningRental(null); setReturnNotes('') }}>
+                        <div className="ac-modal" onClick={e => e.stopPropagation()}>
+                            <div className="ac-modal__header">
+                                <h3><RotateCcw size={20} /> Kitobni qaytarish</h3>
+                                <button className="ac-modal__close" onClick={() => { setReturnModalOpen(false); setReturningRental(null); setReturnNotes('') }}>
+                                    <X size={20} />
+                                </button>
                             </div>
 
-                            <label className="ac-modal__label">
-                                📝 Izoh (ixtiyoriy)
-                            </label>
-                            <textarea
-                                className="ac-modal__input ac-modal__textarea"
-                                placeholder="Kitob holati, qayd, izoh..."
-                                value={returnNotes}
-                                onChange={e => setReturnNotes(e.target.value)}
-                                rows={3}
-                            />
-                        </div>
+                            <div className="ac-modal__body">
+                                <div className="ac-modal__selected" style={{ background: 'rgba(245, 158, 11, 0.08)', borderColor: 'rgba(245, 158, 11, 0.2)', color: '#f59e0b' }}>
+                                    <AlertTriangle size={16} />
+                                    <span>"{returningRental?.book_title}" kitobini qaytarildi deb belgilamoqchimisiz?</span>
+                                </div>
 
-                        <div className="ac-modal__footer">
-                            <button className="ac-btn ac-btn--cancel" onClick={() => { setReturnModalOpen(false); setReturningRental(null); setReturnNotes('') }}>
-                                Bekor qilish
-                            </button>
-                            <button
-                                className="ac-btn ac-btn--primary"
-                                onClick={handleReturnConfirm}
-                                disabled={returnLoading}
-                            >
-                                {returnLoading ? <div className="ac-spinner ac-spinner--sm" /> : <><RotateCcw size={16} /> Qaytarish</>}
-                            </button>
+                                <label className="ac-modal__label">
+                                    📝 Izoh (ixtiyoriy)
+                                </label>
+                                <textarea
+                                    className="ac-modal__input ac-modal__textarea"
+                                    placeholder="Kitob holati, qayd, izoh..."
+                                    value={returnNotes}
+                                    onChange={e => setReturnNotes(e.target.value)}
+                                    rows={3}
+                                />
+                            </div>
+
+                            <div className="ac-modal__footer">
+                                <button className="ac-btn ac-btn--cancel" onClick={() => { setReturnModalOpen(false); setReturningRental(null); setReturnNotes('') }}>
+                                    Bekor qilish
+                                </button>
+                                <button
+                                    className="ac-btn ac-btn--primary"
+                                    onClick={handleReturnConfirm}
+                                    disabled={returnLoading}
+                                >
+                                    {returnLoading ? <div className="ac-spinner ac-spinner--sm" /> : <><RotateCcw size={16} /> Qaytarish</>}
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     )
 }

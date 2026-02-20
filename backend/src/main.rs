@@ -150,6 +150,11 @@ async fn main() -> std::io::Result<()> {
                     .route("/employees", web::post().to(sync_handler::sync_employees))
                     .route("/employees", web::get().to(sync_handler::get_employees)),
             )
+            // Users routes
+            .service(
+                web::scope("/api/users")
+                    .route("/{id}", web::get().to(sync_handler::get_user_by_id)),
+            )
             // Static files (uploads papkasini brauzerdan ko'rish)
             .service(actix_files::Files::new("/uploads", upload_dir.clone()))
     })

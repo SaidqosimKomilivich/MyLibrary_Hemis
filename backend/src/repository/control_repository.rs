@@ -22,7 +22,7 @@ impl ControlRepository {
     }
 
     /// Foydalanuvchining aktiv sessiyasini topish (hali ketmagan)
-    /// arrival = departure bo'lgan yoki bugun kirib hali chiqmagan
+    /// departure NULL yoki arrival = departure bo'lgan
     pub async fn find_active_by_user_id(
         pool: &PgPool,
         user_id: &str,
@@ -31,7 +31,7 @@ impl ControlRepository {
             r#"SELECT "id", "user_id", "arrival", "departure"
                FROM "control"
                WHERE "user_id" = $1
-                 AND "arrival" = "departure"
+                 AND ("departure" IS NULL OR "arrival" = "departure")
                  AND "arrival"::date = CURRENT_DATE
                ORDER BY "arrival" DESC
                LIMIT 1"#,

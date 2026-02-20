@@ -1,5 +1,10 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+
+#[derive(Debug, Deserialize)]
+pub struct ControlRequest {
+    pub user_id: Option<String>,
+}
 
 /// Nazorat yozuvi javobi (formatlangan vaqtlar bilan)
 #[derive(Debug, Serialize)]

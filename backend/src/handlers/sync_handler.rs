@@ -3,6 +3,7 @@ use sqlx::PgPool;
 
 use crate::config::Config;
 use crate::dto::user::{PaginatedUsersResponse, UserPaginationInfo, UserPaginationParams};
+use crate::errors::AppError;
 use crate::middleware::auth_middleware::{require_role, Claims};
 use crate::repository::user_repository::UserRepository;
 use crate::services::hemis_service::HemisService;
@@ -176,4 +177,25 @@ pub async fn get_employees(
     }
 
     get_users_paginated(pool.get_ref(), "staff", query.into_inner()).await
+}
+
+/// GET /api/users/{id} - ID orqali foydalanuvchini olish (Kamera skaneri uchun)
+pub async fn get_user_by_id(
+    // require_role ishlatish ixtiyoriy, agar auth middleware bo'lsa
+    pool: web::Data<PgPool>,
+    path: web::Path<uuid::Uuid>,
+) -> Result<HttpResponse, AppError> {
+    let user_id = path.into_inner();
+    
+    let user = UserRepository::find_by_id(pool.get_ref(), user_id).await?;
+    
+    if let Some(u) = user {
+        let response: crate::dto::user::UserResponse = u.into();
+        Ok(HttpResponse::Ok().json(serde_json::json!({
+            "success": true,
+            "data": response
+        })))
+    } else {
+        Err(AppError::NotFound("Foydalanuvchi topilmadi".to_string()))
+    }
 }

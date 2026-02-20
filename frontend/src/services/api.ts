@@ -217,16 +217,22 @@ export const api = {
     },
 
     // Control endpoints (kirish-chiqish nazorati)
-    controlArrive() {
+    controlArrive(user_id?: string) {
         return request<{ success: boolean; message: string }>('/control/arrive', {
             method: 'POST',
+            body: user_id ? JSON.stringify({ user_id }) : undefined,
         })
     },
 
-    controlDepart() {
+    controlDepart(user_id?: string) {
         return request<{ success: boolean; message: string }>('/control/depart', {
             method: 'POST',
+            body: user_id ? JSON.stringify({ user_id }) : undefined,
         })
+    },
+
+    getUserById(id: string) {
+        return request<{ success: boolean; data: UserData }>(`/users/${id}`)
     },
 
     getControlToday() {
