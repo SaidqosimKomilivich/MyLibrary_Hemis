@@ -14,6 +14,7 @@ pub struct Config {
     pub upload_dir: String,
     pub hemis_base_url: String,
     pub hemis_token: String,
+    pub hemis_skip_ssl: bool,
 }
 
 impl Config {
@@ -43,6 +44,10 @@ impl Config {
             hemis_base_url: env::var("HEMIS_BASE_URL")
                 .unwrap_or_else(|_| "https://student.jbnuu.uz".to_string()),
             hemis_token: env::var("HEMIS_TOKEN").expect("HEMIS_TOKEN must be set"),
+            hemis_skip_ssl: env::var("HEMIS_SKIP_SSL")
+                .unwrap_or_else(|_| "true".to_string())
+                .to_lowercase()
+                == "true",
         }
     }
 }

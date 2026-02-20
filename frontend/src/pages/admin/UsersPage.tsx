@@ -1,34 +1,9 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { GraduationCap, Briefcase, BookUser, Search, RefreshCw, X, ArrowDownToLine, CheckCircle2, Eye, ToggleLeft, ToggleRight, Mail, Phone, Calendar, MapPin, Hash, Bell, AlertCircle, Loader2 } from 'lucide-react'
+import { GraduationCap, Briefcase, BookUser, Search, RefreshCw, X, ArrowDownToLine, CheckCircle2, Eye, Mail, Phone, Calendar, MapPin, Hash, Bell, AlertCircle, Loader2 } from 'lucide-react'
 import { api } from '../../services/api'
 import type { UserData } from '../../services/api'
 import { toast } from 'react-toastify'
-
-// Types (o'qituvchi va xodimlar hali mock)
-interface Teacher {
-    id: number; name: string; department: string; position: string; status: string
-    email: string; phone: string; birthDate: string; address: string; hemis_id: string; experience: number
-}
-interface Employee {
-    id: number; name: string; department: string; position: string; status: string
-    email: string; phone: string; birthDate: string; address: string; hemis_id: string; hireDate: string
-}
-type AnyUser = UserData | Teacher | Employee
-
-const initialTeachers: Teacher[] = [
-    { id: 1, name: "Ismoilov Ravshan", department: "Kompyuter ilmlari", position: "Dotsent", status: "active", email: "r.ismoilov@jbnuu.uz", phone: "+998901111001", birthDate: "1985-04-20", address: "Jizzax sh., Navoiy ko'chasi", hemis_id: "T001", experience: 12 },
-    { id: 2, name: "Xasanova Gulnora", department: "Matematika", position: "Professor", status: "active", email: "g.xasanova@jbnuu.uz", phone: "+998901111002", birthDate: "1978-09-15", address: "Jizzax sh., Mustaqillik ko'chasi", hemis_id: "T002", experience: 20 },
-    { id: 3, name: "Nurmatov Olim", department: "Fizika", position: "Katta o'qituvchi", status: "active", email: "o.nurmatov@jbnuu.uz", phone: "+998901111003", birthDate: "1990-06-11", address: "Jizzax sh., Amir Temur ko'chasi", hemis_id: "T003", experience: 8 },
-    { id: 4, name: "Tursunova Mahfuza", department: "Biologiya", position: "Dotsent", status: "inactive", email: "m.tursunova@jbnuu.uz", phone: "+998901111004", birthDate: "1982-12-01", address: "Jizzax sh., Sharof Rashidov ko'chasi", hemis_id: "T004", experience: 15 },
-    { id: 5, name: "Salimov Ulug'bek", department: "Kompyuter ilmlari", position: "O'qituvchi", status: "active", email: "u.salimov@jbnuu.uz", phone: "+998901111005", birthDate: "1995-03-25", address: "Jizzax sh., Islom Karimov ko'chasi", hemis_id: "T005", experience: 4 },
-]
-
-const initialEmployees: Employee[] = [
-    { id: 1, name: "Ergashev Anvar", department: "Kutubxona", position: "Bosh kutubxonachi", status: "active", email: "a.ergashev@jbnuu.uz", phone: "+998902222001", birthDate: "1980-07-14", address: "Jizzax sh., Do'stlik ko'chasi", hemis_id: "E001", hireDate: "2010-09-01" },
-    { id: 2, name: "Mirzayeva Kamola", department: "Kutubxona", position: "Kutubxonachi", status: "active", email: "k.mirzayeva@jbnuu.uz", phone: "+998902222002", birthDate: "1993-11-20", address: "Jizzax sh., Bobur ko'chasi", hemis_id: "E002", hireDate: "2018-02-15" },
-    { id: 3, name: "Qodirov Farhod", department: "IT bo'limi", position: "Tizim administratori", status: "active", email: "f.qodirov@jbnuu.uz", phone: "+998902222003", birthDate: "1991-05-08", address: "Jizzax sh., Universitet ko'chasi", hemis_id: "E003", hireDate: "2019-08-20" },
-]
 
 // Sync progress helper
 function getSyncLabel(progress: number): string {
@@ -48,10 +23,9 @@ interface SyncSectionProps {
     progress: number
     onSync: () => void
     syncResult?: { created: number; updated: number; total: number } | null
-    isReal?: boolean
 }
 
-function SyncSection({ title, icon, color, count, progress, onSync, syncResult, isReal }: SyncSectionProps) {
+function SyncSection({ title, icon, color, count, progress, onSync, syncResult }: SyncSectionProps) {
     const isActive = progress > 0 && progress < 100
     const isDone = progress === 100
 
@@ -80,7 +54,7 @@ function SyncSection({ title, icon, color, count, progress, onSync, syncResult, 
                     ) : isActive ? (
                         <>
                             <RefreshCw size={16} className="spin-animation" />
-                            {isReal ? 'Sinxronlanmoqda...' : `${progress}%`}
+                            Sinxronlanmoqda...
                         </>
                     ) : (
                         <>
@@ -115,53 +89,41 @@ function SyncSection({ title, icon, color, count, progress, onSync, syncResult, 
     )
 }
 
-// User Detail Modal
-function UserDetailModal({ user, type, onClose }: { user: AnyUser; type: 'student' | 'teacher' | 'employee'; onClose: () => void }) {
-    const getName = () => 'full_name' in user ? user.full_name : (user as Teacher | Employee).name
+function UserDetailModal({ user, type, onClose }: { user: UserData; type: 'student' | 'teacher' | 'employee'; onClose: () => void }) {
     const getInitials = (name: string) => name.split(' ').map(n => n[0]).join('')
-    const getImageUrl = () => 'image_url' in user ? (user as UserData).image_url : null
 
     const infoRows: { icon: React.ReactNode; label: string; value: string }[] = []
 
     if (type === 'student') {
-        const s = user as UserData
         infoRows.push(
-            { icon: <Hash size={16} />, label: 'Student ID', value: s.user_id },
-            { icon: <GraduationCap size={16} />, label: 'Guruh', value: s.group_name || '-' },
-            { icon: <BookUser size={16} />, label: 'Fakultet', value: s.department_name || '-' },
-            { icon: <MapPin size={16} />, label: "Mutaxassislik", value: s.specialty_name || '-' },
-            { icon: <Mail size={16} />, label: 'Email', value: s.email || '-' },
-            { icon: <Phone size={16} />, label: 'Telefon', value: s.phone || '-' },
-            { icon: <Calendar size={16} />, label: "Tug'ilgan sana", value: s.birth_date || '-' },
+            { icon: <Hash size={16} />, label: 'Student ID', value: user.user_id },
+            { icon: <GraduationCap size={16} />, label: 'Guruh', value: user.group_name || '-' },
+            { icon: <BookUser size={16} />, label: 'Fakultet', value: user.department_name || '-' },
+            { icon: <MapPin size={16} />, label: "Mutaxassislik", value: user.specialty_name || '-' },
+            { icon: <Calendar size={16} />, label: "Ta'lim shakli", value: user.education_form || '-' },
+            { icon: <Mail size={16} />, label: 'Email', value: user.email || '-' },
+            { icon: <Phone size={16} />, label: 'Telefon', value: user.phone || '-' },
+            { icon: <Calendar size={16} />, label: "Tug'ilgan sana", value: user.birth_date || '-' },
         )
     } else if (type === 'teacher') {
-        const t = user as Teacher
         infoRows.push(
-            { icon: <Hash size={16} />, label: 'HEMIS ID', value: t.hemis_id },
-            { icon: <BookUser size={16} />, label: 'Kafedra', value: t.department },
-            { icon: <Briefcase size={16} />, label: 'Lavozim', value: t.position },
-            { icon: <Calendar size={16} />, label: 'Tajriba', value: `${t.experience} yil` },
-            { icon: <Mail size={16} />, label: 'Email', value: t.email },
-            { icon: <Phone size={16} />, label: 'Telefon', value: t.phone },
-            { icon: <Calendar size={16} />, label: "Tug'ilgan sana", value: t.birthDate },
-            { icon: <MapPin size={16} />, label: 'Manzil', value: t.address },
+            { icon: <Hash size={16} />, label: 'ID', value: user.user_id },
+            { icon: <BookUser size={16} />, label: 'Kafedra', value: user.department_name || '-' },
+            { icon: <Briefcase size={16} />, label: 'Lavozim', value: user.staff_position || '-' },
+            { icon: <Mail size={16} />, label: 'Email', value: user.email || '-' },
+            { icon: <Phone size={16} />, label: 'Telefon', value: user.phone || '-' },
+            { icon: <Calendar size={16} />, label: "Tug'ilgan sana", value: user.birth_date || '-' },
         )
     } else {
-        const e = user as Employee
         infoRows.push(
-            { icon: <Hash size={16} />, label: 'HEMIS ID', value: e.hemis_id },
-            { icon: <Briefcase size={16} />, label: "Bo'lim", value: e.department },
-            { icon: <BookUser size={16} />, label: 'Lavozim', value: e.position },
-            { icon: <Calendar size={16} />, label: 'Ishga kirgan sana', value: e.hireDate },
-            { icon: <Mail size={16} />, label: 'Email', value: e.email },
-            { icon: <Phone size={16} />, label: 'Telefon', value: e.phone },
-            { icon: <Calendar size={16} />, label: "Tug'ilgan sana", value: e.birthDate },
-            { icon: <MapPin size={16} />, label: 'Manzil', value: e.address },
+            { icon: <Hash size={16} />, label: 'ID', value: user.user_id },
+            { icon: <Briefcase size={16} />, label: "Bo'lim", value: user.department_name || '-' },
+            { icon: <BookUser size={16} />, label: 'Lavozim', value: user.staff_position || '-' },
+            { icon: <Mail size={16} />, label: 'Email', value: user.email || '-' },
+            { icon: <Phone size={16} />, label: 'Telefon', value: user.phone || '-' },
+            { icon: <Calendar size={16} />, label: "Tug'ilgan sana", value: user.birth_date || '-' },
         )
     }
-
-    const name = getName()
-    const imageUrl = getImageUrl()
 
     return createPortal(
         <div className="user-detail__backdrop" onClick={onClose}>
@@ -172,14 +134,17 @@ function UserDetailModal({ user, type, onClose }: { user: AnyUser; type: 'studen
 
                 {/* Header */}
                 <div className="user-detail__header">
-                    {imageUrl ? (
-                        <img src={imageUrl} alt={name} style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover' }} />
+                    {user.image_url ? (
+                        <img src={user.image_url} alt={user.full_name} style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover' }} />
                     ) : (
                         <div className="user-detail__avatar">
-                            {getInitials(name)}
+                            {getInitials(user.full_name)}
                         </div>
                     )}
-                    <h3 className="user-detail__name">{name}</h3>
+                    <h3 className="user-detail__name">{user.full_name}</h3>
+                    <span className={`users-page__status users-page__status--${user.active ? 'active' : 'inactive'}`}>
+                        {user.active ? 'Faol' : 'Nofaol'}
+                    </span>
                     <span className="user-detail__role-badge">
                         {type === 'student' ? '🎓 Talaba' : type === 'teacher' ? "👨‍🏫 O'qituvchi" : '💼 Xodim'}
                     </span>
@@ -203,125 +168,116 @@ function UserDetailModal({ user, type, onClose }: { user: AnyUser; type: 'studen
     )
 }
 
-export default function UsersPage() {
-    const [search, setSearch] = useState('')
-    const [activeTab, setActiveTab] = useState<'students' | 'teachers' | 'employees'>('students')
-    const [syncModalOpen, setSyncModalOpen] = useState(false)
+// Haqiqiy HEMIS sinxronlash hook
+function useHemisSync(
+    syncFn: () => Promise<{ success: boolean; message: string; created: number; updated: number; total: number }>,
+    reloadFn: () => Promise<void>,
+) {
+    const [progress, setProgress] = useState(0)
+    const [syncResult, setSyncResult] = useState<{ created: number; updated: number; total: number } | null>(null)
 
-    // Talabalar — haqiqiy API dan
-    const [students, setStudents] = useState<UserData[]>([])
-    const [studentsLoading, setStudentsLoading] = useState(false)
+    const handleSync = useCallback(async () => {
+        setProgress(10)
+        setSyncResult(null)
 
-    // O'qituvchilar va xodimlar — hali mock
-    const [teachers, setTeachers] = useState<Teacher[]>(initialTeachers)
-    const [employees, setEmployees] = useState<Employee[]>(initialEmployees)
-
-    // User detail modal
-    const [viewUser, setViewUser] = useState<AnyUser | null>(null)
-    const [viewUserType, setViewUserType] = useState<'student' | 'teacher' | 'employee'>('student')
-
-    // Sync progress
-    const [studentSyncing, setStudentSyncing] = useState(false)
-    const [studentProgress, setStudentProgress] = useState(0)
-    const [studentSyncResult, setStudentSyncResult] = useState<{ created: number; updated: number; total: number } | null>(null)
-    const [teacherProgress, setTeacherProgress] = useState(0)
-    const [employeeProgress, setEmployeeProgress] = useState(0)
-    const intervalsRef = useRef<number[]>([])
-
-    // Talabalarni backend dan yuklash
-    const loadStudents = useCallback(async () => {
-        setStudentsLoading(true)
-        try {
-            const resp = await api.getStudents()
-            if (resp.success && resp.data) {
-                setStudents(resp.data)
-            }
-        } catch (e) {
-            console.error('Talabalarni yuklashda xato:', e)
-        } finally {
-            setStudentsLoading(false)
-        }
-    }, [])
-
-    useEffect(() => {
-        loadStudents()
-    }, [loadStudents])
-
-    // Haqiqiy HEMIS sinxronlash
-    const handleSyncStudents = useCallback(async () => {
-        setStudentSyncing(true)
-        setStudentProgress(10)
-        setStudentSyncResult(null)
-
-        // Progressni simulyatsiya (backend ishini kutib)
         const progressInterval = window.setInterval(() => {
-            setStudentProgress(prev => {
+            setProgress(prev => {
                 if (prev >= 90) return prev
                 return prev + Math.floor(Math.random() * 5) + 1
             })
         }, 300)
 
         try {
-            const resp = await api.syncHemisStudents()
+            const resp = await syncFn()
             clearInterval(progressInterval)
 
             if (resp.success) {
-                setStudentProgress(100)
-                setStudentSyncResult({ created: resp.created, updated: resp.updated, total: resp.total })
-                toast.success(resp.message || `${resp.total} ta talaba sinxronlandi`)
-                // Talabalar ro'yxatini yangilash
-                await loadStudents()
+                setProgress(100)
+                setSyncResult({ created: resp.created, updated: resp.updated, total: resp.total })
+                toast.success(resp.message || 'Sinxronlash muvaffaqiyatli')
+                await reloadFn()
             } else {
-                setStudentProgress(0)
+                setProgress(0)
                 toast.error(resp.message || 'Sinxronlashda xatolik')
             }
         } catch (e) {
             clearInterval(progressInterval)
-            setStudentProgress(0)
+            setProgress(0)
             toast.error(e instanceof Error ? e.message : 'HEMIS bilan aloqa uzildi')
-        } finally {
-            setStudentSyncing(false)
         }
-    }, [loadStudents])
+    }, [syncFn, reloadFn])
 
-    // Mock sync (o'qituvchi/xodimlar uchun)
-    const simulateSync = useCallback((setter: React.Dispatch<React.SetStateAction<number>>) => {
-        setter(1)
-        const id = window.setInterval(() => {
-            setter(prev => {
-                if (prev >= 100) {
-                    clearInterval(id)
-                    return 100
-                }
-                const jump = prev < 70
-                    ? Math.floor(Math.random() * 7) + 2
-                    : Math.floor(Math.random() * 4) + 1
-                return Math.min(prev + jump, 100)
-            })
-        }, 200)
-        intervalsRef.current.push(id)
+    const reset = useCallback(() => {
+        setProgress(0)
+        setSyncResult(null)
     }, [])
 
+    return { progress, syncResult, handleSync, reset }
+}
+
+export default function UsersPage() {
+    const [search, setSearch] = useState('')
+    const [activeTab, setActiveTab] = useState<'students' | 'teachers' | 'employees'>('students')
+    const [syncModalOpen, setSyncModalOpen] = useState(false)
+
+    // Data from API
+    const [students, setStudents] = useState<UserData[]>([])
+    const [teachers, setTeachers] = useState<UserData[]>([])
+    const [employees, setEmployees] = useState<UserData[]>([])
+    const [loading, setLoading] = useState({ students: false, teachers: false, employees: false })
+
+    // User detail modal
+    const [viewUser, setViewUser] = useState<UserData | null>(null)
+    const [viewUserType, setViewUserType] = useState<'student' | 'teacher' | 'employee'>('student')
+
+    // Load functions
+    const loadStudents = useCallback(async () => {
+        setLoading(prev => ({ ...prev, students: true }))
+        try {
+            const resp = await api.getStudents()
+            if (resp.success && resp.data) setStudents(resp.data)
+        } catch (e) { console.error('Talabalarni yuklashda xato:', e) }
+        finally { setLoading(prev => ({ ...prev, students: false })) }
+    }, [])
+
+    const loadTeachers = useCallback(async () => {
+        setLoading(prev => ({ ...prev, teachers: true }))
+        try {
+            const resp = await api.getTeachers()
+            if (resp.success && resp.data) setTeachers(resp.data)
+        } catch (e) { console.error("O'qituvchilarni yuklashda xato:", e) }
+        finally { setLoading(prev => ({ ...prev, teachers: false })) }
+    }, [])
+
+    const loadEmployees = useCallback(async () => {
+        setLoading(prev => ({ ...prev, employees: true }))
+        try {
+            const resp = await api.getEmployees()
+            if (resp.success && resp.data) setEmployees(resp.data)
+        } catch (e) { console.error('Xodimlarni yuklashda xato:', e) }
+        finally { setLoading(prev => ({ ...prev, employees: false })) }
+    }, [])
+
+    useEffect(() => {
+        loadStudents()
+        loadTeachers()
+        loadEmployees()
+    }, [loadStudents, loadTeachers, loadEmployees])
+
+    // Sync hooks
+    const studentSync = useHemisSync(api.syncHemisStudents, loadStudents)
+    const teacherSync = useHemisSync(api.syncHemisTeachers, loadTeachers)
+    const employeeSync = useHemisSync(api.syncHemisEmployees, loadEmployees)
+
     const handleOpenSyncModal = () => {
-        intervalsRef.current.forEach(id => clearInterval(id))
-        intervalsRef.current = []
-        setStudentProgress(0)
-        setTeacherProgress(0)
-        setEmployeeProgress(0)
-        setStudentSyncResult(null)
+        studentSync.reset()
+        teacherSync.reset()
+        employeeSync.reset()
         setSyncModalOpen(true)
     }
 
-    // Toggle status
-    const toggleTeacherStatus = (id: number) => {
-        setTeachers(prev => prev.map(t => t.id === id ? { ...t, status: t.status === 'active' ? 'inactive' : 'active' } : t))
-    }
-    const toggleEmployeeStatus = (id: number) => {
-        setEmployees(prev => prev.map(e => e.id === id ? { ...e, status: e.status === 'active' ? 'inactive' : 'active' } : e))
-    }
-
     // View user
-    const handleView = (user: AnyUser, type: 'student' | 'teacher' | 'employee') => {
+    const handleView = (user: UserData, type: 'student' | 'teacher' | 'employee') => {
         setViewUser(user)
         setViewUserType(type)
     }
@@ -333,12 +289,14 @@ export default function UsersPage() {
         (s.department_name || '').toLowerCase().includes(search.toLowerCase())
     )
     const filteredTeachers = teachers.filter(t =>
-        t.name.toLowerCase().includes(search.toLowerCase()) ||
-        t.department.toLowerCase().includes(search.toLowerCase())
+        t.full_name.toLowerCase().includes(search.toLowerCase()) ||
+        (t.department_name || '').toLowerCase().includes(search.toLowerCase()) ||
+        (t.staff_position || '').toLowerCase().includes(search.toLowerCase())
     )
     const filteredEmployees = employees.filter(e =>
-        e.name.toLowerCase().includes(search.toLowerCase()) ||
-        e.department.toLowerCase().includes(search.toLowerCase())
+        e.full_name.toLowerCase().includes(search.toLowerCase()) ||
+        (e.department_name || '').toLowerCase().includes(search.toLowerCase()) ||
+        (e.staff_position || '').toLowerCase().includes(search.toLowerCase())
     )
 
     const tabs = [
@@ -346,6 +304,79 @@ export default function UsersPage() {
         { key: 'teachers' as const, label: "O'qituvchilar", icon: <BookUser size={16} />, count: teachers.length },
         { key: 'employees' as const, label: 'Xodimlar', icon: <Briefcase size={16} />, count: employees.length },
     ]
+
+    // Table renderer for each tab (all use UserData now)
+    const renderUserTable = (
+        data: UserData[],
+        isLoading: boolean,
+        emptyLabel: string,
+        type: 'student' | 'teacher' | 'employee',
+        columns: { header: string; render: (u: UserData) => React.ReactNode }[]
+    ) => {
+        if (isLoading) {
+            return (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 0', gap: 12, color: 'var(--color-text-muted)' }}>
+                    <Loader2 size={20} className="spin-animation" />
+                    <span>{emptyLabel} yuklanmoqda...</span>
+                </div>
+            )
+        }
+        if (data.length === 0) {
+            return (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 0', gap: 12, color: 'var(--color-text-muted)' }}>
+                    <AlertCircle size={32} />
+                    <p style={{ fontSize: '0.875rem' }}>{emptyLabel} topilmadi</p>
+                    <p style={{ fontSize: '0.75rem', opacity: 0.6 }}>HEMIS sinxronlash tugmasini bosing</p>
+                </div>
+            )
+        }
+        return (
+            <table className="users-page__table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Ism</th>
+                        {columns.map((col, i) => <th key={i}>{col.header}</th>)}
+                        <th>Holat</th>
+                        <th>Amallar</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {data.map((u, i) => (
+                        <tr key={u.id}>
+                            <td>{i + 1}</td>
+                            <td>
+                                <div className="users-page__user-cell">
+                                    {u.image_url ? (
+                                        <img src={u.image_url} alt={u.full_name} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                                    ) : (
+                                        <div className="users-page__avatar">{u.full_name.charAt(0)}</div>
+                                    )}
+                                    {u.full_name}
+                                </div>
+                            </td>
+                            {columns.map((col, ci) => <td key={ci}>{col.render(u)}</td>)}
+                            <td>
+                                <span className={`users-page__status users-page__status--${u.active ? 'active' : 'inactive'}`}>
+                                    {u.active ? 'Faol' : 'Nofaol'}
+                                </span>
+                            </td>
+                            <td>
+                                <div className="users-page__actions">
+                                    <button className="users-page__action-btn users-page__action-btn--view" title="Ko'rish" onClick={() => handleView(u, type)}>
+                                        <Eye size={15} />
+                                    </button>
+                                    <button className="users-page__action-btn users-page__action-btn--view" title="Xabar yuborish">
+                                        <Bell size={15} />
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        )
+    }
 
     return (
         <div className="page">
@@ -390,170 +421,26 @@ export default function UsersPage() {
 
             {/* Table */}
             <div className="users-page__table-wrapper">
-                {activeTab === 'students' && (
-                    studentsLoading ? (
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 0', gap: 12, color: 'var(--color-text-muted)' }}>
-                            <Loader2 size={20} className="spin-animation" />
-                            <span>Talabalar yuklanmoqda...</span>
-                        </div>
-                    ) : students.length === 0 ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 0', gap: 12, color: 'var(--color-text-muted)' }}>
-                            <AlertCircle size={32} />
-                            <p style={{ fontSize: '0.875rem' }}>Talabalar topilmadi</p>
-                            <p style={{ fontSize: '0.75rem', opacity: 0.6 }}>HEMIS sinxronlash tugmasini bosing</p>
-                        </div>
-                    ) : (
-                        <table className="users-page__table">
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>Ism</th>
-                                    <th>Guruh</th>
-                                    <th>Fakultet</th>
-                                    <th>Holat</th>
-                                    <th>Amallar</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredStudents.map((s, i) => (
-                                    <tr key={s.id}>
-                                        <td>{i + 1}</td>
-                                        <td>
-                                            <div className="users-page__user-cell">
-                                                {s.image_url ? (
-                                                    <img src={s.image_url} alt={s.full_name} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-                                                ) : (
-                                                    <div className="users-page__avatar">{s.full_name.charAt(0)}</div>
-                                                )}
-                                                {s.full_name}
-                                            </div>
-                                        </td>
-                                        <td><span className="users-page__group-badge">{s.group_name || '-'}</span></td>
-                                        <td>{s.department_name || '-'}</td>
-                                        <td>
-                                            <span className={`users-page__status users-page__status--${s.active ? 'active' : 'inactive'}`}>
-                                                {s.active ? 'Faol' : 'Nofaol'}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <div className="users-page__actions">
-                                                <button className="users-page__action-btn users-page__action-btn--view" title="Ko'rish" onClick={() => handleView(s, 'student')}>
-                                                    <Eye size={15} />
-                                                </button>
-                                                <button className="users-page__action-btn users-page__action-btn--view" title="Xabar yuborish">
-                                                    <Bell size={15} />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    )
+                {activeTab === 'students' && renderUserTable(
+                    filteredStudents, loading.students, 'Talabalar', 'student',
+                    [
+                        { header: 'Guruh', render: u => <span className="users-page__group-badge">{u.group_name || '-'}</span> },
+                        { header: 'Fakultet', render: u => u.department_name || '-' },
+                    ]
                 )}
-
-                {activeTab === 'teachers' && (
-                    <table className="users-page__table">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Ism</th>
-                                <th>Kafedra</th>
-                                <th>Lavozim</th>
-                                <th>Holat</th>
-                                <th>Amallar</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredTeachers.map((t, i) => (
-                                <tr key={t.id}>
-                                    <td>{i + 1}</td>
-                                    <td>
-                                        <div className="users-page__user-cell">
-                                            <div className="users-page__avatar">{t.name.charAt(0)}</div>
-                                            {t.name}
-                                        </div>
-                                    </td>
-                                    <td>{t.department}</td>
-                                    <td>{t.position}</td>
-                                    <td>
-                                        <span className={`users-page__status users-page__status--${t.status}`}>
-                                            {t.status === 'active' ? 'Faol' : 'Nofaol'}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div className="users-page__actions">
-                                            <button className="users-page__action-btn users-page__action-btn--view" title="Ko'rish" onClick={() => handleView(t, 'teacher')}>
-                                                <Eye size={15} />
-                                            </button>
-                                            <button className="users-page__action-btn users-page__action-btn--view" title="Xabar yuborish">
-                                                <Bell size={15} />
-                                            </button>
-                                            <button
-                                                className={`users-page__action-btn ${t.status === 'active' ? 'users-page__action-btn--deactivate' : 'users-page__action-btn--activate'}`}
-                                                title={t.status === 'active' ? 'Nofaol qilish' : 'Faol qilish'}
-                                                onClick={() => toggleTeacherStatus(t.id)}
-                                            >
-                                                {t.status === 'active' ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                {activeTab === 'teachers' && renderUserTable(
+                    filteredTeachers, loading.teachers, "O'qituvchilar", 'teacher',
+                    [
+                        { header: 'Kafedra', render: u => u.department_name || '-' },
+                        { header: 'Lavozim', render: u => u.staff_position || '-' },
+                    ]
                 )}
-
-                {activeTab === 'employees' && (
-                    <table className="users-page__table">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Ism</th>
-                                <th>Bo'lim</th>
-                                <th>Lavozim</th>
-                                <th>Holat</th>
-                                <th>Amallar</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredEmployees.map((e, i) => (
-                                <tr key={e.id}>
-                                    <td>{i + 1}</td>
-                                    <td>
-                                        <div className="users-page__user-cell">
-                                            <div className="users-page__avatar">{e.name.charAt(0)}</div>
-                                            {e.name}
-                                        </div>
-                                    </td>
-                                    <td>{e.department}</td>
-                                    <td>{e.position}</td>
-                                    <td>
-                                        <span className={`users-page__status users-page__status--${e.status}`}>
-                                            {e.status === 'active' ? 'Faol' : 'Nofaol'}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div className="users-page__actions">
-                                            <button className="users-page__action-btn users-page__action-btn--view" title="Ko'rish" onClick={() => handleView(e, 'employee')}>
-                                                <Eye size={15} />
-                                            </button>
-                                            <button className="users-page__action-btn users-page__action-btn--view" title="Xabar yuborish">
-                                                <Bell size={15} />
-                                            </button>
-                                            <button
-                                                className={`users-page__action-btn ${e.status === 'active' ? 'users-page__action-btn--deactivate' : 'users-page__action-btn--activate'}`}
-                                                title={e.status === 'active' ? 'Nofaol qilish' : 'Faol qilish'}
-                                                onClick={() => toggleEmployeeStatus(e.id)}
-                                            >
-                                                {e.status === 'active' ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                {activeTab === 'employees' && renderUserTable(
+                    filteredEmployees, loading.employees, 'Xodimlar', 'employee',
+                    [
+                        { header: "Bo'lim", render: u => u.department_name || '-' },
+                        { header: 'Lavozim', render: u => u.staff_position || '-' },
+                    ]
                 )}
             </div>
 
@@ -591,33 +478,31 @@ export default function UsersPage() {
                                 icon={<GraduationCap size={20} />}
                                 color="var(--stat-blue)"
                                 count={students.length}
-                                progress={studentProgress}
-                                onSync={handleSyncStudents}
-                                syncResult={studentSyncResult}
-                                isReal
+                                progress={studentSync.progress}
+                                onSync={studentSync.handleSync}
+                                syncResult={studentSync.syncResult}
                             />
                             <SyncSection
                                 title="O'qituvchilar"
                                 icon={<BookUser size={20} />}
                                 color="var(--stat-green)"
                                 count={teachers.length}
-                                progress={teacherProgress}
-                                onSync={() => simulateSync(setTeacherProgress)}
+                                progress={teacherSync.progress}
+                                onSync={teacherSync.handleSync}
+                                syncResult={teacherSync.syncResult}
                             />
                             <SyncSection
                                 title="Xodimlar"
                                 icon={<Briefcase size={20} />}
                                 color="var(--stat-purple)"
                                 count={employees.length}
-                                progress={employeeProgress}
-                                onSync={() => simulateSync(setEmployeeProgress)}
+                                progress={employeeSync.progress}
+                                onSync={employeeSync.handleSync}
+                                syncResult={employeeSync.syncResult}
                             />
                         </div>
 
-                        <div className="sync-modal__footer">
-                            <span className="sync-modal__note">
-                                💡 Talabalar haqiqiy HEMIS dan sinxronlanadi
-                            </span>
+                        <div className="sync-modal__footer flex justify-end">
                             <button className="sync-modal__done-btn" onClick={() => setSyncModalOpen(false)}>
                                 Yopish
                             </button>

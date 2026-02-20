@@ -14,7 +14,7 @@ impl HemisService {
     /// HEMIS API dan talabalar ro'yxatini olish (barcha sahifalar)
     pub async fn fetch_all_students(config: &Config) -> Result<Vec<HemisStudentItem>, AppError> {
         let client = reqwest::Client::builder()
-            .danger_accept_invalid_certs(true)
+            .danger_accept_invalid_certs(config.hemis_skip_ssl)
             .build()
             .map_err(|e| {
                 AppError::InternalError(format!("HTTP client yaratishda xatolik: {}", e))
@@ -200,7 +200,7 @@ impl HemisService {
         type_filter: &str,
     ) -> Result<Vec<HemisEmployeeItem>, AppError> {
         let client = reqwest::Client::builder()
-            .danger_accept_invalid_certs(true)
+            .danger_accept_invalid_certs(config.hemis_skip_ssl)
             .build()
             .map_err(|e| {
                 AppError::InternalError(format!("HTTP client yaratishda xatolik: {}", e))
@@ -256,19 +256,10 @@ impl HemisService {
                 ));
             }
 
-            // data massivining birinchi elementidan items va pagination olish
-            let data_wrapper = hemis_response.data.into_iter().next().ok_or_else(|| {
-                AppError::InternalError("HEMIS Employee API data bo'sh".to_string())
-            })?;
+            let items_count = hemis_response.data.items.len();
+            let total_pages = hemis_response.data.pagination.page_count;
 
-            let items_count = data_wrapper.items.len();
-            let total_pages = data_wrapper
-                .pagination
-                .first()
-                .map(|p| p.page_count)
-                .unwrap_or(1);
-
-            all_employees.extend(data_wrapper.items);
+            all_employees.extend(hemis_response.data.items);
 
             tracing::info!(
                 page = page,
@@ -308,27 +299,13 @@ impl HemisService {
         let mut updated: i64 = 0;
 
         for employee in &employees {
-            // employee_id_number dan user_id olish (raqam yoki string bo'lishi mumkin)
+            // employee_id_number dan user_id olish
             let user_id = match &employee.employee_id_number {
-                Some(val) => {
-                    let id_str = match val {
-                        serde_json::Value::Number(n) => n.to_string(),
-                        serde_json::Value::String(s) => s.clone(),
-                        _ => val.to_string(),
-                    };
-                    if id_str.is_empty() || id_str == "0" || id_str == "null" {
-                        tracing::warn!(
-                            hemis_id = employee.id,
-                            "Xodimning employee_id_number bo'sh, o'tkazildi"
-                        );
-                        continue;
-                    }
-                    id_str
-                }
-                None => {
+                Some(id) if !id.is_empty() && id != "0" => id.clone(),
+                _ => {
                     tracing::warn!(
                         hemis_id = employee.id,
-                        "Xodimning employee_id_number yo'q, o'tkazildi"
+                        "Xodimning employee_id_number bo'sh, o'tkazildi"
                     );
                     continue;
                 }

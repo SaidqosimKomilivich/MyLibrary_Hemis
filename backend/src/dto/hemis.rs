@@ -80,17 +80,17 @@ pub struct HemisStudentItem {
 // ========================
 
 /// HEMIS Employee API dan kelgan javob wrapper
-/// Formati: {success, data: [{items: [...], pagination: [...]}]}
+/// Formati talabalar bilan bir xil: {success, data: {items: [...], pagination: {...}}}
 #[derive(Debug, Deserialize)]
 pub struct HemisEmployeeApiResponse {
     pub success: bool,
-    pub data: Vec<HemisEmployeeDataWrapper>,
+    pub data: HemisEmployeeData,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct HemisEmployeeDataWrapper {
+pub struct HemisEmployeeData {
     pub items: Vec<HemisEmployeeItem>,
-    pub pagination: Vec<HemisPagination>,
+    pub pagination: HemisPagination,
 }
 
 /// HEMIS API dan keladigan bitta xodim/o'qituvchi ma'lumotlari
@@ -99,15 +99,12 @@ pub struct HemisEmployeeItem {
     pub id: i64,
     pub full_name: Option<String>,
     pub short_name: Option<String>,
-    pub employee_id_number: Option<serde_json::Value>,
+    pub employee_id_number: Option<String>,
     pub birth_date: Option<i64>,
     pub image: Option<String>,
     pub department: Option<HemisDepartment>,
     #[serde(rename = "staffPosition")]
     pub staff_position: Option<HemisCodeName>,
-    #[serde(rename = "employeeType")]
-    pub employee_type: Option<HemisCodeName>,
-    pub active: Option<bool>,
 }
 
 // ========================

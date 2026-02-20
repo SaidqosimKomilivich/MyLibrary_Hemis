@@ -270,6 +270,36 @@ export const api = {
     getStudents() {
         return request<{ success: boolean; data: UserData[] }>('/sync/students')
     },
+
+    // Teacher sync endpoints
+    syncHemisTeachers() {
+        return request<{
+            success: boolean;
+            message: string;
+            created: number;
+            updated: number;
+            total: number;
+        }>('/sync/teachers', { method: 'POST' })
+    },
+
+    getTeachers() {
+        return request<{ success: boolean; data: UserData[] }>('/sync/teachers')
+    },
+
+    // Employee sync endpoints
+    syncHemisEmployees() {
+        return request<{
+            success: boolean;
+            message: string;
+            created: number;
+            updated: number;
+            total: number;
+        }>('/sync/employees', { method: 'POST' })
+    },
+
+    getEmployees() {
+        return request<{ success: boolean; data: UserData[] }>('/sync/employees')
+    },
 }
 
 // Book types
