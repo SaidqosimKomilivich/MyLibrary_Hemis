@@ -154,6 +154,88 @@ impl UserRepository {
         Ok(users)
     }
 
+    /// Role bo'yicha foydalanuvchilar sonini olish (paginatsiya uchun)
+    pub async fn count_by_role(
+        pool: &PgPool,
+        role: &str,
+        search: Option<&str>,
+        status: Option<&str>,
+    ) -> Result<i64, AppError> {
+        let mut query = String::from(r#"SELECT COUNT(*) as "count" FROM "users" WHERE "role" = $1"#);
+        let mut param_idx = 2u32;
+
+        if search.is_some() {
+            query.push_str(&format!(
+                r#" AND (LOWER("full_name") LIKE LOWER(${0}::text) OR LOWER(COALESCE("department_name",'')) LIKE LOWER(${0}::text) OR LOWER(COALESCE("group_name",'')) LIKE LOWER(${0}::text) OR LOWER(COALESCE("staff_position",'')) LIKE LOWER(${0}::text))"#,
+                param_idx
+            ));
+            param_idx += 1;
+        }
+
+        match status {
+            Some("active") => query.push_str(r#" AND "active" = true"#),
+            Some("inactive") => query.push_str(r#" AND "active" = false"#),
+            _ => {} // all — filter yo'q
+        }
+        let _ = param_idx; // suppress unused warning
+
+        let mut q = sqlx::query_scalar::<_, i64>(&query);
+        q = q.bind(role);
+
+        if let Some(s) = search {
+            q = q.bind(format!("%{}%", s));
+        }
+
+        let count = q.fetch_one(pool).await?;
+        Ok(count)
+    }
+
+    /// Role bo'yicha paginatsiya bilan foydalanuvchilarni olish
+    pub async fn find_paginated_by_role(
+        pool: &PgPool,
+        role: &str,
+        page: i64,
+        per_page: i64,
+        search: Option<&str>,
+        status: Option<&str>,
+    ) -> Result<Vec<User>, AppError> {
+        let offset = (page - 1) * per_page;
+        let mut query = String::from(r#"SELECT * FROM "users" WHERE "role" = $1"#);
+        let mut param_idx = 2u32;
+
+        if search.is_some() {
+            query.push_str(&format!(
+                r#" AND (LOWER("full_name") LIKE LOWER(${0}::text) OR LOWER(COALESCE("department_name",'')) LIKE LOWER(${0}::text) OR LOWER(COALESCE("group_name",'')) LIKE LOWER(${0}::text) OR LOWER(COALESCE("staff_position",'')) LIKE LOWER(${0}::text))"#,
+                param_idx
+            ));
+            param_idx += 1;
+        }
+
+        match status {
+            Some("active") => query.push_str(r#" AND "active" = true"#),
+            Some("inactive") => query.push_str(r#" AND "active" = false"#),
+            _ => {}
+        }
+
+        query.push_str(&format!(
+            r#" ORDER BY "full_name" ASC LIMIT ${} OFFSET ${}"#,
+            param_idx,
+            param_idx + 1
+        ));
+
+        let mut q = sqlx::query_as::<_, User>(&query);
+        q = q.bind(role);
+
+        if let Some(s) = search {
+            q = q.bind(format!("%{}%", s));
+        }
+
+        q = q.bind(per_page).bind(offset);
+
+        let users = q.fetch_all(pool).await?;
+        Ok(users)
+    }
+
     /// Yangi xodim/o'qituvchi yaratish (HEMIS sinxronlash uchun)
     #[allow(clippy::too_many_arguments)]
     pub async fn create_employee(

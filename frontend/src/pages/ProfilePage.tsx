@@ -78,81 +78,81 @@ export default function ProfilePage() {
         }
     }
 
-const handleDownloadCard = async () => {
-    const targetRef = cardFlipped ? backRef : frontRef
-    if (!targetRef.current) return
+    const handleDownloadCard = async () => {
+        const targetRef = cardFlipped ? backRef : frontRef
+        if (!targetRef.current) return
 
-    const currentSideName = cardFlipped
-        ? `${user.full_name || 'id-card'}_orqa`
-        : `${user.full_name || 'id-card'}_old`
+        const currentSideName = cardFlipped
+            ? `${user.full_name || 'id-card'}_orqa`
+            : `${user.full_name || 'id-card'}_old`
 
-    let isTransformed = false
+        let isTransformed = false
 
-    try {
-        if (cardFlipped && backRef.current) {
-            backRef.current.style.transform = 'rotateY(0deg)'
-            backRef.current.style.backfaceVisibility = 'visible'
-            isTransformed = true
-        }
+        try {
+            if (cardFlipped && backRef.current) {
+                backRef.current.style.transform = 'rotateY(0deg)'
+                backRef.current.style.backfaceVisibility = 'visible'
+                isTransformed = true
+            }
 
-        await new Promise(r => setTimeout(r, 50))
+            await new Promise(r => setTimeout(r, 50))
 
-        const dataUrl = await toPng(targetRef.current, {
-            cacheBust: true,
-            pixelRatio: 1,
-            backgroundColor: '#ffffff',
-        })
+            const dataUrl = await toPng(targetRef.current, {
+                cacheBust: true,
+                pixelRatio: 1,
+                backgroundColor: '#ffffff',
+            })
 
-        if (cardFlipped && backRef.current) {
-            backRef.current.style.transform = 'rotateY(180deg)'
-            backRef.current.style.backfaceVisibility = 'hidden'
-        }
+            if (cardFlipped && backRef.current) {
+                backRef.current.style.transform = 'rotateY(180deg)'
+                backRef.current.style.backfaceVisibility = 'hidden'
+            }
 
-        // ✅ FIX: navigator.canShare() bilan tekshiring
-        if (navigator.canShare && navigator.canShare({ files: [] })) {
-            try {
-                const blob = await (await fetch(dataUrl)).blob()
-                const file = new File([blob], `${currentSideName}.png`, { type: 'image/png' })
-                
-                await navigator.share({ 
-                    files: [file], 
-                    title: currentSideName 
-                })
-                
-                URL.revokeObjectURL(dataUrl)
-            } catch (shareError) {
-                console.log('Share cancel yoki error:', shareError)
+            // ✅ FIX: navigator.canShare() bilan tekshiring
+            if (navigator.canShare && navigator.canShare({ files: [] })) {
+                try {
+                    const blob = await (await fetch(dataUrl)).blob()
+                    const file = new File([blob], `${currentSideName}.png`, { type: 'image/png' })
+
+                    await navigator.share({
+                        files: [file],
+                        title: currentSideName
+                    })
+
+                    URL.revokeObjectURL(dataUrl)
+                } catch (shareError) {
+                    console.log('Share cancel yoki error:', shareError)
+                    downloadImage(dataUrl, currentSideName)
+                }
+            } else {
+                // Browser share qo'llab qolmasa
                 downloadImage(dataUrl, currentSideName)
             }
-        } else {
-            // Browser share qo'llab qolmasa
-            downloadImage(dataUrl, currentSideName)
-        }
 
-    } catch (e) {
-        console.error(e)
-        toast.error("Yuklab olishda xatolik")
-    } finally {
-        if (isTransformed && backRef.current) {
-            backRef.current.style.transform = 'rotateY(180deg)'
-            backRef.current.style.backfaceVisibility = 'hidden'
+        } catch (e) {
+            console.error(e)
+            toast.error("Yuklab olishda xatolik")
+        } finally {
+            if (isTransformed && backRef.current) {
+                backRef.current.style.transform = 'rotateY(180deg)'
+                backRef.current.style.backfaceVisibility = 'hidden'
+            }
         }
     }
-}
 
-const downloadImage = (dataUrl: string, fileName: string) => {
-    const link = document.createElement('a')
-    link.download = `${fileName}.png`
-    link.href = dataUrl
-    
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    
-    setTimeout(() => {
-        URL.revokeObjectURL(dataUrl)
-    }, 100)
-}
+    const downloadImage = (dataUrl: string, fileName: string) => {
+        const link = document.createElement('a')
+        link.download = `${fileName}.png`
+        link.href = dataUrl
+
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+
+        setTimeout(() => {
+            URL.revokeObjectURL(dataUrl)
+        }, 100)
+    }
     // Role-specific info items
     const commonItems = [
         { icon: <User size={18} />, label: 'F.I.Sh', value: user.full_name },
@@ -354,35 +354,35 @@ const downloadImage = (dataUrl: string, fileName: string) => {
                 {/* ===== ID CARD TAB ===== */}
                 {activeTab === 'card' && (
                     <div className='grid justify-center'>
-                        <div className='w-105 h-70 cursor-pointer' style={{perspective: '1000px'}} onClick={() => setCardFlipped(!cardFlipped)}>
-                            <div className='relative w-full h-full transition-transform duration-700' style={{transformStyle: 'preserve-3d', transform: cardFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)'}}>
-                                
+                        <div className='w-105 h-70 cursor-pointer' style={{ perspective: '1000px' }} onClick={() => setCardFlipped(!cardFlipped)}>
+                            <div className='relative w-full h-full transition-transform duration-700' style={{ transformStyle: 'preserve-3d', transform: cardFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)' }}>
+
                                 {/* frontRef shu yerga */}
-                                <div ref={frontRef} className='absolute inset-0 bg-white/40 rounded-2xl p-2 flex items-center justify-center' style={{backfaceVisibility: 'hidden'}}>
+                                <div ref={frontRef} className='absolute inset-0 bg-white/40 rounded-2xl p-2 flex items-center justify-center' style={{ backfaceVisibility: 'hidden' }}>
                                     <svg width="420" height="280" viewBox="0 0 420 280" className='rounded-2xl'>
                                         <defs>
                                             {/* <!-- Ko‘k gradient --> */}
                                             <linearGradient id="blueGrad" x1="0" y1="0" x2="1" y2="0">
-                                                <stop offset="0%" stop-color="#1e2a78"/>
-                                                <stop offset="100%" stop-color="#1f6aa5"/>
+                                                <stop offset="0%" stop-color="#1e2a78" />
+                                                <stop offset="100%" stop-color="#1f6aa5" />
                                             </linearGradient>
 
                                             {/* <!-- Oltin gradient --> */}
                                             <linearGradient id="goldGrad" x1="0" y1="0" x2="1" y2="0">
-                                                <stop offset="0%" stop-color="#caa23a"/>
-                                                <stop offset="50%" stop-color="#f6e27a"/>
-                                                <stop offset="100%" stop-color="#b8860b"/>
+                                                <stop offset="0%" stop-color="#caa23a" />
+                                                <stop offset="50%" stop-color="#f6e27a" />
+                                                <stop offset="100%" stop-color="#b8860b" />
                                             </linearGradient>
 
                                             {/* <!-- Och oltin (gap uchun) --> */}
                                             <linearGradient id="lightGold" x1="0" y1="0" x2="1" y2="0">
-                                                <stop offset="0%" stop-color="#f8e9a1"/>
-                                                <stop offset="100%" stop-color="#e6c65c"/>
+                                                <stop offset="0%" stop-color="#f8e9a1" />
+                                                <stop offset="100%" stop-color="#e6c65c" />
                                             </linearGradient>
 
                                             {/* <!-- Shadow --> */}
                                             <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-                                                <feDropShadow dx="0" dy="10" stdDeviation="15" flood-opacity="0.2"/>
+                                                <feDropShadow dx="0" dy="10" stdDeviation="15" flood-opacity="0.2" />
                                             </filter>
 
                                             {/* <!-- Rounded clip --> */}
@@ -392,29 +392,46 @@ const downloadImage = (dataUrl: string, fileName: string) => {
                                         </defs>
 
                                         {/* <!-- Karta --> */}
-                                        <rect width="420" height="280" fill="#f4f4f6" filter="url(#shadow)"/>
+                                        <rect width="420" height="280" fill="#f4f4f6" filter="url(#shadow)" />
 
                                         <g clip-path="url(#cardClip)">
-                                            
+
                                             {/* <!-- Ko‘k qism --> */}
-                                            <path d="M 0 0 L 420 0 L 420 90 C 330 80, 260 75, 200 90 C 140 105, 80 115, 0 100 Z " fill="url(#blueGrad)"/>
+                                            <path d="M 0 0 L 420 0 L 420 90 C 330 80, 260 75, 200 90 C 140 105, 80 115, 0 100 Z " fill="url(#blueGrad)" />
 
                                             {/* <!-- 1px och oltin separator --> */}
                                             <path d="M 0 100 C 100 115, 180 105, 240 90 C 300 75, 360 80, 420 90 L 420 91 C 360 81, 300 86, 240 101 C 180 116, 100 126, 0 111 Z " fill="url(#lightGold)" />
 
                                             {/* <!-- Oltin wave (5px ingichkaroq) --> */}
-                                            <path d="M 0 106 C 100 121, 180 111, 240 96 C 300 81, 360 86, 420 96 L 420 101 C 360 91, 300 96, 240 111 C 180 126, 100 136, 0 121 Z" fill="url(#goldGrad)"/>
+                                            <path d="M 0 106 C 100 121, 180 111, 240 96 C 300 81, 360 86, 420 96 L 420 101 C 360 91, 300 96, 240 111 C 180 126, 100 136, 0 121 Z" fill="url(#goldGrad)" />
                                         </g>
                                     </svg>
-                                    <img src="/logo.png" alt=""  className='absolute top-3 left-3 w-20 h-20'/>
+                                    <img src="/logo.png" alt="" className='absolute top-3 left-3 w-20 h-20' />
                                     <p className='absolute top-3 left-28 uppercase font-medium'>MIRZO ULUG‘BEK NOMIDAGI O‘ZBEKISTON MILLIY UNIVERSITETI JIZZAX FILIALI</p>
-                                    <div className='absolute top-27 left-6 bg-white border border-black w-25 h-35 rounded-2xl'>
-                                        <img src='https://hemis.jbnuu.uz/static/crop/1/0/320__90_1026103993.jpg' alt="" className='rounded-xl p-1 w-25 h-35' />
+                                    <div className='absolute top-27 left-6 bg-white border border-black w-25 h-35 rounded-2xl overflow-hidden flex items-center justify-center'>
+                                        {user.image_url ? (
+                                            <img src={user.image_url} alt={user.full_name} className='w-full h-full object-cover' />
+                                        ) : (
+                                            <span style={{ fontSize: '2rem', fontWeight: 700, color: '#1e2a78' }}>
+                                                {(user.full_name || '?').charAt(0).toUpperCase()}
+                                            </span>
+                                        )}
                                     </div>
-                                    <div className='absolute top-32 left-33 text-black'>
-                                        <p className='text-sm font-bold capitalize'>{user.full_name} </p>
-                                        <p className='text-sm'>Familiya</p>
-                                        <p className='text-sm'>Guruh</p>
+                                    <div className='absolute top-30 left-33 text-black' style={{ maxWidth: '120px' }}>
+                                        <p className='text-sm font-bold capitalize'>{user.full_name}</p>
+                                        <p className='text-sm' style={{ color: '#555' }}>{displayRole}</p>
+                                        {(role || user.role) === 'student' && user.group_name && (
+                                            <p className='text-xs' style={{ color: '#666' }}>{user.group_name}</p>
+                                        )}
+                                        {(role || user.role) === 'student' && user.department_name && (
+                                            <p className='text-xs' style={{ color: '#888', marginTop: 2 }}>{user.department_name}</p>
+                                        )}
+                                        {((role || user.role) === 'teacher' || (role || user.role) === 'staff' || (role || user.role) === 'employee') && user.department_name && (
+                                            <p className='text-xs' style={{ color: '#666' }}>{user.department_name}</p>
+                                        )}
+                                        {((role || user.role) === 'teacher' || (role || user.role) === 'staff' || (role || user.role) === 'employee') && user.staff_position && (
+                                            <p className='text-xs' style={{ color: '#888', marginTop: 2 }}>{user.staff_position}</p>
+                                        )}
                                     </div>
                                     <div className='absolute top-30 right-3 bg-white border-2 rounded-xl w-30 h-30 flex justify-center items-center'>
                                         <QRCodeSVG value={user.id} size={105} level='H' />
@@ -423,27 +440,27 @@ const downloadImage = (dataUrl: string, fileName: string) => {
                                 </div>
 
                                 {/* backRef shu yerga */}
-                                <div ref={backRef} className='absolute inset-0 bg-white/40 rounded-2xl p-2 flex items-center justify-center' style={{backfaceVisibility: 'hidden', transform: 'rotateY(180deg)'}}>
+                                <div ref={backRef} className='absolute inset-0 bg-white/40 rounded-2xl p-2 flex items-center justify-center' style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
                                     <svg width="420" height="280" viewBox="0 0 420 280" className='rounded-2xl'>
                                         <defs>
                                             <linearGradient id="blueGrad" x1="0" y1="0" x2="1" y2="0">
-                                                <stop offset="0%" stop-color="#1e2a78"/>
-                                                <stop offset="100%" stop-color="#1f6aa5"/>
+                                                <stop offset="0%" stop-color="#1e2a78" />
+                                                <stop offset="100%" stop-color="#1f6aa5" />
                                             </linearGradient>
 
                                             <linearGradient id="darkBlue" x1="0" y1="0" x2="1" y2="0">
-                                                <stop offset="0%" stop-color="#1b2a60"/>
-                                                <stop offset="100%" stop-color="#174f7a"/>
+                                                <stop offset="0%" stop-color="#1b2a60" />
+                                                <stop offset="100%" stop-color="#174f7a" />
                                             </linearGradient>
 
                                             <linearGradient id="goldGrad" x1="0" y1="0" x2="1" y2="0">
-                                                <stop offset="0%" stop-color="#caa23a"/>
-                                                <stop offset="50%" stop-color="#f6e27a"/>
-                                                <stop offset="100%" stop-color="#b8860b"/>
+                                                <stop offset="0%" stop-color="#caa23a" />
+                                                <stop offset="50%" stop-color="#f6e27a" />
+                                                <stop offset="100%" stop-color="#b8860b" />
                                             </linearGradient>
 
                                             <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-                                                <feDropShadow dx="0" dy="8" stdDeviation="12" flood-opacity="0.25"/>
+                                                <feDropShadow dx="0" dy="8" stdDeviation="12" flood-opacity="0.25" />
                                             </filter>
 
                                             <clipPath id="cardClip">
@@ -452,7 +469,7 @@ const downloadImage = (dataUrl: string, fileName: string) => {
                                         </defs>
 
                                         {/* <!-- Asosiy karta --> */}
-                                        <rect width="420" height="280" fill="#f5f5f5" filter="url(#shadow)"/>
+                                        <rect width="420" height="280" fill="#f5f5f5" filter="url(#shadow)" />
 
                                         <g clip-path="url(#cardClip)">
 
@@ -460,7 +477,7 @@ const downloadImage = (dataUrl: string, fileName: string) => {
                                             <rect x="0" y="25" width="420" height="45" fill="url(#blueGrad)" />
 
                                             {/* <!-- Pastki o‘ng ko‘k katta egri (7px past + 7px o‘ng) --> */}
-                                            <path d="M 220 280 C 300 240, 370 220, 427 157 L 427 280 Z" fill="url(#blueGrad)"/>
+                                            <path d="M 220 280 C 300 240, 370 220, 427 157 L 427 280 Z" fill="url(#blueGrad)" />
 
                                             {/* <!-- To‘q ko‘k layer --> */}
                                             <path d="M 240 280 C 310 250, 375 225, 427 172 L 427 205 C 370 250, 305 270, 240 280 Z" fill="url(#darkBlue)" />
@@ -469,7 +486,7 @@ const downloadImage = (dataUrl: string, fileName: string) => {
                                             <path d="  M 235 280 C 315 245, 380 215, 427 157 L 427 172 C 375 225, 315 255, 255 280 Z" fill="url(#goldGrad)" />
                                         </g>
                                     </svg>
-                                    <img src="/Emblem_of_Uzbekistan.png" alt="" className='absolute w-16 h-16 right-7 top-3.5 bg-white p-1 rounded-full'/>
+                                    <img src="/Emblem_of_Uzbekistan.png" alt="" className='absolute w-16 h-16 right-7 top-3.5 bg-white p-1 rounded-full' />
                                     <p className='absolute text-white top-8 left-18 text-xl uppercase '>Kutbxona qoidalar</p>
 
                                 </div>

@@ -1,6 +1,6 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { GraduationCap, Briefcase, BookUser, Search, RefreshCw, X, ArrowDownToLine, CheckCircle2, Eye, Mail, Phone, Calendar, MapPin, Hash, Bell, AlertCircle, Loader2 } from 'lucide-react'
+import { GraduationCap, Briefcase, BookUser, Search, RefreshCw, X, ArrowDownToLine, CheckCircle2, Eye, Mail, Phone, Calendar, MapPin, Hash, Bell, AlertCircle, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter } from 'lucide-react'
 import { api } from '../../services/api'
 import type { UserData } from '../../services/api'
 import { toast } from 'react-toastify'
@@ -215,10 +215,30 @@ function useHemisSync(
     return { progress, syncResult, handleSync, reset }
 }
 
+// Per-page options
+const PER_PAGE_OPTIONS = [20, 40, 60, 80, 100]
+
+// Pagination state type
+interface PaginationState {
+    currentPage: number
+    perPage: number
+    totalItems: number
+    totalPages: number
+}
+
+const defaultPagination: PaginationState = {
+    currentPage: 1,
+    perPage: 20,
+    totalItems: 0,
+    totalPages: 1,
+}
+
 export default function UsersPage() {
     const [search, setSearch] = useState('')
+    const [debouncedSearch, setDebouncedSearch] = useState('')
     const [activeTab, setActiveTab] = useState<'students' | 'teachers' | 'employees'>('students')
     const [syncModalOpen, setSyncModalOpen] = useState(false)
+    const [statusFilter, setStatusFilter] = useState<string>('all')
 
     // Data from API
     const [students, setStudents] = useState<UserData[]>([])
@@ -226,43 +246,105 @@ export default function UsersPage() {
     const [employees, setEmployees] = useState<UserData[]>([])
     const [loading, setLoading] = useState({ students: false, teachers: false, employees: false })
 
+    // Pagination state per tab
+    const [studentsPag, setStudentsPag] = useState<PaginationState>({ ...defaultPagination })
+    const [teachersPag, setTeachersPag] = useState<PaginationState>({ ...defaultPagination })
+    const [employeesPag, setEmployeesPag] = useState<PaginationState>({ ...defaultPagination })
+
+    // Total counts for tabs (from pagination)
+    const [totalCounts, setTotalCounts] = useState({ students: 0, teachers: 0, employees: 0 })
+
     // User detail modal
     const [viewUser, setViewUser] = useState<UserData | null>(null)
     const [viewUserType, setViewUserType] = useState<'student' | 'teacher' | 'employee'>('student')
+
+    // Debounce search
+    const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    useEffect(() => {
+        if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
+        searchTimerRef.current = setTimeout(() => {
+            setDebouncedSearch(search)
+        }, 400)
+        return () => { if (searchTimerRef.current) clearTimeout(searchTimerRef.current) }
+    }, [search])
+
+    // Reset page when search or status changes
+    useEffect(() => {
+        setStudentsPag(prev => ({ ...prev, currentPage: 1 }))
+        setTeachersPag(prev => ({ ...prev, currentPage: 1 }))
+        setEmployeesPag(prev => ({ ...prev, currentPage: 1 }))
+    }, [debouncedSearch, statusFilter])
 
     // Load functions
     const loadStudents = useCallback(async () => {
         setLoading(prev => ({ ...prev, students: true }))
         try {
-            const resp = await api.getStudents()
-            if (resp.success && resp.data) setStudents(resp.data)
+            const resp = await api.getStudents({
+                page: studentsPag.currentPage,
+                per_page: studentsPag.perPage,
+                search: debouncedSearch || undefined,
+                status: statusFilter !== 'all' ? statusFilter : undefined,
+            })
+            if (resp.success) {
+                setStudents(resp.data)
+                setStudentsPag(prev => ({
+                    ...prev,
+                    totalItems: resp.pagination.total_items,
+                    totalPages: resp.pagination.total_pages,
+                }))
+                setTotalCounts(prev => ({ ...prev, students: resp.pagination.total_items }))
+            }
         } catch (e) { console.error('Talabalarni yuklashda xato:', e) }
         finally { setLoading(prev => ({ ...prev, students: false })) }
-    }, [])
+    }, [studentsPag.currentPage, studentsPag.perPage, debouncedSearch, statusFilter])
 
     const loadTeachers = useCallback(async () => {
         setLoading(prev => ({ ...prev, teachers: true }))
         try {
-            const resp = await api.getTeachers()
-            if (resp.success && resp.data) setTeachers(resp.data)
+            const resp = await api.getTeachers({
+                page: teachersPag.currentPage,
+                per_page: teachersPag.perPage,
+                search: debouncedSearch || undefined,
+                status: statusFilter !== 'all' ? statusFilter : undefined,
+            })
+            if (resp.success) {
+                setTeachers(resp.data)
+                setTeachersPag(prev => ({
+                    ...prev,
+                    totalItems: resp.pagination.total_items,
+                    totalPages: resp.pagination.total_pages,
+                }))
+                setTotalCounts(prev => ({ ...prev, teachers: resp.pagination.total_items }))
+            }
         } catch (e) { console.error("O'qituvchilarni yuklashda xato:", e) }
         finally { setLoading(prev => ({ ...prev, teachers: false })) }
-    }, [])
+    }, [teachersPag.currentPage, teachersPag.perPage, debouncedSearch, statusFilter])
 
     const loadEmployees = useCallback(async () => {
         setLoading(prev => ({ ...prev, employees: true }))
         try {
-            const resp = await api.getEmployees()
-            if (resp.success && resp.data) setEmployees(resp.data)
+            const resp = await api.getEmployees({
+                page: employeesPag.currentPage,
+                per_page: employeesPag.perPage,
+                search: debouncedSearch || undefined,
+                status: statusFilter !== 'all' ? statusFilter : undefined,
+            })
+            if (resp.success) {
+                setEmployees(resp.data)
+                setEmployeesPag(prev => ({
+                    ...prev,
+                    totalItems: resp.pagination.total_items,
+                    totalPages: resp.pagination.total_pages,
+                }))
+                setTotalCounts(prev => ({ ...prev, employees: resp.pagination.total_items }))
+            }
         } catch (e) { console.error('Xodimlarni yuklashda xato:', e) }
         finally { setLoading(prev => ({ ...prev, employees: false })) }
-    }, [])
+    }, [employeesPag.currentPage, employeesPag.perPage, debouncedSearch, statusFilter])
 
-    useEffect(() => {
-        loadStudents()
-        loadTeachers()
-        loadEmployees()
-    }, [loadStudents, loadTeachers, loadEmployees])
+    useEffect(() => { loadStudents() }, [loadStudents])
+    useEffect(() => { loadTeachers() }, [loadTeachers])
+    useEffect(() => { loadEmployees() }, [loadEmployees])
 
     // Sync hooks
     const studentSync = useHemisSync(api.syncHemisStudents, loadStudents)
@@ -282,28 +364,54 @@ export default function UsersPage() {
         setViewUserType(type)
     }
 
-    // Filter
-    const filteredStudents = students.filter(s =>
-        s.full_name.toLowerCase().includes(search.toLowerCase()) ||
-        (s.group_name || '').toLowerCase().includes(search.toLowerCase()) ||
-        (s.department_name || '').toLowerCase().includes(search.toLowerCase())
-    )
-    const filteredTeachers = teachers.filter(t =>
-        t.full_name.toLowerCase().includes(search.toLowerCase()) ||
-        (t.department_name || '').toLowerCase().includes(search.toLowerCase()) ||
-        (t.staff_position || '').toLowerCase().includes(search.toLowerCase())
-    )
-    const filteredEmployees = employees.filter(e =>
-        e.full_name.toLowerCase().includes(search.toLowerCase()) ||
-        (e.department_name || '').toLowerCase().includes(search.toLowerCase()) ||
-        (e.staff_position || '').toLowerCase().includes(search.toLowerCase())
-    )
+    // Active pagination state
+    const getActivePag = () => {
+        if (activeTab === 'students') return studentsPag
+        if (activeTab === 'teachers') return teachersPag
+        return employeesPag
+    }
+
+    const setActivePag = (updater: (prev: PaginationState) => PaginationState) => {
+        if (activeTab === 'students') setStudentsPag(updater)
+        else if (activeTab === 'teachers') setTeachersPag(updater)
+        else setEmployeesPag(updater)
+    }
+
+    const handlePageChange = (page: number) => {
+        setActivePag(prev => ({ ...prev, currentPage: page }))
+    }
+
+    const handlePerPageChange = (perPage: number) => {
+        setActivePag(prev => ({ ...prev, perPage, currentPage: 1 }))
+    }
+
+    const pag = getActivePag()
 
     const tabs = [
-        { key: 'students' as const, label: 'Talabalar', icon: <GraduationCap size={16} />, count: students.length },
-        { key: 'teachers' as const, label: "O'qituvchilar", icon: <BookUser size={16} />, count: teachers.length },
-        { key: 'employees' as const, label: 'Xodimlar', icon: <Briefcase size={16} />, count: employees.length },
+        { key: 'students' as const, label: 'Talabalar', icon: <GraduationCap size={16} />, count: totalCounts.students },
+        { key: 'teachers' as const, label: "O'qituvchilar", icon: <BookUser size={16} />, count: totalCounts.teachers },
+        { key: 'employees' as const, label: 'Xodimlar', icon: <Briefcase size={16} />, count: totalCounts.employees },
     ]
+
+    // Generate pagination page numbers
+    const generatePageNumbers = () => {
+        const pages: (number | '...')[] = []
+        const total = pag.totalPages
+        const current = pag.currentPage
+
+        if (total <= 7) {
+            for (let i = 1; i <= total; i++) pages.push(i)
+        } else {
+            pages.push(1)
+            if (current > 3) pages.push('...')
+            const start = Math.max(2, current - 1)
+            const end = Math.min(total - 1, current + 1)
+            for (let i = start; i <= end; i++) pages.push(i)
+            if (current < total - 2) pages.push('...')
+            pages.push(total)
+        }
+        return pages
+    }
 
     // Table renderer for each tab (all use UserData now)
     const renderUserTable = (
@@ -311,7 +419,8 @@ export default function UsersPage() {
         isLoading: boolean,
         emptyLabel: string,
         type: 'student' | 'teacher' | 'employee',
-        columns: { header: string; render: (u: UserData) => React.ReactNode }[]
+        columns: { header: string; render: (u: UserData) => React.ReactNode }[],
+        pagState: PaginationState,
     ) => {
         if (isLoading) {
             return (
@@ -344,7 +453,7 @@ export default function UsersPage() {
                 <tbody>
                     {data.map((u, i) => (
                         <tr key={u.id}>
-                            <td>{i + 1}</td>
+                            <td>{(pagState.currentPage - 1) * pagState.perPage + i + 1}</td>
                             <td>
                                 <div className="users-page__user-cell">
                                     {u.image_url ? (
@@ -391,16 +500,43 @@ export default function UsersPage() {
                 </button>
             </div>
 
-            {/* Search */}
+            {/* Search & Filter Bar */}
             <div className="users-page__toolbar">
-                <div className="library-page__search">
-                    <Search size={18} />
+                <div className="users-page__search-wrapper">
+                    <Search size={18} className="users-page__search-icon" />
                     <input
                         type="text"
-                        placeholder="Ism, guruh yoki bo'lim bo'yicha qidirish..."
+                        className="users-page__search-input"
+                        placeholder="Ism, guruh, kafedra yoki lavozim bo'yicha qidirish..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                     />
+                    {search && (
+                        <button className="users-page__search-clear" onClick={() => setSearch('')}>
+                            <X size={16} />
+                        </button>
+                    )}
+                </div>
+                <div className="users-page__filters">
+                    <div className="users-page__filter-group">
+                        <Filter size={15} />
+                        <span className="users-page__filter-label">Holat:</span>
+                        <div className="users-page__status-filter">
+                            {[
+                                { value: 'all', label: 'Hammasi' },
+                                { value: 'active', label: 'Faol' },
+                                { value: 'inactive', label: 'Nofaol' },
+                            ].map(opt => (
+                                <button
+                                    key={opt.value}
+                                    className={`users-page__status-btn ${statusFilter === opt.value ? 'users-page__status-btn--active' : ''}`}
+                                    onClick={() => setStatusFilter(opt.value)}
+                                >
+                                    {opt.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -422,27 +558,106 @@ export default function UsersPage() {
             {/* Table */}
             <div className="users-page__table-wrapper">
                 {activeTab === 'students' && renderUserTable(
-                    filteredStudents, loading.students, 'Talabalar', 'student',
+                    students, loading.students, 'Talabalar', 'student',
                     [
                         { header: 'Guruh', render: u => <span className="users-page__group-badge">{u.group_name || '-'}</span> },
                         { header: 'Fakultet', render: u => u.department_name || '-' },
-                    ]
+                    ],
+                    studentsPag,
                 )}
                 {activeTab === 'teachers' && renderUserTable(
-                    filteredTeachers, loading.teachers, "O'qituvchilar", 'teacher',
+                    teachers, loading.teachers, "O'qituvchilar", 'teacher',
                     [
                         { header: 'Kafedra', render: u => u.department_name || '-' },
                         { header: 'Lavozim', render: u => u.staff_position || '-' },
-                    ]
+                    ],
+                    teachersPag,
                 )}
                 {activeTab === 'employees' && renderUserTable(
-                    filteredEmployees, loading.employees, 'Xodimlar', 'employee',
+                    employees, loading.employees, 'Xodimlar', 'employee',
                     [
                         { header: "Bo'lim", render: u => u.department_name || '-' },
                         { header: 'Lavozim', render: u => u.staff_position || '-' },
-                    ]
+                    ],
+                    employeesPag,
                 )}
             </div>
+
+            {/* Pagination */}
+            {pag.totalItems > 0 && (
+                <div className="users-page__pagination">
+                    <div className="users-page__pagination-info">
+                        <span>
+                            Jami <strong>{pag.totalItems}</strong> ta natija,{' '}
+                            <strong>{(pag.currentPage - 1) * pag.perPage + 1}</strong>–
+                            <strong>{Math.min(pag.currentPage * pag.perPage, pag.totalItems)}</strong> ko'rsatilmoqda
+                        </span>
+                    </div>
+
+                    <div className="users-page__pagination-controls">
+                        <button
+                            className="users-page__pag-btn"
+                            disabled={pag.currentPage <= 1}
+                            onClick={() => handlePageChange(1)}
+                            title="Birinchi sahifa"
+                        >
+                            <ChevronsLeft size={16} />
+                        </button>
+                        <button
+                            className="users-page__pag-btn"
+                            disabled={pag.currentPage <= 1}
+                            onClick={() => handlePageChange(pag.currentPage - 1)}
+                            title="Oldingi sahifa"
+                        >
+                            <ChevronLeft size={16} />
+                        </button>
+
+                        {generatePageNumbers().map((p, i) =>
+                            p === '...' ? (
+                                <span key={`dots-${i}`} className="users-page__pag-dots">...</span>
+                            ) : (
+                                <button
+                                    key={p}
+                                    className={`users-page__pag-btn users-page__pag-num ${pag.currentPage === p ? 'users-page__pag-num--active' : ''}`}
+                                    onClick={() => handlePageChange(p as number)}
+                                >
+                                    {p}
+                                </button>
+                            )
+                        )}
+
+                        <button
+                            className="users-page__pag-btn"
+                            disabled={pag.currentPage >= pag.totalPages}
+                            onClick={() => handlePageChange(pag.currentPage + 1)}
+                            title="Keyingi sahifa"
+                        >
+                            <ChevronRight size={16} />
+                        </button>
+                        <button
+                            className="users-page__pag-btn"
+                            disabled={pag.currentPage >= pag.totalPages}
+                            onClick={() => handlePageChange(pag.totalPages)}
+                            title="Oxirgi sahifa"
+                        >
+                            <ChevronsRight size={16} />
+                        </button>
+                    </div>
+
+                    <div className="users-page__per-page">
+                        <label className="users-page__per-page-label">Sahifada:</label>
+                        <select
+                            className="users-page__per-page-select"
+                            value={pag.perPage}
+                            onChange={(e) => handlePerPageChange(Number(e.target.value))}
+                        >
+                            {PER_PAGE_OPTIONS.map(n => (
+                                <option key={n} value={n}>{n}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+            )}
 
             {/* User Detail Modal */}
             {viewUser && (
@@ -477,7 +692,7 @@ export default function UsersPage() {
                                 title="Talabalar"
                                 icon={<GraduationCap size={20} />}
                                 color="var(--stat-blue)"
-                                count={students.length}
+                                count={totalCounts.students}
                                 progress={studentSync.progress}
                                 onSync={studentSync.handleSync}
                                 syncResult={studentSync.syncResult}
@@ -486,7 +701,7 @@ export default function UsersPage() {
                                 title="O'qituvchilar"
                                 icon={<BookUser size={20} />}
                                 color="var(--stat-green)"
-                                count={teachers.length}
+                                count={totalCounts.teachers}
                                 progress={teacherSync.progress}
                                 onSync={teacherSync.handleSync}
                                 syncResult={teacherSync.syncResult}
@@ -495,7 +710,7 @@ export default function UsersPage() {
                                 title="Xodimlar"
                                 icon={<Briefcase size={20} />}
                                 color="var(--stat-purple)"
-                                count={employees.length}
+                                count={totalCounts.employees}
                                 progress={employeeSync.progress}
                                 onSync={employeeSync.handleSync}
                                 syncResult={employeeSync.syncResult}

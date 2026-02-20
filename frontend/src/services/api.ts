@@ -267,8 +267,13 @@ export const api = {
         }>('/sync/students', { method: 'POST' })
     },
 
-    getStudents() {
-        return request<{ success: boolean; data: UserData[] }>('/sync/students')
+    getStudents(params: UserPaginationParams = {}) {
+        const query = new URLSearchParams()
+        if (params.page) query.append('page', params.page.toString())
+        if (params.per_page) query.append('per_page', params.per_page.toString())
+        if (params.search) query.append('search', params.search)
+        if (params.status) query.append('status', params.status)
+        return request<PaginatedUsersResponse>(`/sync/students?${query.toString()}`)
     },
 
     // Teacher sync endpoints
@@ -282,8 +287,13 @@ export const api = {
         }>('/sync/teachers', { method: 'POST' })
     },
 
-    getTeachers() {
-        return request<{ success: boolean; data: UserData[] }>('/sync/teachers')
+    getTeachers(params: UserPaginationParams = {}) {
+        const query = new URLSearchParams()
+        if (params.page) query.append('page', params.page.toString())
+        if (params.per_page) query.append('per_page', params.per_page.toString())
+        if (params.search) query.append('search', params.search)
+        if (params.status) query.append('status', params.status)
+        return request<PaginatedUsersResponse>(`/sync/teachers?${query.toString()}`)
     },
 
     // Employee sync endpoints
@@ -297,8 +307,13 @@ export const api = {
         }>('/sync/employees', { method: 'POST' })
     },
 
-    getEmployees() {
-        return request<{ success: boolean; data: UserData[] }>('/sync/employees')
+    getEmployees(params: UserPaginationParams = {}) {
+        const query = new URLSearchParams()
+        if (params.page) query.append('page', params.page.toString())
+        if (params.per_page) query.append('per_page', params.per_page.toString())
+        if (params.search) query.append('search', params.search)
+        if (params.status) query.append('status', params.status)
+        return request<PaginatedUsersResponse>(`/sync/employees?${query.toString()}`)
     },
 }
 
@@ -445,4 +460,23 @@ export interface ControlListResponse {
     success: boolean
     data: ControlRecord[]
     total: number
+}
+
+// User pagination types
+export interface UserPaginationParams {
+    page?: number
+    per_page?: number
+    search?: string
+    status?: string
+}
+
+export interface PaginatedUsersResponse {
+    success: boolean
+    data: UserData[]
+    pagination: {
+        current_page: number
+        per_page: number
+        total_items: number
+        total_pages: number
+    }
 }

@@ -1,5 +1,5 @@
 use chrono::NaiveDate;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::models::user::User;
@@ -47,4 +47,29 @@ impl From<User> for UserResponse {
             is_password_update: user.is_password_update,
         }
     }
+}
+
+/// Foydalanuvchilar uchun paginatsiya query parametrlari
+#[derive(Debug, Deserialize)]
+pub struct UserPaginationParams {
+    pub page: Option<i64>,
+    pub per_page: Option<i64>,
+    pub search: Option<String>,
+    pub status: Option<String>,
+}
+
+/// Paginatsiyali foydalanuvchilar javobi
+#[derive(Debug, Serialize)]
+pub struct PaginatedUsersResponse {
+    pub success: bool,
+    pub data: Vec<UserResponse>,
+    pub pagination: UserPaginationInfo,
+}
+
+#[derive(Debug, Serialize)]
+pub struct UserPaginationInfo {
+    pub current_page: i64,
+    pub per_page: i64,
+    pub total_items: i64,
+    pub total_pages: i64,
 }

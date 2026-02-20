@@ -2,8 +2,52 @@ use actix_web::{web, HttpResponse};
 use sqlx::PgPool;
 
 use crate::config::Config;
+use crate::dto::user::{PaginatedUsersResponse, UserPaginationInfo, UserPaginationParams};
 use crate::middleware::auth_middleware::{require_role, Claims};
+use crate::repository::user_repository::UserRepository;
 use crate::services::hemis_service::HemisService;
+
+const DEFAULT_PER_PAGE: i64 = 20;
+
+/// Umumiy paginatsiyali GET handler (students, teachers, employees uchun)
+async fn get_users_paginated(
+    pool: &PgPool,
+    role: &str,
+    params: UserPaginationParams,
+) -> Result<HttpResponse, actix_web::Error> {
+    let page = params.page.unwrap_or(1).max(1);
+    let per_page = params.per_page.unwrap_or(DEFAULT_PER_PAGE).max(1).min(100);
+    let search = params.search.as_deref();
+    let status = params.status.as_deref();
+
+    let total_items = UserRepository::count_by_role(pool, role, search, status)
+        .await
+        .map_err(actix_web::error::ErrorInternalServerError)?;
+
+    let total_pages = if total_items == 0 {
+        1
+    } else {
+        (total_items as f64 / per_page as f64).ceil() as i64
+    };
+
+    let users = UserRepository::find_paginated_by_role(pool, role, page, per_page, search, status)
+        .await
+        .map_err(actix_web::error::ErrorInternalServerError)?;
+
+    let user_responses: Vec<crate::dto::user::UserResponse> =
+        users.into_iter().map(|u| u.into()).collect();
+
+    Ok(HttpResponse::Ok().json(PaginatedUsersResponse {
+        success: true,
+        data: user_responses,
+        pagination: UserPaginationInfo {
+            current_page: page,
+            per_page,
+            total_items,
+            total_pages,
+        },
+    }))
+}
 
 /// POST /api/sync/students
 /// HEMIS API dan talabalarni sinxronlash (faqat admin uchun)
@@ -35,37 +79,17 @@ pub async fn sync_students(
 }
 
 /// GET /api/sync/students
-/// Bazadagi barcha talabalarni olish
+/// Bazadagi talabalarni paginatsiya bilan olish
 pub async fn get_students(
     claims: Claims,
     pool: web::Data<PgPool>,
+    query: web::Query<UserPaginationParams>,
 ) -> Result<HttpResponse, actix_web::Error> {
     if let Err(resp) = require_role(&claims, &["admin", "teacher", "employee"]) {
         return Ok(resp);
     }
 
-    match crate::repository::user_repository::UserRepository::find_all_by_role(
-        pool.get_ref(),
-        "student",
-    )
-    .await
-    {
-        Ok(users) => {
-            let user_responses: Vec<crate::dto::user::UserResponse> =
-                users.into_iter().map(|u| u.into()).collect();
-            Ok(HttpResponse::Ok().json(serde_json::json!({
-                "success": true,
-                "data": user_responses
-            })))
-        }
-        Err(e) => {
-            tracing::error!("Talabalarni olishda xato: {}", e);
-            Ok(HttpResponse::InternalServerError().json(serde_json::json!({
-                "success": false,
-                "message": format!("{}", e)
-            })))
-        }
-    }
+    get_users_paginated(pool.get_ref(), "student", query.into_inner()).await
 }
 
 /// POST /api/sync/teachers
@@ -98,37 +122,17 @@ pub async fn sync_teachers(
 }
 
 /// GET /api/sync/teachers
-/// Bazadagi barcha o'qituvchilarni olish
+/// Bazadagi o'qituvchilarni paginatsiya bilan olish
 pub async fn get_teachers(
     claims: Claims,
     pool: web::Data<PgPool>,
+    query: web::Query<UserPaginationParams>,
 ) -> Result<HttpResponse, actix_web::Error> {
     if let Err(resp) = require_role(&claims, &["admin", "teacher", "employee"]) {
         return Ok(resp);
     }
 
-    match crate::repository::user_repository::UserRepository::find_all_by_role(
-        pool.get_ref(),
-        "teacher",
-    )
-    .await
-    {
-        Ok(users) => {
-            let user_responses: Vec<crate::dto::user::UserResponse> =
-                users.into_iter().map(|u| u.into()).collect();
-            Ok(HttpResponse::Ok().json(serde_json::json!({
-                "success": true,
-                "data": user_responses
-            })))
-        }
-        Err(e) => {
-            tracing::error!("O'qituvchilarni olishda xato: {}", e);
-            Ok(HttpResponse::InternalServerError().json(serde_json::json!({
-                "success": false,
-                "message": format!("{}", e)
-            })))
-        }
-    }
+    get_users_paginated(pool.get_ref(), "teacher", query.into_inner()).await
 }
 
 /// POST /api/sync/employees
@@ -161,35 +165,15 @@ pub async fn sync_employees(
 }
 
 /// GET /api/sync/employees
-/// Bazadagi barcha xodimlarni olish
+/// Bazadagi xodimlarni paginatsiya bilan olish
 pub async fn get_employees(
     claims: Claims,
     pool: web::Data<PgPool>,
+    query: web::Query<UserPaginationParams>,
 ) -> Result<HttpResponse, actix_web::Error> {
     if let Err(resp) = require_role(&claims, &["admin", "teacher", "employee"]) {
         return Ok(resp);
     }
 
-    match crate::repository::user_repository::UserRepository::find_all_by_role(
-        pool.get_ref(),
-        "staff",
-    )
-    .await
-    {
-        Ok(users) => {
-            let user_responses: Vec<crate::dto::user::UserResponse> =
-                users.into_iter().map(|u| u.into()).collect();
-            Ok(HttpResponse::Ok().json(serde_json::json!({
-                "success": true,
-                "data": user_responses
-            })))
-        }
-        Err(e) => {
-            tracing::error!("Xodimlarni olishda xato: {}", e);
-            Ok(HttpResponse::InternalServerError().json(serde_json::json!({
-                "success": false,
-                "message": format!("{}", e)
-            })))
-        }
-    }
+    get_users_paginated(pool.get_ref(), "staff", query.into_inner()).await
 }
