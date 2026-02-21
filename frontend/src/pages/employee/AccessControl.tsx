@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import {
     ScanLine, UserCheck, UserX, BookPlus, RotateCcw, Clock,
     Search, X, Calendar, BookOpen, AlertTriangle, CheckCircle2,
@@ -89,17 +89,19 @@ export default function AccessControl() {
         }
     }
 
-    // 1. Scanner instance saqlash
-    const [scannerStatus, setScannerStatus] = useState<'idle' | 'scanning'>('idle');
+    // 1. Scanner instance ref
+    const scannerRef = useRef<Html5Qrcode | null>(null);
+    const [scannerActive, setScannerActive] = useState(false);
 
-    // 2. Kamera tanlanganda bevosita html5-qrcode ni ishga tushirish
-    useEffect(() => {
+    // Kamerani ishga tushirish
+    const startScanner = useCallback(() => {
         if (!selectedDeviceId || !permissionGranted) return;
+        if (scannerRef.current?.isScanning) return; // allaqachon ishlayapti
 
         const html5QrCode = new Html5Qrcode("qr-reader");
+        scannerRef.current = html5QrCode;
 
-        // Kamerani kutib turish
-        const timer = setTimeout(() => {
+        setTimeout(() => {
             html5QrCode.start(
                 selectedDeviceId,
                 {
@@ -110,31 +112,48 @@ export default function AccessControl() {
                 (decodedText) => {
                     handleScan(decodedText);
                 },
-                (_errorMessage) => {
-                    // ignore
-                }
+                () => { /* scan error — ignore */ }
             ).then(() => {
-                setScannerStatus('scanning');
+                setScannerActive(true);
             }).catch(err => {
                 console.error("Kamerani yoqishda xatolik:", err);
             });
-        }, 100);
+        }, 200);
+    }, [selectedDeviceId, permissionGranted]);
 
-        return () => {
-            clearTimeout(timer);
-            if (html5QrCode.isScanning) {
-                html5QrCode.stop().then(() => html5QrCode.clear()).catch(console.error);
+    // Kamerani to'xtatish (pauza)
+    const stopScanner = useCallback(async () => {
+        if (scannerRef.current?.isScanning) {
+            try {
+                await scannerRef.current.stop();
+                scannerRef.current.clear();
+            } catch (e) {
+                console.error("Skanerni to'xtatishda xatolik:", e);
             }
+        }
+        scannerRef.current = null;
+        setScannerActive(false);
+    }, []);
+
+    // 2. Kamera tanlanganda avtomatik ishga tushirish
+    useEffect(() => {
+        if (selectedDeviceId && permissionGranted) {
+            startScanner();
+        }
+        return () => {
+            stopScanner();
         };
     }, [selectedDeviceId, permissionGranted]);
 
-    // ──── Foydalanuvchi ma'lumotlarini tozalash ────
-    const clearUser = () => {
+    // ──── Foydalanuvchi ma'lumotlarini tozalash va kamerani qayta yoqish ────
+    const clearUser = useCallback(() => {
         setScannedUser(null)
         setActiveRentals([])
         setUserIsInside(false)
         setScanInput('')
-    }
+        // Kamerani qayta ishga tushirish
+        startScanner();
+    }, [startScanner]);
 
     // ──── Scanner logic ────
     const handleScan = async (scannedId?: string) => {
@@ -155,15 +174,19 @@ export default function AccessControl() {
         setActiveRentals([])
 
         try {
-            // 1. Bugungi barcha yozuvlarni shu foydalanuvchi uchun filtrlash
-            const userRecords = todayRecords.filter(rec => rec.user_id === queryId)
+            // 1. Yangi (fresh) bugungi yozuvlarni API dan olamiz — eski state ga ishonmaymiz!
+            const freshTodayRes = await api.getControlToday()
+            const freshTodayRecords = freshTodayRes.data
+            setTodayRecords(freshTodayRecords) // UI jadvalini ham yangilaymiz
 
-            // Eng YANGI yozuvni olish — backend arrival DESC tartibda qaytaradi, shuning uchun [0] eng yangisi
+            const userRecords = freshTodayRecords.filter(rec => rec.user_id === queryId)
+
+            // Eng YANGI yozuvni olish — backend arrival DESC tartibda qaytaradi
             const latestRecord = userRecords.length > 0 ? userRecords[0] : null
 
-            // Eng oxirgi yozuv bo'yicha holatni aniqlash:
-            // - arrival bor, departure yo'q (yoki arrival === departure) → ICHKARIDA
-            // - arrival bor, departure ham bor (departure !== arrival) → TASHQARIDA (ketgan)
+            // Holatni aniqlash:
+            // - departure yo'q (NULL) yoki arrival === departure → ICHKARIDA
+            // - departure bor va arrival !== departure → TASHQARIDA (ketgan)
             const isCurrentlyInside = latestRecord
                 ? !!(latestRecord.arrival && (!latestRecord.departure || latestRecord.arrival === latestRecord.departure))
                 : false
@@ -190,6 +213,8 @@ export default function AccessControl() {
             } else {
                 toast.success("Foydalanuvchi aniqlandi!")
             }
+            // QR aniqlandi — kamerani to'xtatamiz
+            await stopScanner();
         } catch (err: any) {
             toast.error(err.message || "Foydalanuvchi topilmadi. ID karta raqamini tekshiring.")
         } finally {
@@ -211,22 +236,26 @@ export default function AccessControl() {
 
     // ──── Arrive / Depart ────
     const handleArrive = async () => {
+        const userName = scannedUser?.full_name
         try {
             await api.controlArrive(scannedUser?.id)
-            setUserIsInside(true)
-            toast.success(`${scannedUser?.full_name} — kirish qayd etildi ✅`)
+            toast.success(`${userName} — kirish qayd etildi ✅`)
             loadTodayRecords()
+            // Tozalash + kamerani qayta yoqish
+            clearUser()
         } catch (err: any) {
             toast.error(err.message || "Kirishni qayd etishda xatolik yuz berdi")
         }
     }
 
     const handleDepart = async () => {
+        const userName = scannedUser?.full_name
         try {
             await api.controlDepart(scannedUser?.id)
-            setUserIsInside(false)
-            toast.success(`${scannedUser?.full_name} — chiqish qayd etildi ✅`)
+            toast.success(`${userName} — chiqish qayd etildi ✅`)
             loadTodayRecords()
+            // Tozalash + kamerani qayta yoqish
+            clearUser()
         } catch (err: any) {
             toast.error(err.message || "Chiqishni qayd etishda xatolik yuz berdi")
         }
