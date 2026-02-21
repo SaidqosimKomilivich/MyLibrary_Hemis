@@ -187,7 +187,7 @@ pub async fn get_user_by_id(
 ) -> Result<HttpResponse, AppError> {
     let user_id = path.into_inner();
     
-    let user = UserRepository::find_by_id(pool.get_ref(), user_id).await?;
+    let user = UserRepository::find_by_id_any(pool.get_ref(), user_id).await?;
     
     if let Some(u) = user {
         let response: crate::dto::user::UserResponse = u.into();
@@ -226,7 +226,7 @@ pub async fn update_user_role(
     }
 
     // Foydalanuvchini tekshirish
-    UserRepository::find_by_id(pool.get_ref(), target_id)
+    UserRepository::find_by_id_any(pool.get_ref(), target_id)
         .await
         .map_err(actix_web::error::ErrorInternalServerError)?
         .ok_or_else(|| actix_web::error::ErrorNotFound("Foydalanuvchi topilmadi"))?;
@@ -261,7 +261,7 @@ pub async fn update_user_status(
         .ok_or_else(|| actix_web::error::ErrorBadRequest("'active' maydoni talab qilinadi (true/false)"))?;
 
     // Foydalanuvchini tekshirish
-    let user = UserRepository::find_by_id(pool.get_ref(), target_id)
+    let user = UserRepository::find_by_id_any(pool.get_ref(), target_id)
         .await
         .map_err(actix_web::error::ErrorInternalServerError)?
         .ok_or_else(|| actix_web::error::ErrorNotFound("Foydalanuvchi topilmadi"))?;

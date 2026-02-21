@@ -182,7 +182,7 @@ pub async fn reset_password(
         .map_err(|_| actix_web::error::ErrorBadRequest("Noto'g'ri UUID"))?;
 
     // Foydalanuvchini topish
-    let user = UserRepository::find_by_id(pool.get_ref(), target_id)
+    let user = UserRepository::find_by_id_any(pool.get_ref(), target_id)
         .await
         .map_err(actix_web::error::ErrorInternalServerError)?
         .ok_or_else(|| actix_web::error::ErrorNotFound("Foydalanuvchi topilmadi"))?;
