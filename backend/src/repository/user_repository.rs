@@ -20,10 +20,22 @@ impl UserRepository {
         Ok(user)
     }
 
-    /// UUID bo'yicha foydalanuvchini topish
+    /// UUID bo'yicha foydalanuvchini topish (faqat faol)
     pub async fn find_by_id(pool: &PgPool, id: Uuid) -> Result<Option<User>, AppError> {
         let user = sqlx::query_as::<_, User>(
             r#"SELECT * FROM "users" WHERE "id" = $1 AND "active" = true"#,
+        )
+        .bind(id)
+        .fetch_optional(pool)
+        .await?;
+
+        Ok(user)
+    }
+
+    /// UUID bo'yicha foydalanuvchini topish (faol/nofaol farqi yo'q — admin amallar uchun)
+    pub async fn find_by_id_any(pool: &PgPool, id: Uuid) -> Result<Option<User>, AppError> {
+        let user = sqlx::query_as::<_, User>(
+            r#"SELECT * FROM "users" WHERE "id" = $1"#,
         )
         .bind(id)
         .fetch_optional(pool)
@@ -42,6 +54,57 @@ impl UserRepository {
             r#"UPDATE "users" SET "password" = $1, "is_password_update" = true WHERE "id" = $2"#,
         )
         .bind(new_password_hash)
+        .bind(id)
+        .execute(pool)
+        .await?;
+
+        Ok(())
+    }
+
+    /// Parolni default holatga qaytarish (admin uchun)
+    pub async fn reset_password(
+        pool: &PgPool,
+        id: Uuid,
+        default_password_hash: &str,
+    ) -> Result<(), AppError> {
+        sqlx::query(
+            r#"UPDATE "users" SET "password" = $1, "is_password_update" = false WHERE "id" = $2"#,
+        )
+        .bind(default_password_hash)
+        .bind(id)
+        .execute(pool)
+        .await?;
+
+        Ok(())
+    }
+
+    /// Foydalanuvchi rolini o'zgartirish (admin uchun)
+    pub async fn update_role(
+        pool: &PgPool,
+        id: Uuid,
+        new_role: &str,
+    ) -> Result<(), AppError> {
+        sqlx::query(
+            r#"UPDATE "users" SET "role" = $1 WHERE "id" = $2"#,
+        )
+        .bind(new_role)
+        .bind(id)
+        .execute(pool)
+        .await?;
+
+        Ok(())
+    }
+
+    /// Foydalanuvchi faol/nofaol holatini o'zgartirish (admin uchun)
+    pub async fn update_active(
+        pool: &PgPool,
+        id: Uuid,
+        active: bool,
+    ) -> Result<(), AppError> {
+        sqlx::query(
+            r#"UPDATE "users" SET "active" = $1 WHERE "id" = $2"#,
+        )
+        .bind(active)
         .bind(id)
         .execute(pool)
         .await?;

@@ -99,6 +99,10 @@ async fn main() -> std::io::Result<()> {
                     .route(
                         "/change-password",
                         web::post().to(auth_handler::change_password),
+                    )
+                    .route(
+                        "/reset-password/{user_id}",
+                        web::post().to(auth_handler::reset_password),
                     ),
             )
             // Book routes
@@ -153,7 +157,9 @@ async fn main() -> std::io::Result<()> {
             // Users routes
             .service(
                 web::scope("/api/users")
-                    .route("/{id}", web::get().to(sync_handler::get_user_by_id)),
+                    .route("/{id}", web::get().to(sync_handler::get_user_by_id))
+                    .route("/{id}/role", web::put().to(sync_handler::update_user_role))
+                    .route("/{id}/status", web::put().to(sync_handler::update_user_status)),
             )
             // Static files (uploads papkasini brauzerdan ko'rish)
             .service(actix_files::Files::new("/uploads", upload_dir.clone()))

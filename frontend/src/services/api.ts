@@ -61,6 +61,12 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
         ...options,
     })
 
+    // Token muddati tugagan — avtomatik logout
+    if (res.status === 401 && !url.includes('/auth/login')) {
+        window.dispatchEvent(new CustomEvent('auth:unauthorized'))
+        throw new ApiError('Sessiya muddati tugagan. Qayta kiring.', 401)
+    }
+
     let data: any
     try {
         data = await res.json()
@@ -113,6 +119,12 @@ export const api = {
         return request<MessageResponse>('/auth/change-password', {
             method: 'POST',
             body: JSON.stringify({ old_password, new_password }),
+        })
+    },
+
+    resetPassword(userId: string) {
+        return request<MessageResponse>(`/auth/reset-password/${userId}`, {
+            method: 'POST',
         })
     },
 
@@ -233,6 +245,20 @@ export const api = {
 
     getUserById(id: string) {
         return request<{ success: boolean; data: UserData }>(`/users/${id}`)
+    },
+
+    updateUserRole(id: string, role: string) {
+        return request<MessageResponse>(`/users/${id}/role`, {
+            method: 'PUT',
+            body: JSON.stringify({ role }),
+        })
+    },
+
+    updateUserStatus(id: string, active: boolean) {
+        return request<MessageResponse>(`/users/${id}/status`, {
+            method: 'PUT',
+            body: JSON.stringify({ active }),
+        })
     },
 
     getControlToday() {

@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
 import { api, type UserData } from '../services/api'
+import { toast } from 'react-toastify'
 
 /** Backend 'staff' → frontend 'employee' mapping */
 function mapRole(backendRole: string): string {
@@ -56,6 +57,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // Even if API fails, clear local state
         }
         setUser(null)
+    }, [])
+
+    // Token muddati tugaganda avtomatik logout
+    useEffect(() => {
+        const handleUnauthorized = () => {
+            setUser(null)
+            toast.warning('Sessiya muddati tugadi. Iltimos, qayta kiring.', { toastId: 'session-expired' })
+        }
+
+        window.addEventListener('auth:unauthorized', handleUnauthorized)
+        return () => window.removeEventListener('auth:unauthorized', handleUnauthorized)
     }, [])
 
     const role = user ? mapRole(user.role) : null

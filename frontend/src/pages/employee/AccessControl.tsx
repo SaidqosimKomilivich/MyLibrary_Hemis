@@ -5,11 +5,9 @@ import {
     LogIn, LogOut, User, CreditCard,
     RefreshCw,
     Camera,
-    Settings2,
-    Scan,
-    Loader2
+    Settings2
 } from 'lucide-react'
-import { Html5Qrcode } from 'html5-qrcode'
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode'
 import { api, type Rental, type Book, type ControlRecord, type UserData } from '../../services/api'
 import { toast } from 'react-toastify'
 
@@ -98,15 +96,31 @@ export default function AccessControl() {
         if (!selectedDeviceId || !permissionGranted) return;
         if (scannerRef.current?.isScanning) return; // allaqachon ishlayapti
 
-        const html5QrCode = new Html5Qrcode("qr-reader");
-        scannerRef.current = html5QrCode;
-
         setTimeout(() => {
-            html5QrCode.start(
+            // QR + Shtrix kod formatlari
+            const formatsToSupport = [
+                Html5QrcodeSupportedFormats.QR_CODE,
+                Html5QrcodeSupportedFormats.CODE_128,
+                Html5QrcodeSupportedFormats.CODE_39,
+                Html5QrcodeSupportedFormats.EAN_13,
+                Html5QrcodeSupportedFormats.EAN_8,
+                Html5QrcodeSupportedFormats.UPC_A,
+                Html5QrcodeSupportedFormats.UPC_E,
+            ];
+
+            const scanner = new Html5Qrcode("qr-reader", { formatsToSupport, verbose: false });
+            scannerRef.current = scanner;
+
+            scanner.start(
                 selectedDeviceId,
                 {
                     fps: 10,
-                    qrbox: { width: 250, height: 250 },
+                    // Responsiv qrbox: konteyner hajmiga qarab moslashadi
+                    qrbox: (viewfinderWidth, viewfinderHeight) => {
+                        const size = Math.min(viewfinderWidth, viewfinderHeight);
+                        const qrboxSize = Math.floor(size * 0.7); // 70% hajmda
+                        return { width: Math.max(qrboxSize, 150), height: Math.max(qrboxSize, 150) };
+                    },
                     aspectRatio: 1.333334,
                 },
                 (decodedText) => {
@@ -433,28 +447,7 @@ export default function AccessControl() {
                         )}
                     </div>
 
-                    {/* Tugma */}
-                    <button
-                        onClick={() => handleScan()}
-                        disabled={isScanning || !permissionGranted}
-                        className={`w-full py-3.5 rounded-lg flex items-center justify-center gap-2 transition-all 
-                            ${isScanning || !permissionGranted
-                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                : 'bg-[#1A1A1A] hover:bg-black text-white active:scale-[0.98]'
-                            }`}
-                    >
-                        {isScanning ? (
-                            <>
-                                <Loader2 className="w-5 h-5 animate-spin" />
-                                <span>Skanerlanmoqda...</span>
-                            </>
-                        ) : (
-                            <>
-                                <Scan className="w-5 h-5" />
-                                <span>Skanerlash</span>
-                            </>
-                        )}
-                    </button>
+
                 </div>
                 <style>{`
                     @keyframes scan {

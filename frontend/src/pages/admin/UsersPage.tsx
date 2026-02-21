@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { GraduationCap, Briefcase, BookUser, Search, RefreshCw, X, ArrowDownToLine, CheckCircle2, Eye, Mail, Phone, Calendar, MapPin, Hash, Bell, AlertCircle, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter } from 'lucide-react'
+import { GraduationCap, Briefcase, BookUser, Search, RefreshCw, X, ArrowDownToLine, CheckCircle2, Eye, Mail, Phone, Calendar, MapPin, Hash, Bell, AlertCircle, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, KeyRound, ShieldAlert, UserCog, Power } from 'lucide-react'
 import { api } from '../../services/api'
 import type { UserData } from '../../services/api'
 import { toast } from 'react-toastify'
@@ -258,6 +258,19 @@ export default function UsersPage() {
     const [viewUser, setViewUser] = useState<UserData | null>(null)
     const [viewUserType, setViewUserType] = useState<'student' | 'teacher' | 'employee'>('student')
 
+    // Password reset modal
+    const [resetUser, setResetUser] = useState<UserData | null>(null)
+    const [resetLoading, setResetLoading] = useState(false)
+
+    // Role change modal
+    const [roleUser, setRoleUser] = useState<UserData | null>(null)
+    const [selectedRole, setSelectedRole] = useState('')
+    const [roleLoading, setRoleLoading] = useState(false)
+
+    // Status toggle modal
+    const [statusUser, setStatusUser] = useState<UserData | null>(null)
+    const [statusLoading, setStatusLoading] = useState(false)
+
     // Debounce search
     const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     useEffect(() => {
@@ -362,6 +375,70 @@ export default function UsersPage() {
     const handleView = (user: UserData, type: 'student' | 'teacher' | 'employee') => {
         setViewUser(user)
         setViewUserType(type)
+    }
+
+    // Parolni default holatga qaytarish
+    const handleResetPassword = (user: UserData) => {
+        setResetUser(user)
+    }
+
+    const confirmResetPassword = async () => {
+        if (!resetUser) return
+        setResetLoading(true)
+        try {
+            const res = await api.resetPassword(resetUser.id)
+            toast.success(res.message || 'Parol muvaffaqiyatli tiklandi')
+            setResetUser(null)
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : 'Parolni tiklashda xatolik')
+        } finally {
+            setResetLoading(false)
+        }
+    }
+
+    // Rolni o'zgartirish
+    const handleChangeRole = (user: UserData) => {
+        // Backend 'staff', frontend 'employee' — backendga mos rolni olish
+        setRoleUser(user)
+        setSelectedRole(user.role === 'employee' ? 'staff' : user.role)
+    }
+
+    const confirmChangeRole = async () => {
+        if (!roleUser || !selectedRole) return
+        setRoleLoading(true)
+        try {
+            const res = await api.updateUserRole(roleUser.id, selectedRole)
+            toast.success(res.message || 'Rol muvaffaqiyatli o\'zgartirildi')
+            setRoleUser(null)
+            // Jadvalni yangilash
+            loadStudents(); loadTeachers(); loadEmployees()
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : 'Rolni o\'zgartirishda xatolik')
+        } finally {
+            setRoleLoading(false)
+        }
+    }
+
+    // Holatni o'zgartirish
+    const handleToggleStatus = (user: UserData) => {
+        setStatusUser(user)
+    }
+
+    const confirmToggleStatus = async () => {
+        if (!statusUser) return
+        setStatusLoading(true)
+        try {
+            const newActive = !statusUser.active
+            const res = await api.updateUserStatus(statusUser.id, newActive)
+            toast.success(res.message || 'Holat o\'zgartirildi')
+            setStatusUser(null)
+            // Jadvalni yangilash
+            loadStudents(); loadTeachers(); loadEmployees()
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : 'Holatni o\'zgartirishda xatolik')
+        } finally {
+            setStatusLoading(false)
+        }
     }
 
     // Active pagination state
@@ -475,8 +552,14 @@ export default function UsersPage() {
                                     <button className="users-page__action-btn users-page__action-btn--view" title="Ko'rish" onClick={() => handleView(u, type)}>
                                         <Eye size={15} />
                                     </button>
-                                    <button className="users-page__action-btn users-page__action-btn--view" title="Xabar yuborish">
-                                        <Bell size={15} />
+                                    <button className="users-page__action-btn users-page__action-btn--view" title="Parolni tiklash" onClick={() => handleResetPassword(u)}>
+                                        <KeyRound size={15} />
+                                    </button>
+                                    <button className="users-page__action-btn users-page__action-btn--view" title="Rolni o'zgartirish" onClick={() => handleChangeRole(u)}>
+                                        <UserCog size={15} />
+                                    </button>
+                                    <button className="users-page__action-btn users-page__action-btn--view" title={u.active ? 'Nofaol qilish' : 'Faol qilish'} onClick={() => handleToggleStatus(u)}>
+                                        <Power size={15} />
                                     </button>
                                 </div>
                             </td>
@@ -720,6 +803,275 @@ export default function UsersPage() {
                         <div className="sync-modal__footer flex justify-end">
                             <button className="sync-modal__done-btn" onClick={() => setSyncModalOpen(false)}>
                                 Yopish
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+            {/* Password Reset Modal */}
+            {resetUser && createPortal(
+                <div className="sync-modal__backdrop" onClick={() => !resetLoading && setResetUser(null)}>
+                    <div className="sync-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 440 }}>
+                        <div className="sync-modal__header">
+                            <div className="sync-modal__header-info">
+                                <div className="sync-modal__hemis-logo" style={{ background: 'var(--stat-orange, #f59e0b)' }}>
+                                    <ShieldAlert size={22} />
+                                </div>
+                                <div>
+                                    <h2 className="sync-modal__title">Parolni tiklash</h2>
+                                    <p className="sync-modal__subtitle">Parol default holatga qaytariladi</p>
+                                </div>
+                            </div>
+                            <button className="sync-modal__close" onClick={() => !resetLoading && setResetUser(null)}>
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <div className="sync-modal__body" style={{ padding: '24px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                                {resetUser.image_url ? (
+                                    <img src={resetUser.image_url} alt={resetUser.full_name} style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover' }} />
+                                ) : (
+                                    <div className="users-page__avatar" style={{ width: 48, height: 48, fontSize: 18 }}>
+                                        {resetUser.full_name.charAt(0)}
+                                    </div>
+                                )}
+                                <div>
+                                    <div style={{ fontWeight: 600, fontSize: '1rem' }}>{resetUser.full_name}</div>
+                                    <div style={{ fontSize: '0.8rem', opacity: 0.6 }}>ID: {resetUser.user_id}</div>
+                                </div>
+                            </div>
+
+                            <div style={{
+                                background: 'rgba(245, 158, 11, 0.1)',
+                                border: '1px solid rgba(245, 158, 11, 0.3)',
+                                borderRadius: 8,
+                                padding: '12px 16px',
+                                fontSize: '0.85rem',
+                                lineHeight: 1.6,
+                            }}>
+                                <p style={{ margin: 0 }}>
+                                    <strong>Diqqat!</strong> Bu foydalanuvchining paroli default holatga qaytariladi.
+                                </p>
+                                <p style={{ margin: '8px 0 0', opacity: 0.8 }}>
+                                    Yangi parol: <code style={{
+                                        background: 'rgba(255,255,255,0.1)',
+                                        padding: '2px 8px',
+                                        borderRadius: 4,
+                                        fontWeight: 600,
+                                        fontSize: '0.9rem',
+                                    }}>{resetUser.user_id}</code>
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="sync-modal__footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                            <button
+                                className="sync-modal__done-btn"
+                                onClick={() => setResetUser(null)}
+                                disabled={resetLoading}
+                                style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.15)' }}
+                            >
+                                Bekor qilish
+                            </button>
+                            <button
+                                className="sync-modal__done-btn"
+                                onClick={confirmResetPassword}
+                                disabled={resetLoading}
+                                style={{ background: 'var(--stat-orange, #f59e0b)', color: '#000', fontWeight: 600 }}
+                            >
+                                {resetLoading ? (
+                                    <>
+                                        <Loader2 size={16} className="spin-animation" style={{ marginRight: 6 }} />
+                                        Tiklanmoqda...
+                                    </>
+                                ) : (
+                                    'Parolni tiklash'
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* Role Change Modal */}
+            {roleUser && createPortal(
+                <div className="sync-modal__backdrop" onClick={() => !roleLoading && setRoleUser(null)}>
+                    <div className="sync-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 440 }}>
+                        <div className="sync-modal__header">
+                            <div className="sync-modal__header-info">
+                                <div className="sync-modal__hemis-logo" style={{ background: 'var(--stat-blue, #3b82f6)' }}>
+                                    <UserCog size={22} />
+                                </div>
+                                <div>
+                                    <h2 className="sync-modal__title">Rolni o'zgartirish</h2>
+                                    <p className="sync-modal__subtitle">Foydalanuvchi rolini yangilash</p>
+                                </div>
+                            </div>
+                            <button className="sync-modal__close" onClick={() => !roleLoading && setRoleUser(null)}>
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <div className="sync-modal__body" style={{ padding: '24px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                                {roleUser.image_url ? (
+                                    <img src={roleUser.image_url} alt={roleUser.full_name} style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover' }} />
+                                ) : (
+                                    <div className="users-page__avatar" style={{ width: 48, height: 48, fontSize: 18 }}>
+                                        {roleUser.full_name.charAt(0)}
+                                    </div>
+                                )}
+                                <div>
+                                    <div style={{ fontWeight: 600, fontSize: '1rem' }}>{roleUser.full_name}</div>
+                                    <div style={{ fontSize: '0.8rem', opacity: 0.6 }}>ID: {roleUser.user_id}</div>
+                                </div>
+                            </div>
+
+                            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: 8, opacity: 0.8 }}>
+                                Yangi rolni tanlang:
+                            </label>
+                            <select
+                                value={selectedRole}
+                                onChange={(e) => setSelectedRole(e.target.value)}
+                                style={{
+                                    width: '100%',
+                                    padding: '10px 14px',
+                                    borderRadius: 8,
+                                    border: '1px solid rgba(255,255,255,0.15)',
+                                    background: 'rgba(255,255,255,0.06)',
+                                    color: 'inherit',
+                                    fontSize: '0.9rem',
+                                    outline: 'none',
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                <option value="admin">👑 Administrator</option>
+                                <option value="staff">💼 Xodim</option>
+                                <option value="teacher">👨‍🏫 O'qituvchi</option>
+                                <option value="student">🎓 Talaba</option>
+                            </select>
+                        </div>
+
+                        <div className="sync-modal__footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                            <button
+                                className="sync-modal__done-btn"
+                                onClick={() => setRoleUser(null)}
+                                disabled={roleLoading}
+                                style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.15)' }}
+                            >
+                                Bekor qilish
+                            </button>
+                            <button
+                                className="sync-modal__done-btn"
+                                onClick={confirmChangeRole}
+                                disabled={roleLoading}
+                                style={{ background: 'var(--stat-blue, #3b82f6)', fontWeight: 600 }}
+                            >
+                                {roleLoading ? (
+                                    <>
+                                        <Loader2 size={16} className="spin-animation" style={{ marginRight: 6 }} />
+                                        Saqlanmoqda...
+                                    </>
+                                ) : (
+                                    'Saqlash'
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* Status Toggle Modal */}
+            {statusUser && createPortal(
+                <div className="sync-modal__backdrop" onClick={() => !statusLoading && setStatusUser(null)}>
+                    <div className="sync-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 440 }}>
+                        <div className="sync-modal__header">
+                            <div className="sync-modal__header-info">
+                                <div className="sync-modal__hemis-logo" style={{ background: statusUser.active ? 'var(--stat-red, #ef4444)' : 'var(--stat-green, #22c55e)' }}>
+                                    <Power size={22} />
+                                </div>
+                                <div>
+                                    <h2 className="sync-modal__title">Holatni o'zgartirish</h2>
+                                    <p className="sync-modal__subtitle">
+                                        {statusUser.active ? 'Foydalanuvchini nofaol qilish' : 'Foydalanuvchini faol qilish'}
+                                    </p>
+                                </div>
+                            </div>
+                            <button className="sync-modal__close" onClick={() => !statusLoading && setStatusUser(null)}>
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <div className="sync-modal__body" style={{ padding: '24px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                                {statusUser.image_url ? (
+                                    <img src={statusUser.image_url} alt={statusUser.full_name} style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover' }} />
+                                ) : (
+                                    <div className="users-page__avatar" style={{ width: 48, height: 48, fontSize: 18 }}>
+                                        {statusUser.full_name.charAt(0)}
+                                    </div>
+                                )}
+                                <div>
+                                    <div style={{ fontWeight: 600, fontSize: '1rem' }}>{statusUser.full_name}</div>
+                                    <div style={{ fontSize: '0.8rem', opacity: 0.6 }}>
+                                        Hozirgi holat:{' '}
+                                        <span className={`users-page__status users-page__status--${statusUser.active ? 'active' : 'inactive'}`}>
+                                            {statusUser.active ? 'Faol' : 'Nofaol'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style={{
+                                background: statusUser.active ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)',
+                                border: `1px solid ${statusUser.active ? 'rgba(239, 68, 68, 0.3)' : 'rgba(34, 197, 94, 0.3)'}`,
+                                borderRadius: 8,
+                                padding: '12px 16px',
+                                fontSize: '0.85rem',
+                                lineHeight: 1.6,
+                            }}>
+                                <p style={{ margin: 0 }}>
+                                    {statusUser.active
+                                        ? <><strong>Diqqat!</strong> Bu foydalanuvchi <strong>nofaol</strong> qilinadi. U tizimga kira olmaydi.</>
+                                        : <><strong>Tasdiqlash:</strong> Bu foydalanuvchi <strong>faol</strong> qilinadi va tizimga kirish imkoniyati beriladi.</>
+                                    }
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="sync-modal__footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                            <button
+                                className="sync-modal__done-btn"
+                                onClick={() => setStatusUser(null)}
+                                disabled={statusLoading}
+                                style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.15)' }}
+                            >
+                                Bekor qilish
+                            </button>
+                            <button
+                                className="sync-modal__done-btn"
+                                onClick={confirmToggleStatus}
+                                disabled={statusLoading}
+                                style={{
+                                    background: statusUser.active ? 'var(--stat-red, #ef4444)' : 'var(--stat-green, #22c55e)',
+                                    fontWeight: 600,
+                                    color: '#fff',
+                                }}
+                            >
+                                {statusLoading ? (
+                                    <>
+                                        <Loader2 size={16} className="spin-animation" style={{ marginRight: 6 }} />
+                                        O'zgartirilmoqda...
+                                    </>
+                                ) : statusUser.active ? (
+                                    'Nofaol qilish'
+                                ) : (
+                                    'Faol qilish'
+                                )}
                             </button>
                         </div>
                     </div>

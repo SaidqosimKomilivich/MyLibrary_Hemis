@@ -162,3 +162,43 @@ pub async fn change_password(
 
     Ok(HttpResponse::Ok().json(response))
 }
+
+/// POST /api/auth/reset-password/{user_id}
+/// Faqat admin: foydalanuvchi parolini default holatga qaytarish
+pub async fn reset_password(
+    pool: web::Data<PgPool>,
+    claims: Claims,
+    path: web::Path<String>,
+) -> Result<HttpResponse, actix_web::Error> {
+    use crate::middleware::auth_middleware::require_role;
+    use crate::repository::user_repository::UserRepository;
+
+    // Faqat admin uchun
+    if let Err(resp) = require_role(&claims, &["admin"]) {
+        return Ok(resp);
+    }
+
+    let target_id = uuid::Uuid::parse_str(&path.into_inner())
+        .map_err(|_| actix_web::error::ErrorBadRequest("Noto'g'ri UUID"))?;
+
+    // Foydalanuvchini topish
+    let user = UserRepository::find_by_id(pool.get_ref(), target_id)
+        .await
+        .map_err(actix_web::error::ErrorInternalServerError)?
+        .ok_or_else(|| actix_web::error::ErrorNotFound("Foydalanuvchi topilmadi"))?;
+
+    // Default parol = user_id
+    let default_hash = AuthService::hash_password(&user.user_id)
+        .map_err(actix_web::error::ErrorInternalServerError)?;
+
+    UserRepository::reset_password(pool.get_ref(), target_id, &default_hash)
+        .await
+        .map_err(actix_web::error::ErrorInternalServerError)?;
+
+    tracing::info!(target_user = %user.user_id, admin = %claims.sub, "Parol default holatga qaytarildi");
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "success": true,
+        "message": "Parol muvaffaqiyatli default holatga qaytarildi"
+    })))
+}

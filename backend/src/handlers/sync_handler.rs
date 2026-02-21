@@ -199,3 +199,82 @@ pub async fn get_user_by_id(
         Err(AppError::NotFound("Foydalanuvchi topilmadi".to_string()))
     }
 }
+
+/// PUT /api/users/{id}/role
+/// Faqat admin: foydalanuvchi rolini o'zgartirish
+pub async fn update_user_role(
+    pool: web::Data<PgPool>,
+    claims: Claims,
+    path: web::Path<uuid::Uuid>,
+    body: web::Json<serde_json::Value>,
+) -> Result<HttpResponse, actix_web::Error> {
+    if let Err(resp) = require_role(&claims, &["admin"]) {
+        return Ok(resp);
+    }
+
+    let target_id = path.into_inner();
+    let new_role = body.get("role")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| actix_web::error::ErrorBadRequest("'role' maydoni talab qilinadi"))?;
+
+    // Ruxsat etilgan rollar
+    let allowed_roles = ["admin", "staff", "teacher", "student"];
+    if !allowed_roles.contains(&new_role) {
+        return Err(actix_web::error::ErrorBadRequest(format!(
+            "Noto'g'ri rol: '{}'. Ruxsat etilgan rollar: {:?}", new_role, allowed_roles
+        )));
+    }
+
+    // Foydalanuvchini tekshirish
+    UserRepository::find_by_id(pool.get_ref(), target_id)
+        .await
+        .map_err(actix_web::error::ErrorInternalServerError)?
+        .ok_or_else(|| actix_web::error::ErrorNotFound("Foydalanuvchi topilmadi"))?;
+
+    UserRepository::update_role(pool.get_ref(), target_id, new_role)
+        .await
+        .map_err(actix_web::error::ErrorInternalServerError)?;
+
+    tracing::info!(target_user = %target_id, admin = %claims.sub, new_role = %new_role, "Rol o'zgartirildi");
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "success": true,
+        "message": format!("Rol '{}' ga o'zgartirildi", new_role)
+    })))
+}
+
+/// PUT /api/users/{id}/status
+/// Faqat admin: foydalanuvchi faol/nofaol holatini o'zgartirish
+pub async fn update_user_status(
+    pool: web::Data<PgPool>,
+    claims: Claims,
+    path: web::Path<uuid::Uuid>,
+    body: web::Json<serde_json::Value>,
+) -> Result<HttpResponse, actix_web::Error> {
+    if let Err(resp) = require_role(&claims, &["admin"]) {
+        return Ok(resp);
+    }
+
+    let target_id = path.into_inner();
+    let active = body.get("active")
+        .and_then(|v| v.as_bool())
+        .ok_or_else(|| actix_web::error::ErrorBadRequest("'active' maydoni talab qilinadi (true/false)"))?;
+
+    // Foydalanuvchini tekshirish
+    let user = UserRepository::find_by_id(pool.get_ref(), target_id)
+        .await
+        .map_err(actix_web::error::ErrorInternalServerError)?
+        .ok_or_else(|| actix_web::error::ErrorNotFound("Foydalanuvchi topilmadi"))?;
+
+    UserRepository::update_active(pool.get_ref(), target_id, active)
+        .await
+        .map_err(actix_web::error::ErrorInternalServerError)?;
+
+    let status_label = if active { "Faol" } else { "Nofaol" };
+    tracing::info!(target_user = %user.user_id, admin = %claims.sub, active = %active, "Holat o'zgartirildi");
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "success": true,
+        "message": format!("Foydalanuvchi holati '{}' ga o'zgartirildi", status_label)
+    })))
+}
