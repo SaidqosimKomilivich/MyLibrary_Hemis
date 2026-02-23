@@ -178,9 +178,10 @@ export const api = {
         return request<{ success: boolean; data: Book[] }>('/books/pending')
     },
 
-    toggleBookActive(id: string) {
-        return request<SingleBookResponse>(`/books/${id}/toggle-active`, {
+    toggleBookActive(id: string, admin_comment?: string) {
+        return request<{ success: boolean; data: Book }>(`/books/${id}/toggle-active`, {
             method: 'PUT',
+            body: admin_comment ? JSON.stringify({ admin_comment }) : undefined
         })
     },
 
@@ -472,6 +473,7 @@ export interface Book {
     available_quantity?: number | null
     rating?: number | null
     is_active?: boolean | null
+    admin_comment?: string | null
 }
 
 export interface CreateBookRequest {

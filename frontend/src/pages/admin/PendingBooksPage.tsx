@@ -54,7 +54,7 @@ export default function PendingBooksPage() {
         const { book, action, comment } = confirm
         setConfirm(null)
         try {
-            const res = await api.toggleBookActive(book.id)
+            const res = await api.toggleBookActive(book.id, comment.trim() ? comment.trim() : undefined)
             const updated = res.data
             if (action === 'approve') {
                 toast.success(`✅ "${book.title}" tasdiqlandi!`)
