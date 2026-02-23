@@ -2,6 +2,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import { AuthProvider } from './context/AuthContext'
+import { AudioProvider } from './context/AudioContext'
+import AudioPlayerModal from './components/AudioPlayerModal'
 import Login from './pages/Login'
 import DashboardLayout from './components/DashboardLayout'
 import ComingSoon from './components/ComingSoon'
@@ -11,6 +13,7 @@ import UsersPage from './pages/admin/UsersPage'
 import EmployeeDashboard from './pages/employee/EmployeeDashboard'
 import AccessControl from './pages/employee/AccessControl'
 import TeacherDashboard from './pages/teacher/TeacherDashboard'
+import TeacherBookSubmit from './pages/teacher/TeacherBookSubmit'
 import StudentDashboard from './pages/student/StudentDashboard'
 import ProfilePage from './pages/ProfilePage'
 import MyReadings from './pages/MyReadings'
@@ -19,84 +22,85 @@ import MyRequestsPage from './pages/student/MyRequestsPage'
 import EmployeeRequestsPage from './pages/employee/EmployeeRequestsPage'
 import EmployeeRentalsPage from './pages/employee/EmployeeRentalsPage'
 import ReportsPage from './pages/employee/ReportsPage'
+import PendingBooksPage from './pages/admin/PendingBooksPage'
 
 
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <ToastContainer
-          position="top-center"
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop
-          closeOnClick
-          pauseOnHover
-          draggable
-          theme="dark"
-        />
-        <Routes>
-          {/* Login */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/change-password" element={<ChangePassword />} />
+        <AudioProvider>
+          <ToastContainer
+            position="top-center"
+            autoClose={3000}
+            hideProgressBar={false}
+            newestOnTop
+            closeOnClick
+            pauseOnHover
+            draggable
+            theme="dark"
+          />
+          <Routes>
+            {/* Login */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/change-password" element={<ChangePassword />} />
 
 
-          {/* Admin */}
-          <Route path="/admin" element={<DashboardLayout role="admin" />}>
-            <Route index element={<AdminDashboard />} />
-            <Route path="users" element={<UsersPage />} />
-            <Route path="books" element={<Library />} />
-            <Route path="rentals" element={<EmployeeRentalsPage />} />
-            <Route path="requests" element={<EmployeeRequestsPage />} />
-            <Route path="employees" element={<ComingSoon title="Xodimlar" />} />
-            <Route path="stats" element={<ReportsPage />} />
+            {/* Admin */}
+            <Route path="/admin" element={<DashboardLayout role="admin" />}>
+              <Route index element={<AdminDashboard />} />
+              <Route path="users" element={<UsersPage />} />
+              <Route path="books" element={<Library />} />
+              <Route path="pending-books" element={<PendingBooksPage />} />
+              <Route path="rentals" element={<EmployeeRentalsPage />} />
+              <Route path="requests" element={<EmployeeRequestsPage />} />
+              <Route path="employees" element={<ComingSoon title="Xodimlar" />} />
+              <Route path="stats" element={<ReportsPage />} />
+              <Route path="profile" element={<ProfilePage />} />
+            </Route>
 
-            <Route path="profile" element={<ProfilePage />} />
+            {/* Employee (backend: staff) */}
+            <Route path="/employee" element={<DashboardLayout role="employee" />}>
+              <Route index element={<EmployeeDashboard />} />
+              <Route path="catalog" element={<Library />} />
+              <Route path="pending-books" element={<PendingBooksPage />} />
+              <Route path="rentals" element={<EmployeeRentalsPage />} />
+              <Route path="requests" element={<EmployeeRequestsPage />} />
+              <Route path="access-control" element={<AccessControl />} />
+              <Route path="lend" element={<AccessControl />} />
+              <Route path="returns" element={<AccessControl />} />
+              <Route path="readers" element={<ComingSoon title="O'quvchilar" />} />
+              <Route path="profile" element={<ProfilePage />} />
+            </Route>
 
-          </Route>
+            {/* Teacher */}
+            <Route path="/teacher" element={<DashboardLayout role="teacher" />}>
+              <Route index element={<TeacherDashboard />} />
+              <Route path="available" element={<Library />} />
+              <Route path="my-books" element={<MyReadings />} />
+              <Route path="requests" element={<MyRequestsPage />} />
+              <Route path="submit-book" element={<TeacherBookSubmit />} />
+              <Route path="profile" element={<ProfilePage />} />
+            </Route>
 
-          {/* Employee (backend: staff) */}
-          <Route path="/employee" element={<DashboardLayout role="employee" />}>
-            <Route index element={<EmployeeDashboard />} />
-            <Route path="catalog" element={<Library />} />
-            <Route path="rentals" element={<EmployeeRentalsPage />} />
-            <Route path="requests" element={<EmployeeRequestsPage />} />
-            <Route path="access-control" element={<AccessControl />} />
-            <Route path="lend" element={<AccessControl />} />
-            <Route path="returns" element={<AccessControl />} />
-            <Route path="readers" element={<ComingSoon title="O'quvchilar" />} />
+            {/* Student */}
+            <Route path="/student" element={<DashboardLayout role="student" />}>
+              <Route index element={<StudentDashboard />} />
+              <Route path="library" element={<Library />} />
+              <Route path="my-books" element={<MyReadings />} />
+              <Route path="requests" element={<MyRequestsPage />} />
 
-            <Route path="profile" element={<ProfilePage />} />
+              <Route path="profile" element={<ProfilePage />} />
 
-          </Route>
+            </Route>
 
-          {/* Teacher */}
-          <Route path="/teacher" element={<DashboardLayout role="teacher" />}>
-            <Route index element={<TeacherDashboard />} />
-            <Route path="available" element={<Library />} />
-            <Route path="my-books" element={<MyReadings />} />
-            <Route path="requests" element={<MyRequestsPage />} />
-
-            <Route path="profile" element={<ProfilePage />} />
-
-          </Route>
-
-          {/* Student */}
-          <Route path="/student" element={<DashboardLayout role="student" />}>
-            <Route index element={<StudentDashboard />} />
-            <Route path="library" element={<Library />} />
-            <Route path="my-books" element={<MyReadings />} />
-            <Route path="requests" element={<MyRequestsPage />} />
-
-            <Route path="profile" element={<ProfilePage />} />
-
-          </Route>
-
-          {/* Default redirect */}
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
+            {/* Default redirect */}
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </Routes>
+          <AudioPlayerModal />
+        </AudioProvider>
       </AuthProvider>
-    </BrowserRouter>
+    </BrowserRouter >
   )
 }
 

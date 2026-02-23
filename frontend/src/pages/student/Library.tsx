@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
-import { Search, Plus, X } from 'lucide-react'
+import { Search, Plus, X, Layers, CheckCircle, XCircle, AlertTriangle, BookOpen } from 'lucide-react'
 import { api, type Book } from '../../services/api'
 import { toast } from 'react-toastify'
 import { useAuth } from '../../context/AuthContext'
+import { useAudio } from '../../context/AudioContext'
 import BookCard from '../../components/BookCard'
 import BookModal from '../../components/BookModal'
 import DeleteConfirmModal from '../../components/DeleteConfirmModal'
@@ -37,8 +38,17 @@ export default function Library() {
     // PDF viewer state
     const [pdfBook, setPdfBook] = useState<Book | null>(null)
 
-    // Audio player state
-    const [audioBook, setAudioBook] = useState<Book | null>(null)
+    // AudioContext (global player)
+    const { openPlayer } = useAudio()
+
+    // Bulk toggle state
+    const [bulkModal, setBulkModal] = useState(false)
+    const [bulkAction, setBulkAction] = useState<'activate' | 'deactivate' | null>(null)
+    const [isBulking, setIsBulking] = useState(false)
+
+    // Per-book toggle state
+    const [toggleBook, setToggleBook] = useState<Book | null>(null)
+    const [isToggling, setIsToggling] = useState(false)
 
     const fetchBooks = async () => {
         setIsLoading(true)
@@ -99,9 +109,46 @@ export default function Library() {
         setPdfBook(book)
     }
 
-    // Audio player
+    // Audio player — AudioContext orqali global player ochiladi
     const handleListenAudio = (book: Book) => {
-        setAudioBook(book)
+        openPlayer(book)
+    }
+
+    // Bulk toggle
+    const handleBulkConfirm = async () => {
+        if (!bulkAction) return
+        setIsBulking(true)
+        try {
+            const res = await api.setAllBooksActive(bulkAction === 'activate')
+            toast.success(`✅ ${res.message} (${res.affected} ta kitob)`)
+            setBulkModal(false)
+            setBulkAction(null)
+            fetchBooks()
+        } catch (err: any) {
+            toast.error(err.message || 'Xatolik yuz berdi')
+        } finally {
+            setIsBulking(false)
+        }
+    }
+
+    // Per-book toggle confirm
+    const handleToggleConfirm = async () => {
+        if (!toggleBook) return
+        setIsToggling(true)
+        try {
+            await api.toggleBookActive(toggleBook.id)
+            toast.success(
+                toggleBook.is_active
+                    ? `❌ "${toggleBook.title}" nofaollashtirildi`
+                    : `✅ "${toggleBook.title}" faollashtirildi`
+            )
+            setToggleBook(null)
+            fetchBooks()
+        } catch (err: any) {
+            toast.error(err.message || "Holatni o'zgartirib bo'lmadi")
+        } finally {
+            setIsToggling(false)
+        }
     }
 
     // O'qiyotganlar ro'yxatiga qo'shish
@@ -188,6 +235,7 @@ export default function Library() {
                             role={role}
                             onEdit={handleEdit}
                             onDelete={handleDeleteClick}
+                            onToggleActive={canManageBooks ? (b) => setToggleBook(b) : undefined}
                             onViewPdf={handleViewPdf}
                             onListenAudio={handleListenAudio}
                             onAddReading={!canManageBooks ? handleAddReading : undefined}
@@ -248,34 +296,6 @@ export default function Library() {
                 </div>
             )}
 
-            {/* Audio Player Modal */}
-            {audioBook && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-100 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setAudioBook(null)}>
-                    <div className="w-full max-w-md bg-surface rounded-2xl overflow-hidden shadow-2xl border border-white/10 animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex justify-between items-start p-5 border-b border-white/10 bg-black/20">
-                            <div className="flex items-center gap-4">
-                                {audioBook.cover_image_url ? (
-                                    <img src={audioBook.cover_image_url} alt={audioBook.title} className="w-16 h-16 rounded-xl object-cover shrink-0 border border-white/10 shadow-sm" />
-                                ) : (
-                                    <div className="w-16 h-16 rounded-xl bg-white/5 flex items-center justify-center text-2xl shrink-0 border border-white/10 shadow-sm">🎧</div>
-                                )}
-                                <div className="min-w-0 pr-4">
-                                    <h3 className="m-0 text-[1.1rem] font-bold text-text mb-1 truncate">{audioBook.title}</h3>
-                                    <p className="m-0 text-[0.85rem] text-text-muted truncate">{audioBook.author}</p>
-                                </div>
-                            </div>
-                            <button onClick={() => setAudioBook(null)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 border-none text-text-muted cursor-pointer transition-colors hover:bg-white/10 hover:text-white shrink-0">
-                                <X size={20} />
-                            </button>
-                        </div>
-                        <div className="p-5 bg-black/10">
-                            <audio controls autoPlay src={audioBook.digital_file_url || ''} className="w-full h-10 outline-none rounded-lg custom-audio">
-                                Brauzeringiz audio elementini qo'llab-quvvatlamaydi.
-                            </audio>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* Delete Confirm Modal */}
             <DeleteConfirmModal
@@ -286,6 +306,192 @@ export default function Library() {
                 onCancel={() => { setDeleteModalOpen(false); setDeletingBook(null) }}
                 isLoading={isDeleting}
             />
+
+            {/* Per-book toggle modal */}
+            {toggleBook && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => !isToggling && setToggleBook(null)}>
+                    <div className="bg-surface border border-border rounded-2xl w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+                        {/* Header */}
+                        <div className={`flex items-center gap-3 p-5 rounded-t-2xl border-b ${toggleBook.is_active
+                            ? 'bg-red-500/10 border-red-500/20'
+                            : 'bg-emerald-500/10 border-emerald-500/20'
+                            }`}>
+                            {toggleBook.is_active
+                                ? <XCircle size={20} className="text-red-400 shrink-0" />
+                                : <CheckCircle size={20} className="text-emerald-400 shrink-0" />
+                            }
+                            <div>
+                                <h3 className="font-bold text-text text-sm">
+                                    {toggleBook.is_active ? 'Kitobni nofaollashtirish' : 'Kitobni faollashtirish'}
+                                </h3>
+                                <p className="text-xs text-text-muted mt-0.5 truncate max-w-[220px]">"{toggleBook.title}"</p>
+                            </div>
+                        </div>
+
+                        {/* Body */}
+                        <div className="p-5 flex gap-3">
+                            {toggleBook.cover_image_url ? (
+                                <img src={toggleBook.cover_image_url} alt="" className="w-12 h-16 object-cover rounded-lg border border-border shrink-0" />
+                            ) : (
+                                <div className="w-12 h-16 bg-white/5 border border-border rounded-lg flex items-center justify-center shrink-0">
+                                    <BookOpen size={16} className="text-text-muted" />
+                                </div>
+                            )}
+                            <div className="min-w-0">
+                                <p className="font-semibold text-sm text-text truncate">{toggleBook.title}</p>
+                                <p className="text-xs text-text-muted">{toggleBook.author}</p>
+                                <p className="text-xs text-text-muted mt-2">
+                                    {toggleBook.is_active
+                                        ? 'Kitob nofaollashtirilsa foydalanuvchilarga ko\'rinmaydi.'
+                                        : 'Kitob faollashtirilsa barcha foydalanuvchilarga ko\'rinarli bo\'ladi.'
+                                    }
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="flex gap-3 justify-end p-5 border-t border-border">
+                            <button
+                                onClick={() => setToggleBook(null)}
+                                disabled={isToggling}
+                                className="px-4 py-2.5 border border-border rounded-xl text-sm font-medium text-text-muted hover:bg-white/5 transition-colors disabled:opacity-50"
+                            >
+                                Bekor qilish
+                            </button>
+                            <button
+                                onClick={handleToggleConfirm}
+                                disabled={isToggling}
+                                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm disabled:opacity-50 ${toggleBook.is_active
+                                    ? 'bg-red-500 hover:bg-red-600 text-white'
+                                    : 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                                    }`}
+                            >
+                                {isToggling
+                                    ? <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                                    : toggleBook.is_active
+                                        ? <XCircle size={15} />
+                                        : <CheckCircle size={15} />
+                                }
+                                {isToggling ? 'Bajarilmoqda...' : toggleBook.is_active ? 'Nofaollashtirish' : 'Faollashtirish'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ═══════════════════════════════════════════════════════
+                Bulk Toggle Modal — Barcha kitoblarni boshqarish
+            ═══════════════════════════════════════════════════════ */}
+            {bulkModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => !isBulking && setBulkModal(false)}>
+                    <div className="bg-surface border border-border rounded-2xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+
+                        {/* Header */}
+                        <div className="flex items-center justify-between p-5 border-b border-border">
+                            <h3 className="flex items-center gap-2 font-bold text-text text-lg">
+                                <Layers size={20} className="text-primary-light" />
+                                Barcha kitoblarni boshqarish
+                            </h3>
+                            {!isBulking && (
+                                <button onClick={() => setBulkModal(false)} className="p-1.5 rounded-lg hover:bg-white/10 text-text-muted hover:text-text transition-colors">
+                                    <X size={18} />
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Harakat tanlash */}
+                        {!bulkAction ? (
+                            <div className="p-5 flex flex-col gap-4">
+                                <p className="text-sm text-text-muted">
+                                    Barcha kutubxona kitoblarini bir vaqtda faollashtirish yoki nofaollashtirish.
+                                    Bu amal barcha sahifalardagi kitoblarga ta'sir qiladi.
+                                </p>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button
+                                        onClick={() => setBulkAction('activate')}
+                                        className="flex flex-col items-center gap-3 p-5 bg-emerald-500/10 border-2 border-emerald-500/30 hover:border-emerald-500 rounded-2xl text-emerald-400 transition-all hover:bg-emerald-500/20 group"
+                                    >
+                                        <div className="w-14 h-14 rounded-full bg-emerald-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                            <CheckCircle size={28} />
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="font-bold text-sm">Barchasini faollashtirish</p>
+                                            <p className="text-xs text-emerald-400/70 mt-0.5">Barcha kitoblar ko'rinadi</p>
+                                        </div>
+                                    </button>
+                                    <button
+                                        onClick={() => setBulkAction('deactivate')}
+                                        className="flex flex-col items-center gap-3 p-5 bg-red-500/10 border-2 border-red-500/30 hover:border-red-500 rounded-2xl text-red-400 transition-all hover:bg-red-500/20 group"
+                                    >
+                                        <div className="w-14 h-14 rounded-full bg-red-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                            <XCircle size={28} />
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="font-bold text-sm">Barchasini nofaollashtirish</p>
+                                            <p className="text-xs text-red-400/70 mt-0.5">Barcha kitoblar yashiriladi</p>
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            /* Tasdiqlash qadami */
+                            <div className="p-5 flex flex-col gap-4">
+                                <div className={`flex items-start gap-3 p-4 rounded-xl border ${bulkAction === 'activate'
+                                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
+                                    : 'bg-red-500/10 border-red-500/20 text-red-300'
+                                    }`}>
+                                    <AlertTriangle size={20} className="shrink-0 mt-0.5" />
+                                    <div>
+                                        <p className="font-semibold text-sm">
+                                            {bulkAction === 'activate'
+                                                ? 'Barcha kitoblar faollashtiriladi'
+                                                : 'Barcha kitoblar nofaollashtiriladi'
+                                            }
+                                        </p>
+                                        <p className="text-xs opacity-80 mt-1">
+                                            {bulkAction === 'activate'
+                                                ? 'Bu amaldan so\'ng barcha kitoblar foydalanuvchilarga ko\'rinarli bo\'ladi.'
+                                                : 'Bu amaldan so\'ng barcha kitoblar yashiriladi va foydalanuvchilarga ko\'rinmaydi.'
+                                            }
+                                        </p>
+                                    </div>
+                                </div>
+                                <p className="text-sm text-text-muted text-center">Davom etishni tasdiqlaysizmi?</p>
+                            </div>
+                        )}
+
+                        {/* Footer */}
+                        <div className="flex items-center justify-between p-5 border-t border-border">
+                            <button
+                                onClick={() => bulkAction ? setBulkAction(null) : setBulkModal(false)}
+                                disabled={isBulking}
+                                className="px-4 py-2.5 border border-border rounded-xl text-sm font-medium text-text-muted hover:bg-white/5 transition-colors disabled:opacity-50"
+                            >
+                                {bulkAction ? '← Orqaga' : 'Bekor qilish'}
+                            </button>
+                            {bulkAction && (
+                                <button
+                                    onClick={handleBulkConfirm}
+                                    disabled={isBulking}
+                                    className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm disabled:opacity-50 ${bulkAction === 'activate'
+                                        ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                                        : 'bg-red-500 hover:bg-red-600 text-white'
+                                        }`}
+                                >
+                                    {isBulking ? (
+                                        <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                                    ) : bulkAction === 'activate' ? (
+                                        <CheckCircle size={16} />
+                                    ) : (
+                                        <XCircle size={16} />
+                                    )}
+                                    {isBulking ? 'Bajarilmoqda...' : bulkAction === 'activate' ? 'Barchasini faollashtirish' : 'Barchasini nofaollashtirish'}
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Request Book Modal */}
             {requestModalOpen && requestBook && (

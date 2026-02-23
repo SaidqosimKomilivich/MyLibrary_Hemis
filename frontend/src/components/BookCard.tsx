@@ -1,4 +1,4 @@
-import { BookOpen, Edit, Trash2, FileText, Headphones, Eye, MapPin, PlusCircle, MinusCircle } from 'lucide-react'
+import { BookOpen, Edit, Trash2, FileText, Headphones, Eye, MapPin, PlusCircle, MinusCircle, ToggleLeft, ToggleRight, Clock } from 'lucide-react'
 import type { Book } from '../services/api'
 
 interface BookCardProps {
@@ -6,6 +6,7 @@ interface BookCardProps {
     role: string | null
     onEdit?: (book: Book) => void
     onDelete?: (id: string) => void
+    onToggleActive?: (book: Book) => void
     onViewPdf?: (book: Book) => void
     onListenAudio?: (book: Book) => void
     onAddReading?: (book: Book) => void
@@ -13,10 +14,13 @@ interface BookCardProps {
     onRequestBook?: (book: Book) => void
 }
 
-export default function BookCard({ book, role, onEdit, onDelete, onViewPdf, onListenAudio, onAddReading, onRemoveReading, onRequestBook }: BookCardProps) {
+export default function BookCard({ book, role, onEdit, onDelete, onToggleActive, onViewPdf, onListenAudio, onAddReading, onRemoveReading, onRequestBook }: BookCardProps) {
     const canManageBooks = role === 'admin' || role === 'employee'
-    const hasPdf = book.format === 'pdf' && book.digital_file_url
-    const hasAudio = book.format === 'audio' && book.digital_file_url
+    // Fayl mavjud bo'lsa, format='pdf'/'audio'/'elektron'/'ikkalasi' dan qat'i nazar ko'rsat
+    const hasDigitalFile = !!book.digital_file_url
+    const isAudioFormat = book.format?.toLowerCase() === 'audio'
+    const hasPdf = hasDigitalFile && !isAudioFormat  // audio bo'lmasa → PDF/Elektron
+    const hasAudio = hasDigitalFile && isAudioFormat
 
     return (
         <div className="group relative bg-surface border border-border rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(0,0,0,0.4)] hover:border-white/10 flex flex-col h-full">
@@ -43,8 +47,8 @@ export default function BookCard({ book, role, onEdit, onDelete, onViewPdf, onLi
                     </span>
                 )}
 
-                {/* Add to reading button */}
-                {onAddReading && (
+                {/* Add to reading button — faqat fayli bor kitoblar uchun */}
+                {onAddReading && hasDigitalFile && (
                     <button
                         className="absolute bottom-3 right-3 w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center border-none cursor-pointer shadow-lg transition-transform duration-200 hover:scale-110 hover:bg-emerald-400 z-20"
                         onClick={(e) => { e.stopPropagation(); onAddReading(book) }}
@@ -104,8 +108,8 @@ export default function BookCard({ book, role, onEdit, onDelete, onViewPdf, onLi
                     </div>
                 )}
 
-                {/* Request Button for non-admins */}
-                {!canManageBooks && onRequestBook && (
+                {/* Request Button for non-admins — faqat fayl yo'q kitoblar uchun */}
+                {!canManageBooks && onRequestBook && !hasDigitalFile && (
                     <div className="mt-3 flex gap-2">
                         <button
                             className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg border-none font-medium text-[0.85rem] cursor-pointer transition-all bg-primary/20 text-primary hover:bg-primary hover:text-white"
@@ -119,24 +123,50 @@ export default function BookCard({ book, role, onEdit, onDelete, onViewPdf, onLi
 
                 {/* Admin actions */}
                 {canManageBooks && (
-                    <div className="mt-3 flex gap-2">
+                    <div className="mt-3 flex flex-col gap-2">
+                        {/* Toggle active button — full width */}
                         <button
-                            className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg border border-border border-dashed font-medium text-[0.85rem] cursor-pointer transition-all bg-transparent text-text-muted hover:bg-primary/20 hover:text-primary hover:border-primary/30 hover:border-solid"
-                            onClick={() => onEdit?.(book)}
-                            title="Tahrirlash"
+                            onClick={() => onToggleActive?.(book)}
+                            className={`w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg border font-medium text-[0.85rem] cursor-pointer transition-all ${book.is_active
+                                ? 'border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:border-red-500/50'
+                                : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 hover:border-emerald-500/50'
+                                }`}
+                            title={book.is_active ? 'Nofaollashtirish' : 'Faollashtirish'}
                         >
-                            <Edit size={16} /> Tahrirlash
+                            {book.is_active
+                                ? <><ToggleRight size={16} /> Nofaollashtirish</>
+                                : <><ToggleLeft size={16} /> Faollashtirish</>
+                            }
                         </button>
-                        <button
-                            className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg border border-border border-dashed font-medium text-[0.85rem] cursor-pointer transition-all bg-transparent text-text-muted hover:bg-rose-500/20 hover:text-rose-400 hover:border-rose-400/30 hover:border-solid"
-                            onClick={() => onDelete?.(book.id)}
-                            title="O'chirish"
-                        >
-                            <Trash2 size={16} /> O'chirish
-                        </button>
+                        {/* Edit + Delete */}
+                        <div className="flex gap-2">
+                            <button
+                                className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg border border-border border-dashed font-medium text-[0.85rem] cursor-pointer transition-all bg-transparent text-text-muted hover:bg-primary/20 hover:text-primary hover:border-primary/30 hover:border-solid"
+                                onClick={() => onEdit?.(book)}
+                                title="Tahrirlash"
+                            >
+                                <Edit size={15} /> Tahrirlash
+                            </button>
+                            <button
+                                className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg border border-border border-dashed font-medium text-[0.85rem] cursor-pointer transition-all bg-transparent text-text-muted hover:bg-rose-500/20 hover:text-rose-400 hover:border-rose-400/30 hover:border-solid"
+                                onClick={() => onDelete?.(book.id)}
+                                title="O'chirish"
+                            >
+                                <Trash2 size={15} /> O'chirish
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>
+
+            {/* Inactive overlay badge (admin ko'rishi uchun) */}
+            {canManageBooks && !book.is_active && (
+                <div className="absolute top-2 right-2 z-20">
+                    <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[0.65rem] font-bold bg-amber-500/90 text-white shadow">
+                        <Clock size={10} /> Nofaol
+                    </span>
+                </div>
+            )}
         </div>
     )
 }

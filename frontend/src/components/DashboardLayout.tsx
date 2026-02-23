@@ -16,11 +16,17 @@ import {
     Library,
     Loader2,
     ScanLine,
-
+    Upload,
+    Clock,
+    Play,
+    Pause,
+    Music2,
+    Maximize2,
 } from 'lucide-react'
 
 import { toast } from 'react-toastify'
 import { useAuth } from '../context/AuthContext'
+import { useAudio } from '../context/AudioContext'
 
 
 
@@ -37,6 +43,7 @@ const navByRole: Record<UserRole, NavItem[]> = {
         { label: 'Boshqaruv paneli', path: '/admin', icon: <LayoutDashboard size={20} /> },
         { label: 'Foydalanuvchilar', path: '/admin/users', icon: <Users size={20} /> },
         { label: 'Kitoblar', path: '/admin/books', icon: <BookOpen size={20} /> },
+        { label: 'Taqdim etilgan kitoblar', path: '/admin/pending-books', icon: <Clock size={20} /> },
         { label: 'Ijaralar', path: '/admin/rentals', icon: <BookOpen size={20} /> },
         { label: "So'rovlar", path: '/admin/requests', icon: <ClipboardList size={20} /> },
         { label: 'Xodimlar', path: '/admin/employees', icon: <UserCog size={20} /> },
@@ -48,6 +55,7 @@ const navByRole: Record<UserRole, NavItem[]> = {
     employee: [
         { label: 'Boshqaruv paneli', path: '/employee', icon: <LayoutDashboard size={20} /> },
         { label: 'Kitoblar katalogi', path: '/employee/catalog', icon: <Library size={20} /> },
+        { label: 'Taqdim etilgan kitoblar', path: '/employee/pending-books', icon: <Clock size={20} /> },
         { label: 'Ijaralar', path: '/employee/rentals', icon: <Library size={20} /> },
         { label: "So'rovlar", path: '/employee/requests', icon: <ClipboardList size={20} /> },
         { label: 'Nazorat', path: '/employee/access-control', icon: <ScanLine size={20} /> },
@@ -61,6 +69,7 @@ const navByRole: Record<UserRole, NavItem[]> = {
         { label: 'Mavjud kitoblar', path: '/teacher/available', icon: <Library size={20} /> },
         { label: "O'qiyotgan kitoblar", path: '/teacher/my-books', icon: <BookOpen size={20} /> },
         { label: "So'rovlar", path: '/teacher/requests', icon: <ClipboardList size={20} /> },
+        { label: "Kitob taqdim etish", path: '/teacher/submit-book', icon: <Upload size={20} /> },
 
 
         { label: 'Profil', path: '/teacher/profile', icon: <UserCircle size={20} /> },
@@ -91,6 +100,7 @@ export default function DashboardLayout({ role }: DashboardLayoutProps) {
     const [sidebarOpen, setSidebarOpen] = useState(false)
     const navigate = useNavigate()
     const { user, isLoading, isAuthenticated, logout } = useAuth()
+    const { book, isMini, isPlaying, togglePlay, expandPlayer } = useAudio()
     const navItems = navByRole[role]
 
     const handleLogout = async () => {
@@ -183,7 +193,35 @@ export default function DashboardLayout({ role }: DashboardLayoutProps) {
                         <Menu size={22} />
                     </button>
                     <div className="text-[0.8rem] font-semibold py-1 px-3 rounded-full bg-indigo-500/15 text-primary-light uppercase tracking-[0.05em]">{roleLabels[role]}</div>
-                    <div className="ml-auto flex items-center gap-2">
+                    <div className="ml-auto flex items-center gap-3">
+                        {/* Mini Audio Player */}
+                        {isMini && book && (
+                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-violet-500/15 border border-violet-500/25 max-w-[240px]">
+                                {book.cover_image_url ? (
+                                    <img src={book.cover_image_url} alt="" className="w-7 h-7 rounded-lg object-cover shrink-0" />
+                                ) : (
+                                    <div className="w-7 h-7 rounded-lg bg-violet-500/30 flex items-center justify-center shrink-0">
+                                        <Music2 size={13} className="text-violet-300" />
+                                    </div>
+                                )}
+                                <p className="text-xs font-semibold text-violet-200 truncate flex-1 min-w-0">{book.title}</p>
+                                <button
+                                    onClick={togglePlay}
+                                    className="w-6 h-6 rounded-full bg-violet-500/30 hover:bg-violet-500/50 flex items-center justify-center transition-colors shrink-0"
+                                >
+                                    {isPlaying
+                                        ? <Pause size={11} className="text-violet-200" />
+                                        : <Play size={11} className="text-violet-200" />}
+                                </button>
+                                <button
+                                    onClick={expandPlayer}
+                                    className="w-6 h-6 rounded-full bg-violet-500/30 hover:bg-violet-500/50 flex items-center justify-center transition-colors shrink-0"
+                                    title="Kattalashtirish"
+                                >
+                                    <Maximize2 size={10} className="text-violet-200" />
+                                </button>
+                            </div>
+                        )}
                         <div className="w-9 h-9 rounded-full bg-linear-to-br from-primary to-accent text-white flex items-center justify-center font-bold text-[0.85rem]" title={displayName}>
                             {displayName.charAt(0).toUpperCase()}
                         </div>

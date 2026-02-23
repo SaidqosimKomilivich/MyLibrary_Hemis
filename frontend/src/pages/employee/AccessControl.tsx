@@ -188,29 +188,30 @@ export default function AccessControl() {
         setActiveRentals([])
 
         try {
-            // 1. Yangi (fresh) bugungi yozuvlarni API dan olamiz — eski state ga ishonmaymiz!
+            // 1. Avval users jadvalidan to'liq ma'lumotni olamiz
+            const res = await api.getUserById(queryId)
+            const found = res.data
+            setScannedUser(found)
+
+            // 2. Bugungi yozuvlarni olamiz va found.user_id (talaba raqami) bilan filtramiz
             const freshTodayRes = await api.getControlToday()
             const freshTodayRecords = freshTodayRes.data
-            setTodayRecords(freshTodayRecords) // UI jadvalini ham yangilaymiz
+            setTodayRecords(freshTodayRecords)
 
-            const userRecords = freshTodayRecords.filter(rec => rec.user_id === queryId)
+            // control.user_id = users.user_id (talaba raqami), queryId esa UUID bo'lishi mumkin
+            const userRecords = freshTodayRecords.filter(rec => rec.user_id === found.user_id)
 
             // Eng YANGI yozuvni olish — backend arrival DESC tartibda qaytaradi
             const latestRecord = userRecords.length > 0 ? userRecords[0] : null
 
             // Holatni aniqlash:
-            // - departure yo'q (NULL) yoki arrival === departure → ICHKARIDA
-            // - departure bor va arrival !== departure → TASHQARIDA (ketgan)
+            // - arrival === departure → ICHKARIDA (INSERT da ikkala vaqt bir xil, trigger hali ishlamagan)
+            // - departure !== arrival → TASHQARIDA (trigger departure ni yangilagan)
             const isCurrentlyInside = latestRecord
-                ? !!(latestRecord.arrival && (!latestRecord.departure || latestRecord.arrival === latestRecord.departure))
+                ? latestRecord.arrival === latestRecord.departure
                 : false
 
             const hasPreviousVisit = userRecords.length > 0
-
-            // 2. Users jadvalidan to'liq ma'lumotni olamiz
-            const res = await api.getUserById(queryId)
-            const found = res.data
-            setScannedUser(found)
 
             // Hozirgi holat
             setUserIsInside(isCurrentlyInside)
@@ -252,7 +253,7 @@ export default function AccessControl() {
     const handleArrive = async () => {
         const userName = scannedUser?.full_name
         try {
-            await api.controlArrive(scannedUser?.id)
+            await api.controlArrive(scannedUser?.user_id)
             toast.success(`${userName} — kirish qayd etildi ✅`)
             loadTodayRecords()
             // Tozalash + kamerani qayta yoqish
@@ -265,7 +266,7 @@ export default function AccessControl() {
     const handleDepart = async () => {
         const userName = scannedUser?.full_name
         try {
-            await api.controlDepart(scannedUser?.id)
+            await api.controlDepart(scannedUser?.user_id)
             toast.success(`${userName} — chiqish qayd etildi ✅`)
             loadTodayRecords()
             // Tozalash + kamerani qayta yoqish

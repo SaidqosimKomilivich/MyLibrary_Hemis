@@ -167,6 +167,34 @@ export const api = {
         })
     },
 
+    submitBook(data: CreateBookRequest) {
+        return request<SingleBookResponse>('/books/submit', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        })
+    },
+
+    getPendingBooks() {
+        return request<{ success: boolean; data: Book[] }>('/books/pending')
+    },
+
+    toggleBookActive(id: string) {
+        return request<SingleBookResponse>(`/books/${id}/toggle-active`, {
+            method: 'PUT',
+        })
+    },
+
+    getMySubmissions() {
+        return request<{ success: boolean; data: Book[] }>('/books/my-submissions')
+    },
+
+    setAllBooksActive(active: boolean) {
+        return request<{ success: boolean; affected: number; message: string }>('/books/set-all-active', {
+            method: 'PUT',
+            body: JSON.stringify({ active }),
+        })
+    },
+
     uploadFile(file: File, onProgress?: (percent: number) => void): { promise: Promise<UploadResponse>, xhr: XMLHttpRequest } {
         const xhr = new XMLHttpRequest()
         const formData = new FormData()
@@ -449,6 +477,11 @@ export interface Book {
 export interface CreateBookRequest {
     title: string
     author: string
+    subtitle?: string
+    translator?: string
+    edition?: string
+    genre?: string
+    isbn_10?: string
     category?: string
     isbn_13?: string
     total_quantity?: number

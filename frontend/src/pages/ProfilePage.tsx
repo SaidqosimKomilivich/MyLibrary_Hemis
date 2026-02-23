@@ -402,7 +402,9 @@ export default function ProfilePage() {
                                             <path d="M 0 106 C 100 121, 180 111, 240 96 C 300 81, 360 86, 420 96 L 420 101 C 360 91, 300 96, 240 111 C 180 126, 100 136, 0 121 Z" fill="url(#goldGrad)" />
                                         </g>
                                     </svg>
-                                    <img src="/logo.png" alt="" className='absolute top-3 left-3 w-20 h-20' />
+                                    <img src="/icon_arm.png" alt="" className='absolute w-20 h-20 left-3 top-3 bg-white p-1 rounded-full' />
+
+                                    {/* <img src="/logo.png" alt="" className='absolute top-3 left-3 w-20 h-20' /> */}
                                     <p className='absolute top-3 left-28 uppercase font-medium'>MIRZO ULUG‘BEK NOMIDAGI O‘ZBEKISTON MILLIY UNIVERSITETI JIZZAX FILIALI</p>
                                     <div className='absolute top-27 left-6 bg-white border border-black w-25 h-35 rounded-2xl overflow-hidden flex items-center justify-center'>
                                         {user.image_url ? (
