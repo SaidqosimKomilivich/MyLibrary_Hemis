@@ -191,51 +191,59 @@ export default function ProfilePage() {
     const infoItems = [...commonItems, ...roleSpecificItems].filter(item => item.value)
 
     return (
-        <div className="page">
-            <div className="page-header">
-                <h1 className="page-title">Profil</h1>
-                <p className="page-subtitle">Shaxsiy ma'lumotlar va sozlamalar</p>
+        <div className="p-5 md:p-8 max-w-[1400px] mx-auto min-h-[calc(100vh-80px)]">
+            <div className="mb-8">
+                <h1 className="text-[1.8rem] font-bold text-text mb-1 tracking-tight">Profil</h1>
+                <p className="text-[0.95rem] text-text-muted m-0">Shaxsiy ma'lumotlar va sozlamalar</p>
             </div>
 
             {/* Profile Header Card */}
-            <div className="profile-hero">
-                <div className="profile-hero-avatar">
+            <div className="bg-surface rounded-2xl mb-8 p-6 md:p-8 flex flex-col md:flex-row items-center md:items-start gap-6 border border-border shadow-soft relative overflow-hidden isolate">
+                <div className="relative z-10 w-24 h-24 md:w-28 md:h-28 rounded-full border-4 border-surface shadow-md shrink-0 bg-background flex items-center justify-center">
                     {user.image_url ? (
-                        <img src={user.image_url} alt={user.full_name} className="profile-hero-img" />
+                        <img src={user.image_url} alt={user.full_name} className="w-full h-full rounded-full object-cover" />
                     ) : (
-                        <span className="profile-hero-initial">
+                        <span className="text-[2.5rem] font-bold text-primary">
                             {(user.full_name || user.user_id || '?').charAt(0).toUpperCase()}
                         </span>
                     )}
-                    <div className="profile-hero-status" />
+                    <div className="absolute bottom-1 right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-surface" />
                 </div>
-                <div className="profile-hero-info">
-                    <h2 className="profile-hero-name">{user.full_name || user.user_id}</h2>
-                    <span className="profile-hero-role">{displayRole}</span>
-                    {user.department_name && (
-                        <p className="profile-hero-dept">{user.department_name}</p>
-                    )}
+                <div className="relative z-10 flex-1 text-center md:text-left flex flex-col justify-center min-h-24">
+                    <h2 className="text-[1.5rem] font-bold text-text m-0 mb-2">{user.full_name || user.user_id}</h2>
+                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
+                        <span className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-[0.8rem] font-bold tracking-wide uppercase border border-primary/20">
+                            {displayRole}
+                        </span>
+                        {user.department_name && (
+                            <p className="m-0 text-[0.9rem] text-text-muted font-medium bg-white/5 border border-white/10 px-3 py-1 rounded-full">
+                                {user.department_name}
+                            </p>
+                        )}
+                    </div>
                 </div>
+                {/* Decorative background glow */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[80px] -z-10 translate-x-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
 
             {/* Tabs */}
-            <div className="profile-tabs">
+            <div className="flex gap-2 p-1 bg-black/20 rounded-xl mb-6 overflow-x-auto no-scrollbar w-fit border border-white/5">
                 <button
-                    className={`profile-tab ${activeTab === 'info' ? 'profile-tab--active' : ''}`}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-[0.95rem] font-medium transition-all whitespace-nowrap cursor-pointer border-none outline-none ${activeTab === 'info' ? 'bg-primary text-white shadow-md' : 'bg-transparent text-text-muted hover:text-text hover:bg-white/5'}`}
                     onClick={() => setActiveTab('info')}
                 >
                     <User size={16} />
                     <span>Ma'lumotlar</span>
                 </button>
                 <button
-                    className={`profile-tab ${activeTab === 'password' ? 'profile-tab--active' : ''}`}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-[0.95rem] font-medium transition-all whitespace-nowrap cursor-pointer border-none outline-none ${activeTab === 'password' ? 'bg-primary text-white shadow-md' : 'bg-transparent text-text-muted hover:text-text hover:bg-white/5'}`}
                     onClick={() => setActiveTab('password')}
                 >
                     <Lock size={16} />
                     <span>Parol</span>
                 </button>
                 <button
-                    className={`profile-tab ${activeTab === 'card' ? 'profile-tab--active' : ''}`}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-[0.95rem] font-medium transition-all whitespace-nowrap cursor-pointer border-none outline-none ${activeTab === 'card' ? 'bg-primary text-white shadow-md' : 'bg-transparent text-text-muted hover:text-text hover:bg-white/5'}`}
                     onClick={() => setActiveTab('card')}
                 >
                     <IdCard size={16} />
@@ -244,16 +252,18 @@ export default function ProfilePage() {
             </div>
 
             {/* Tab Content */}
-            <div className="profile-tab-content">
+            <div className="animate-in fade-in duration-300">
                 {/* ===== INFO TAB ===== */}
                 {activeTab === 'info' && (
-                    <div className="profile-info-grid">
+                    <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4">
                         {infoItems.map((item, i) => (
-                            <div className="profile-info-item" key={i}>
-                                <div className="profile-info-icon">{item.icon}</div>
-                                <div>
-                                    <div className="profile-info-label">{item.label}</div>
-                                    <div className="profile-info-value">{item.value}</div>
+                            <div className="bg-surface p-5 rounded-xl border border-border flex items-start gap-4 transition-transform hover:-translate-y-1 hover:shadow-lg hover:border-primary/30 group" key={i}>
+                                <div className="w-10 h-10 rounded-lg bg-black/20 flex items-center justify-center text-primary group-hover:scale-110 group-hover:bg-primary/20 transition-all shrink-0">
+                                    {item.icon}
+                                </div>
+                                <div className="min-w-0">
+                                    <div className="text-[0.8rem] text-text-muted font-medium mb-1 uppercase tracking-wider">{item.label}</div>
+                                    <div className="text-[1rem] font-semibold text-text truncate" title={item.value || undefined}>{item.value}</div>
                                 </div>
                             </div>
                         ))}
@@ -262,22 +272,24 @@ export default function ProfilePage() {
 
                 {/* ===== PASSWORD TAB ===== */}
                 {activeTab === 'password' && (
-                    <div className="profile-password-card">
-                        <div className="profile-password-header">
-                            <Lock size={20} />
+                    <div className="bg-surface rounded-2xl p-6 md:p-8 border border-border max-w-2xl shadow-soft">
+                        <div className="flex items-center gap-4 mb-6 pb-6 border-b border-border">
+                            <div className="w-12 h-12 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center shrink-0">
+                                <Lock size={24} />
+                            </div>
                             <div>
-                                <h3>Parolni o'zgartirish</h3>
-                                <p>Xavfsizlik uchun parolingizni muntazam yangilab turing</p>
+                                <h3 className="text-[1.3rem] font-bold text-text m-0 mb-1">Parolni o'zgartirish</h3>
+                                <p className="text-[0.9rem] text-text-muted m-0">Xavfsizlik uchun parolingizni muntazam yangilab turing</p>
                             </div>
                         </div>
-                        <form className="profile-password-form" onSubmit={handlePasswordChange}>
+                        <form className="flex flex-col gap-5" onSubmit={handlePasswordChange}>
                             {/* Old password */}
-                            <div className="profile-field">
-                                <label className="profile-field-label">Joriy parol</label>
-                                <div className="profile-input-wrap">
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-[0.9rem] font-medium text-text-muted ml-1">Joriy parol</label>
+                                <div className="relative flex items-center">
                                     <input
                                         type={showOld ? 'text' : 'password'}
-                                        className="profile-input"
+                                        className="w-full bg-black/20 border border-border text-text py-3 px-4 rounded-xl text-[1rem] outline-none transition-all pr-12 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.15)]"
                                         placeholder="Joriy parolni kiriting"
                                         value={oldPassword}
                                         onChange={e => setOldPassword(e.target.value)}
@@ -285,7 +297,7 @@ export default function ProfilePage() {
                                     />
                                     <button
                                         type="button"
-                                        className="profile-eye-btn"
+                                        className="absolute right-3 bg-transparent border-none text-text-muted cursor-pointer p-1.5 rounded-lg transition-colors hover:bg-white/10 hover:text-white flex items-center justify-center"
                                         onClick={() => setShowOld(!showOld)}
                                     >
                                         {showOld ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -293,12 +305,12 @@ export default function ProfilePage() {
                                 </div>
                             </div>
                             {/* New password */}
-                            <div className="profile-field">
-                                <label className="profile-field-label">Yangi parol</label>
-                                <div className="profile-input-wrap">
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-[0.9rem] font-medium text-text-muted ml-1">Yangi parol</label>
+                                <div className="relative flex items-center">
                                     <input
                                         type={showNew ? 'text' : 'password'}
-                                        className="profile-input"
+                                        className="w-full bg-black/20 border border-border text-text py-3 px-4 rounded-xl text-[1rem] outline-none transition-all pr-12 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.15)]"
                                         placeholder="Yangi parolni kiriting"
                                         value={newPassword}
                                         onChange={e => setNewPassword(e.target.value)}
@@ -306,7 +318,7 @@ export default function ProfilePage() {
                                     />
                                     <button
                                         type="button"
-                                        className="profile-eye-btn"
+                                        className="absolute right-3 bg-transparent border-none text-text-muted cursor-pointer p-1.5 rounded-lg transition-colors hover:bg-white/10 hover:text-white flex items-center justify-center"
                                         onClick={() => setShowNew(!showNew)}
                                     >
                                         {showNew ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -314,12 +326,13 @@ export default function ProfilePage() {
                                 </div>
                             </div>
                             {/* Confirm password */}
-                            <div className="profile-field">
-                                <label className="profile-field-label">Parolni tasdiqlash</label>
-                                <div className="profile-input-wrap">
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-[0.9rem] font-medium text-text-muted ml-1">Parolni tasdiqlash</label>
+                                <div className="relative flex items-center">
                                     <input
                                         type={showConfirm ? 'text' : 'password'}
-                                        className="profile-input"
+                                        className="w-full bg-black/20 border text-text py-3 px-4 rounded-xl text-[1rem] outline-none transition-all pr-12 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.15)] border-border"
+                                        style={{ borderColor: confirmPassword && newPassword !== confirmPassword ? '#ef4444' : undefined, boxShadow: confirmPassword && newPassword !== confirmPassword ? '0 0 0 3px rgba(239,68,68,0.15)' : undefined }}
                                         placeholder="Yangi parolni qayta kiriting"
                                         value={confirmPassword}
                                         onChange={e => setConfirmPassword(e.target.value)}
@@ -327,7 +340,7 @@ export default function ProfilePage() {
                                     />
                                     <button
                                         type="button"
-                                        className="profile-eye-btn"
+                                        className="absolute right-3 bg-transparent border-none text-text-muted cursor-pointer p-1.5 rounded-lg transition-colors hover:bg-white/10 hover:text-white flex items-center justify-center"
                                         onClick={() => setShowConfirm(!showConfirm)}
                                     >
                                         {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -335,15 +348,15 @@ export default function ProfilePage() {
                                 </div>
                             </div>
                             {newPassword && confirmPassword && newPassword !== confirmPassword && (
-                                <p className="profile-error">Parollar mos kelmaydi!</p>
+                                <p className="text-red-500 text-[0.85rem] m-0 font-medium ml-1">Parollar mos kelmaydi!</p>
                             )}
                             <button
                                 type="submit"
-                                className="profile-submit-btn"
+                                className="w-full bg-primary hover:bg-primary-hover text-white py-3 px-4 rounded-xl text-[1rem] font-semibold border-none cursor-pointer flex justify-center items-center gap-2 transition-all shadow-[0_4px_12px_rgba(99,102,241,0.3)] hover:-translate-y-0.5 mt-2 disabled:bg-primary/50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
                                 disabled={loading || !oldPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword}
                             >
                                 {loading ? (
-                                    <><Loader2 size={18} className="login-spinner" /> O'zgartirilmoqda...</>
+                                    <><Loader2 size={18} className="animate-spin" /> O'zgartirilmoqda...</>
                                 ) : (
                                     <><Check size={18} /> Parolni o'zgartirish</>
                                 )}

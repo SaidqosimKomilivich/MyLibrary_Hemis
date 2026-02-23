@@ -130,19 +130,22 @@ export default function Library() {
     }
 
     return (
-        <div className="library-page">
+        <div className="p-5 md:p-8 max-w-[1400px] mx-auto min-h-[calc(100vh-80px)]">
             {/* Header */}
-            <div className="library-page__header">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                 <div>
-                    <h1 className="library-page__title">
+                    <h1 className="text-[1.8rem] font-bold text-text mb-1 tracking-tight">
                         {canManageBooks ? 'Kitoblar boshqaruvi' : 'Kutubxona'}
                     </h1>
-                    <p className="library-page__subtitle">
+                    <p className="text-[0.95rem] text-text-muted m-0">
                         {canManageBooks ? "Kitoblarni qo'shish, tahrirlash va o'chirish" : 'Barcha mavjud kitoblar katalogi'}
                     </p>
                 </div>
                 {canManageBooks && (
-                    <button className="library-page__add-btn" onClick={handleAdd}>
+                    <button
+                        className="flex items-center justify-center gap-2 bg-primary text-white border-none py-2.5 px-5 rounded-xl font-semibold cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(99,102,241,0.3)] hover:brightness-110 active:transform-none"
+                        onClick={handleAdd}
+                    >
                         <Plus size={20} />
                         <span>Yangi kitob</span>
                     </button>
@@ -150,30 +153,33 @@ export default function Library() {
             </div>
 
             {/* Search */}
-            <div className="library-page__search">
-                <div className="library-page__search-wrapper">
-                    <Search size={20} className="library-page__search-icon" />
+            <div className="mb-8">
+                <div className="relative max-w-[500px]">
+                    <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
                     <input
                         type="text"
                         placeholder="Kitob yoki muallifni qidirish..."
                         value={search}
                         onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-                        className="library-page__search-input"
+                        className="w-full bg-surface border border-border text-text rounded-2xl py-3.5 pr-4 pl-12 text-[1rem] transition-all outline-none focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.15)] placeholder:text-text-muted/60"
                     />
                 </div>
             </div>
 
             {/* Book Grid */}
             {isLoading ? (
-                <div className="library-page__loading">
-                    <div className="library-page__spinner"></div>
+                <div className="flex justify-center items-center py-20 min-h-[300px]">
+                    <div className="w-10 h-10 border-3 border-border border-t-primary rounded-full animate-spin"></div>
                 </div>
             ) : books.length === 0 ? (
-                <div className="library-page__empty">
-                    Kitoblar topilmadi
+                <div className="flex flex-col items-center justify-center py-24 text-center text-text-muted bg-surface/50 border border-dashed border-border rounded-2xl">
+                    <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-4">
+                        <Search size={28} className="opacity-50" />
+                    </div>
+                    <p className="text-[1.1rem]">Kitoblar topilmadi</p>
                 </div>
             ) : (
-                <div className="library-page__grid">
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-6">
                     {books.map((book) => (
                         <BookCard
                             key={book.id}
@@ -192,21 +198,21 @@ export default function Library() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-                <div className="library-page__pagination">
+                <div className="flex justify-center items-center gap-4 mt-12 bg-surface py-3 px-5 rounded-2xl w-max mx-auto border border-border shadow-sm">
                     <button
                         disabled={page === 1}
                         onClick={() => setPage(p => p - 1)}
-                        className="library-page__page-btn"
+                        className="py-1.5 px-4 rounded-lg bg-white/5 border-none text-text text-[0.9rem] font-medium cursor-pointer transition-colors hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         Oldingi
                     </button>
-                    <span className="library-page__page-info">
+                    <span className="text-[0.9rem] font-semibold text-text-muted bg-white/5 py-1 px-3 rounded-md">
                         {page} / {totalPages}
                     </span>
                     <button
                         disabled={page === totalPages}
                         onClick={() => setPage(p => p + 1)}
-                        className="library-page__page-btn"
+                        className="py-1.5 px-4 rounded-lg bg-white/5 border-none text-text text-[0.9rem] font-medium cursor-pointer transition-colors hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         Keyingi
                     </button>
@@ -224,17 +230,17 @@ export default function Library() {
 
             {/* PDF Viewer Modal */}
             {pdfBook && (
-                <div className="pdf-viewer__backdrop" onClick={() => setPdfBook(null)}>
-                    <div className="pdf-viewer" onClick={(e) => e.stopPropagation()}>
-                        <div className="pdf-viewer__header">
-                            <h3>{pdfBook.title}</h3>
-                            <button onClick={() => setPdfBook(null)} className="pdf-viewer__close">
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-100 flex flex-col animate-in fade-in duration-200" onClick={() => setPdfBook(null)}>
+                    <div className="w-full h-full bg-surface/95 flex flex-col animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex justify-between items-center p-4 border-b border-white/10 bg-black/20">
+                            <h3 className="m-0 text-[1.1rem] font-semibold text-text truncate pr-4">{pdfBook.title}</h3>
+                            <button onClick={() => setPdfBook(null)} className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/5 border-none text-text-muted cursor-pointer transition-colors hover:bg-white/10 hover:text-white shrink-0">
                                 <X size={20} />
                             </button>
                         </div>
                         <iframe
                             src={pdfBook.digital_file_url || ''}
-                            className="pdf-viewer__frame"
+                            className="flex-1 w-full border-none bg-white"
                             title={pdfBook.title}
                         />
                     </div>
@@ -243,27 +249,29 @@ export default function Library() {
 
             {/* Audio Player Modal */}
             {audioBook && (
-                <div className="audio-player__backdrop" onClick={() => setAudioBook(null)}>
-                    <div className="audio-player" onClick={(e) => e.stopPropagation()}>
-                        <div className="audio-player__header">
-                            <div className="audio-player__info">
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-100 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setAudioBook(null)}>
+                    <div className="w-full max-w-md bg-surface rounded-2xl overflow-hidden shadow-2xl border border-white/10 animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex justify-between items-start p-5 border-b border-white/10 bg-black/20">
+                            <div className="flex items-center gap-4">
                                 {audioBook.cover_image_url ? (
-                                    <img src={audioBook.cover_image_url} alt={audioBook.title} className="audio-player__cover" />
+                                    <img src={audioBook.cover_image_url} alt={audioBook.title} className="w-16 h-16 rounded-xl object-cover shrink-0 border border-white/10 shadow-sm" />
                                 ) : (
-                                    <div className="audio-player__cover audio-player__cover--placeholder">🎧</div>
+                                    <div className="w-16 h-16 rounded-xl bg-white/5 flex items-center justify-center text-2xl shrink-0 border border-white/10 shadow-sm">🎧</div>
                                 )}
-                                <div>
-                                    <h3>{audioBook.title}</h3>
-                                    <p>{audioBook.author}</p>
+                                <div className="min-w-0 pr-4">
+                                    <h3 className="m-0 text-[1.1rem] font-bold text-text mb-1 truncate">{audioBook.title}</h3>
+                                    <p className="m-0 text-[0.85rem] text-text-muted truncate">{audioBook.author}</p>
                                 </div>
                             </div>
-                            <button onClick={() => setAudioBook(null)} className="audio-player__close">
+                            <button onClick={() => setAudioBook(null)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 border-none text-text-muted cursor-pointer transition-colors hover:bg-white/10 hover:text-white shrink-0">
                                 <X size={20} />
                             </button>
                         </div>
-                        <audio controls autoPlay src={audioBook.digital_file_url || ''} className="audio-player__audio">
-                            Brauzeringiz audio elementini qo'llab-quvvatlamaydi.
-                        </audio>
+                        <div className="p-5 bg-black/10">
+                            <audio controls autoPlay src={audioBook.digital_file_url || ''} className="w-full h-10 outline-none rounded-lg custom-audio">
+                                Brauzeringiz audio elementini qo'llab-quvvatlamaydi.
+                            </audio>
+                        </div>
                     </div>
                 </div>
             )}
@@ -280,80 +288,50 @@ export default function Library() {
 
             {/* Request Book Modal */}
             {requestModalOpen && requestBook && (
-                <div className="pdf-viewer__backdrop" onClick={() => !isRequesting && setRequestModalOpen(false)}>
-                    <div className="pdf-viewer" style={{ width: '100%', maxWidth: 450, minHeight: 'auto', padding: 24, borderRadius: 12 }} onClick={(e) => e.stopPropagation()}>
-                        <div className="pdf-viewer__header" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: 16, marginBottom: 20 }}>
-                            <h3 style={{ margin: 0, fontSize: '1.2rem' }}>Kitob so'rash</h3>
-                            <button onClick={() => !isRequesting && setRequestModalOpen(false)} className="pdf-viewer__close">
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => !isRequesting && setRequestModalOpen(false)}>
+                    <div className="w-full max-w-[450px] bg-surface rounded-2xl p-6 shadow-2xl border border-white/10 animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex justify-between items-center pb-4 mb-5 border-b border-white/10">
+                            <h3 className="m-0 text-[1.2rem] font-bold">Kitob so'rash</h3>
+                            <button onClick={() => !isRequesting && setRequestModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 border-none text-text-muted cursor-pointer transition-colors hover:bg-white/10 hover:text-white">
                                 <X size={20} />
                             </button>
                         </div>
 
-                        <div style={{ marginBottom: 20 }}>
-                            <div style={{ fontWeight: 600, fontSize: '1.1rem', marginBottom: 4 }}>{requestBook.title}</div>
-                            <div style={{ opacity: 0.7, fontSize: '0.9rem' }}>{requestBook.author}</div>
+                        <div className="mb-5">
+                            <div className="font-semibold text-[1.1rem] mb-1">{requestBook.title}</div>
+                            <div className="opacity-70 text-[0.9rem]">{requestBook.author}</div>
                         </div>
 
-                        <div style={{ marginBottom: 24 }}>
-                            <label style={{ display: 'block', marginBottom: 8, fontSize: '0.9rem', opacity: 0.8 }}>Qanday shaklda kerak?</label>
+                        <div className="mb-6">
+                            <label className="block mb-2 text-[0.9rem] opacity-80">Qanday shaklda kerak?</label>
                             <select
                                 value={requestType}
                                 onChange={(e) => setRequestType(e.target.value)}
-                                style={{
-                                    width: '100%',
-                                    padding: '12px',
-                                    borderRadius: 8,
-                                    background: 'rgba(255,255,255,0.05)',
-                                    border: '1px solid rgba(255,255,255,0.1)',
-                                    color: 'white',
-                                    outline: 'none',
-                                    fontSize: '1rem',
-                                    cursor: 'pointer'
-                                }}
+                                className="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white outline-none text-[1rem] cursor-pointer appearance-none focus:border-primary transition-colors hover:bg-white/10"
                             >
-                                {requestBook.available_quantity === 0 && <option value="physical">Asl nusxa (kutish)</option>}
-                                <option value="electronic">Elektron variant (PDF/Audio)</option>
-                                {requestBook.available_quantity !== 0 && <option value="physical">Asl nusxa (kutish)</option>}
+                                {requestBook.available_quantity === 0 && <option value="physical" className="bg-slate-800 text-white">Asl nusxa (kutish)</option>}
+                                <option value="electronic" className="bg-slate-800 text-white">Elektron variant (PDF/Audio)</option>
+                                {requestBook.available_quantity !== 0 && <option value="physical" className="bg-slate-800 text-white">Asl nusxa (kutish)</option>}
                             </select>
-                            <p style={{ marginTop: 10, fontSize: '0.8rem', opacity: 0.6, lineHeight: 1.4 }}>
+                            <p className="mt-2.5 text-[0.8rem] opacity-60 leading-relaxed">
                                 {requestType === 'physical'
                                     ? "Asl nusxani so'rashda, kitob kutubxonaga qaytganida yoki tayyor bo'lganida sizga xabar beramiz."
                                     : "Agar kitobning elektron varianti bazamizda mavjud bo'lmasa, mutaxassis uni topib berishi mumkin."}
                             </p>
                         </div>
 
-                        <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                        <div className="flex gap-3 justify-end">
                             <button
                                 onClick={() => setRequestModalOpen(false)}
                                 disabled={isRequesting}
-                                style={{
-                                    padding: '10px 16px',
-                                    borderRadius: 8,
-                                    background: 'transparent',
-                                    border: '1px solid rgba(255,255,255,0.1)',
-                                    color: 'white',
-                                    cursor: isRequesting ? 'not-allowed' : 'pointer',
-                                    opacity: isRequesting ? 0.5 : 1
-                                }}
+                                className="py-2.5 px-4 rounded-xl bg-transparent border border-white/10 text-white cursor-pointer transition-colors hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Bekor qilish
                             </button>
                             <button
                                 onClick={handleRequestSubmit}
                                 disabled={isRequesting}
-                                style={{
-                                    padding: '10px 16px',
-                                    borderRadius: 8,
-                                    background: 'var(--primary, #3b82f6)',
-                                    border: 'none',
-                                    color: 'white',
-                                    fontWeight: 600,
-                                    cursor: isRequesting ? 'not-allowed' : 'pointer',
-                                    opacity: isRequesting ? 0.5 : 1,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 8
-                                }}
+                                className="flex items-center gap-2 py-2.5 px-4 rounded-xl bg-primary border-none text-white font-semibold cursor-pointer transition-colors hover:bg-primary-hover hover:shadow-[0_4px_12px_rgba(99,102,241,0.3)] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none bg-linear-to-br from-indigo-500 to-indigo-600"
                             >
                                 {isRequesting ? 'Yuborilmoqda...' : "So'rov yuborish"}
                             </button>

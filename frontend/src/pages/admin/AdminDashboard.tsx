@@ -17,79 +17,79 @@ export default function AdminDashboard() {
     ]
 
     return (
-        <div className="page">
-            <div className="page-header">
-                <h1 className="page-title">Boshqaruv paneli</h1>
-                <p className="page-subtitle">Tizim umumiy ko'rinishi</p>
+        <div className="animate-page-enter">
+            <div className="mb-7">
+                <h1 className="text-[1.6rem] font-bold tracking-[-0.02em] mb-1">Boshqaruv paneli</h1>
+                <p className="text-[0.9rem] text-text-muted">Tizim umumiy ko'rinishi</p>
             </div>
 
             {/* Stats grid */}
-            <div className="stats-grid">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4 mb-6">
                 {stats.map((stat) => (
-                    <div key={stat.label} className="stat-card">
-                        <div className="stat-icon" style={{ background: stat.color }}>
+                    <div key={stat.label} className="flex items-center gap-4 p-5 bg-surface border border-border rounded-xl transition-all duration-250 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,0.3)]">
+                        <div className="flex items-center justify-center w-12 h-12 rounded-xl shrink-0" style={{ background: stat.color }}>
                             {stat.icon}
                         </div>
-                        <div className="stat-info">
-                            <span className="stat-value">{stat.value}</span>
-                            <span className="stat-label">{stat.label}</span>
+                        <div className="flex flex-col">
+                            <span className="text-[1.5rem] font-bold tracking-[-0.02em]">{stat.value}</span>
+                            <span className="text-[0.8rem] text-text-muted mt-0.5">{stat.label}</span>
                         </div>
                     </div>
                 ))}
             </div>
 
             {/* Two column layout */}
-            <div className="dashboard-grid-2">
+            <div className="grid grid-cols-[1fr_1fr] gap-5 max-lg:grid-cols-1">
                 {/* Recent activity */}
-                <div className="card">
-                    <div className="card-header">
-                        <h2 className="card-title">
+                <div className="bg-surface border border-border rounded-xl overflow-hidden">
+                    <div className="flex items-center justify-between py-4 px-5 border-b border-border">
+                        <h2 className="flex items-center gap-2 text-[0.95rem] font-semibold">
                             <TrendingUp size={18} />
                             Oxirgi faoliyatlar
                         </h2>
                     </div>
-                    <div className="activity-list">
+                    <div className="py-2">
                         {recentActivities.map((item, i) => (
-                            <div key={i} className="activity-item">
-                                <div className="activity-avatar">{item.user.charAt(0)}</div>
-                                <div className="activity-info">
-                                    <strong>{item.user}</strong>
-                                    <span>{item.action}</span>
+                            <div key={i} className="flex items-center gap-3 py-3 px-5 transition-colors hover:bg-indigo-500/5">
+                                <div className="w-9 h-9 rounded-full bg-indigo-500/15 text-primary-light flex items-center justify-center font-bold text-[0.8rem] shrink-0">{item.user.charAt(0)}</div>
+                                <div className="flex-1 min-w-0">
+                                    <strong className="block text-[0.85rem] font-semibold">{item.user}</strong>
+                                    <span className="text-[0.8rem] text-text-muted">{item.action}</span>
                                 </div>
-                                <span className="activity-time">{item.time}</span>
+                                <span className="text-[0.75rem] text-text-muted whitespace-nowrap">{item.time}</span>
                             </div>
                         ))}
                     </div>
                 </div>
 
                 {/* Alerts */}
-                <div className="card">
-                    <div className="card-header">
-                        <h2 className="card-title">
+                <div className="bg-surface border border-border rounded-xl overflow-hidden">
+                    <div className="flex items-center justify-between py-4 px-5 border-b border-border">
+                        <h2 className="flex items-center gap-2 text-[0.95rem] font-semibold">
                             <AlertTriangle size={18} />
                             Ogohlantirishlar
                         </h2>
                     </div>
-                    <div className="alerts-list">
-                        <div className="alert-item alert-item--warning">
-                            <span className="alert-dot" />
+                    <div className="flex flex-col gap-3 py-3 px-5">
+                        <div className="flex items-start gap-3 p-3.5 rounded-xl bg-slate-900/50 border border-border">
+                            <span className="w-2 h-2 rounded-full mt-1.5 shrink-0 bg-yellow-400 shadow-[0_0_8px_rgba(251,191,36,0.4)]" />
                             <div>
-                                <strong>12 ta kitob muddati o'tgan</strong>
-                                <p>Qaytarilmagan kitoblar ro'yxatini tekshiring</p>
+                                <strong className="block text-[0.85rem] font-semibold mb-0.5">12 ta kitob muddati o'tgan</strong>
+                                <p className="text-[0.8rem] text-text-muted">Qaytarilmagan kitoblar ro'yxatini tekshiring</p>
                             </div>
                         </div>
-                        <div className="alert-item alert-item--info">
-                            <span className="alert-dot" />
+                        <div className="flex items-start gap-3 p-3.5 rounded-xl bg-slate-900/50 border border-border">
+                            <span className="w-2 h-2 rounded-full mt-1.5 shrink-0 bg-indigo-400 shadow-[0_0_8px_rgba(129,140,248,0.4)]" />
                             <div>
-                                <strong>5 ta yangi so'rov</strong>
-                                <p>Kutilayotgan kitob so'rovlari bor</p>
+                                <strong className="block text-[0.85rem] font-semibold mb-0.5">5 ta yangi so'rov</strong>
+                                <p className="text-[0.8rem] text-text-muted">Kutilayotgan kitob so'rovlari bor</p>
                             </div>
                         </div>
-                        <div className="alert-item alert-item--success">
-                            <span className="alert-dot" />
+                        <div className="flex items-start gap-3 p-3.5 rounded-xl bg-slate-900/50 border border-border">
+                            <span className="w-2 h-2 rounded-full mt-1.5 shrink-0 bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.4)]" />
                             <div>
-                                <strong>Tizim yangilandi</strong>
-                                <p>Barcha modullar muvaffaqiyatli yangilandi</p>
+                                <strong className="block text-[0.85rem] font-semibold mb-0.5">Tizim yangilandi</strong>
+                                <p className="text-[0.8rem] text-text-muted">Barcha modullar muvaffaqiyatli yangilandi</p>
                             </div>
                         </div>
                     </div>

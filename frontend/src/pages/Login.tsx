@@ -35,20 +35,20 @@ export default function Login() {
     }
 
     return (
-        <div className="login-page">
+        <div className="relative flex items-center justify-center min-h-dvh p-6 overflow-hidden">
             {/* Background decorative elements */}
-            <div className="login-bg-decor login-bg-decor--1" />
-            <div className="login-bg-decor login-bg-decor--2" />
-            <div className="login-bg-decor login-bg-decor--3" />
+            <div className="absolute rounded-full blur-[100px] opacity-35 pointer-events-none animate-float w-[500px] h-[500px] bg-primary -top-[120px] -right-[80px] max-sm:w-[300px] max-sm:h-[300px]" style={{ animationDelay: '0s' }} />
+            <div className="absolute rounded-full blur-[100px] opacity-35 pointer-events-none animate-float w-[400px] h-[400px] bg-accent -bottom-[100px] -left-[60px] max-sm:w-[250px] max-sm:h-[250px]" style={{ animationDelay: '-4s' }} />
+            <div className="absolute rounded-full blur-[100px] opacity-18 pointer-events-none animate-float-center w-[300px] h-[300px] bg-[#8b5cf6] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" style={{ animationDelay: '-8s' }} />
 
-            <div className="login-card">
+            <div className="relative w-full max-w-[420px] bg-surface backdrop-blur-2xl saturate-150 border border-border rounded-lg p-10 px-8 pb-8 shadow-card animate-card-enter max-sm:px-5 max-sm:pt-8 max-sm:pb-6">
                 {/* Header */}
-                <div className="login-header">
-                    <div className="login-logo">
+                <div className="text-center mb-8">
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-linear-to-br from-primary to-accent text-white mb-4 shadow-[0_8px_24px_rgba(79,70,229,0.35)]">
                         <GraduationCap size={32} strokeWidth={1.8} />
                     </div>
-                    <h1 className="login-title">Kutubxona Tizimi</h1>
-                    <p className="login-subtitle">
+                    <h1 className="text-2xl font-bold tracking-tight text-text mb-1 max-sm:text-[1.3rem]">Kutubxona Tizimi</h1>
+                    <p className="text-[0.85rem] text-text-muted font-normal">
                         O'zbekiston Milliy Universiteti — Jizzax filiali
                     </p>
                 </div>
@@ -56,46 +56,46 @@ export default function Login() {
 
 
                 {/* Form */}
-                <form onSubmit={handleSubmit} className="login-form">
+                <form onSubmit={handleSubmit} className="flex flex-col gap-5">
                     {/* Hemis ID */}
-                    <div className="login-field">
-                        <label htmlFor="hemisId" className="login-label">
+                    <div className="flex flex-col gap-1.5">
+                        <label htmlFor="hemisId" className="text-[0.8rem] font-medium text-text-muted uppercase tracking-[0.06em]">
                             Hemis ID
                         </label>
-                        <div className="login-input-wrapper">
-                            <User size={18} className="login-input-icon" />
+                        <div className="relative flex items-center group">
+                            <User size={18} className="absolute left-3.5 text-text-muted pointer-events-none transition-colors duration-250 group-focus-within:text-primary-light" />
                             <input
                                 id="hemisId"
                                 type="text"
                                 placeholder="Hemis ID ni kiriting"
                                 value={hemisId}
                                 onChange={(e) => setHemisId(e.target.value)}
-                                className="login-input"
+                                className="w-full py-3 pr-3.5 pl-[42px] bg-slate-900/60 border border-border rounded-md text-text text-[0.95rem] font-inherit outline-none transition-all duration-250 hover:border-slate-400/30 hover:bg-slate-900/80 focus:border-primary-light focus:ring-[3px] focus:ring-indigo-500/20 focus:bg-slate-900/90 placeholder:text-slate-400/50"
                                 autoComplete="username"
                             />
                         </div>
                     </div>
 
                     {/* Password */}
-                    <div className="login-field">
-                        <label htmlFor="password" className="login-label">
+                    <div className="flex flex-col gap-1.5">
+                        <label htmlFor="password" className="text-[0.8rem] font-medium text-text-muted uppercase tracking-[0.06em]">
                             Parol
                         </label>
-                        <div className="login-input-wrapper">
-                            <Lock size={18} className="login-input-icon" />
+                        <div className="relative flex items-center group">
+                            <Lock size={18} className="absolute left-3.5 text-text-muted pointer-events-none transition-colors duration-250 group-focus-within:text-primary-light" />
                             <input
                                 id="password"
                                 type={showPassword ? 'text' : 'password'}
                                 placeholder="Parolni kiriting"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="login-input login-input--password"
+                                className="w-full py-3 pr-[44px] pl-[42px] bg-slate-900/60 border border-border rounded-md text-text text-[0.95rem] font-inherit outline-none transition-all duration-250 hover:border-slate-400/30 hover:bg-slate-900/80 focus:border-primary-light focus:ring-[3px] focus:ring-indigo-500/20 focus:bg-slate-900/90 placeholder:text-slate-400/50"
                                 autoComplete="current-password"
                             />
                             <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
-                                className="login-eye-btn"
+                                className="absolute right-2.5 flex items-center justify-center w-8 h-8 border-none rounded-lg bg-transparent text-text-muted cursor-pointer transition-colors duration-250 hover:text-text hover:bg-surface-hover"
                                 aria-label={showPassword ? 'Parolni yashirish' : "Parolni ko'rsatish"}
                             >
                                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -107,10 +107,10 @@ export default function Login() {
                     <button
                         type="submit"
                         disabled={isLoading}
-                        className="login-submit"
+                        className="flex items-center justify-center gap-2 w-full py-[13px] mt-1 font-inherit text-[0.95rem] font-semibold text-white bg-linear-to-br from-primary to-primary-light border-none rounded-md cursor-pointer transition-all duration-250 shadow-[0_4px_16px_rgba(79,70,229,0.35)] hover:not-disabled:-translate-y-px hover:not-disabled:shadow-[0_8px_24px_rgba(79,70,229,0.45)] active:not-disabled:translate-y-0 disabled:opacity-70 disabled:cursor-not-allowed"
                     >
                         {isLoading ? (
-                            <span className="login-spinner" />
+                            <span className="inline-block w-5 h-5 border-[2.5px] border-white/30 border-t-white rounded-full animate-spin" />
                         ) : (
                             'Tizimga kirish'
                         )}
@@ -118,7 +118,7 @@ export default function Login() {
                 </form>
 
                 {/* Footer */}
-                <p className="login-footer">
+                <p className="text-center mt-7 text-[0.75rem] text-text-muted opacity-60">
                     © 2026 Kutubxona Axborot Tizimi
                 </p>
             </div>

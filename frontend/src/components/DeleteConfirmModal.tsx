@@ -16,29 +16,29 @@ export default function DeleteConfirmModal({
     if (!isOpen) return null
 
     return createPortal(
-        <div className="delete-modal__backdrop" onClick={onCancel}>
-            <div className="delete-modal" onClick={(e) => e.stopPropagation()}>
-                <button className="delete-modal__close" onClick={onCancel}>
+        <div className="fixed inset-0 z-200 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-200" onClick={onCancel}>
+            <div className="w-full max-w-[400px] bg-surface backdrop-blur-2xl border border-border rounded-2xl p-6 md:p-8 flex flex-col items-center text-center shadow-[0_30px_80px_rgba(0,0,0,0.5)] animate-in zoom-in-95 duration-300 isolate relative" onClick={(e) => e.stopPropagation()}>
+                <button className="absolute top-4 right-4 flex items-center justify-center w-[34px] h-[34px] border-none rounded-lg bg-transparent text-text-muted cursor-pointer transition-colors hover:bg-surface-hover hover:text-text z-10" onClick={onCancel}>
                     <X size={18} />
                 </button>
 
-                <div className="delete-modal__icon">
-                    <AlertTriangle size={40} />
+                <div className="w-16 h-16 rounded-full bg-red-500/15 text-red-500 flex items-center justify-center mb-5 animate-pulse">
+                    <AlertTriangle size={32} />
                 </div>
 
-                <h3 className="delete-modal__title">{title}</h3>
-                <p className="delete-modal__message">{message}</p>
+                <h3 className="text-[1.25rem] font-bold text-text m-0 mb-2">{title}</h3>
+                <p className="text-[0.95rem] text-text-muted m-0 mb-8 leading-relaxed">{message}</p>
 
-                <div className="delete-modal__actions">
+                <div className="flex w-full gap-3 mt-auto">
                     <button
-                        className="delete-modal__btn delete-modal__btn--cancel"
+                        className="flex-1 py-3 px-4 rounded-xl font-semibold text-[0.95rem] cursor-pointer transition-all border border-border bg-transparent text-text hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
                         onClick={onCancel}
                         disabled={isLoading}
                     >
                         Bekor qilish
                     </button>
                     <button
-                        className="delete-modal__btn delete-modal__btn--confirm"
+                        className="flex-1 py-3 px-4 rounded-xl font-semibold text-[0.95rem] cursor-pointer transition-all border-none bg-red-500 text-white hover:bg-red-600 shadow-[0_4px_12px_rgba(239,68,68,0.3)] hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
                         onClick={onConfirm}
                         disabled={isLoading}
                     >

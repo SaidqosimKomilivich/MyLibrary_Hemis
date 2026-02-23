@@ -88,15 +88,15 @@ export default function MyReadings() {
     }
 
     return (
-        <div className="library-page">
+        <div className="p-5 md:p-8 max-w-[1400px] mx-auto min-h-[calc(100vh-80px)]">
             {/* Header */}
-            <div className="library-page__header">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                 <div>
-                    <h1 className="library-page__title">
-                        <BookMarked size={28} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} />
+                    <h1 className="text-[1.8rem] font-bold text-text mb-1 tracking-tight flex items-center">
+                        <BookMarked size={28} className="mr-2" />
                         O'qiyotgan kitoblar
                     </h1>
-                    <p className="library-page__subtitle">
+                    <p className="text-[0.95rem] text-text-muted m-0">
                         Siz hozirda o'qiyotgan kitoblar ro'yxati
                     </p>
                 </div>
@@ -104,17 +104,19 @@ export default function MyReadings() {
 
             {/* Content */}
             {isLoading ? (
-                <div className="library-page__loading">
-                    <div className="library-page__spinner"></div>
+                <div className="flex justify-center items-center py-20 min-h-[300px]">
+                    <div className="w-10 h-10 border-3 border-border border-t-primary rounded-full animate-spin"></div>
                 </div>
             ) : readings.length === 0 ? (
-                <div className="library-page__empty">
-                    <BookOpen size={64} strokeWidth={1} />
-                    <h3 style={{ marginTop: '1rem', color: 'var(--text-secondary)' }}>Hali kitob qo'shilmagan</h3>
-                    <p style={{ color: 'var(--text-muted)' }}>Kutubxonadan kitob tanlang va "+" tugmasini bosing</p>
+                <div className="flex flex-col items-center justify-center py-24 text-center text-text-muted bg-surface/50 border border-dashed border-border rounded-2xl">
+                    <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-4">
+                        <BookOpen size={28} className="opacity-50" />
+                    </div>
+                    <p className="text-[1.1rem]">Hali kitob qo'shilmagan</p>
+                    <p className="text-[0.9rem] opacity-70 mt-1">Kutubxonadan kitob tanlang va "+" tugmasini bosing</p>
                 </div>
             ) : (
-                <div className="library-page__grid">
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-6">
                     {readings.map((reading) => {
                         const book = readingToBook(reading)
                         return (
@@ -133,17 +135,17 @@ export default function MyReadings() {
 
             {/* PDF Viewer Modal */}
             {pdfBook && (
-                <div className="pdf-viewer__backdrop" onClick={() => setPdfBook(null)}>
-                    <div className="pdf-viewer" onClick={(e) => e.stopPropagation()}>
-                        <div className="pdf-viewer__header">
-                            <h3>{pdfBook.title}</h3>
-                            <button onClick={() => setPdfBook(null)} className="pdf-viewer__close">
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-100 flex flex-col animate-in fade-in duration-200" onClick={() => setPdfBook(null)}>
+                    <div className="w-full h-full bg-surface/95 flex flex-col animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex justify-between items-center p-4 border-b border-white/10 bg-black/20">
+                            <h3 className="m-0 text-[1.1rem] font-semibold text-text truncate pr-4">{pdfBook.title}</h3>
+                            <button onClick={() => setPdfBook(null)} className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/5 border-none text-text-muted cursor-pointer transition-colors hover:bg-white/10 hover:text-white shrink-0">
                                 <X size={20} />
                             </button>
                         </div>
                         <iframe
                             src={pdfBook.digital_file_url || ''}
-                            className="pdf-viewer__frame"
+                            className="flex-1 w-full border-none bg-white"
                             title={pdfBook.title}
                         />
                     </div>
@@ -152,27 +154,29 @@ export default function MyReadings() {
 
             {/* Audio Player Modal */}
             {audioBook && (
-                <div className="audio-player__backdrop" onClick={() => setAudioBook(null)}>
-                    <div className="audio-player" onClick={(e) => e.stopPropagation()}>
-                        <div className="audio-player__header">
-                            <div className="audio-player__info">
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-100 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setAudioBook(null)}>
+                    <div className="w-full max-w-md bg-surface rounded-2xl overflow-hidden shadow-2xl border border-white/10 animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex justify-between items-start p-5 border-b border-white/10 bg-black/20">
+                            <div className="flex items-center gap-4">
                                 {audioBook.cover_image_url ? (
-                                    <img src={audioBook.cover_image_url} alt={audioBook.title} className="audio-player__cover" />
+                                    <img src={audioBook.cover_image_url} alt={audioBook.title} className="w-16 h-16 rounded-xl object-cover shrink-0 border border-white/10 shadow-sm" />
                                 ) : (
-                                    <div className="audio-player__cover audio-player__cover--placeholder">🎧</div>
+                                    <div className="w-16 h-16 rounded-xl bg-white/5 flex items-center justify-center text-2xl shrink-0 border border-white/10 shadow-sm">🎧</div>
                                 )}
-                                <div>
-                                    <h3>{audioBook.title}</h3>
-                                    <p>{audioBook.author}</p>
+                                <div className="min-w-0 pr-4">
+                                    <h3 className="m-0 text-[1.1rem] font-bold text-text mb-1 truncate">{audioBook.title}</h3>
+                                    <p className="m-0 text-[0.85rem] text-text-muted truncate">{audioBook.author}</p>
                                 </div>
                             </div>
-                            <button onClick={() => setAudioBook(null)} className="audio-player__close">
+                            <button onClick={() => setAudioBook(null)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 border-none text-text-muted cursor-pointer transition-colors hover:bg-white/10 hover:text-white shrink-0">
                                 <X size={20} />
                             </button>
                         </div>
-                        <audio controls autoPlay src={audioBook.digital_file_url || ''} className="audio-player__audio">
-                            Brauzeringiz audio elementini qo'llab-quvvatlamaydi.
-                        </audio>
+                        <div className="p-5 bg-black/10">
+                            <audio controls autoPlay src={audioBook.digital_file_url || ''} className="w-full h-10 outline-none rounded-lg custom-audio">
+                                Brauzeringiz audio elementini qo'llab-quvvatlamaydi.
+                            </audio>
+                        </div>
                     </div>
                 </div>
             )}

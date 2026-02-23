@@ -297,38 +297,38 @@ export default function ReportsPage() {
             </div>
 
             {isLoading ? (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: '100px 0' }}>
-                    <Loader2 size={48} color="#34d399" className="spin-icon" style={{ opacity: 0.8 }} />
+                <div className="flex justify-center py-24">
+                    <Loader2 size={48} className="text-emerald-400 opacity-80 animate-spin" />
                 </div>
             ) : dashboardData && (
-                <div className="dashboard-grid">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
                     {/* Keldi Ketdi */}
-                    <div className="board-card">
-                        <div className="board-header">
-                            <ArrowRightLeft size={20} color="#34d399" />
-                            <h3>Oxirgi 10 ta Keldi-Ketdi</h3>
+                    <div className="bg-slate-800/40 border border-white/5 rounded-[20px] overflow-hidden">
+                        <div className="px-6 py-5 border-b border-white/5 flex items-center gap-3 bg-black/20">
+                            <ArrowRightLeft size={20} className="text-emerald-400" />
+                            <h3 className="m-0 text-white text-[1.15rem] font-semibold">Oxirgi 10 ta Keldi-Ketdi</h3>
                         </div>
                         <div>
                             {dashboardData.recent_controls.length === 0 ? (
-                                <div style={{ padding: 40, textAlign: 'center', color: '#9ca3af' }}>Ma'lumot yo'q</div>
+                                <div className="p-10 text-center text-text-muted">Ma'lumot yo'q</div>
                             ) : dashboardData.recent_controls.map(item => (
-                                <div key={item.id} className="list-item">
-                                    <div className="list-icon" style={{ color: '#10b981' }}>
+                                <div key={item.id} className="px-6 py-4 border-b border-dashed border-white/5 flex items-center gap-4 last:border-b-0">
+                                    <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-emerald-500 shrink-0">
                                         <ArrowRightLeft size={20} />
                                     </div>
-                                    <div className="list-content">
-                                        <p className="item-title">
+                                    <div className="flex-1 min-w-0">
+                                        <p className="m-0 mb-1 text-slate-50 font-semibold text-[0.95rem] truncate">
                                             {item.full_name || 'Noma\'lum'}
-                                            <span style={{ fontWeight: 'normal', color: '#9ca3af', marginLeft: 8 }}>
+                                            <span className="font-normal text-text-muted ml-2">
                                                 ({item.role === 'student' ? 'Talaba' : item.role === 'employee' ? 'Xodim' : item.role === 'teacher' ? 'O\'qituvchi' : item.role})
                                             </span>
                                         </p>
-                                        <p className="item-sub">
-                                            <span style={{ color: '#34d399' }}>Kirdi: {formatDate(item.arrival)}</span>
+                                        <p className="m-0 text-text-muted text-[0.85rem] flex items-center gap-1.5 flex-wrap">
+                                            <span className="text-emerald-400">Kirdi: {formatDate(item.arrival)}</span>
                                             {item.departure && (
                                                 <>
-                                                    <span style={{ margin: '0 8px', color: '#4b5563' }}>|</span>
-                                                    <span style={{ color: '#f87171' }}>Ketdi: {formatDate(item.departure)}</span>
+                                                    <span className="mx-1 text-slate-600">|</span>
+                                                    <span className="text-red-400">Ketdi: {formatDate(item.departure)}</span>
                                                 </>
                                             )}
                                         </p>
@@ -339,45 +339,41 @@ export default function ReportsPage() {
                     </div>
 
                     {/* Ijaralar */}
-                    <div className="board-card">
-                        <div className="board-header">
-                            <BookOpen size={20} color="#60a5fa" />
-                            <h3>Oxirgi 10 ta Ijara</h3>
+                    <div className="bg-slate-800/40 border border-white/5 rounded-[20px] overflow-hidden">
+                        <div className="px-6 py-5 border-b border-white/5 flex items-center gap-3 bg-black/20">
+                            <BookOpen size={20} className="text-blue-400" />
+                            <h3 className="m-0 text-white text-[1.15rem] font-semibold">Oxirgi 10 ta Ijara</h3>
                         </div>
                         <div>
                             {dashboardData.recent_rentals.length === 0 ? (
-                                <div style={{ padding: 40, textAlign: 'center', color: '#9ca3af' }}>Ma'lumot yo'q</div>
+                                <div className="p-10 text-center text-text-muted">Ma'lumot yo'q</div>
                             ) : dashboardData.recent_rentals.map(item => (
-                                <div key={item.id} className="list-item">
-                                    <div className="list-icon" style={{ color: '#3b82f6' }}>
+                                <div key={item.id} className="px-6 py-4 border-b border-dashed border-white/5 flex items-center gap-4 last:border-b-0">
+                                    <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-blue-500 shrink-0">
                                         <BookOpen size={20} />
                                     </div>
-                                    <div className="list-content">
-                                        <p className="item-title">{item.book_title}</p>
-                                        <p className="item-sub" style={{ marginBottom: 4, color: '#e5e7eb' }}>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="m-0 mb-1 text-slate-50 font-semibold text-[0.95rem] truncate">{item.book_title}</p>
+                                        <p className="m-0 mb-1 text-slate-200 text-[0.85rem] truncate">
                                             {item.user_full_name || 'Noma\'lum'}
-                                            <span style={{ fontWeight: 'normal', color: '#9ca3af', marginLeft: 6 }}>
+                                            <span className="font-normal text-text-muted ml-1.5">
                                                 ({item.role === 'student' ? 'Talaba' : item.role === 'employee' ? 'Xodim' : item.role === 'teacher' ? 'O\'qituvchi' : item.role})
                                             </span>
                                         </p>
-                                        <p className="item-sub">
-                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                        <p className="m-0 text-text-muted text-[0.85rem] flex items-center gap-1.5 flex-wrap">
+                                            <span className="inline-flex items-center gap-1">
                                                 <Clock size={12} />
                                                 Berildi: {item.loan_date} / Gacha: {item.due_date}
                                             </span>
                                             {item.return_date && item.status === 'returned' && (
-                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 8, color: '#34d399' }}>
+                                                <span className="inline-flex items-center gap-1 ml-2 text-emerald-400">
                                                     | Qaytardi: {item.return_date}
                                                 </span>
                                             )}
                                         </p>
                                     </div>
-                                    <div>
-                                        <span className="status-badge" style={{
-                                            background: item.status === 'returned' ? 'rgba(52, 211, 153, 0.1)' : 'rgba(96, 165, 250, 0.1)',
-                                            color: item.status === 'returned' ? '#34d399' : '#60a5fa',
-                                            border: `1px solid ${item.status === 'returned' ? '#34d39930' : '#60a5fa30'}`
-                                        }}>
+                                    <div className="shrink-0 flex items-center">
+                                        <span className={`px-2.5 py-1 rounded-full text-[0.75rem] font-semibold tracking-wide border ${item.status === 'returned' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20'}`}>
                                             {item.status}
                                         </span>
                                     </div>

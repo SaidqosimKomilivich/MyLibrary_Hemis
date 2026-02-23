@@ -93,326 +93,93 @@ export default function EmployeeRentalsPage() {
     }
 
     return (
-        <div className="rentals-page">
-            <style>{`
-                .rentals-page {
-                    padding: 32px 40px;
-                    max-width: 1600px;
-                    margin: 0 auto;
-                    font-family: 'Inter', system-ui, sans-serif;
-                    min-height: 100vh;
-                }
-                .ren-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 40px;
-                    background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(59, 130, 246, 0.15) 100%);
-                    padding: 32px 40px;
-                    border-radius: 24px;
-                    border: 1px solid rgba(255, 255, 255, 0.08);
-                    position: relative;
-                    overflow: hidden;
-                    box-shadow: 0 20px 40px -20px rgba(0,0,0,0.3);
-                }
-                .ren-header::after {
-                    content: '';
-                    position: absolute;
-                    top: -50%; left: -50%;
-                    width: 200%; height: 200%;
-                    background: radial-gradient(circle at center, rgba(255,255,255,0.05) 0%, transparent 50%);
-                    pointer-events: none;
-                }
-                .ren-header h1 {
-                    font-size: 2.2rem;
-                    font-weight: 800;
-                    margin: 0 0 8px 0;
-                    background: linear-gradient(to right, #34d399, #60a5fa);
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                    letter-spacing: -0.5px;
-                }
-                .ren-header p {
-                    color: #9ca3af;
-                    margin: 0;
-                    font-size: 1.1rem;
-                    font-weight: 500;
-                }
-                
-                .filter-tabs {
-                    display: flex;
-                    gap: 12px;
-                    margin-bottom: 24px;
-                    overflow-x: auto;
-                    padding-bottom: 12px;
-                }
-                
-                .filter-tab {
-                    padding: 12px 24px;
-                    border-radius: 12px;
-                    background: rgba(31, 41, 55, 0.5);
-                    border: 1px solid rgba(255, 255, 255, 0.05);
-                    color: #9ca3af;
-                    font-weight: 600;
-                    font-size: 0.95rem;
-                    cursor: pointer;
-                    transition: all 0.3s;
-                    white-space: nowrap;
-                }
-                
-                .filter-tab:hover {
-                    background: rgba(55, 65, 81, 0.8);
-                    color: #e5e7eb;
-                }
-                
-                .filter-tab.active {
-                    background: rgba(59, 130, 246, 0.2);
-                    border-color: rgba(59, 130, 246, 0.5);
-                    color: #60a5fa;
-                    box-shadow: 0 4px 12px -4px rgba(59, 130, 246, 0.3);
-                }
-
-                .ren-search-wrapper {
-                    position: relative;
-                    margin-bottom: 32px;
-                    max-width: 600px;
-                }
-                .ren-search-icon {
-                    position: absolute;
-                    left: 20px;
-                    top: 50%;
-                    transform: translateY(-50%);
-                    color: #9ca3af;
-                }
-                .ren-input {
-                    width: 100%;
-                    background: rgba(31, 41, 55, 0.5);
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    padding: 18px 20px 18px 56px;
-                    border-radius: 16px;
-                    color: #f3f4f6;
-                    font-size: 1.05rem;
-                    transition: all 0.3s ease;
-                    box-shadow: 0 10px 30px -10px rgba(0,0,0,0.2);
-                    backdrop-filter: blur(12px);
-                }
-                .ren-input:focus {
-                    outline: none;
-                    border-color: #34d399;
-                    box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.15);
-                    background: rgba(31, 41, 55, 0.8);
-                }
-                
-                .ren-grid {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-                    gap: 24px;
-                }
-                
-                .ren-card {
-                    background: linear-gradient(145deg, rgba(31, 41, 55, 0.6), rgba(17, 24, 39, 0.6));
-                    border: 1px solid rgba(255, 255, 255, 0.06);
-                    border-radius: 24px;
-                    padding: 24px;
-                    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-                    position: relative;
-                    display: flex;
-                    flex-direction: column;
-                    box-shadow: 0 10px 30px -15px rgba(0,0,0,0.5);
-                    overflow: hidden;
-                }
-                
-                .ren-card:hover {
-                    transform: translateY(-6px) scale(1.01);
-                    border-color: rgba(52, 211, 153, 0.3);
-                    box-shadow: 0 20px 40px -15px rgba(16, 185, 129, 0.2);
-                }
-                
-                .ren-status-bar {
-                    position: absolute;
-                    top: 0; left: 0; right: 0;
-                    height: 4px;
-                }
-                
-                .ren-user {
-                    display: flex;
-                    align-items: center;
-                    gap: 16px;
-                    margin-bottom: 24px;
-                    margin-top: 8px;
-                }
-                
-                .ren-avatar {
-                    width: 52px; height: 52px;
-                    border-radius: 16px;
-                    background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
-                    border: 1px solid rgba(255,255,255,0.1);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-weight: 700;
-                    color: #fff;
-                    font-size: 1.2rem;
-                }
-                
-                .ren-user-info h3 { margin: 0; font-size: 1.2rem; color: #f9fafb; font-weight: 700; letter-spacing: -0.3px; }
-                .ren-user-info p { margin: 6px 0 0 0; font-size: 0.9rem; color: #9ca3af; font-family: monospace; }
-                
-                .ren-book {
-                    background: rgba(0, 0, 0, 0.25);
-                    border-radius: 16px;
-                    padding: 20px;
-                    margin-bottom: 24px;
-                    flex: 1;
-                    border: 1px solid rgba(255,255,255,0.03);
-                }
-                
-                .ren-book-title {
-                    font-size: 1.15rem;
-                    font-weight: 700;
-                    color: #fff;
-                    margin: 0 0 8px 0;
-                    line-height: 1.4;
-                }
-                
-                .ren-book-author {
-                    font-size: 0.9rem;
-                    color: #9ca3af;
-                    margin: 0;
-                }
-                
-                .ren-dates {
-                    display: flex;
-                    gap: 12px;
-                    margin-bottom: 24px;
-                }
-                
-                .date-box {
-                    flex: 1;
-                    background: rgba(255,255,255,0.03);
-                    border: 1px solid rgba(255,255,255,0.05);
-                    padding: 12px 16px;
-                    border-radius: 12px;
-                }
-                
-                .date-label { font-size: 0.8rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; margin-bottom: 4px; }
-                .date-value { font-size: 0.95rem; color: #e5e7eb; font-weight: 500; display: flex; align-items: center; gap: 6px;}
-                
-                .ren-status-pill {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 8px;
-                    padding: 8px 16px;
-                    border-radius: 12px;
-                    font-size: 0.9rem;
-                    font-weight: 600;
-                    letter-spacing: 0.3px;
-                }
-                
-                @keyframes spin { to { transform: rotate(360deg); } }
-                .spin-icon { animation: spin 1s linear infinite; }
-            `}</style>
-
-            {/* <div className="ren-header">
-                <div>
-                    <h1>Ijara nazorati</h1>
-                    <p>Talabalar va xodimlarga berilgan kitoblarni boshqarish</p>
-                </div>
-                <div style={{ padding: '16px 20px', background: 'rgba(255,255,255,0.05)', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                    <ShieldCheck size={28} color="#34d399" />
-                    <div>
-                        <div style={{ fontSize: '0.85rem', color: '#9ca3af', fontWeight: 500 }}>Admin/Xodim Panel</div>
-                        <div style={{ color: '#fff', fontWeight: 700 }}>Ijara modduli</div>
-                    </div>
-                </div>
-            </div> */}
-
-            <div className="filter-tabs">
-                <button className={`filter-tab ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>
+        <div className="p-8 md:p-10 max-w-[1600px] mx-auto min-h-screen">
+            <div className="flex gap-3 mb-6 overflow-x-auto pb-3">
+                <button className={`px-6 py-3 rounded-xl border font-semibold text-[0.95rem] whitespace-nowrap transition-all ${filter === 'all' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400 shadow-[0_4px_12px_-4px_rgba(59,130,246,0.3)]' : 'bg-slate-800/50 border-white/5 text-text-muted hover:bg-slate-700/80 hover:text-slate-200'}`} onClick={() => setFilter('all')}>
                     Barcha ijara qilinganlar
                 </button>
-                <button className={`filter-tab ${filter === 'active' ? 'active' : ''}`} onClick={() => setFilter('active')}>
+                <button className={`px-6 py-3 rounded-xl border font-semibold text-[0.95rem] whitespace-nowrap transition-all ${filter === 'active' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400 shadow-[0_4px_12px_-4px_rgba(59,130,246,0.3)]' : 'bg-slate-800/50 border-white/5 text-text-muted hover:bg-slate-700/80 hover:text-slate-200'}`} onClick={() => setFilter('active')}>
                     Topshirmagan (Ijarada)
                 </button>
-                <button className={`filter-tab ${filter === 'due_soon' ? 'active' : ''}`} onClick={() => setFilter('due_soon')}>
+                <button className={`px-6 py-3 rounded-xl border font-semibold text-[0.95rem] whitespace-nowrap transition-all ${filter === 'due_soon' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400 shadow-[0_4px_12px_-4px_rgba(59,130,246,0.3)]' : 'bg-slate-800/50 border-white/5 text-text-muted hover:bg-slate-700/80 hover:text-slate-200'}`} onClick={() => setFilter('due_soon')}>
                     Muddati kelgan (Qaytarish vaqti)
                 </button>
-                <button className={`filter-tab ${filter === 'overdue' ? 'active' : ''}`} onClick={() => setFilter('overdue')}>
+                <button className={`px-6 py-3 rounded-xl border font-semibold text-[0.95rem] whitespace-nowrap transition-all ${filter === 'overdue' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400 shadow-[0_4px_12px_-4px_rgba(59,130,246,0.3)]' : 'bg-slate-800/50 border-white/5 text-text-muted hover:bg-slate-700/80 hover:text-slate-200'}`} onClick={() => setFilter('overdue')}>
                     Muddati o'tgan
                 </button>
-                <button className={`filter-tab ${filter === 'returned' ? 'active' : ''}`} onClick={() => setFilter('returned')}>
+                <button className={`px-6 py-3 rounded-xl border font-semibold text-[0.95rem] whitespace-nowrap transition-all ${filter === 'returned' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400 shadow-[0_4px_12px_-4px_rgba(59,130,246,0.3)]' : 'bg-slate-800/50 border-white/5 text-text-muted hover:bg-slate-700/80 hover:text-slate-200'}`} onClick={() => setFilter('returned')}>
                     Topshirgan (Arxiv)
                 </button>
             </div>
 
-            <div className="ren-search-wrapper">
-                <Search size={22} className="ren-search-icon" />
+            <div className="relative mb-8 max-w-[600px]">
+                <Search size={22} className="absolute left-5 top-1/2 -translate-y-1/2 text-text-muted" />
                 <input
                     type="text"
                     placeholder="Talaba ismi yoki kitob qidirish..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="ren-input"
+                    className="w-full bg-slate-800/50 border border-white/10 py-[18px] pr-5 pl-14 rounded-2xl text-slate-100 text-[1.05rem] transition-all focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-400/15 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.2)] backdrop-blur-md"
                 />
             </div>
 
             {isLoading ? (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: '100px 0' }}>
-                    <Loader2 size={48} color="#34d399" className="spin-icon" style={{ opacity: 0.8 }} />
+                <div className="flex justify-center py-24">
+                    <Loader2 size={48} className="text-emerald-400 opacity-80 animate-spin" />
                 </div>
             ) : filteredRentals.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '100px 0', color: '#9ca3af', background: 'rgba(31,41,55,0.3)', borderRadius: 24, border: '1px dashed rgba(255,255,255,0.1)' }}>
-                    <BookOpen size={64} style={{ opacity: 0.2, margin: '0 auto 20px' }} />
-                    <h2 style={{ color: '#f3f4f6', margin: '0 0 8px' }}>Ma'lumot topilmadi</h2>
-                    <p style={{ margin: 0 }}>Belgilangan holat yoki qidiruv so'ziga mos ijaralar yo'q.</p>
+                <div className="text-center py-24 text-text-muted bg-slate-800/30 rounded-3xl border border-dashed border-white/10">
+                    <BookOpen size={64} className="opacity-20 mx-auto mb-5 text-current" />
+                    <h2 className="text-slate-100 m-0 mb-2">Ma'lumot topilmadi</h2>
+                    <p className="m-0">Belgilangan holat yoki qidiruv so'ziga mos ijaralar yo'q.</p>
                 </div>
             ) : (
-                <div className="ren-grid">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                     {filteredRentals.map((r) => {
                         const style = getStatusStyle(r);
                         return (
-                            <div key={r.id} className="ren-card">
-                                <div className="ren-status-bar" style={{ background: style.color }}></div>
+                            <div key={r.id} className="bg-linear-to-br from-slate-800/60 to-slate-900/60 border border-white/5 rounded-3xl p-6 transition-all duration-300 relative flex flex-col shadow-lg overflow-hidden hover:-translate-y-1.5 hover:border-emerald-400/30 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.2)]">
+                                <div className="absolute top-0 left-0 right-0 h-1" style={{ background: style.color }}></div>
 
-                                <div className="ren-user">
-                                    <div className="ren-avatar">
+                                <div className="flex items-center gap-4 mb-6 mt-2">
+                                    <div className="w-[52px] h-[52px] rounded-2xl bg-linear-to-br from-white/10 to-white/5 border border-white/10 flex items-center justify-center font-bold text-white text-[1.2rem]">
                                         {getInitials(r.user_full_name || '')}
                                     </div>
-                                    <div className="ren-user-info">
-                                        <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <div className="flex flex-col">
+                                        <h3 className="m-0 text-[1.2rem] text-slate-50 font-bold tracking-tight flex items-center gap-2">
                                             {r.user_full_name}
-                                            <span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: '#9ca3af', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '10px' }}>
+                                            <span className="text-[0.75rem] font-normal text-text-muted bg-white/5 px-2 py-0.5 rounded-full">
                                                 {r.role === 'student' ? 'Talaba' : r.role === 'employee' ? 'Xodim' : r.role === 'teacher' ? 'O\'qituvchi' : r.role}
                                             </span>
                                         </h3>
-                                        <p>Ijara raqami: #{r.id.split('-')[0]}</p>
+                                        <p className="m-0 mt-1.5 text-[0.9rem] text-text-muted font-mono">Ijara raqami: #{r.id.split('-')[0]}</p>
                                     </div>
                                 </div>
 
-                                <div className="ren-book">
-                                    <h4 className="ren-book-title">{r.book_title}</h4>
-                                    <p className="ren-book-author">{r.book_author}</p>
+                                <div className="bg-black/25 border border-white/5 rounded-2xl p-5 mb-6 flex-1">
+                                    <h4 className="text-[1.15rem] font-bold text-white m-0 mb-2 leading-snug">{r.book_title}</h4>
+                                    <p className="text-[0.9rem] text-text-muted m-0">{r.book_author}</p>
                                 </div>
 
-                                <div className="ren-dates">
-                                    <div className="date-box">
-                                        <div className="date-label">Berilgan sana</div>
-                                        <div className="date-value"><Calendar size={14} color="#9ca3af" /> {formatDate(r.loan_date)}</div>
+                                <div className="flex gap-3 mb-6">
+                                    <div className="flex-1 bg-white/5 border border-white/5 p-3 rounded-xl">
+                                        <div className="text-[0.8rem] text-slate-500 uppercase tracking-wide font-semibold mb-1">Berilgan sana</div>
+                                        <div className="text-[0.95rem] text-slate-200 font-medium flex items-center gap-1.5"><Calendar size={14} className="text-text-muted" /> {formatDate(r.loan_date)}</div>
                                     </div>
-                                    <div className="date-box" style={{ background: isDueSoon(r.due_date) && r.status === 'active' ? 'rgba(251, 191, 36, 0.05)' : r.status === 'overdue' ? 'rgba(248, 113, 113, 0.05)' : '' }}>
-                                        <div className="date-label" style={{ color: r.status === 'overdue' ? '#f87171' : '' }}>Qaytarish muddati</div>
-                                        <div className="date-value" style={{ color: r.status === 'overdue' ? '#fca5a5' : '' }}><Clock size={14} color={r.status === 'overdue' ? '#f87171' : '#9ca3af'} /> {formatDate(r.due_date)}</div>
+                                    <div className={`flex-1 border p-3 rounded-xl ${isDueSoon(r.due_date) && r.status === 'active' ? 'bg-amber-500/5 border-amber-500/10' : r.status === 'overdue' ? 'bg-red-500/5 border-red-500/10' : 'bg-white/5 border-white/5'}`}>
+                                        <div className={`text-[0.8rem] uppercase tracking-wide font-semibold mb-1 ${r.status === 'overdue' ? 'text-red-400' : 'text-slate-500'}`}>Qaytarish muddati</div>
+                                        <div className={`text-[0.95rem] font-medium flex items-center gap-1.5 ${r.status === 'overdue' ? 'text-red-300' : 'text-slate-200'}`}><Clock size={14} className={r.status === 'overdue' ? 'text-red-400' : 'text-text-muted'} /> {formatDate(r.due_date)}</div>
                                     </div>
                                 </div>
 
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <div className="ren-status-pill" style={{ background: style.bg, color: style.color, border: `1px solid ${style.color}30` }}>
+                                <div className="flex justify-between items-center">
+                                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[0.9rem] font-semibold tracking-wide border" style={{ background: style.bg, color: style.color, borderColor: `${style.color}30` }}>
                                         {style.icon} {style.label}
                                     </div>
 
                                     {r.return_date && r.status === 'returned' && (
-                                        <div style={{ fontSize: '0.85rem', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                            <CheckCircle size={14} color="#34d399" />
+                                        <div className="text-[0.85rem] text-text-muted flex items-center gap-1.5">
+                                            <CheckCircle size={14} className="text-emerald-400" />
                                             Qaytardi: {formatDate(r.return_date)}
                                         </div>
                                     )}

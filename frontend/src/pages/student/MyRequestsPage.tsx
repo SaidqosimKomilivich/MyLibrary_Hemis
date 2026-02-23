@@ -45,91 +45,67 @@ export default function MyRequestsPage() {
     }
 
     return (
-        <div style={{ padding: '24px' }}>
-            <div style={{ marginBottom: 32 }}>
-                <h1 style={{ fontSize: '1.8rem', fontWeight: 700, margin: '0 0 8px 0', color: '#fff' }}>
+        <div className="p-6">
+            <div className="mb-8">
+                <h1 className="text-[1.8rem] font-bold text-white m-0 mb-2">
                     Mening so'rovlarim
                 </h1>
-                <p style={{ opacity: 0.7, margin: 0, fontSize: '0.95rem' }}>
+                <p className="m-0 text-[0.95rem] opacity-70">
                     Kutubxonaga yuborgan kitob so'rovlaringiz tarixi va holati
                 </p>
             </div>
 
             {isLoading ? (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
-                    <div className="library-page__spinner"></div>
+                <div className="flex justify-center p-10">
+                    <div className="w-10 h-10 border-3 border-border border-t-primary rounded-full animate-spin"></div>
                 </div>
             ) : requests.length === 0 ? (
-                <div style={{
-                    background: 'rgba(255,255,255,0.03)',
-                    border: '1px dashed rgba(255,255,255,0.1)',
-                    borderRadius: 12,
-                    padding: 40,
-                    textAlign: 'center',
-                    color: 'rgba(255,255,255,0.5)'
-                }}>
+                <div className="bg-white/5 border border-dashed border-white/10 rounded-xl p-10 text-center text-white/50">
                     Hozircha hech qanday so'rov yubormagansiz.
                 </div>
             ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div className="flex flex-col gap-4">
                     {requests.map(req => {
                         const sInfo = getStatusInfo(req.status)
                         return (
-                            <div key={req.id} style={{
-                                background: 'rgba(255,255,255,0.04)',
-                                border: '1px solid rgba(255,255,255,0.08)',
-                                borderRadius: 12,
-                                padding: 20,
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: 16
-                            }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
-                                    <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                                        <div style={{ width: 48, height: 48, borderRadius: 8, background: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                            <Book size={24} color="#a1a1aa" />
+                            <div key={req.id} className="bg-white/5 border border-white/10 rounded-xl p-5 flex flex-col gap-4">
+                                <div className="flex justify-between items-start flex-wrap gap-3">
+                                    <div className="flex gap-4 items-center">
+                                        <div className="w-12 h-12 rounded-lg bg-white/10 flex items-center justify-center">
+                                            <Book size={24} className="text-zinc-400" />
                                         </div>
                                         <div>
-                                            <div style={{ fontWeight: 600, fontSize: '1.1rem', color: '#fff' }}>{req.book_title}</div>
-                                            <div style={{ fontSize: '0.85rem', color: '#a1a1aa', marginTop: 4 }}>
-                                                Turi: <span style={{ fontWeight: 500, color: '#e4e4e7' }}>{getTypeLabel(req.request_type)}</span>
+                                            <div className="font-semibold text-[1.1rem] text-white">{req.book_title}</div>
+                                            <div className="text-[0.85rem] text-zinc-400 mt-1">
+                                                Turi: <span className="font-medium text-zinc-200">{getTypeLabel(req.request_type)}</span>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div style={{ textAlign: 'right' }}>
-                                        <div style={{
-                                            display: 'inline-flex',
-                                            alignItems: 'center',
-                                            gap: 6,
-                                            padding: '6px 12px',
-                                            borderRadius: 20,
-                                            fontSize: '0.85rem',
-                                            fontWeight: 500,
-                                            background: `${sInfo.color}15`,
-                                            color: sInfo.color,
-                                            border: `1px solid ${sInfo.color}40`
-                                        }}>
+                                    <div className="text-right">
+                                        <div
+                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[0.85rem] font-medium"
+                                            style={{
+                                                background: `${sInfo.color}15`,
+                                                color: sInfo.color,
+                                                border: `1px solid ${sInfo.color}40`
+                                            }}
+                                        >
                                             {sInfo.icon}
                                             {sInfo.label}
                                         </div>
-                                        <div style={{ fontSize: '0.8rem', color: '#71717a', marginTop: 8 }}>
+                                        <div className="text-[0.8rem] text-zinc-500 mt-2">
                                             {formatDate(req.created_at)}
                                         </div>
                                     </div>
                                 </div>
 
                                 {req.employee_comment && (
-                                    <div style={{
-                                        background: 'rgba(0,0,0,0.2)',
-                                        padding: '12px 16px',
-                                        borderRadius: 8,
-                                        borderLeft: `4px solid ${sInfo.color}`,
-                                        fontSize: '0.9rem',
-                                        color: '#e4e4e7',
-                                        lineHeight: 1.5
-                                    }}>
-                                        <strong style={{ display: 'block', fontSize: '0.8rem', color: '#a1a1aa', marginBottom: 4 }}>Kutubxonachi javobi:</strong>
+                                    <div
+                                        className="bg-black/20 py-3 px-4 rounded-lg text-[0.9rem] text-zinc-200 leading-relaxed"
+                                        style={{ borderLeft: `4px solid ${sInfo.color}` }}
+                                    >
+                                        <strong className="block text-[0.8rem] text-zinc-400 mb-1">Kutubxonachi javobi:</strong>
                                         {req.employee_comment}
                                     </div>
                                 )}

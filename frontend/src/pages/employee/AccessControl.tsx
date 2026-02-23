@@ -365,18 +365,18 @@ export default function AccessControl() {
     }, []);
 
     return (
-        <div className="ac-page">
+        <div className="flex flex-col gap-6 w-full max-w-[1200px] mx-auto">
 
             {/* ═══════════════════════════════════════
                HEADER
                ═══════════════════════════════════════ */}
-            <div className="ac-header">
+            <div className="flex flex-col gap-1">
                 <div>
-                    <h1 className="ac-header__title">
-                        <ScanLine size={28} />
+                    <h1 className="flex items-center gap-3 text-2xl font-bold text-text">
+                        <ScanLine size={28} className="text-primary-light" />
                         Kirish-Chiqish Nazorati
                     </h1>
-                    <p className="ac-header__subtitle">
+                    <p className="text-sm text-text-muted mt-2">
                         ID karta skanerlash, foydalanuvchini tasdiqlash, kitob berish va qaytarish
                     </p>
                 </div>
@@ -385,30 +385,30 @@ export default function AccessControl() {
             {/* ═══════════════════════════════════════
                SCANNER + USER CARD
                ═══════════════════════════════════════ */}
-            <div className="ac-top-grid">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
                 {/* Scanner */}
-                <div className="ac-scanner-card">
+                <div className="bg-surface border border-border rounded-2xl p-6 shadow-sm flex flex-col items-center justify-center">
                     {/* Header */}
-                    <div className="mb-5">
+                    <div className="mb-5 w-full">
                         <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
-                                <Camera className="w-5 h-5 text-white" strokeWidth={2.5} />
-                                <h2 className="text-lg font-bold text-white">ID Karta Skaneri</h2>
+                                <Camera className="w-5 h-5 text-text" strokeWidth={2.5} />
+                                <h2 className="text-lg font-bold text-text">ID Karta Skaneri</h2>
                             </div>
                             <button
                                 onClick={getDevices}
-                                className="p-1.5 rounded-full hover:bg-gray-300 text-gray-400 transition-colors"
+                                className="p-1.5 rounded-full hover:bg-white/10 text-text-muted transition-colors"
                             >
                                 <RefreshCw className="w-4 h-4" />
                             </button>
                         </div>
-                        <p className="text-gray-500 text-sm">ID kartani kameraga tutib turing</p>
+                        <p className="text-text-muted text-sm">ID kartani kameraga tutib turing</p>
                     </div>
 
                     {/* Kamera tanlash (agar 1 tadan ko'p bo'lsa) */}
                     {devices.length > 1 && (
-                        <div className="mb-4 bg-slate-800/70 p-3 rounded-lg border border-gray-100">
-                            <label className="flex items-center gap-2 text-xs font-semibold text-white mb-2">
+                        <div className="mb-4 bg-white/5 p-3 rounded-xl border border-border w-full">
+                            <label className="flex items-center gap-2 text-xs font-semibold text-text mb-2">
                                 <Settings2 className="w-3.5 h-3.5" />
                                 Kamerani tanlash
                             </label>
@@ -416,10 +416,11 @@ export default function AccessControl() {
                                 value={selectedDeviceId}
                                 onChange={(e) => setSelectedDeviceId(e.target.value)}
                                 disabled={isScanning}
-                                className="w-full bg-slate-800/70 border border-gray-300 text-sm rounded-md p-2.5 outline-none"
+                                className="w-full bg-surface border border-border text-sm rounded-lg p-2.5 outline-none text-text focus:border-primary transition-colors appearance-none"
+                                style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='%239CA3AF' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`, backgroundPosition: 'right 12px center', backgroundRepeat: 'no-repeat' }}
                             >
                                 {devices.map((device, index) => (
-                                    <option key={device.deviceId} value={device.deviceId}>
+                                    <option key={device.deviceId} value={device.deviceId} className="bg-surface text-text">
                                         {device.label || `Kamera ${index + 1}`}
                                     </option>
                                 ))}
@@ -459,76 +460,75 @@ export default function AccessControl() {
                 `}</style>
 
                 {/* User Verification Card */}
-                <div className="ac-user-card">
+                <div className="bg-surface border border-border rounded-2xl p-6 shadow-sm flex flex-col min-h-[400px]">
                     {!scannedUser ? (
-                        <div className="ac-user-card__empty">
+                        <div className="flex flex-col items-center justify-center text-center text-text-muted h-full opacity-60 m-auto gap-4">
                             <User size={56} strokeWidth={1} />
-                            <p>Foydalanuvchini topish uchun ID kartani skanerlang</p>
+                            <p className="max-w-[200px] text-sm">Foydalanuvchini topish uchun ID kartani skanerlang</p>
                         </div>
                     ) : (
                         <>
-                            <div className="ac-user-card__header">
-                                <UserCheck size={20} />
-                                <h2>Foydalanuvchi topildi</h2>
-                                <span className={`ac-user-card__status ${userIsInside ? 'ac-user-card__status--inside' : 'ac-user-card__status--outside'}`}>
+                            <div className="flex items-center gap-2 mb-6 pb-4 border-b border-border w-full">
+                                <UserCheck size={20} className="text-primary-light" />
+                                <h2 className="text-lg font-bold text-text">Foydalanuvchi topildi</h2>
+                                <span className={`ml-3 px-2.5 py-1 rounded-full text-xs font-bold tracking-wide border ${userIsInside ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' : 'bg-red-500/15 text-red-400 border-red-500/20'}`}>
                                     {userIsInside ? '🟢 Ichkarida' : '🔴 Tashqarida'}
                                 </span>
                                 <button
-                                    className="ac-btn ac-btn--outline-sm"
+                                    className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 bg-transparent border border-border rounded-lg text-text-muted text-xs font-medium hover:bg-white/5 hover:text-text transition-colors"
                                     onClick={clearUser}
                                     title="Tozalash"
-                                    style={{ marginLeft: 'auto' }}
                                 >
-                                    <X size={16} /> Tozalash
+                                    <X size={14} /> Tozalash
                                 </button>
                             </div>
 
-                            <div className="ac-user-card__body">
-                                <div className="ac-user-card__avatar">
+                            <div className="flex items-start gap-5 mb-8">
+                                <div className="w-[84px] h-[84px] shrink-0">
                                     {scannedUser.image_url ? (
-                                        <img src={scannedUser.image_url} alt={scannedUser.full_name} />
+                                        <img src={scannedUser.image_url} alt={scannedUser.full_name} className="w-full h-full object-cover rounded-xl shadow-sm border border-border" />
                                     ) : (
-                                        <div className="ac-user-card__avatar-placeholder">
+                                        <div className="w-full h-full bg-linear-to-br from-primary to-accent rounded-xl text-white flex items-center justify-center font-bold text-2xl shadow-sm">
                                             <User size={40} />
                                         </div>
                                     )}
                                 </div>
 
-                                <div className="ac-user-card__info">
-                                    <h3 className="ac-user-card__name">{scannedUser.full_name}</h3>
-                                    <span className="ac-user-card__role-badge">
+                                <div className="flex flex-col min-w-0">
+                                    <h3 className="text-xl font-bold text-text mb-1 truncate">{scannedUser.full_name}</h3>
+                                    <span className="inline-block px-2.5 py-1 rounded-md bg-white/5 border border-border text-xs text-text-muted font-medium w-fit mb-3">
                                         {roleLabels[scannedUser.role] || scannedUser.role}
                                     </span>
 
-                                    <div className="ac-user-card__details">
-                                        <div className="ac-user-card__detail">
+                                    <div className="flex flex-col gap-1.5">
+                                        <div className="flex items-center gap-2 text-sm text-text-muted">
                                             <CreditCard size={14} />
-                                            <span>ID: {scannedUser.id_card}</span>
+                                            <span className="truncate">ID: {scannedUser.id_card}</span>
                                         </div>
                                         {scannedUser.department_name && (
-                                            <div className="ac-user-card__detail">
+                                            <div className="flex items-center gap-2 text-sm text-text-muted">
                                                 <BookOpen size={14} />
-                                                <span>{scannedUser.department_name}</span>
+                                                <span className="truncate">{scannedUser.department_name}</span>
                                             </div>
                                         )}
                                         {scannedUser.group_name && (
-                                            <div className="ac-user-card__detail">
+                                            <div className="flex items-center gap-2 text-sm text-text-muted">
                                                 <User size={14} />
-                                                <span>{scannedUser.group_name}</span>
+                                                <span className="truncate">{scannedUser.group_name}</span>
                                             </div>
                                         )}
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="ac-user-card__actions">
-                                <button className="ac-btn ac-btn--arrive" onClick={handleArrive} disabled={userIsInside}>
+                            <div className="mt-auto grid grid-cols-2 gap-3">
+                                <button className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-500/10 border border-emerald-500 text-emerald-400 rounded-lg text-sm font-semibold hover:bg-emerald-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" onClick={handleArrive} disabled={userIsInside}>
                                     <LogIn size={18} /> Kirish
                                 </button>
-                                <button className="ac-btn ac-btn--depart" onClick={handleDepart} disabled={!userIsInside}>
+                                <button className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500/10 border border-red-500 text-red-500 rounded-lg text-sm font-semibold hover:bg-red-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" onClick={handleDepart} disabled={!userIsInside}>
                                     <LogOut size={18} /> Chiqish
                                 </button>
-                                <button className="ac-btn ac-btn--assign" onClick={() => setAssignModalOpen(true)}>
+                                <button className="col-span-2 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white border border-transparent rounded-lg text-sm font-semibold hover:bg-primary-hover transition-colors" onClick={() => setAssignModalOpen(true)}>
                                     <BookPlus size={18} /> Kitob berish
                                 </button>
                             </div>
@@ -542,70 +542,70 @@ export default function AccessControl() {
                ═══════════════════════════════════════ */}
             {
                 scannedUser && (
-                    <div className="ac-section">
-                        <div className="ac-section__header">
-                            <h2>
-                                <BookOpen size={20} />
+                    <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-sm">
+                        <div className="flex items-center justify-between p-5 border-b border-border bg-white/5">
+                            <h2 className="flex items-center gap-2.5 text-lg font-bold text-text m-0">
+                                <BookOpen size={20} className="text-primary-light" />
                                 Olingan kitoblar
                                 {activeRentals.length > 0 && (
-                                    <span className="ac-section__count">{activeRentals.length}</span>
+                                    <span className="bg-indigo-500/15 text-primary-light px-2.5 py-0.5 rounded-full text-xs font-bold">{activeRentals.length}</span>
                                 )}
                             </h2>
                         </div>
 
                         {rentalsLoading ? (
-                            <div className="ac-loading">
-                                <div className="ac-spinner" />
+                            <div className="p-12 flex items-center justify-center">
+                                <div className="w-8 h-8 rounded-full border-2 border-border border-t-primary animate-spin" />
                             </div>
                         ) : sortedRentals.length === 0 ? (
-                            <div className="ac-empty">
+                            <div className="p-16 flex flex-col items-center justify-center text-text-muted opacity-70 gap-4 text-center">
                                 <CheckCircle2 size={48} strokeWidth={1} />
-                                <p>Hech qanday aktiv ijara yo'q</p>
+                                <p className="text-sm">Hech qanday aktiv ijara yo'q</p>
                             </div>
                         ) : (
-                            <div className="ac-rentals-table-wrap">
-                                <table className="ac-rentals-table">
+                            <div className="w-full overflow-x-auto">
+                                <table className="w-full border-collapse min-w-[600px]">
                                     <thead>
                                         <tr>
-                                            <th>Kitob</th>
-                                            <th>Muallif</th>
-                                            <th>Olingan sana</th>
-                                            <th>Muddat</th>
-                                            <th>Holat</th>
-                                            <th style={{ width: '120px' }}>Amal</th>
+                                            <th className="text-left p-4 text-xs font-semibold text-text-muted uppercase tracking-wider border-b border-border">Kitob</th>
+                                            <th className="text-left p-4 text-xs font-semibold text-text-muted uppercase tracking-wider border-b border-border">Muallif</th>
+                                            <th className="text-left p-4 text-xs font-semibold text-text-muted uppercase tracking-wider border-b border-border">Olingan sana</th>
+                                            <th className="text-left p-4 text-xs font-semibold text-text-muted uppercase tracking-wider border-b border-border">Muddat</th>
+                                            <th className="text-left p-4 text-xs font-semibold text-text-muted uppercase tracking-wider border-b border-border">Holat</th>
+                                            <th className="text-left p-4 text-xs font-semibold text-text-muted uppercase tracking-wider border-b border-border" style={{ width: '120px' }}>Amal</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {sortedRentals.map(rental => {
                                             const deadline = getDeadlineInfo(rental.due_date)
                                             return (
-                                                <tr key={rental.id}>
-                                                    <td>
-                                                        <div className="ac-rentals-table__book">
+                                                <tr key={rental.id} className="hover:bg-white/5 transition-colors group">
+                                                    <td className="p-4 border-b border-border">
+                                                        <div className="flex items-center gap-3">
                                                             {rental.book_cover ? (
-                                                                <img src={rental.book_cover} alt="" className="ac-rentals-table__cover" />
+                                                                <img src={rental.book_cover} alt="" className="w-10 h-10 object-cover rounded-lg shadow-sm border border-border" />
                                                             ) : (
-                                                                <div className="ac-rentals-table__cover-placeholder">
+                                                                <div className="w-10 h-10 bg-white/5 border border-border rounded-lg text-text-muted flex items-center justify-center">
                                                                     <BookOpen size={16} />
                                                                 </div>
                                                             )}
-                                                            <span>{rental.book_title || 'Noma\'lum'}</span>
+                                                            <span className="font-semibold text-sm text-text">{rental.book_title || 'Noma\'lum'}</span>
                                                         </div>
                                                     </td>
-                                                    <td>{rental.book_author || '—'}</td>
-                                                    <td>{rental.loan_date}</td>
-                                                    <td>{rental.due_date}</td>
-                                                    <td>
-                                                        <span className={`ac-deadline ac-deadline--${deadline.color}`}>
+                                                    <td className="p-4 border-b border-border text-sm text-text-muted">{rental.book_author || '—'}</td>
+                                                    <td className="p-4 border-b border-border text-sm text-text-muted">{rental.loan_date}</td>
+                                                    <td className="p-4 border-b border-border text-sm text-text-muted font-medium">{rental.due_date}</td>
+                                                    <td className="p-4 border-b border-border">
+                                                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold tracking-wide border ${deadline.color === 'danger' ? 'bg-red-500/15 text-red-400 border-red-500/20' : deadline.color === 'warning' ? 'bg-amber-500/15 text-amber-500 border-amber-500/20' : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20'}`}>
                                                             {deadline.color === 'danger' && <AlertTriangle size={14} />}
                                                             {deadline.color === 'warning' && <Clock size={14} />}
                                                             {deadline.color === 'safe' && <CheckCircle2 size={14} />}
                                                             {deadline.label}
                                                         </span>
                                                     </td>
-                                                    <td>
+                                                    <td className="p-4 border-b border-border">
                                                         <button
-                                                            className="ac-btn ac-btn--return-sm"
+                                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-transparent border border-border rounded-lg text-text font-medium text-xs hover:bg-white/10 transition-colors"
                                                             onClick={() => { setReturningRental(rental); setReturnModalOpen(true) }}
                                                         >
                                                             <RotateCcw size={14} /> Qaytarish
@@ -625,38 +625,40 @@ export default function AccessControl() {
             {/* ═══════════════════════════════════════
                TODAY'S VISITORS
                ═══════════════════════════════════════ */}
-            <div className="ac-section">
-                <div className="ac-section__header">
-                    <h2>
-                        <Clock size={20} />
+            <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-sm">
+                <div className="flex items-center justify-between p-5 border-b border-border bg-white/5">
+                    <h2 className="flex items-center gap-2.5 text-lg font-bold text-text m-0">
+                        <Clock size={20} className="text-primary-light" />
                         Bugungi tashrif buyurganlar
                         {todayRecords.length > 0 && (
-                            <span className="ac-section__count">{todayRecords.length}</span>
+                            <span className="bg-indigo-500/15 text-primary-light px-2.5 py-0.5 rounded-full text-xs font-bold">{todayRecords.length}</span>
                         )}
                     </h2>
-                    <button className="ac-btn ac-btn--outline-sm" onClick={loadTodayRecords} disabled={todayLoading}>
+                    <button className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-transparent border border-border rounded-lg text-text-muted text-xs font-medium hover:bg-white/5 hover:text-text transition-colors" onClick={loadTodayRecords} disabled={todayLoading}>
                         <RotateCcw size={14} /> Yangilash
                     </button>
                 </div>
 
                 {todayLoading ? (
-                    <div className="ac-loading"><div className="ac-spinner" /></div>
+                    <div className="p-12 flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-full border-2 border-border border-t-primary animate-spin" />
+                    </div>
                 ) : todayRecords.length === 0 ? (
-                    <div className="ac-empty">
+                    <div className="p-16 flex flex-col items-center justify-center text-text-muted opacity-70 gap-4 text-center">
                         <UserX size={48} strokeWidth={1} />
-                        <p>Bugun hali hech kim kelmagan</p>
+                        <p className="text-sm">Bugun hali hech kim kelmagan</p>
                     </div>
                 ) : (
-                    <div className="ac-rentals-table-wrap">
-                        <table className="ac-rentals-table">
+                    <div className="w-full overflow-x-auto">
+                        <table className="w-full border-collapse min-w-[700px]">
                             <thead>
                                 <tr>
-                                    <th>Tr</th>
-                                    <th>To'liq Ism</th>
-                                    <th>Lavozim/Guruh</th>
-                                    <th>Kelgan vaqt</th>
-                                    <th>Ketgan vaqt</th>
-                                    <th>Holat</th>
+                                    <th className="text-left p-4 text-xs font-semibold text-text-muted uppercase tracking-wider border-b border-border">Tr</th>
+                                    <th className="text-left p-4 text-xs font-semibold text-text-muted uppercase tracking-wider border-b border-border">To'liq Ism</th>
+                                    <th className="text-left p-4 text-xs font-semibold text-text-muted uppercase tracking-wider border-b border-border">Lavozim/Guruh</th>
+                                    <th className="text-left p-4 text-xs font-semibold text-text-muted uppercase tracking-wider border-b border-border">Kelgan vaqt</th>
+                                    <th className="text-left p-4 text-xs font-semibold text-text-muted uppercase tracking-wider border-b border-border">Ketgan vaqt</th>
+                                    <th className="text-left p-4 text-xs font-semibold text-text-muted uppercase tracking-wider border-b border-border">Holat</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -668,14 +670,14 @@ export default function AccessControl() {
                                         : (rec.staff_position || roleLabels[roleStr] || roleStr)
 
                                     return (
-                                        <tr key={rec.id}>
-                                            <td>{i + 1}</td>
-                                            <td>{rec.full_name || 'Noma\'lum'}</td>
-                                            <td>{displayRoleInfo || '—'}</td>
-                                            <td>{rec.arrival || '—'}</td>
-                                            <td>{isStillInside ? '—' : rec.departure}</td>
-                                            <td>
-                                                <span className={`ac-deadline ${isStillInside ? 'ac-deadline--safe' : 'ac-deadline--neutral'}`}>
+                                        <tr key={rec.id} className="hover:bg-white/5 transition-colors">
+                                            <td className="p-4 border-b border-border text-sm text-text-muted">{i + 1}</td>
+                                            <td className="p-4 border-b border-border font-medium text-sm text-text">{rec.full_name || 'Noma\'lum'}</td>
+                                            <td className="p-4 border-b border-border text-sm text-text-muted">{displayRoleInfo || '—'}</td>
+                                            <td className="p-4 border-b border-border text-sm text-text-muted font-medium">{rec.arrival || '—'}</td>
+                                            <td className="p-4 border-b border-border text-sm text-text-muted font-medium">{isStillInside ? '—' : rec.departure}</td>
+                                            <td className="p-4 border-b border-border">
+                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold tracking-wide border ${isStillInside ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' : 'bg-slate-500/15 text-slate-400 border-slate-500/20'}`}>
                                                     {isStillInside ? '🟢 Ichkarida' : '⚪ Ketgan'}
                                                 </span>
                                             </td>
@@ -693,54 +695,56 @@ export default function AccessControl() {
                ═══════════════════════════════════════ */}
             {
                 assignModalOpen && (
-                    <div className="ac-modal__backdrop" onClick={() => setAssignModalOpen(false)}>
-                        <div className="ac-modal" onClick={e => e.stopPropagation()}>
-                            <div className="ac-modal__header">
-                                <h3><BookPlus size={20} /> Kitob biriktirish</h3>
-                                <button className="ac-modal__close" onClick={() => setAssignModalOpen(false)}>
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setAssignModalOpen(false)}>
+                        <div className="bg-surface border border-border rounded-2xl w-full max-w-md shadow-xl overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                            <div className="flex items-center justify-between p-5 border-b border-border">
+                                <h3 className="flex items-center gap-2 text-lg font-bold text-text m-0"><BookPlus size={20} className="text-primary-light" /> Kitob biriktirish</h3>
+                                <button className="p-1.5 rounded-lg text-text-muted hover:bg-white/5 transition-colors" onClick={() => setAssignModalOpen(false)}>
                                     <X size={20} />
                                 </button>
                             </div>
 
-                            <div className="ac-modal__body">
+                            <div className="p-5 flex flex-col gap-4">
                                 {/* User info */}
-                                <div className="ac-modal__user-info">
-                                    <User size={16} />
+                                <div className="flex items-center gap-2 text-sm text-text bg-white/5 p-3 rounded-lg border border-border">
+                                    <User size={16} className="text-primary-light" />
                                     <strong>{scannedUser?.full_name}</strong>
-                                    <span className="ac-user-card__role-badge" style={{ fontSize: '0.7rem' }}>
+                                    <span className="bg-white/10 px-2 py-0.5 rounded text-xs font-medium ml-auto">
                                         {roleLabels[scannedUser?.role || ''] || scannedUser?.role}
                                     </span>
                                 </div>
 
                                 {/* Book search */}
-                                <label className="ac-modal__label">Kitob qidirish</label>
-                                <div className="ac-modal__search-row">
-                                    <input
-                                        className="ac-modal__input"
-                                        placeholder="Kitob nomi..."
-                                        value={bookSearch}
-                                        onChange={e => setBookSearch(e.target.value)}
-                                        onKeyDown={e => e.key === 'Enter' && handleSearchBooks()}
-                                    />
-                                    <button className="ac-btn ac-btn--primary-sm" onClick={handleSearchBooks}>
-                                        <Search size={16} />
-                                    </button>
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Kitob qidirish</label>
+                                    <div className="flex gap-2">
+                                        <input
+                                            className="flex-1 bg-white/5 border border-border px-3 py-2 rounded-lg text-sm text-text outline-none focus:border-primary transition-colors"
+                                            placeholder="Kitob nomi..."
+                                            value={bookSearch}
+                                            onChange={e => setBookSearch(e.target.value)}
+                                            onKeyDown={e => e.key === 'Enter' && handleSearchBooks()}
+                                        />
+                                        <button className="flex items-center justify-center p-2 rounded-lg bg-primary text-white hover:bg-primary-hover transition-colors" onClick={handleSearchBooks}>
+                                            <Search size={18} />
+                                        </button>
+                                    </div>
                                 </div>
 
                                 {/* Search results */}
                                 {searchResults.length > 0 && (
-                                    <div className="ac-modal__results">
+                                    <div className="flex flex-col gap-1 max-h-[160px] overflow-y-auto border border-border rounded-lg p-1">
                                         {searchResults.map(book => (
                                             <div
                                                 key={book.id}
-                                                className={`ac-modal__result-item ${selectedBook?.id === book.id ? 'ac-modal__result-item--selected' : ''}`}
+                                                className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-colors ${selectedBook?.id === book.id ? 'bg-indigo-500/20 border border-indigo-500/30' : 'hover:bg-white/5 border border-transparent'}`}
                                                 onClick={() => setSelectedBook(book)}
                                             >
-                                                <div className="ac-modal__result-info">
-                                                    <strong>{book.title}</strong>
-                                                    <span>{book.author}</span>
+                                                <div className="flex flex-col min-w-0 pr-3">
+                                                    <strong className="text-sm text-text truncate">{book.title}</strong>
+                                                    <span className="text-xs text-text-muted truncate">{book.author}</span>
                                                 </div>
-                                                <span className={`ac-modal__result-stock ${(book.available_quantity || 0) > 0 ? '' : 'ac-modal__result-stock--empty'}`}>
+                                                <span className={`shrink-0 text-xs font-semibold px-2 py-1 rounded-full ${(book.available_quantity || 0) > 0 ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-500'}`}>
                                                     {(book.available_quantity || 0) > 0 ? `${book.available_quantity} ta` : 'Yo\'q'}
                                                 </span>
                                             </div>
@@ -749,47 +753,52 @@ export default function AccessControl() {
                                 )}
 
                                 {selectedBook && (
-                                    <div className="ac-modal__selected">
-                                        <CheckCircle2 size={16} />
-                                        <span>Tanlangan: <strong>{selectedBook.title}</strong></span>
+                                    <div className="flex items-center gap-2 p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg text-sm mt-1">
+                                        <CheckCircle2 size={16} className="shrink-0" />
+                                        <span className="truncate">Tanlangan: <strong>{selectedBook.title}</strong></span>
                                     </div>
                                 )}
 
                                 {/* Due date */}
-                                <label className="ac-modal__label">
-                                    <Calendar size={14} /> Qaytarish muddati (default: 15 kun)
-                                </label>
-                                <input
-                                    type="date"
-                                    className="ac-modal__input"
-                                    value={dueDate || defaultDue}
-                                    min={today}
-                                    onChange={e => setDueDate(e.target.value)}
-                                />
+                                <div className="flex flex-col gap-1.5 mt-2">
+                                    <label className="flex items-center gap-1.5 text-xs font-semibold text-text-muted uppercase tracking-wider">
+                                        <Calendar size={14} /> Qaytarish muddati (default: 15 kun)
+                                    </label>
+                                    <input
+                                        type="date"
+                                        className="bg-white/5 border border-border px-3 py-2 rounded-lg text-sm text-text outline-none focus:border-primary transition-colors appearance-none"
+                                        style={{ colorScheme: 'dark' }}
+                                        value={dueDate || defaultDue}
+                                        min={today}
+                                        onChange={e => setDueDate(e.target.value)}
+                                    />
+                                </div>
 
                                 {/* Notes */}
-                                <label className="ac-modal__label">
-                                    📝 Izoh (ixtiyoriy)
-                                </label>
-                                <textarea
-                                    className="ac-modal__input ac-modal__textarea"
-                                    placeholder="Izoh yozing..."
-                                    value={assignNotes}
-                                    onChange={e => setAssignNotes(e.target.value)}
-                                    rows={3}
-                                />
+                                <div className="flex flex-col gap-1.5 mt-2">
+                                    <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">
+                                        📝 Izoh (ixtiyoriy)
+                                    </label>
+                                    <textarea
+                                        className="bg-white/5 border border-border px-3 py-2 rounded-lg text-sm text-text outline-none focus:border-primary transition-colors resize-none"
+                                        placeholder="Izoh yozing..."
+                                        value={assignNotes}
+                                        onChange={e => setAssignNotes(e.target.value)}
+                                        rows={3}
+                                    />
+                                </div>
                             </div>
 
-                            <div className="ac-modal__footer">
-                                <button className="ac-btn ac-btn--cancel" onClick={() => setAssignModalOpen(false)}>
+                            <div className="flex items-center justify-end gap-3 p-4 border-t border-border bg-white/5 mt-2">
+                                <button className="px-4 py-2.5 border border-border rounded-lg text-sm font-medium text-text bg-transparent hover:bg-white/5 transition-colors" onClick={() => setAssignModalOpen(false)}>
                                     Bekor qilish
                                 </button>
                                 <button
-                                    className="ac-btn ac-btn--primary"
+                                    className="flex items-center justify-center gap-2 px-4 py-2.5 bg-primary border border-transparent rounded-lg text-sm font-semibold text-white hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-[100px]"
                                     onClick={handleAssignBook}
                                     disabled={!selectedBook || (!(dueDate || defaultDue)) || assignLoading}
                                 >
-                                    {assignLoading ? <div className="ac-spinner ac-spinner--sm" /> : <><BookPlus size={16} /> Berish</>}
+                                    {assignLoading ? <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /> : <><BookPlus size={16} /> Berish</>}
                                 </button>
                             </div>
                         </div>
@@ -802,43 +811,45 @@ export default function AccessControl() {
                ═══════════════════════════════════════ */}
             {
                 returnModalOpen && (
-                    <div className="ac-modal__backdrop" onClick={() => { setReturnModalOpen(false); setReturningRental(null); setReturnNotes('') }}>
-                        <div className="ac-modal" onClick={e => e.stopPropagation()}>
-                            <div className="ac-modal__header">
-                                <h3><RotateCcw size={20} /> Kitobni qaytarish</h3>
-                                <button className="ac-modal__close" onClick={() => { setReturnModalOpen(false); setReturningRental(null); setReturnNotes('') }}>
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => { setReturnModalOpen(false); setReturningRental(null); setReturnNotes('') }}>
+                        <div className="bg-surface border border-border rounded-2xl w-full max-w-sm shadow-xl overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                            <div className="flex items-center justify-between p-5 border-b border-border">
+                                <h3 className="flex items-center gap-2 text-lg font-bold text-text m-0"><RotateCcw size={20} className="text-primary-light" /> Kitobni qaytarish</h3>
+                                <button className="p-1.5 rounded-lg text-text-muted hover:bg-white/5 transition-colors" onClick={() => { setReturnModalOpen(false); setReturningRental(null); setReturnNotes('') }}>
                                     <X size={20} />
                                 </button>
                             </div>
 
-                            <div className="ac-modal__body">
-                                <div className="ac-modal__selected" style={{ background: 'rgba(245, 158, 11, 0.08)', borderColor: 'rgba(245, 158, 11, 0.2)', color: '#f59e0b' }}>
-                                    <AlertTriangle size={16} />
+                            <div className="p-5 flex flex-col gap-4">
+                                <div className="flex items-start gap-3 p-3 bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-lg text-sm font-medium">
+                                    <AlertTriangle size={18} className="shrink-0 mt-0.5" />
                                     <span>"{returningRental?.book_title}" kitobini qaytarildi deb belgilamoqchimisiz?</span>
                                 </div>
 
-                                <label className="ac-modal__label">
-                                    📝 Izoh (ixtiyoriy)
-                                </label>
-                                <textarea
-                                    className="ac-modal__input ac-modal__textarea"
-                                    placeholder="Kitob holati, qayd, izoh..."
-                                    value={returnNotes}
-                                    onChange={e => setReturnNotes(e.target.value)}
-                                    rows={3}
-                                />
+                                <div className="flex flex-col gap-1.5 mt-2">
+                                    <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">
+                                        📝 Izoh (ixtiyoriy)
+                                    </label>
+                                    <textarea
+                                        className="bg-white/5 border border-border px-3 py-2 rounded-lg text-sm text-text outline-none focus:border-primary transition-colors resize-none"
+                                        placeholder="Kitob holati, qayd, izoh..."
+                                        value={returnNotes}
+                                        onChange={e => setReturnNotes(e.target.value)}
+                                        rows={3}
+                                    />
+                                </div>
                             </div>
 
-                            <div className="ac-modal__footer">
-                                <button className="ac-btn ac-btn--cancel" onClick={() => { setReturnModalOpen(false); setReturningRental(null); setReturnNotes('') }}>
+                            <div className="flex items-center justify-end gap-3 p-4 border-t border-border bg-white/5 mt-2">
+                                <button className="px-4 py-2.5 border border-border rounded-lg text-sm font-medium text-text bg-transparent hover:bg-white/5 transition-colors" onClick={() => { setReturnModalOpen(false); setReturningRental(null); setReturnNotes('') }}>
                                     Bekor qilish
                                 </button>
                                 <button
-                                    className="ac-btn ac-btn--primary"
+                                    className="flex items-center justify-center gap-2 px-4 py-2.5 bg-primary border border-transparent rounded-lg text-sm font-semibold text-white hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-[120px]"
                                     onClick={handleReturnConfirm}
                                     disabled={returnLoading}
                                 >
-                                    {returnLoading ? <div className="ac-spinner ac-spinner--sm" /> : <><RotateCcw size={16} /> Qaytarish</>}
+                                    {returnLoading ? <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /> : <><RotateCcw size={16} /> Qaytarish</>}
                                 </button>
                             </div>
                         </div>

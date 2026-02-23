@@ -30,19 +30,22 @@ function SyncSection({ title, icon, color, count, progress, onSync, syncResult }
     const isDone = progress === 100
 
     return (
-        <div className={`sync-section ${isDone ? 'sync-section--done' : ''}`}>
-            <div className="sync-section__header">
-                <div className="sync-section__info">
-                    <div className="sync-section__icon" style={{ background: color }}>
+        <div className={`p-4 border rounded-xl transition-all duration-250 ${isDone ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-border'}`}>
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-lg text-white" style={{ background: color }}>
                         {icon}
                     </div>
                     <div>
-                        <h3 className="sync-section__title">{title}</h3>
-                        <span className="sync-section__count">{count} ta foydalanuvchi</span>
+                        <h3 className="text-[0.95rem] font-semibold text-text">{title}</h3>
+                        <span className="text-[0.78rem] text-text-muted">{count} ta foydalanuvchi</span>
                     </div>
                 </div>
                 <button
-                    className={`sync-section__btn ${isActive ? 'sync-section__btn--loading' : ''} ${isDone ? 'sync-section__btn--done' : ''}`}
+                    className={`flex items-center gap-1.5 py-2 px-4 border rounded-lg font-semibold text-[0.82rem] transition-colors ${isDone ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400' :
+                        isActive ? 'bg-indigo-500/10 border-indigo-500 text-indigo-400 cursor-wait' :
+                            'bg-white/5 border-border text-text hover:bg-indigo-500/15 hover:border-indigo-500 hover:text-indigo-400'
+                        }`}
                     onClick={onSync}
                     disabled={isActive}
                 >
@@ -53,7 +56,7 @@ function SyncSection({ title, icon, color, count, progress, onSync, syncResult }
                         </>
                     ) : isActive ? (
                         <>
-                            <RefreshCw size={16} className="spin-animation" />
+                            <RefreshCw size={16} className="animate-spin" />
                             Sinxronlanmoqda...
                         </>
                     ) : (
@@ -66,20 +69,20 @@ function SyncSection({ title, icon, color, count, progress, onSync, syncResult }
             </div>
 
             {(isActive || isDone) && (
-                <div className="sync-progress">
-                    <div className="sync-progress__status">
-                        <span className="sync-progress__label">
+                <div className="mt-3.5 pt-3.5 border-t border-white/5">
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-[0.8rem] font-medium text-text-muted">
                             {isDone && syncResult
                                 ? `${syncResult.created} ta yangi, ${syncResult.updated} ta yangilandi (jami: ${syncResult.total})`
                                 : getSyncLabel(progress)}
                         </span>
-                        <span className={`sync-progress__percent ${isDone ? 'sync-progress__percent--done' : ''}`}>
+                        <span className={`text-[0.85rem] font-bold tabular-nums ${isDone ? 'text-emerald-400' : 'text-indigo-400'}`}>
                             {progress}%
                         </span>
                     </div>
-                    <div className="sync-progress__bar">
+                    <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
                         <div
-                            className={`sync-progress__fill ${isDone ? 'sync-progress__fill--done' : ''}`}
+                            className={`h-full rounded-full transition-[width] duration-300 ${isDone ? 'bg-linear-to-r from-emerald-500 to-emerald-400' : 'bg-linear-to-r from-primary to-primary-light'}`}
                             style={{ width: `${progress}%` }}
                         />
                     </div>
@@ -126,38 +129,42 @@ function UserDetailModal({ user, type, onClose }: { user: UserData; type: 'stude
     }
 
     return createPortal(
-        <div className="user-detail__backdrop" onClick={onClose}>
-            <div className="user-detail" onClick={(e) => e.stopPropagation()}>
-                <button className="user-detail__close" onClick={onClose}>
+        <div className="fixed inset-0 z-300 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={onClose}>
+            <div className="relative w-full max-w-[480px] bg-surface border border-border rounded-2xl overflow-hidden animate-modal-scale shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                <button className="absolute top-3.5 right-3.5 flex items-center justify-center w-8 h-8 rounded-lg border-none bg-transparent text-text-muted hover:bg-white/10 hover:text-text transition-colors z-10" onClick={onClose}>
                     <X size={18} />
                 </button>
 
                 {/* Header */}
-                <div className="user-detail__header">
+                <div className="flex flex-col items-center pt-8 pb-5 px-6 bg-linear-to-b from-indigo-500/10 to-transparent border-b border-border gap-2">
                     {user.image_url ? (
-                        <img src={user.image_url} alt={user.full_name} style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover' }} />
+                        <img src={user.image_url} alt={user.full_name} className="w-20 h-20 rounded-2xl object-cover shadow-[0_8px_24px_rgba(99,102,241,0.3)] mb-1 ring-4 ring-indigo-500/20" />
                     ) : (
-                        <div className="user-detail__avatar">
+                        <div className="flex items-center justify-center w-20 h-20 rounded-2xl bg-linear-to-br from-indigo-500 to-indigo-600 font-bold text-[1.6rem] tracking-[1px] mb-1 text-white shadow-[0_8px_24px_rgba(99,102,241,0.3)]">
                             {getInitials(user.full_name)}
                         </div>
                     )}
-                    <h3 className="user-detail__name">{user.full_name}</h3>
-                    <span className={`users-page__status users-page__status--${user.active ? 'active' : 'inactive'}`}>
-                        {user.active ? 'Faol' : 'Nofaol'}
-                    </span>
-                    <span className="user-detail__role-badge">
-                        {type === 'student' ? '🎓 Talaba' : type === 'teacher' ? "👨‍🏫 O'qituvchi" : '💼 Xodim'}
-                    </span>
+                    <h3 className="text-[1.25rem] font-bold text-text text-center">{user.full_name}</h3>
+                    <div className="flex items-center gap-2 mt-0.5">
+                        <span className={`inline-flex items-center py-1 px-3 rounded-full text-[0.75rem] font-bold tracking-wide ${user.active ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' : 'bg-slate-500/15 text-slate-400 border border-slate-500/20'}`}>
+                            {user.active ? 'Faol' : 'Nofaol'}
+                        </span>
+                        <span className="inline-flex items-center py-1 px-3 rounded-full text-[0.75rem] font-bold bg-white/5 border border-border text-text-muted">
+                            {type === 'student' ? '🎓 Talaba' : type === 'teacher' ? "👨‍🏫 O'qituvchi" : '💼 Xodim'}
+                        </span>
+                    </div>
                 </div>
 
                 {/* Info rows */}
-                <div className="user-detail__info">
+                <div className="flex flex-col gap-1 p-5 pb-6">
                     {infoRows.map((row, i) => (
-                        <div key={i} className="user-detail__row">
-                            <div className="user-detail__row-icon">{row.icon}</div>
-                            <div className="user-detail__row-content">
-                                <span className="user-detail__row-label">{row.label}</span>
-                                <span className="user-detail__row-value">{row.value}</span>
+                        <div key={i} className="flex items-center gap-3.5 py-2.5 px-3 rounded-xl transition-colors hover:bg-white/5 group">
+                            <div className="flex items-center justify-center w-9 h-9 shrink-0 rounded-xl bg-white/5 border border-border text-text-muted group-hover:text-indigo-400 group-hover:bg-indigo-500/10 group-hover:border-indigo-500/20 transition-colors">
+                                {row.icon}
+                            </div>
+                            <div className="flex flex-col min-w-0">
+                                <span className="text-[0.7rem] font-semibold uppercase tracking-[0.05em] text-text-muted mb-0.5">{row.label}</span>
+                                <span className="text-[0.9rem] font-medium text-text wrap-break-word leading-tight">{row.value}</span>
                             </div>
                         </div>
                     ))}
@@ -501,64 +508,64 @@ export default function UsersPage() {
     ) => {
         if (isLoading) {
             return (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 0', gap: 12, color: 'var(--color-text-muted)' }}>
-                    <Loader2 size={20} className="spin-animation" />
+                <div className="flex flex-col items-center justify-center py-12 gap-3 text-text-muted">
+                    <Loader2 size={20} className="animate-spin" />
                     <span>{emptyLabel} yuklanmoqda...</span>
                 </div>
             )
         }
         if (data.length === 0) {
             return (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 0', gap: 12, color: 'var(--color-text-muted)' }}>
+                <div className="flex flex-col items-center justify-center py-12 gap-3 text-text-muted">
                     <AlertCircle size={32} />
-                    <p style={{ fontSize: '0.875rem' }}>{emptyLabel} topilmadi</p>
-                    <p style={{ fontSize: '0.75rem', opacity: 0.6 }}>HEMIS sinxronlash tugmasini bosing</p>
+                    <p className="text-[0.875rem]">{emptyLabel} topilmadi</p>
+                    <p className="text-[0.75rem] opacity-60">HEMIS sinxronlash tugmasini bosing</p>
                 </div>
             )
         }
         return (
-            <table className="users-page__table">
+            <table className="w-full border-collapse">
                 <thead>
                     <tr>
-                        <th>#</th>
-                        <th>Ism</th>
-                        {columns.map((col, i) => <th key={i}>{col.header}</th>)}
-                        <th>Holat</th>
-                        <th>Amallar</th>
+                        <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-slate-900/40 border-b border-border">#</th>
+                        <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-slate-900/40 border-b border-border">Ism</th>
+                        {columns.map((col, i) => <th key={i} className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-slate-900/40 border-b border-border">{col.header}</th>)}
+                        <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-slate-900/40 border-b border-border">Holat</th>
+                        <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-slate-900/40 border-b border-border">Amallar</th>
                     </tr>
                 </thead>
                 <tbody>
                     {data.map((u, i) => (
-                        <tr key={u.id}>
-                            <td>{(pagState.currentPage - 1) * pagState.perPage + i + 1}</td>
-                            <td>
-                                <div className="users-page__user-cell">
+                        <tr key={u.id} className="transition-colors hover:bg-indigo-500/5 group border-b border-border/50">
+                            <td className="py-3 px-4 text-[0.875rem] text-text-muted">{(pagState.currentPage - 1) * pagState.perPage + i + 1}</td>
+                            <td className="py-3 px-4">
+                                <div className="flex items-center gap-3 font-semibold text-[0.9rem]">
                                     {u.image_url ? (
-                                        <img src={u.image_url} alt={u.full_name} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                                        <img src={u.image_url} alt={u.full_name} className="w-8 h-8 rounded-full object-cover shrink-0 ring-2 ring-indigo-500/20" />
                                     ) : (
-                                        <div className="users-page__avatar">{u.full_name.charAt(0)}</div>
+                                        <div className="w-8 h-8 rounded-full bg-linear-to-br from-indigo-500 to-indigo-600 text-white flex items-center justify-center font-bold text-[0.85rem] shrink-0 shadow-sm">{u.full_name.charAt(0)}</div>
                                     )}
-                                    {u.full_name}
+                                    <span className="truncate max-w-[200px]">{u.full_name}</span>
                                 </div>
                             </td>
-                            {columns.map((col, ci) => <td key={ci}>{col.render(u)}</td>)}
-                            <td>
-                                <span className={`users-page__status users-page__status--${u.active ? 'active' : 'inactive'}`}>
+                            {columns.map((col, ci) => <td key={ci} className="py-3 px-4 text-[0.875rem] text-text-muted">{col.render(u)}</td>)}
+                            <td className="py-3 px-4">
+                                <span className={`inline-flex items-center py-1 px-2.5 rounded-full text-[0.75rem] font-bold tracking-wide whitespace-nowrap ${u.active ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' : 'bg-slate-500/15 text-slate-400 border border-slate-500/20'}`}>
                                     {u.active ? 'Faol' : 'Nofaol'}
                                 </span>
                             </td>
-                            <td>
-                                <div className="users-page__actions">
-                                    <button className="users-page__action-btn users-page__action-btn--view" title="Ko'rish" onClick={() => handleView(u, type)}>
+                            <td className="py-3 px-4">
+                                <div className="flex items-center gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
+                                    <button className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-colors" title="Ko'rish" onClick={() => handleView(u, type)}>
                                         <Eye size={15} />
                                     </button>
-                                    <button className="users-page__action-btn users-page__action-btn--view" title="Parolni tiklash" onClick={() => handleResetPassword(u)}>
+                                    <button className="flex items-center justify-center w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 hover:bg-amber-500 hover:text-white transition-colors" title="Parolni tiklash" onClick={() => handleResetPassword(u)}>
                                         <KeyRound size={15} />
                                     </button>
-                                    <button className="users-page__action-btn users-page__action-btn--view" title="Rolni o'zgartirish" onClick={() => handleChangeRole(u)}>
+                                    <button className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white transition-colors" title="Rolni o'zgartirish" onClick={() => handleChangeRole(u)}>
                                         <UserCog size={15} />
                                     </button>
-                                    <button className="users-page__action-btn users-page__action-btn--view" title={u.active ? 'Nofaol qilish' : 'Faol qilish'} onClick={() => handleToggleStatus(u)}>
+                                    <button className={`flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${u.active ? 'bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white' : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white'}`} title={u.active ? 'Nofaol qilish' : 'Faol qilish'} onClick={() => handleToggleStatus(u)}>
                                         <Power size={15} />
                                     </button>
                                 </div>
@@ -571,40 +578,43 @@ export default function UsersPage() {
     }
 
     return (
-        <div className="page">
-            <div className="page-header">
+        <div className="animate-page-enter">
+            <div className="flex justify-between items-start gap-4 mb-6 flex-wrap">
                 <div>
-                    <h1 className="page-title">Foydalanuvchilar</h1>
-                    <p className="page-subtitle">Tizim foydalanuvchilarini boshqarish</p>
+                    <h1 className="text-[1.6rem] font-bold tracking-[-0.02em] mb-1">Foydalanuvchilar</h1>
+                    <p className="text-[0.9rem] text-text-muted">Tizim foydalanuvchilarini boshqarish</p>
                 </div>
-                <button className="users-page__sync-btn" onClick={handleOpenSyncModal}>
+                <button
+                    className="flex items-center gap-2 py-2.5 px-5 bg-linear-to-br from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white rounded-xl font-semibold text-[0.9rem] shadow-[0_4px_16px_rgba(79,70,229,0.3)] transition-all hover:-translate-y-0.5"
+                    onClick={handleOpenSyncModal}
+                >
                     <RefreshCw size={18} />
                     Sinxronlash
                 </button>
             </div>
 
             {/* Search & Filter Bar */}
-            <div className="users-page__toolbar">
-                <div className="users-page__search-wrapper">
-                    <Search size={18} className="users-page__search-icon" />
+            <div className="flex items-center justify-between gap-4 mb-6 p-1.5 bg-surface border border-border rounded-2xl max-md:flex-col max-md:p-3 max-md:gap-3">
+                <div className="flex items-center relative flex-1 min-w-[280px] max-md:w-full">
+                    <Search size={18} className="absolute left-4 text-text-muted" />
                     <input
                         type="text"
-                        className="users-page__search-input"
+                        className="w-full bg-slate-900/50 border border-transparent focus:border-indigo-500/50 focus:bg-slate-900 rounded-xl py-2.5 pl-11 pr-10 text-[0.9rem] transition-all outline-none placeholder:text-text-muted/60"
                         placeholder="Ism, guruh, kafedra yoki lavozim bo'yicha qidirish..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                     />
                     {search && (
-                        <button className="users-page__search-clear" onClick={() => setSearch('')}>
+                        <button className="absolute right-3 p-1 rounded-md text-text-muted hover:bg-white/10 hover:text-text transition-colors" onClick={() => setSearch('')}>
                             <X size={16} />
                         </button>
                     )}
                 </div>
-                <div className="users-page__filters">
-                    <div className="users-page__filter-group">
+                <div className="flex items-center gap-2 px-3 max-md:w-full max-md:justify-between max-md:px-1">
+                    <div className="flex items-center gap-2 text-text-muted">
                         <Filter size={15} />
-                        <span className="users-page__filter-label">Holat:</span>
-                        <div className="users-page__status-filter">
+                        <span className="text-[0.82rem] font-medium whitespace-nowrap">Holat:</span>
+                        <div className="flex gap-1 p-1 bg-slate-900 rounded-xl border border-border">
                             {[
                                 { value: 'all', label: 'Hammasi' },
                                 { value: 'active', label: 'Faol' },
@@ -612,7 +622,7 @@ export default function UsersPage() {
                             ].map(opt => (
                                 <button
                                     key={opt.value}
-                                    className={`users-page__status-btn ${statusFilter === opt.value ? 'users-page__status-btn--active' : ''}`}
+                                    className={`py-1.5 px-3 rounded-lg text-[0.8rem] font-medium transition-all ${statusFilter === opt.value ? 'bg-indigo-500/20 text-indigo-400 shadow-sm' : 'text-text-muted hover:text-text hover:bg-white/5'}`}
                                     onClick={() => setStatusFilter(opt.value)}
                                 >
                                     {opt.label}
@@ -624,26 +634,28 @@ export default function UsersPage() {
             </div>
 
             {/* Tabs */}
-            <div className="users-page__tabs">
+            <div className="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-hide">
                 {tabs.map(tab => (
                     <button
                         key={tab.key}
-                        className={`users-page__tab ${activeTab === tab.key ? 'users-page__tab--active' : ''}`}
+                        className={`flex items-center gap-2.5 py-2.5 px-5 rounded-xl font-semibold text-[0.9rem] whitespace-nowrap transition-all border ${activeTab === tab.key ? 'bg-indigo-500 text-white border-transparent shadow-[0_4px_12px_rgba(99,102,241,0.25)]' : 'bg-surface border-border text-text-muted hover:border-indigo-500/30 hover:text-text hover:bg-slate-900/50'}`}
                         onClick={() => setActiveTab(tab.key)}
                     >
-                        {tab.icon}
+                        <span className={activeTab === tab.key ? 'text-white' : 'text-indigo-400'}>{tab.icon}</span>
                         {tab.label}
-                        <span className="users-page__tab-badge">{tab.count}</span>
+                        <span className={`py-0.5 px-2 rounded-full text-[0.75rem] font-bold ${activeTab === tab.key ? 'bg-white/20 text-white' : 'bg-indigo-500/10 text-indigo-400'}`}>
+                            {tab.count}
+                        </span>
                     </button>
                 ))}
             </div>
 
             {/* Table */}
-            <div className="users-page__table-wrapper">
+            <div className="bg-surface border border-border rounded-xl overflow-x-auto shadow-sm">
                 {activeTab === 'students' && renderUserTable(
                     students, loading.students, 'Talabalar', 'student',
                     [
-                        { header: 'Guruh', render: u => <span className="users-page__group-badge">{u.group_name || '-'}</span> },
+                        { header: 'Guruh', render: u => <span className="inline-flex py-1 px-3 bg-slate-900/60 border border-border rounded-lg text-[0.8rem] font-medium font-mono">{u.group_name || '-'}</span> },
                         { header: 'Fakultet', render: u => u.department_name || '-' },
                     ],
                     studentsPag,
@@ -668,18 +680,16 @@ export default function UsersPage() {
 
             {/* Pagination */}
             {pag.totalItems > 0 && (
-                <div className="users-page__pagination">
-                    <div className="users-page__pagination-info">
-                        <span>
-                            Jami <strong>{pag.totalItems}</strong> ta natija,{' '}
-                            <strong>{(pag.currentPage - 1) * pag.perPage + 1}</strong>–
-                            <strong>{Math.min(pag.currentPage * pag.perPage, pag.totalItems)}</strong> ko'rsatilmoqda
-                        </span>
+                <div className="flex items-center justify-between gap-4 mt-5 p-4 bg-surface border border-border rounded-xl flex-wrap max-md:flex-col max-md:justify-center">
+                    <div className="text-[0.85rem] text-text-muted">
+                        Jami <strong className="text-text font-semibold">{pag.totalItems}</strong> ta natija, {' '}
+                        <strong className="text-text font-semibold">{(pag.currentPage - 1) * pag.perPage + 1}</strong>–
+                        <strong className="text-text font-semibold">{Math.min(pag.currentPage * pag.perPage, pag.totalItems)}</strong> ko'rsatilmoqda
                     </div>
 
-                    <div className="users-page__pagination-controls">
+                    <div className="flex items-center gap-1.5">
                         <button
-                            className="users-page__pag-btn"
+                            className="flex items-center justify-center w-8 h-8 rounded-lg border border-border text-text-muted hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/30 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:border-border disabled:hover:text-text-muted transition-all"
                             disabled={pag.currentPage <= 1}
                             onClick={() => handlePageChange(1)}
                             title="Birinchi sahifa"
@@ -687,7 +697,7 @@ export default function UsersPage() {
                             <ChevronsLeft size={16} />
                         </button>
                         <button
-                            className="users-page__pag-btn"
+                            className="flex items-center justify-center w-8 h-8 rounded-lg border border-border text-text-muted hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/30 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:border-border disabled:hover:text-text-muted transition-all"
                             disabled={pag.currentPage <= 1}
                             onClick={() => handlePageChange(pag.currentPage - 1)}
                             title="Oldingi sahifa"
@@ -695,22 +705,24 @@ export default function UsersPage() {
                             <ChevronLeft size={16} />
                         </button>
 
-                        {generatePageNumbers().map((p, i) =>
-                            p === '...' ? (
-                                <span key={`dots-${i}`} className="users-page__pag-dots">...</span>
-                            ) : (
-                                <button
-                                    key={p}
-                                    className={`users-page__pag-btn users-page__pag-num ${pag.currentPage === p ? 'users-page__pag-num--active' : ''}`}
-                                    onClick={() => handlePageChange(p as number)}
-                                >
-                                    {p}
-                                </button>
-                            )
-                        )}
+                        <div className="flex gap-1 mx-2">
+                            {generatePageNumbers().map((p, i) =>
+                                p === '...' ? (
+                                    <span key={`dots-${i}`} className="flex items-center justify-center w-8 h-8 text-text-muted text-[0.85rem] tracking-widest">...</span>
+                                ) : (
+                                    <button
+                                        key={p}
+                                        className={`flex items-center justify-center w-8 h-8 rounded-lg text-[0.85rem] font-medium transition-all ${pag.currentPage === p ? 'bg-indigo-500 text-white shadow-md' : 'border border-border text-text-muted hover:border-indigo-500/30 hover:text-indigo-400 hover:bg-indigo-500/5'}`}
+                                        onClick={() => handlePageChange(p as number)}
+                                    >
+                                        {p}
+                                    </button>
+                                )
+                            )}
+                        </div>
 
                         <button
-                            className="users-page__pag-btn"
+                            className="flex items-center justify-center w-8 h-8 rounded-lg border border-border text-text-muted hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/30 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:border-border disabled:hover:text-text-muted transition-all"
                             disabled={pag.currentPage >= pag.totalPages}
                             onClick={() => handlePageChange(pag.currentPage + 1)}
                             title="Keyingi sahifa"
@@ -718,7 +730,7 @@ export default function UsersPage() {
                             <ChevronRight size={16} />
                         </button>
                         <button
-                            className="users-page__pag-btn"
+                            className="flex items-center justify-center w-8 h-8 rounded-lg border border-border text-text-muted hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/30 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:border-border disabled:hover:text-text-muted transition-all"
                             disabled={pag.currentPage >= pag.totalPages}
                             onClick={() => handlePageChange(pag.totalPages)}
                             title="Oxirgi sahifa"
@@ -727,10 +739,11 @@ export default function UsersPage() {
                         </button>
                     </div>
 
-                    <div className="users-page__per-page">
-                        <label className="users-page__per-page-label">Sahifada:</label>
+                    <div className="flex items-center gap-2">
+                        <label className="text-[0.82rem] font-medium text-text-muted">Sahifada:</label>
                         <select
-                            className="users-page__per-page-select"
+                            className="py-1.5 pl-3 pr-8 bg-slate-900 border border-border rounded-lg text-[0.85rem] text-text font-medium outline-none focus:border-indigo-500 appearance-none cursor-pointer"
+                            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='%239CA3AF' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`, backgroundPosition: 'right 8px center', backgroundRepeat: 'no-repeat' }}
                             value={pag.perPage}
                             onChange={(e) => handlePerPageChange(Number(e.target.value))}
                         >
@@ -753,24 +766,24 @@ export default function UsersPage() {
 
             {/* HEMIS Sync Modal */}
             {syncModalOpen && createPortal(
-                <div className="sync-modal__backdrop" onClick={() => setSyncModalOpen(false)}>
-                    <div className="sync-modal" onClick={(e) => e.stopPropagation()}>
-                        <div className="sync-modal__header">
-                            <div className="sync-modal__header-info">
-                                <div className="sync-modal__hemis-logo">
-                                    <RefreshCw size={22} />
+                <div className="fixed inset-0 z-300 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={() => setSyncModalOpen(false)}>
+                    <div className="relative w-full max-w-[560px] bg-surface border border-border rounded-2xl overflow-hidden animate-modal-scale shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-between p-6 pb-5 border-b border-border">
+                            <div className="flex items-center gap-3.5">
+                                <div className="flex items-center justify-center w-11 h-11 rounded-xl bg-linear-to-br from-indigo-500 to-indigo-600 text-white shadow-sm">
+                                    <RefreshCw size={22} className={loading.students || loading.teachers || loading.employees ? 'animate-spin' : ''} />
                                 </div>
                                 <div>
-                                    <h2 className="sync-modal__title">HEMIS Sinxronlash</h2>
-                                    <p className="sync-modal__subtitle">Foydalanuvchilarni HEMIS platformasidan yangilash</p>
+                                    <h2 className="text-[1.1rem] font-bold text-text">HEMIS Sinxronlash</h2>
+                                    <p className="text-[0.82rem] text-text-muted mt-0.5">Foydalanuvchilarni HEMIS platformasidan yangilash</p>
                                 </div>
                             </div>
-                            <button className="sync-modal__close" onClick={() => setSyncModalOpen(false)}>
+                            <button className="flex items-center justify-center w-8 h-8 rounded-lg border-none bg-transparent text-text-muted hover:bg-white/10 hover:text-text transition-colors" onClick={() => setSyncModalOpen(false)}>
                                 <X size={18} />
                             </button>
                         </div>
 
-                        <div className="sync-modal__body">
+                        <div className="flex flex-col gap-4 p-5 px-6">
                             <SyncSection
                                 title="Talabalar"
                                 icon={<GraduationCap size={20} />}
@@ -800,8 +813,8 @@ export default function UsersPage() {
                             />
                         </div>
 
-                        <div className="sync-modal__footer flex justify-end">
-                            <button className="sync-modal__done-btn" onClick={() => setSyncModalOpen(false)}>
+                        <div className="flex items-center justify-end py-4 px-6 border-t border-border bg-white/5">
+                            <button className="py-2 px-5 rounded-lg border border-border bg-white/5 text-text font-medium text-[0.85rem] hover:bg-white/10 transition-colors" onClick={() => setSyncModalOpen(false)}>
                                 Yopish
                             </button>
                         </div>
@@ -811,79 +824,64 @@ export default function UsersPage() {
             )}
             {/* Password Reset Modal */}
             {resetUser && createPortal(
-                <div className="sync-modal__backdrop" onClick={() => !resetLoading && setResetUser(null)}>
-                    <div className="sync-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 440 }}>
-                        <div className="sync-modal__header">
-                            <div className="sync-modal__header-info">
-                                <div className="sync-modal__hemis-logo" style={{ background: 'var(--stat-orange, #f59e0b)' }}>
+                <div className="fixed inset-0 z-300 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={() => !resetLoading && setResetUser(null)}>
+                    <div className="relative w-full max-w-[440px] bg-surface border border-border rounded-2xl overflow-hidden animate-modal-scale shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-between p-6 pb-5 border-b border-border">
+                            <div className="flex items-center gap-3.5">
+                                <div className="flex items-center justify-center w-11 h-11 rounded-xl bg-amber-500 text-black shadow-sm">
                                     <ShieldAlert size={22} />
                                 </div>
                                 <div>
-                                    <h2 className="sync-modal__title">Parolni tiklash</h2>
-                                    <p className="sync-modal__subtitle">Parol default holatga qaytariladi</p>
+                                    <h2 className="text-[1.1rem] font-bold text-text">Parolni tiklash</h2>
+                                    <p className="text-[0.82rem] text-text-muted mt-0.5">Parol default holatga qaytariladi</p>
                                 </div>
                             </div>
-                            <button className="sync-modal__close" onClick={() => !resetLoading && setResetUser(null)}>
+                            <button className="flex items-center justify-center w-8 h-8 rounded-lg border-none bg-transparent text-text-muted hover:bg-white/10 hover:text-text transition-colors" onClick={() => !resetLoading && setResetUser(null)}>
                                 <X size={18} />
                             </button>
                         </div>
 
-                        <div className="sync-modal__body" style={{ padding: '24px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                        <div className="p-6">
+                            <div className="flex items-center gap-3 mb-5">
                                 {resetUser.image_url ? (
-                                    <img src={resetUser.image_url} alt={resetUser.full_name} style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover' }} />
+                                    <img src={resetUser.image_url} alt={resetUser.full_name} className="w-12 h-12 rounded-full object-cover shrink-0" />
                                 ) : (
-                                    <div className="users-page__avatar" style={{ width: 48, height: 48, fontSize: 18 }}>
+                                    <div className="flex items-center justify-center w-12 h-12 rounded-full bg-linear-to-br from-indigo-500 to-indigo-600 font-bold text-[1.125rem] text-white shrink-0">
                                         {resetUser.full_name.charAt(0)}
                                     </div>
                                 )}
                                 <div>
-                                    <div style={{ fontWeight: 600, fontSize: '1rem' }}>{resetUser.full_name}</div>
-                                    <div style={{ fontSize: '0.8rem', opacity: 0.6 }}>ID: {resetUser.user_id}</div>
+                                    <div className="font-semibold text-[1rem] text-text">{resetUser.full_name}</div>
+                                    <div className="text-[0.8rem] opacity-60 text-text-muted">ID: {resetUser.user_id}</div>
                                 </div>
                             </div>
 
-                            <div style={{
-                                background: 'rgba(245, 158, 11, 0.1)',
-                                border: '1px solid rgba(245, 158, 11, 0.3)',
-                                borderRadius: 8,
-                                padding: '12px 16px',
-                                fontSize: '0.85rem',
-                                lineHeight: 1.6,
-                            }}>
-                                <p style={{ margin: 0 }}>
-                                    <strong>Diqqat!</strong> Bu foydalanuvchining paroli default holatga qaytariladi.
+                            <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 px-4 text-[0.85rem] leading-[1.6] text-amber-500/90">
+                                <p className="m-0">
+                                    <strong className="text-amber-500">Diqqat!</strong> Bu foydalanuvchining paroli default holatga qaytariladi.
                                 </p>
-                                <p style={{ margin: '8px 0 0', opacity: 0.8 }}>
-                                    Yangi parol: <code style={{
-                                        background: 'rgba(255,255,255,0.1)',
-                                        padding: '2px 8px',
-                                        borderRadius: 4,
-                                        fontWeight: 600,
-                                        fontSize: '0.9rem',
-                                    }}>{resetUser.user_id}</code>
+                                <p className="mt-2 mb-0 opacity-80 flex items-center gap-2">
+                                    Yangi parol: <code className="bg-white/10 px-2 py-0.5 rounded text-[0.9rem] font-semibold text-amber-400">{resetUser.user_id}</code>
                                 </p>
                             </div>
                         </div>
 
-                        <div className="sync-modal__footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                        <div className="flex items-center justify-end gap-2.5 py-4 px-6 border-t border-border bg-white/5">
                             <button
-                                className="sync-modal__done-btn"
+                                className="py-2 px-5 rounded-lg border border-border bg-transparent text-text font-medium text-[0.85rem] hover:bg-white/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 onClick={() => setResetUser(null)}
                                 disabled={resetLoading}
-                                style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.15)' }}
                             >
                                 Bekor qilish
                             </button>
                             <button
-                                className="sync-modal__done-btn"
+                                className="flex items-center justify-center py-2 px-5 rounded-lg border border-transparent bg-amber-500 text-black font-semibold text-[0.85rem] hover:bg-amber-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-[130px]"
                                 onClick={confirmResetPassword}
                                 disabled={resetLoading}
-                                style={{ background: 'var(--stat-orange, #f59e0b)', color: '#000', fontWeight: 600 }}
                             >
                                 {resetLoading ? (
                                     <>
-                                        <Loader2 size={16} className="spin-animation" style={{ marginRight: 6 }} />
+                                        <Loader2 size={16} className="animate-spin mr-1.5" />
                                         Tiklanmoqda...
                                     </>
                                 ) : (
@@ -898,81 +896,70 @@ export default function UsersPage() {
 
             {/* Role Change Modal */}
             {roleUser && createPortal(
-                <div className="sync-modal__backdrop" onClick={() => !roleLoading && setRoleUser(null)}>
-                    <div className="sync-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 440 }}>
-                        <div className="sync-modal__header">
-                            <div className="sync-modal__header-info">
-                                <div className="sync-modal__hemis-logo" style={{ background: 'var(--stat-blue, #3b82f6)' }}>
+                <div className="fixed inset-0 z-300 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={() => !roleLoading && setRoleUser(null)}>
+                    <div className="relative w-full max-w-[440px] bg-surface border border-border rounded-2xl overflow-hidden animate-modal-scale shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-between p-6 pb-5 border-b border-border">
+                            <div className="flex items-center gap-3.5">
+                                <div className="flex items-center justify-center w-11 h-11 rounded-xl bg-blue-500 text-white shadow-sm">
                                     <UserCog size={22} />
                                 </div>
                                 <div>
-                                    <h2 className="sync-modal__title">Rolni o'zgartirish</h2>
-                                    <p className="sync-modal__subtitle">Foydalanuvchi rolini yangilash</p>
+                                    <h2 className="text-[1.1rem] font-bold text-text">Rolni o'zgartirish</h2>
+                                    <p className="text-[0.82rem] text-text-muted mt-0.5">Foydalanuvchi rolini yangilash</p>
                                 </div>
                             </div>
-                            <button className="sync-modal__close" onClick={() => !roleLoading && setRoleUser(null)}>
+                            <button className="flex items-center justify-center w-8 h-8 rounded-lg border-none bg-transparent text-text-muted hover:bg-white/10 hover:text-text transition-colors" onClick={() => !roleLoading && setRoleUser(null)}>
                                 <X size={18} />
                             </button>
                         </div>
 
-                        <div className="sync-modal__body" style={{ padding: '24px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                        <div className="p-6">
+                            <div className="flex items-center gap-3 mb-5">
                                 {roleUser.image_url ? (
-                                    <img src={roleUser.image_url} alt={roleUser.full_name} style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover' }} />
+                                    <img src={roleUser.image_url} alt={roleUser.full_name} className="w-12 h-12 rounded-full object-cover shrink-0" />
                                 ) : (
-                                    <div className="users-page__avatar" style={{ width: 48, height: 48, fontSize: 18 }}>
+                                    <div className="flex items-center justify-center w-12 h-12 rounded-full bg-linear-to-br from-indigo-500 to-indigo-600 font-bold text-[1.125rem] text-white shrink-0">
                                         {roleUser.full_name.charAt(0)}
                                     </div>
                                 )}
                                 <div>
-                                    <div style={{ fontWeight: 600, fontSize: '1rem' }}>{roleUser.full_name}</div>
-                                    <div style={{ fontSize: '0.8rem', opacity: 0.6 }}>ID: {roleUser.user_id}</div>
+                                    <div className="font-semibold text-[1rem] text-text">{roleUser.full_name}</div>
+                                    <div className="text-[0.8rem] opacity-60 text-text-muted">ID: {roleUser.user_id}</div>
                                 </div>
                             </div>
 
-                            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: 8, opacity: 0.8 }}>
+                            <label className="block text-[0.85rem] font-medium mb-2 opacity-80 text-text">
                                 Yangi rolni tanlang:
                             </label>
                             <select
                                 value={selectedRole}
                                 onChange={(e) => setSelectedRole(e.target.value)}
-                                style={{
-                                    width: '100%',
-                                    padding: '10px 14px',
-                                    borderRadius: 8,
-                                    border: '1px solid rgba(255,255,255,0.15)',
-                                    background: 'rgba(255,255,255,0.06)',
-                                    color: 'inherit',
-                                    fontSize: '0.9rem',
-                                    outline: 'none',
-                                    cursor: 'pointer',
-                                }}
+                                className="w-full py-2.5 px-3.5 rounded-lg border border-border bg-white/5 text-text text-[0.9rem] outline-none cursor-pointer hover:border-indigo-500/50 focus:border-indigo-500 transition-colors appearance-none"
+                                style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='%239CA3AF' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`, backgroundPosition: 'right 12px center', backgroundRepeat: 'no-repeat' }}
                             >
-                                <option value="admin">👑 Administrator</option>
-                                <option value="staff">💼 Xodim</option>
-                                <option value="teacher">👨‍🏫 O'qituvchi</option>
-                                <option value="student">🎓 Talaba</option>
+                                <option value="admin" className="bg-surface text-text">👑 Administrator</option>
+                                <option value="staff" className="bg-surface text-text">💼 Xodim</option>
+                                <option value="teacher" className="bg-surface text-text">👨‍🏫 O'qituvchi</option>
+                                <option value="student" className="bg-surface text-text">🎓 Talaba</option>
                             </select>
                         </div>
 
-                        <div className="sync-modal__footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                        <div className="flex items-center justify-end gap-2.5 py-4 px-6 border-t border-border bg-white/5">
                             <button
-                                className="sync-modal__done-btn"
+                                className="py-2 px-5 rounded-lg border border-border bg-transparent text-text font-medium text-[0.85rem] hover:bg-white/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 onClick={() => setRoleUser(null)}
                                 disabled={roleLoading}
-                                style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.15)' }}
                             >
                                 Bekor qilish
                             </button>
                             <button
-                                className="sync-modal__done-btn"
+                                className="flex items-center justify-center py-2 px-5 rounded-lg border border-transparent bg-blue-500 text-white font-semibold text-[0.85rem] hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-[130px]"
                                 onClick={confirmChangeRole}
                                 disabled={roleLoading}
-                                style={{ background: 'var(--stat-blue, #3b82f6)', fontWeight: 600 }}
                             >
                                 {roleLoading ? (
                                     <>
-                                        <Loader2 size={16} className="spin-animation" style={{ marginRight: 6 }} />
+                                        <Loader2 size={16} className="animate-spin mr-1.5" />
                                         Saqlanmoqda...
                                     </>
                                 ) : (
@@ -987,84 +974,71 @@ export default function UsersPage() {
 
             {/* Status Toggle Modal */}
             {statusUser && createPortal(
-                <div className="sync-modal__backdrop" onClick={() => !statusLoading && setStatusUser(null)}>
-                    <div className="sync-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 440 }}>
-                        <div className="sync-modal__header">
-                            <div className="sync-modal__header-info">
-                                <div className="sync-modal__hemis-logo" style={{ background: statusUser.active ? 'var(--stat-red, #ef4444)' : 'var(--stat-green, #22c55e)' }}>
+                <div className="fixed inset-0 z-300 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={() => !statusLoading && setStatusUser(null)}>
+                    <div className="relative w-full max-w-[440px] bg-surface border border-border rounded-2xl overflow-hidden animate-modal-scale shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-between p-6 pb-5 border-b border-border">
+                            <div className="flex items-center gap-3.5">
+                                <div className={`flex items-center justify-center w-11 h-11 rounded-xl text-white shadow-sm ${statusUser.active ? 'bg-red-500' : 'bg-emerald-500'}`}>
                                     <Power size={22} />
                                 </div>
                                 <div>
-                                    <h2 className="sync-modal__title">Holatni o'zgartirish</h2>
-                                    <p className="sync-modal__subtitle">
+                                    <h2 className="text-[1.1rem] font-bold text-text">Holatni o'zgartirish</h2>
+                                    <p className="text-[0.82rem] text-text-muted mt-0.5">
                                         {statusUser.active ? 'Foydalanuvchini nofaol qilish' : 'Foydalanuvchini faol qilish'}
                                     </p>
                                 </div>
                             </div>
-                            <button className="sync-modal__close" onClick={() => !statusLoading && setStatusUser(null)}>
+                            <button className="flex items-center justify-center w-8 h-8 rounded-lg border-none bg-transparent text-text-muted hover:bg-white/10 hover:text-text transition-colors" onClick={() => !statusLoading && setStatusUser(null)}>
                                 <X size={18} />
                             </button>
                         </div>
 
-                        <div className="sync-modal__body" style={{ padding: '24px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                        <div className="p-6">
+                            <div className="flex items-center gap-3 mb-5">
                                 {statusUser.image_url ? (
-                                    <img src={statusUser.image_url} alt={statusUser.full_name} style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover' }} />
+                                    <img src={statusUser.image_url} alt={statusUser.full_name} className="w-12 h-12 rounded-full object-cover shrink-0" />
                                 ) : (
-                                    <div className="users-page__avatar" style={{ width: 48, height: 48, fontSize: 18 }}>
+                                    <div className="flex items-center justify-center w-12 h-12 rounded-full bg-linear-to-br from-indigo-500 to-indigo-600 font-bold text-[1.125rem] text-white shrink-0">
                                         {statusUser.full_name.charAt(0)}
                                     </div>
                                 )}
                                 <div>
-                                    <div style={{ fontWeight: 600, fontSize: '1rem' }}>{statusUser.full_name}</div>
-                                    <div style={{ fontSize: '0.8rem', opacity: 0.6 }}>
+                                    <div className="font-semibold text-[1rem] text-text">{statusUser.full_name}</div>
+                                    <div className="text-[0.8rem] opacity-60 text-text-muted mt-0.5">
                                         Hozirgi holat:{' '}
-                                        <span className={`users-page__status users-page__status--${statusUser.active ? 'active' : 'inactive'}`}>
+                                        <span className={`inline-flex items-center ml-1 py-0.5 px-2 rounded-full text-[0.7rem] font-bold tracking-wide ${statusUser.active ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' : 'bg-slate-500/15 text-slate-400 border border-slate-500/20'}`}>
                                             {statusUser.active ? 'Faol' : 'Nofaol'}
                                         </span>
                                     </div>
                                 </div>
                             </div>
 
-                            <div style={{
-                                background: statusUser.active ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)',
-                                border: `1px solid ${statusUser.active ? 'rgba(239, 68, 68, 0.3)' : 'rgba(34, 197, 94, 0.3)'}`,
-                                borderRadius: 8,
-                                padding: '12px 16px',
-                                fontSize: '0.85rem',
-                                lineHeight: 1.6,
-                            }}>
-                                <p style={{ margin: 0 }}>
+                            <div className={`rounded-lg p-3 px-4 text-[0.85rem] leading-[1.6] ${statusUser.active ? 'bg-red-500/10 border border-red-500/30 text-red-500' : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-500'}`}>
+                                <p className="m-0">
                                     {statusUser.active
-                                        ? <><strong>Diqqat!</strong> Bu foydalanuvchi <strong>nofaol</strong> qilinadi. U tizimga kira olmaydi.</>
-                                        : <><strong>Tasdiqlash:</strong> Bu foydalanuvchi <strong>faol</strong> qilinadi va tizimga kirish imkoniyati beriladi.</>
+                                        ? <><strong className="text-red-500">Diqqat!</strong> Bu foydalanuvchi <strong className="text-red-500">nofaol</strong> qilinadi. U tizimga kira olmaydi.</>
+                                        : <><strong className="text-emerald-500">Tasdiqlash:</strong> Bu foydalanuvchi <strong className="text-emerald-500">faol</strong> qilinadi va tizimga kirish imkoniyati beriladi.</>
                                     }
                                 </p>
                             </div>
                         </div>
 
-                        <div className="sync-modal__footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                        <div className="flex items-center justify-end gap-2.5 py-4 px-6 border-t border-border bg-white/5">
                             <button
-                                className="sync-modal__done-btn"
+                                className="py-2 px-5 rounded-lg border border-border bg-transparent text-text font-medium text-[0.85rem] hover:bg-white/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 onClick={() => setStatusUser(null)}
                                 disabled={statusLoading}
-                                style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.15)' }}
                             >
                                 Bekor qilish
                             </button>
                             <button
-                                className="sync-modal__done-btn"
+                                className={`flex items-center justify-center py-2 px-5 rounded-lg border border-transparent text-white font-semibold text-[0.85rem] transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-[130px] ${statusUser.active ? 'bg-red-500 hover:bg-red-600' : 'bg-emerald-500 hover:bg-emerald-600'}`}
                                 onClick={confirmToggleStatus}
                                 disabled={statusLoading}
-                                style={{
-                                    background: statusUser.active ? 'var(--stat-red, #ef4444)' : 'var(--stat-green, #22c55e)',
-                                    fontWeight: 600,
-                                    color: '#fff',
-                                }}
                             >
                                 {statusLoading ? (
                                     <>
-                                        <Loader2 size={16} className="spin-animation" style={{ marginRight: 6 }} />
+                                        <Loader2 size={16} className="animate-spin mr-1.5" />
                                         O'zgartirilmoqda...
                                     </>
                                 ) : statusUser.active ? (
@@ -1078,7 +1052,6 @@ export default function UsersPage() {
                 </div>,
                 document.body
             )}
-
         </div>
     )
 }
