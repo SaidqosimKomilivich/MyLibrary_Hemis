@@ -3,7 +3,7 @@ use sqlx::PgPool;
 use crate::dto::control::{ControlListResponse, ControlResponse};
 use crate::errors::AppError;
 use crate::models::control::Control;
-use crate::repository::control_repository::ControlRepository;
+use crate::repository::control_repository::{ControlRepository, ControlWithUser};
 
 pub struct ControlService;
 
@@ -19,6 +19,30 @@ impl ControlService {
             departure: record
                 .departure
                 .map(|d| d.format("%Y-%m-%d %H:%M:%S").to_string()),
+            full_name: None,
+            role: None,
+            department_name: None,
+            group_name: None,
+            staff_position: None,
+        }
+    }
+
+    /// ControlWithUser ni ControlResponse DTOga aylantirish
+    fn to_response_with_user(record: ControlWithUser) -> ControlResponse {
+        ControlResponse {
+            id: record.id,
+            user_id: record.user_id,
+            arrival: record
+                .arrival
+                .map(|d| d.format("%Y-%m-%d %H:%M:%S").to_string()),
+            departure: record
+                .departure
+                .map(|d| d.format("%Y-%m-%d %H:%M:%S").to_string()),
+            full_name: record.full_name,
+            role: record.role,
+            department_name: record.department_name,
+            group_name: record.group_name,
+            staff_position: record.staff_position,
         }
     }
 
@@ -70,7 +94,7 @@ impl ControlService {
     ) -> Result<ControlListResponse, AppError> {
         let records = ControlRepository::find_by_user_id(pool, user_id).await?;
         let total = records.len();
-        let data = records.into_iter().map(Self::to_response).collect();
+        let data = records.into_iter().map(Self::to_response_with_user).collect();
 
         Ok(ControlListResponse {
             success: true,
@@ -83,7 +107,7 @@ impl ControlService {
     pub async fn get_today_all(pool: &PgPool) -> Result<ControlListResponse, AppError> {
         let records = ControlRepository::find_all_today(pool).await?;
         let total = records.len();
-        let data = records.into_iter().map(Self::to_response).collect();
+        let data = records.into_iter().map(Self::to_response_with_user).collect();
 
         Ok(ControlListResponse {
             success: true,

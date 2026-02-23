@@ -16,6 +16,7 @@ import {
     Library,
     Loader2,
     ScanLine,
+
 } from 'lucide-react'
 
 import { toast } from 'react-toastify'
@@ -36,16 +37,22 @@ const navByRole: Record<UserRole, NavItem[]> = {
         { label: 'Boshqaruv paneli', path: '/admin', icon: <LayoutDashboard size={20} /> },
         { label: 'Foydalanuvchilar', path: '/admin/users', icon: <Users size={20} /> },
         { label: 'Kitoblar', path: '/admin/books', icon: <BookOpen size={20} /> },
+        { label: 'Ijaralar', path: '/admin/rentals', icon: <BookOpen size={20} /> },
+        { label: "So'rovlar", path: '/admin/requests', icon: <ClipboardList size={20} /> },
         { label: 'Xodimlar', path: '/admin/employees', icon: <UserCog size={20} /> },
-        { label: 'Statistika', path: '/admin/stats', icon: <BarChart3 size={20} /> },
+        { label: 'Hisobotlar', path: '/admin/stats', icon: <BarChart3 size={20} /> },
+
 
         { label: 'Profil', path: '/admin/profile', icon: <UserCircle size={20} /> },
     ],
     employee: [
         { label: 'Boshqaruv paneli', path: '/employee', icon: <LayoutDashboard size={20} /> },
         { label: 'Kitoblar katalogi', path: '/employee/catalog', icon: <Library size={20} /> },
+        { label: 'Ijaralar', path: '/employee/rentals', icon: <Library size={20} /> },
+        { label: "So'rovlar", path: '/employee/requests', icon: <ClipboardList size={20} /> },
         { label: 'Nazorat', path: '/employee/access-control', icon: <ScanLine size={20} /> },
         { label: "O'quvchilar", path: '/employee/readers', icon: <UserCheck size={20} /> },
+
 
         { label: 'Profil', path: '/employee/profile', icon: <UserCircle size={20} /> },
     ],
@@ -55,6 +62,7 @@ const navByRole: Record<UserRole, NavItem[]> = {
         { label: "O'qiyotgan kitoblar", path: '/teacher/my-books', icon: <BookOpen size={20} /> },
         { label: "So'rovlar", path: '/teacher/requests', icon: <ClipboardList size={20} /> },
 
+
         { label: 'Profil', path: '/teacher/profile', icon: <UserCircle size={20} /> },
     ],
     student: [
@@ -62,6 +70,7 @@ const navByRole: Record<UserRole, NavItem[]> = {
         { label: 'Kutubxona', path: '/student/library', icon: <Library size={20} /> },
         { label: "O'qiyotgan kitoblar", path: '/student/my-books', icon: <BookOpen size={20} /> },
         { label: "So'rovlar", path: '/student/requests', icon: <ClipboardList size={20} /> },
+
 
         { label: 'Profil', path: '/student/profile', icon: <UserCircle size={20} /> },
     ],

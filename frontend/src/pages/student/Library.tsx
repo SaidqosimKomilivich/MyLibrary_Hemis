@@ -27,6 +27,12 @@ export default function Library() {
     const [deletingBook, setDeletingBook] = useState<Book | null>(null)
     const [isDeleting, setIsDeleting] = useState(false)
 
+    // Request modal state
+    const [requestModalOpen, setRequestModalOpen] = useState(false)
+    const [requestBook, setRequestBook] = useState<Book | null>(null)
+    const [requestType, setRequestType] = useState('physical')
+    const [isRequesting, setIsRequesting] = useState(false)
+
     // PDF viewer state
     const [pdfBook, setPdfBook] = useState<Book | null>(null)
 
@@ -107,6 +113,22 @@ export default function Library() {
         }
     }
 
+    // Kitob so'rash
+    const handleRequestSubmit = async () => {
+        if (!requestBook) return
+        setIsRequesting(true)
+        try {
+            await api.createBookRequest(requestBook.id, requestType)
+            toast.success("So'rov muvaffaqiyatli yuborildi. Holatini 'Mening so'rovlarim' bo'limida kuzatishingiz mumkin.")
+            setRequestModalOpen(false)
+            setRequestBook(null)
+        } catch (err: any) {
+            toast.error(err.message || "So'rov yuborishda xatolik")
+        } finally {
+            setIsRequesting(false)
+        }
+    }
+
     return (
         <div className="library-page">
             {/* Header */}
@@ -162,6 +184,7 @@ export default function Library() {
                             onViewPdf={handleViewPdf}
                             onListenAudio={handleListenAudio}
                             onAddReading={!canManageBooks ? handleAddReading : undefined}
+                            onRequestBook={!canManageBooks ? (book) => { setRequestBook(book); setRequestModalOpen(true) } : undefined}
                         />
                     ))}
                 </div>
@@ -254,6 +277,90 @@ export default function Library() {
                 onCancel={() => { setDeleteModalOpen(false); setDeletingBook(null) }}
                 isLoading={isDeleting}
             />
+
+            {/* Request Book Modal */}
+            {requestModalOpen && requestBook && (
+                <div className="pdf-viewer__backdrop" onClick={() => !isRequesting && setRequestModalOpen(false)}>
+                    <div className="pdf-viewer" style={{ width: '100%', maxWidth: 450, minHeight: 'auto', padding: 24, borderRadius: 12 }} onClick={(e) => e.stopPropagation()}>
+                        <div className="pdf-viewer__header" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: 16, marginBottom: 20 }}>
+                            <h3 style={{ margin: 0, fontSize: '1.2rem' }}>Kitob so'rash</h3>
+                            <button onClick={() => !isRequesting && setRequestModalOpen(false)} className="pdf-viewer__close">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div style={{ marginBottom: 20 }}>
+                            <div style={{ fontWeight: 600, fontSize: '1.1rem', marginBottom: 4 }}>{requestBook.title}</div>
+                            <div style={{ opacity: 0.7, fontSize: '0.9rem' }}>{requestBook.author}</div>
+                        </div>
+
+                        <div style={{ marginBottom: 24 }}>
+                            <label style={{ display: 'block', marginBottom: 8, fontSize: '0.9rem', opacity: 0.8 }}>Qanday shaklda kerak?</label>
+                            <select
+                                value={requestType}
+                                onChange={(e) => setRequestType(e.target.value)}
+                                style={{
+                                    width: '100%',
+                                    padding: '12px',
+                                    borderRadius: 8,
+                                    background: 'rgba(255,255,255,0.05)',
+                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    color: 'white',
+                                    outline: 'none',
+                                    fontSize: '1rem',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                {requestBook.available_quantity === 0 && <option value="physical">Asl nusxa (kutish)</option>}
+                                <option value="electronic">Elektron variant (PDF/Audio)</option>
+                                {requestBook.available_quantity !== 0 && <option value="physical">Asl nusxa (kutish)</option>}
+                            </select>
+                            <p style={{ marginTop: 10, fontSize: '0.8rem', opacity: 0.6, lineHeight: 1.4 }}>
+                                {requestType === 'physical'
+                                    ? "Asl nusxani so'rashda, kitob kutubxonaga qaytganida yoki tayyor bo'lganida sizga xabar beramiz."
+                                    : "Agar kitobning elektron varianti bazamizda mavjud bo'lmasa, mutaxassis uni topib berishi mumkin."}
+                            </p>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                            <button
+                                onClick={() => setRequestModalOpen(false)}
+                                disabled={isRequesting}
+                                style={{
+                                    padding: '10px 16px',
+                                    borderRadius: 8,
+                                    background: 'transparent',
+                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    color: 'white',
+                                    cursor: isRequesting ? 'not-allowed' : 'pointer',
+                                    opacity: isRequesting ? 0.5 : 1
+                                }}
+                            >
+                                Bekor qilish
+                            </button>
+                            <button
+                                onClick={handleRequestSubmit}
+                                disabled={isRequesting}
+                                style={{
+                                    padding: '10px 16px',
+                                    borderRadius: 8,
+                                    background: 'var(--primary, #3b82f6)',
+                                    border: 'none',
+                                    color: 'white',
+                                    fontWeight: 600,
+                                    cursor: isRequesting ? 'not-allowed' : 'pointer',
+                                    opacity: isRequesting ? 0.5 : 1,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 8
+                                }}
+                            >
+                                {isRequesting ? 'Yuborilmoqda...' : "So'rov yuborish"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

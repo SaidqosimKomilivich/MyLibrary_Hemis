@@ -16,6 +16,7 @@ import {
     Download,
     IdCard,
     RotateCw,
+    MapPin,
 } from 'lucide-react'
 import { toast } from 'react-toastify'
 import { useAuth } from '../context/AuthContext'
@@ -358,7 +359,7 @@ export default function ProfilePage() {
                             <div className='relative w-full h-full transition-transform duration-700' style={{ transformStyle: 'preserve-3d', transform: cardFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)' }}>
 
                                 {/* frontRef shu yerga */}
-                                <div ref={frontRef} className='absolute inset-0 bg-white/40 rounded-2xl p-2 flex items-center justify-center' style={{ backfaceVisibility: 'hidden' }}>
+                                <div ref={frontRef} className='absolute inset-0 bg-white/40 rounded-2xl flex items-center justify-center' style={{ backfaceVisibility: 'hidden' }}>
                                     <svg width="420" height="280" viewBox="0 0 420 280" className='rounded-2xl'>
                                         <defs>
                                             {/* <!-- Ko‘k gradient --> */}
@@ -449,7 +450,7 @@ export default function ProfilePage() {
                                 </div>
 
                                 {/* backRef shu yerga */}
-                                <div ref={backRef} className='absolute inset-0 bg-white/40 rounded-2xl p-2 flex items-center justify-center' style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
+                                <div ref={backRef} className='absolute inset-0 bg-white/40 rounded-2xl flex items-center justify-center' style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
                                     <svg width="420" height="280" viewBox="0 0 420 280" className='rounded-2xl'>
                                         <defs>
                                             <linearGradient id="blueGrad" x1="0" y1="0" x2="1" y2="0">
@@ -468,6 +469,11 @@ export default function ProfilePage() {
                                                 <stop offset="100%" stop-color="#b8860b" />
                                             </linearGradient>
 
+                                            <linearGradient id="grad1">
+                                                <stop offset="0%" stop-color="blue" />
+                                                <stop offset="100%" stop-color="cyan" />
+                                            </linearGradient>
+
                                             <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
                                                 <feDropShadow dx="0" dy="8" stdDeviation="12" flood-opacity="0.25" />
                                             </filter>
@@ -475,10 +481,13 @@ export default function ProfilePage() {
                                             <clipPath id="cardClip">
                                                 <rect width="420" height="280" />
                                             </clipPath>
+
                                         </defs>
 
                                         {/* <!-- Asosiy karta --> */}
                                         <rect width="420" height="280" fill="#f5f5f5" filter="url(#shadow)" />
+
+                                        <line x1="0" y1="220" x2="420" y2="221" stroke="url(#grad1)" stroke-width="1" />
 
                                         <g clip-path="url(#cardClip)">
 
@@ -494,10 +503,14 @@ export default function ProfilePage() {
                                             {/* <!-- Oltin wave --> */}
                                             <path d="  M 235 280 C 315 245, 380 215, 427 157 L 427 172 C 375 225, 315 255, 255 280 Z" fill="url(#goldGrad)" />
                                         </g>
-                                    </svg>
-                                    <img src="/Emblem_of_Uzbekistan.png" alt="" className='absolute w-16 h-16 right-7 top-3.5 bg-white p-1 rounded-full' />
-                                    <p className='absolute text-white top-8 left-18 text-xl uppercase '>Kutbxona qoidalar</p>
 
+                                    </svg>
+                                    <img src="/icon_arm.png" alt="" className='absolute w-16 h-16 right-7 top-3.5 bg-white p-1 rounded-full' />
+                                    <p className='absolute text-white top-8 left-9 text-xl uppercase '>Axborot Resurs Markazi</p>
+                                    <p className='absolute top-62 left-5 flex gap-2 items-center text-blue-500 text-sm'> <Mail size={16} />arm@jbnuu.uz</p>
+                                    <p className='absolute top-56 left-5 flex gap-2 items-center text-blue-500 text-sm'> <Phone size={16} />+998 (72) 226-12-34 </p>
+                                    <p className='absolute top-40 left-5 flex gap-2 items-center text-blue-400 text-sm'> <MapPin size={17} />Jizzax viloyati, Jizzax shahri</p>
+                                    <p className='absolute top-46 left-5 flex gap-5 items-center text-blue-400 text-sm'>Sh.Rashidov shox ko'chasi, 259 uy</p>
                                 </div>
                             </div>
                         </div>

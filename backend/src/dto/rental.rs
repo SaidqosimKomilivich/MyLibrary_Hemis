@@ -40,6 +40,10 @@ pub struct RentalResponse {
     pub book_cover: Option<String>,
     // Foydalanuvchi ma'lumotlari
     pub user_full_name: Option<String>,
+    pub role: Option<String>,
+    pub department_name: Option<String>,
+    pub group_name: Option<String>,
+    pub staff_position: Option<String>,
 }
 
 /// Ijaralar ro'yxati javobi

@@ -4,6 +4,19 @@ use uuid::Uuid;
 use crate::errors::AppError;
 use crate::models::control::Control;
 
+#[derive(Debug, sqlx::FromRow)]
+pub struct ControlWithUser {
+    pub id: Uuid,
+    pub user_id: String,
+    pub arrival: Option<chrono::NaiveDateTime>,
+    pub departure: Option<chrono::NaiveDateTime>,
+    pub full_name: Option<String>,
+    pub role: Option<String>,
+    pub department_name: Option<String>,
+    pub group_name: Option<String>,
+    pub staff_position: Option<String>,
+}
+
 pub struct ControlRepository;
 
 impl ControlRepository {
@@ -59,12 +72,19 @@ impl ControlRepository {
     }
 
     /// Foydalanuvchining barcha kelish-ketish tarixi
-    pub async fn find_by_user_id(pool: &PgPool, user_id: &str) -> Result<Vec<Control>, AppError> {
-        let records = sqlx::query_as::<_, Control>(
-            r#"SELECT "id", "user_id", "arrival", "departure"
-               FROM "control"
-               WHERE "user_id" = $1
-               ORDER BY "arrival" DESC"#,
+    pub async fn find_by_user_id(pool: &PgPool, user_id: &str) -> Result<Vec<ControlWithUser>, AppError> {
+        let records = sqlx::query_as::<_, ControlWithUser>(
+            r#"SELECT 
+                 c."id", c."user_id", c."arrival", c."departure",
+                 u."full_name" as "full_name?",
+                 u."role" as "role?",
+                 u."department_name" as "department_name?",
+                 u."group_name" as "group_name?",
+                 u."staff_position" as "staff_position?"
+               FROM "control" c
+               LEFT JOIN "users" u ON u."id"::text = c."user_id"
+               WHERE c."user_id" = $1
+               ORDER BY c."arrival" DESC"#,
         )
         .bind(user_id)
         .fetch_all(pool)
@@ -74,12 +94,19 @@ impl ControlRepository {
     }
 
     /// Bugungi barcha yozuvlar (admin uchun)
-    pub async fn find_all_today(pool: &PgPool) -> Result<Vec<Control>, AppError> {
-        let records = sqlx::query_as::<_, Control>(
-            r#"SELECT "id", "user_id", "arrival", "departure"
-               FROM "control"
-               WHERE "arrival"::date = CURRENT_DATE
-               ORDER BY "arrival" DESC"#,
+    pub async fn find_all_today(pool: &PgPool) -> Result<Vec<ControlWithUser>, AppError> {
+        let records = sqlx::query_as::<_, ControlWithUser>(
+            r#"SELECT 
+                 c."id", c."user_id", c."arrival", c."departure",
+                 u."full_name" as "full_name?",
+                 u."role" as "role?",
+                 u."department_name" as "department_name?",
+                 u."group_name" as "group_name?",
+                 u."staff_position" as "staff_position?"
+               FROM "control" c
+               LEFT JOIN "users" u ON u."id"::text = c."user_id"
+               WHERE c."arrival"::date = CURRENT_DATE
+               ORDER BY c."arrival" DESC"#,
         )
         .fetch_all(pool)
         .await?;

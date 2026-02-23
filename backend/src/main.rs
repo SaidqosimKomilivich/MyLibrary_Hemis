@@ -19,6 +19,8 @@ use crate::handlers::book_handler;
 use crate::handlers::control_handler;
 use crate::handlers::reading_handler;
 use crate::handlers::rental_handler;
+use crate::handlers::report_handler;
+use crate::handlers::request_handler;
 use crate::handlers::sync_handler;
 use crate::handlers::upload_handler;
 
@@ -140,6 +142,20 @@ async fn main() -> std::io::Result<()> {
                     .route("", web::post().to(reading_handler::start_reading))
                     .route("", web::get().to(reading_handler::get_readings))
                     .route("/{id}", web::delete().to(reading_handler::remove_reading)),
+            )
+            // Request routes
+            .service(
+                web::scope("/api/requests")
+                    .route("", web::post().to(request_handler::create_request))
+                    .route("", web::get().to(request_handler::get_all_requests))
+                    .route("/my", web::get().to(request_handler::get_my_requests))
+                    .route("/{id}/status", web::put().to(request_handler::update_request_status)),
+            )
+            // Report routes
+            .service(
+                web::scope("/api/reports")
+                    .route("/dashboard", web::get().to(report_handler::get_dashboard))
+                    .route("/export", web::get().to(report_handler::export_excel)),
             )
             // Sync routes (HEMIS sinxronlash)
             .service(

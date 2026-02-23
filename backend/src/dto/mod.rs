@@ -4,4 +4,6 @@ pub mod control;
 pub mod hemis;
 pub mod reading;
 pub mod rental;
+pub mod report;
+pub mod request;
 pub mod user;

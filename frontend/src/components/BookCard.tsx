@@ -10,9 +10,10 @@ interface BookCardProps {
     onListenAudio?: (book: Book) => void
     onAddReading?: (book: Book) => void
     onRemoveReading?: (book: Book) => void
+    onRequestBook?: (book: Book) => void
 }
 
-export default function BookCard({ book, role, onEdit, onDelete, onViewPdf, onListenAudio, onAddReading, onRemoveReading }: BookCardProps) {
+export default function BookCard({ book, role, onEdit, onDelete, onViewPdf, onListenAudio, onAddReading, onRemoveReading, onRequestBook }: BookCardProps) {
     const canManageBooks = role === 'admin' || role === 'employee'
     const hasPdf = book.format === 'pdf' && book.digital_file_url
     const hasAudio = book.format === 'audio' && book.digital_file_url
@@ -100,6 +101,20 @@ export default function BookCard({ book, role, onEdit, onDelete, onViewPdf, onLi
                     <div className="book-card__location">
                         <MapPin size={14} />
                         <span>{book.shelf_location}</span>
+                    </div>
+                )}
+
+                {/* Request Button for non-admins */}
+                {!canManageBooks && onRequestBook && (
+                    <div className="book-card__actions" style={{ marginTop: 12 }}>
+                        <button
+                            className="book-card__action-btn"
+                            style={{ width: '100%', justifyContent: 'center', background: 'var(--primary, #3b82f6)', color: 'white', padding: '8px', border: 'none', borderRadius: 6, fontWeight: 500 }}
+                            onClick={() => onRequestBook(book)}
+                            title="Kitob so'rash"
+                        >
+                            So'rov yuborish
+                        </button>
                     </div>
                 )}
 

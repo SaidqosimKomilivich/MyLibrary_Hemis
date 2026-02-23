@@ -89,7 +89,7 @@ export default function AccessControl() {
 
     // 1. Scanner instance ref
     const scannerRef = useRef<Html5Qrcode | null>(null);
-    const [scannerActive, setScannerActive] = useState(false);
+    const [, setScannerActive] = useState(false);
 
     // Kamerani ishga tushirish
     const startScanner = useCallback(() => {
@@ -651,8 +651,9 @@ export default function AccessControl() {
                         <table className="ac-rentals-table">
                             <thead>
                                 <tr>
-                                    <th>#</th>
-                                    <th>Foydalanuvchi ID</th>
+                                    <th>Tr</th>
+                                    <th>To'liq Ism</th>
+                                    <th>Lavozim/Guruh</th>
                                     <th>Kelgan vaqt</th>
                                     <th>Ketgan vaqt</th>
                                     <th>Holat</th>
@@ -661,10 +662,16 @@ export default function AccessControl() {
                             <tbody>
                                 {todayRecords.map((rec, i) => {
                                     const isStillInside = rec.arrival === rec.departure
+                                    const roleStr = rec.role || ''
+                                    const displayRoleInfo = roleStr === 'student'
+                                        ? `${rec.department_name || ''} ${rec.group_name || ''}`.trim()
+                                        : (rec.staff_position || roleLabels[roleStr] || roleStr)
+
                                     return (
                                         <tr key={rec.id}>
                                             <td>{i + 1}</td>
-                                            <td>{rec.user_id}</td>
+                                            <td>{rec.full_name || 'Noma\'lum'}</td>
+                                            <td>{displayRoleInfo || '—'}</td>
                                             <td>{rec.arrival || '—'}</td>
                                             <td>{isStillInside ? '—' : rec.departure}</td>
                                             <td>

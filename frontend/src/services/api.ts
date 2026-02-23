@@ -52,6 +52,14 @@ class ApiError extends Error {
     }
 }
 
+export const getAuthHeader = () => {
+    const token = localStorage.getItem('token')
+    return {
+        'Authorization': token ? `Bearer ${token}` : '',
+        'Content-Type': 'application/json'
+    }
+}
+
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
     const res = await fetch(`${API_BASE}${url}`, {
         credentials: 'include',
@@ -347,6 +355,67 @@ export const api = {
         if (params.status) query.append('status', params.status)
         return request<PaginatedUsersResponse>(`/sync/employees?${query.toString()}`)
     },
+
+    // Book Requests endpoints
+    createBookRequest(book_id: string, request_type: string) {
+        return request<MessageResponse>('/requests', {
+            method: 'POST',
+            body: JSON.stringify({ book_id, request_type })
+        })
+    },
+
+    getMyRequests() {
+        return request<{ success: boolean; data: BookRequest[] }>('/requests/my')
+    },
+
+    getAllRequests(params: UserPaginationParams = {}) {
+        const query = new URLSearchParams()
+        if (params.page) query.append('page', params.page.toString())
+        if (params.per_page) query.append('per_page', params.per_page.toString())
+        if (params.search) query.append('search', params.search)
+        if (params.status && params.status !== 'all') query.append('status', params.status)
+
+        return request<PaginatedRequestsResponse>(`/requests?${query.toString()}`)
+    },
+
+    updateRequestStatus(id: string, status: string, employee_comment: string | null) {
+        return request<MessageResponse>(`/requests/${id}/status`, {
+            method: 'PUT',
+            body: JSON.stringify({ status, employee_comment })
+        })
+    },
+
+    // Reports endpoints
+    getReportDashboard() {
+        return request<{ success: boolean; data: ReportDashboardResponse }>('/reports/dashboard')
+    },
+
+    exportReportExcel(type: 'rentals' | 'controls', startDate?: string, endDate?: string) {
+        const query = new URLSearchParams()
+        query.append('report_type', type)
+        if (startDate) query.append('start_date', startDate)
+        if (endDate) query.append('end_date', endDate)
+
+        return fetch(`${API_BASE}/reports/export?${query.toString()}`, {
+            headers: getAuthHeader()
+        }).then(async (res) => {
+            if (!res.ok) {
+                let msg = 'Yuklashda xatolik yuz berdi'
+                try {
+                    const err = await res.json()
+                    msg = err.message || msg
+                } catch (e) { }
+                throw new Error(msg)
+            }
+            return res.blob()
+        })
+    }
+}
+
+// Reports types
+export interface ReportDashboardResponse {
+    recent_rentals: Rental[]
+    recent_controls: ControlRecord[]
 }
 
 // Book types
@@ -427,6 +496,31 @@ export interface PaginatedBooksResponse {
     }
 }
 
+// Book Request types
+export interface BookRequest {
+    id: string
+    user_id: string
+    book_id: string
+    user_name: string
+    book_title: string
+    request_type: string // 'physical', 'electronic'
+    status: string // 'pending', 'processing', 'ready', 'rejected'
+    employee_comment: string | null
+    created_at: string
+    updated_at: string
+}
+
+export interface PaginatedRequestsResponse {
+    success: boolean
+    data: BookRequest[]
+    pagination: {
+        current_page: number
+        per_page: number
+        total_items: number
+        total_pages: number
+    }
+}
+
 export interface SingleBookResponse {
     success: boolean
     message?: string
@@ -472,6 +566,10 @@ export interface Rental {
     book_author: string | null
     book_cover: string | null
     user_full_name: string | null
+    role?: string
+    department_name: string | null
+    group_name: string | null
+    staff_position?: string
 }
 
 export interface RentalListResponse {
@@ -486,6 +584,11 @@ export interface ControlRecord {
     user_id: string
     arrival: string | null
     departure: string | null
+    full_name: string | null
+    role: string | null
+    department_name: string | null
+    group_name: string | null
+    staff_position: string | null
 }
 
 export interface ControlListResponse {
@@ -512,3 +615,5 @@ export interface PaginatedUsersResponse {
         total_pages: number
     }
 }
+
+

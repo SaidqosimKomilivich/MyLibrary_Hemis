@@ -22,6 +22,10 @@ pub struct RentalWithDetails {
     pub book_cover: Option<String>,
     // Foydalanuvchi ma'lumotlari
     pub user_full_name: Option<String>,
+    pub role: Option<String>,
+    pub department_name: Option<String>,
+    pub group_name: Option<String>,
+    pub staff_position: Option<String>,
 }
 
 impl RentalWithDetails {
@@ -39,6 +43,10 @@ impl RentalWithDetails {
             book_author: self.book_author,
             book_cover: self.book_cover,
             user_full_name: self.user_full_name,
+            role: self.role,
+            department_name: self.department_name,
+            group_name: self.group_name,
+            staff_position: self.staff_position,
         }
     }
 }
@@ -121,7 +129,11 @@ impl RentalRepository {
                 b."title" as book_title,
                 b."author" as book_author,
                 b."cover_image_url" as book_cover,
-                u."full_name" as user_full_name
+                u."full_name" as user_full_name,
+                u."role" as role,
+                u."department_name" as department_name,
+                u."group_name" as group_name,
+                u."staff_position" as staff_position
             FROM "book_rentals" r
             LEFT JOIN "book" b ON b."id"::text = r."book_id"
             LEFT JOIN "users" u ON u."user_id" = r."user_id"
@@ -148,7 +160,11 @@ impl RentalRepository {
                 b."title" as book_title,
                 b."author" as book_author,
                 b."cover_image_url" as book_cover,
-                u."full_name" as user_full_name
+                u."full_name" as user_full_name,
+                u."role" as role,
+                u."department_name" as department_name,
+                u."group_name" as group_name,
+                u."staff_position" as staff_position
             FROM "book_rentals" r
             LEFT JOIN "book" b ON b."id"::text = r."book_id"
             LEFT JOIN "users" u ON u."user_id" = r."user_id"
