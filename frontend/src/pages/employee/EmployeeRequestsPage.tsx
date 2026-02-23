@@ -3,6 +3,7 @@ import { api, type BookRequest } from '../../services/api'
 import { Search, Loader2, X, CheckCircle, XCircle, Clock, AlertCircle, BookOpen, Calendar, ChevronLeft, ChevronRight, MessageSquare } from 'lucide-react'
 import { toast } from 'react-toastify'
 import { createPortal } from 'react-dom'
+import { CustomSelect } from '../../components/CustomSelect'
 
 export default function EmployeeRequestsPage() {
     const [requests, setRequests] = useState<BookRequest[]>([])
@@ -103,18 +104,18 @@ export default function EmployeeRequestsPage() {
                         className="w-full bg-slate-900/60 border border-white/10 py-4 pr-5 pl-12 rounded-xl text-text text-[1.05rem] transition-all focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-400/15"
                     />
                 </div>
-                <select
+                <CustomSelect
                     value={statusFilter}
-                    onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-                    className="w-full md:w-auto bg-slate-900/60 border border-white/10 py-4 px-5 pr-10 rounded-xl text-text text-[1.05rem] transition-all focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-400/15 cursor-pointer appearance-none shrink-0"
-                    style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239ca3af'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1.2em' }}
-                >
-                    <option value="all">Barcha holatlar</option>
-                    <option value="pending">Kutilmoqda</option>
-                    <option value="processing">Jarayonda</option>
-                    <option value="ready">Tayyor (Tasdiqlangan)</option>
-                    <option value="rejected">Rad etilgan</option>
-                </select>
+                    onChange={(val) => { setStatusFilter(val); setPage(1); }}
+                    options={[
+                        { value: 'all', label: 'Barcha holatlar' },
+                        { value: 'pending', label: 'Kutilmoqda' },
+                        { value: 'processing', label: 'Jarayonda' },
+                        { value: 'ready', label: 'Tayyor (Tasdiqlangan)' },
+                        { value: 'rejected', label: 'Rad etilgan' }
+                    ]}
+                    buttonClassName="w-full md:w-auto bg-slate-900/60 border border-white/10 py-4 px-5 rounded-xl text-text text-[1.05rem] transition-all focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-400/15 shrink-0"
+                />
             </div>
 
             {isLoading ? (
@@ -133,18 +134,22 @@ export default function EmployeeRequestsPage() {
                         const style = getStatusStyle(req.status);
                         return (
                             <div key={req.id} className="bg-linear-to-br from-slate-800/60 to-slate-900/60 border border-white/5 rounded-3xl p-6 transition-all duration-300 relative flex flex-col shadow-lg hover:-translate-y-1 hover:border-blue-400/30 hover:shadow-blue-500/20 hover:shadow-2xl group">
-                                <div className="absolute top-6 right-6 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold tracking-wide border bg-opacity-10" style={{ backgroundColor: style.bg, color: style.color, borderColor: `${style.color}30` }}>
-                                    {style.icon}
-                                    {getStatusLabel(req.status)}
-                                </div>
-
-                                <div className="flex items-center gap-4 mb-6">
-                                    <div className="w-12 h-12 rounded-2xl bg-linear-to-br from-blue-500 to-purple-500 flex items-center justify-center font-bold text-white text-lg shadow-lg shadow-blue-500/40">
-                                        {getInitials(req.user_name)}
+                                <div className="flex items-start justify-between gap-4 mb-6">
+                                    <div className="flex items-center gap-4 min-w-0">
+                                        <div className="w-12 h-12 rounded-2xl bg-linear-to-br from-blue-500 to-purple-500 flex shrink-0 items-center justify-center font-bold text-white text-lg shadow-lg shadow-blue-500/40">
+                                            {getInitials(req.user_name)}
+                                        </div>
+                                        <div className="flex flex-col min-w-0">
+                                            <h3 className="m-0 text-[1.1rem] text-text font-bold tracking-tight truncate" title={req.user_name}>{req.user_name}</h3>
+                                            <p className="m-0 mt-1 text-[0.85rem] text-text-muted flex items-center gap-1.5"><Calendar size={14} /> {formatDate(req.created_at)}</p>
+                                        </div>
                                     </div>
-                                    <div className="flex flex-col">
-                                        <h3 className="m-0 text-[1.1rem] text-text font-bold tracking-tight">{req.user_name}</h3>
-                                        <p className="m-0 mt-1 text-[0.85rem] text-text-muted flex items-center gap-1.5"><Calendar size={14} /> {formatDate(req.created_at)}</p>
+
+                                    <div className="shrink-0 mt-1">
+                                        <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold tracking-wide border bg-opacity-10" style={{ backgroundColor: style.bg, color: style.color, borderColor: `${style.color}30` }}>
+                                            {style.icon}
+                                            {getStatusLabel(req.status)}
+                                        </div>
                                     </div>
                                 </div>
 
@@ -227,17 +232,17 @@ export default function EmployeeRequestsPage() {
                                     <AlertCircle size={18} className="text-blue-400" />
                                     Joriy holatni yangilang
                                 </label>
-                                <select
+                                <CustomSelect
                                     value={updateStatus}
-                                    onChange={(e) => setUpdateStatus(e.target.value)}
-                                    className="w-full bg-black/30 border border-white/10 py-4 px-5 pr-10 rounded-xl text-text text-[1.05rem] transition-all focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-400/15 cursor-pointer appearance-none"
-                                    style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239ca3af'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1.2em' }}
-                                >
-                                    <option value="pending" className="bg-slate-800">Kutilmoqda (Yangi)</option>
-                                    <option value="processing" className="bg-slate-800">Jarayonda (Qidirilmoqda/Ko'rilmoqda)</option>
-                                    <option value="ready" className="bg-slate-800">Tasdiqlash & Tayyor</option>
-                                    <option value="rejected" className="bg-slate-800">Rad etish</option>
-                                </select>
+                                    onChange={(val) => setUpdateStatus(val)}
+                                    options={[
+                                        { value: 'pending', label: 'Kutilmoqda (Yangi)' },
+                                        { value: 'processing', label: 'Jarayonda (Qidirilmoqda/Ko\'rilmoqda)' },
+                                        { value: 'ready', label: 'Tasdiqlash & Tayyor' },
+                                        { value: 'rejected', label: 'Rad etish' }
+                                    ]}
+                                    buttonClassName="w-full bg-black/30 border border-white/10 py-4 px-5 rounded-xl text-text text-[1.05rem] transition-all focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-400/15"
+                                />
                             </div>
 
                             <div>

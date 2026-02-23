@@ -1,23 +1,5 @@
 import { useState, useRef } from 'react'
-import {
-    User,
-    Mail,
-    Phone,
-    Building2,
-    GraduationCap,
-    BookOpen,
-    Calendar,
-    Shield,
-    Lock,
-    Eye,
-    EyeOff,
-    Check,
-    Loader2,
-    Download,
-    IdCard,
-    RotateCw,
-    MapPin,
-} from 'lucide-react'
+import { User, Mail, Phone, Building2, GraduationCap, BookOpen, Calendar, Shield, Lock, Eye, EyeOff, Check, Loader2, Download, IdCard, RotateCw, MapPin } from 'lucide-react'
 import { toast } from 'react-toastify'
 import { useAuth } from '../context/AuthContext'
 import { api } from '../services/api'
@@ -192,10 +174,10 @@ export default function ProfilePage() {
 
     return (
         <div className="p-5 md:p-8 max-w-[1400px] mx-auto min-h-[calc(100vh-80px)]">
-            <div className="mb-8">
+            {/* <div className="mb-8">
                 <h1 className="text-[1.8rem] font-bold text-text mb-1 tracking-tight">Profil</h1>
                 <p className="text-[0.95rem] text-text-muted m-0">Shaxsiy ma'lumotlar va sozlamalar</p>
-            </div>
+            </div> */}
 
             {/* Profile Header Card */}
             <div className="bg-surface rounded-2xl mb-8 p-6 md:p-8 flex flex-col md:flex-row items-center md:items-start gap-6 border border-border shadow-soft relative overflow-hidden isolate">
@@ -227,23 +209,23 @@ export default function ProfilePage() {
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-2 p-1 bg-black/20 rounded-xl mb-6 overflow-x-auto no-scrollbar w-fit border border-white/5">
+            <div className="flex w-full gap-2 p-1 bg-black/20 rounded-xl mb-6 overflow-x-auto no-scrollbar border border-white/5">
                 <button
-                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-[0.95rem] font-medium transition-all whitespace-nowrap cursor-pointer border-none outline-none ${activeTab === 'info' ? 'bg-primary text-white shadow-md' : 'bg-transparent text-text-muted hover:text-text hover:bg-white/5'}`}
+                    className={`flex-1 w-full flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-[0.95rem] font-medium transition-all whitespace-nowrap cursor-pointer border-none outline-none ${activeTab === 'info' ? 'bg-primary text-white shadow-md' : 'bg-transparent text-text-muted hover:text-text hover:bg-white/5'}`}
                     onClick={() => setActiveTab('info')}
                 >
                     <User size={16} />
                     <span>Ma'lumotlar</span>
                 </button>
                 <button
-                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-[0.95rem] font-medium transition-all whitespace-nowrap cursor-pointer border-none outline-none ${activeTab === 'password' ? 'bg-primary text-white shadow-md' : 'bg-transparent text-text-muted hover:text-text hover:bg-white/5'}`}
+                    className={`flex-1 w-full flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-[0.95rem] font-medium transition-all whitespace-nowrap cursor-pointer border-none outline-none ${activeTab === 'password' ? 'bg-primary text-white shadow-md' : 'bg-transparent text-text-muted hover:text-text hover:bg-white/5'}`}
                     onClick={() => setActiveTab('password')}
                 >
                     <Lock size={16} />
                     <span>Parol</span>
                 </button>
                 <button
-                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-[0.95rem] font-medium transition-all whitespace-nowrap cursor-pointer border-none outline-none ${activeTab === 'card' ? 'bg-primary text-white shadow-md' : 'bg-transparent text-text-muted hover:text-text hover:bg-white/5'}`}
+                    className={`flex-1 w-full flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-[0.95rem] font-medium transition-all whitespace-nowrap cursor-pointer border-none outline-none ${activeTab === 'card' ? 'bg-primary text-white shadow-md' : 'bg-transparent text-text-muted hover:text-text hover:bg-white/5'}`}
                     onClick={() => setActiveTab('card')}
                 >
                     <IdCard size={16} />
@@ -272,7 +254,7 @@ export default function ProfilePage() {
 
                 {/* ===== PASSWORD TAB ===== */}
                 {activeTab === 'password' && (
-                    <div className="bg-surface rounded-2xl p-6 md:p-8 border border-border max-w-2xl shadow-soft">
+                    <div className="bg-surface rounded-2xl p-6 md:p-8 border border-border max-w-2xl mx-auto w-full shadow-soft">
                         <div className="flex items-center gap-4 mb-6 pb-6 border-b border-border">
                             <div className="w-12 h-12 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center shrink-0">
                                 <Lock size={24} />

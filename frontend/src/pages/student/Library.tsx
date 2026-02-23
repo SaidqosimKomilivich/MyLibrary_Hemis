@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext'
 import BookCard from '../../components/BookCard'
 import BookModal from '../../components/BookModal'
 import DeleteConfirmModal from '../../components/DeleteConfirmModal'
+import { CustomSelect } from '../../components/CustomSelect'
 
 export default function Library() {
     const { role } = useAuth()
@@ -304,15 +305,16 @@ export default function Library() {
 
                         <div className="mb-6">
                             <label className="block mb-2 text-[0.9rem] opacity-80">Qanday shaklda kerak?</label>
-                            <select
+                            <CustomSelect
                                 value={requestType}
-                                onChange={(e) => setRequestType(e.target.value)}
-                                className="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white outline-none text-[1rem] cursor-pointer appearance-none focus:border-primary transition-colors hover:bg-white/10"
-                            >
-                                {requestBook.available_quantity === 0 && <option value="physical" className="bg-slate-800 text-white">Asl nusxa (kutish)</option>}
-                                <option value="electronic" className="bg-slate-800 text-white">Elektron variant (PDF/Audio)</option>
-                                {requestBook.available_quantity !== 0 && <option value="physical" className="bg-slate-800 text-white">Asl nusxa (kutish)</option>}
-                            </select>
+                                onChange={(val) => setRequestType(val)}
+                                options={[
+                                    ...(requestBook.available_quantity === 0 ? [{ value: 'physical', label: 'Asl nusxa (kutish)' }] : []),
+                                    { value: 'electronic', label: 'Elektron variant (PDF/Audio)' },
+                                    ...(requestBook.available_quantity !== 0 ? [{ value: 'physical', label: 'Asl nusxa (kutish)' }] : [])
+                                ]}
+                                buttonClassName="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white outline-none text-[1rem] transition-colors focus:border-primary hover:bg-white/10"
+                            />
                             <p className="mt-2.5 text-[0.8rem] opacity-60 leading-relaxed">
                                 {requestType === 'physical'
                                     ? "Asl nusxani so'rashda, kitob kutubxonaga qaytganida yoki tayyor bo'lganida sizga xabar beramiz."

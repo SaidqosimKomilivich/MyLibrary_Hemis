@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { GraduationCap, Briefcase, BookUser, Search, RefreshCw, X, ArrowDownToLine, CheckCircle2, Eye, Mail, Phone, Calendar, MapPin, Hash, AlertCircle, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, KeyRound, ShieldAlert, UserCog, Power } from 'lucide-react'
+import { CustomSelect } from '../../components/CustomSelect'
 import { api } from '../../services/api'
 import type { UserData } from '../../services/api'
 import { toast } from 'react-toastify'
@@ -136,20 +137,22 @@ function UserDetailModal({ user, type, onClose }: { user: UserData; type: 'stude
                 </button>
 
                 {/* Header */}
-                <div className="flex flex-col items-center pt-8 pb-5 px-6 bg-linear-to-b from-indigo-500/10 to-transparent border-b border-border gap-2">
-                    {user.image_url ? (
-                        <img src={user.image_url} alt={user.full_name} className="w-20 h-20 rounded-2xl object-cover shadow-[0_8px_24px_rgba(99,102,241,0.3)] mb-1 ring-4 ring-indigo-500/20" />
-                    ) : (
-                        <div className="flex items-center justify-center w-20 h-20 rounded-2xl bg-linear-to-br from-indigo-500 to-indigo-600 font-bold text-[1.6rem] tracking-[1px] mb-1 text-white shadow-[0_8px_24px_rgba(99,102,241,0.3)]">
-                            {getInitials(user.full_name)}
-                        </div>
-                    )}
-                    <h3 className="text-[1.25rem] font-bold text-text text-center">{user.full_name}</h3>
-                    <div className="flex items-center gap-2 mt-0.5">
-                        <span className={`inline-flex items-center py-1 px-3 rounded-full text-[0.75rem] font-bold tracking-wide ${user.active ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' : 'bg-slate-500/15 text-slate-400 border border-slate-500/20'}`}>
+                <div className="flex flex-col items-center pt-8 pb-6 px-6 bg-linear-to-b from-indigo-500/15 to-transparent border-b border-border gap-3">
+                    <div className="relative p-1.5 rounded-3xl bg-linear-to-br from-indigo-500/30 to-indigo-500/5 shadow-[0_0_40px_rgba(99,102,241,0.25)] mb-2">
+                        {user.image_url ? (
+                            <img src={user.image_url} alt={user.full_name} className="w-32 h-32 sm:w-36 sm:h-36 rounded-2xl object-cover shadow-[0_8px_24px_rgba(0,0,0,0.4)]" />
+                        ) : (
+                            <div className="flex items-center justify-center w-32 h-32 sm:w-36 sm:h-36 rounded-2xl bg-linear-to-br from-indigo-500 to-indigo-600 font-bold text-[2.5rem] tracking-[2px] text-white shadow-[0_8px_24px_rgba(99,102,241,0.4)]">
+                                {getInitials(user.full_name)}
+                            </div>
+                        )}
+                    </div>
+                    <h3 className="text-[1.35rem] leading-tight max-w-[90%] font-extrabold text-text text-center uppercase tracking-wide">{user.full_name}</h3>
+                    <div className="flex items-center gap-2 mt-1">
+                        <span className={`inline-flex items-center py-1.5 px-4 rounded-full text-[0.8rem] font-bold tracking-wide ${user.active ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.15)]' : 'bg-slate-500/20 text-slate-400 border border-slate-500/30'}`}>
                             {user.active ? 'Faol' : 'Nofaol'}
                         </span>
-                        <span className="inline-flex items-center py-1 px-3 rounded-full text-[0.75rem] font-bold bg-white/5 border border-border text-text-muted">
+                        <span className="inline-flex items-center py-1.5 px-4 rounded-full text-[0.8rem] font-bold bg-white/10 border border-white/20 text-text-muted shadow-sm">
                             {type === 'student' ? '🎓 Talaba' : type === 'teacher' ? "👨‍🏫 O'qituvchi" : '💼 Xodim'}
                         </span>
                     </div>
@@ -634,11 +637,11 @@ export default function UsersPage() {
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-hide">
+            <div className="flex gap-2 w-full overflow-x-auto pb-2 mb-4 scrollbar-hide">
                 {tabs.map(tab => (
                     <button
                         key={tab.key}
-                        className={`flex items-center gap-2.5 py-2.5 px-5 rounded-xl font-semibold text-[0.9rem] whitespace-nowrap transition-all border ${activeTab === tab.key ? 'bg-indigo-500 text-white border-transparent shadow-[0_4px_12px_rgba(99,102,241,0.25)]' : 'bg-surface border-border text-text-muted hover:border-indigo-500/30 hover:text-text hover:bg-slate-900/50'}`}
+                        className={`flex flex-1 justify-center items-center gap-2.5 py-2.5 px-5 rounded-xl font-semibold text-[0.9rem] whitespace-nowrap transition-all border ${activeTab === tab.key ? 'bg-indigo-500 text-white border-transparent shadow-[0_4px_12px_rgba(99,102,241,0.25)]' : 'bg-surface border-border text-text-muted hover:border-indigo-500/30 hover:text-text hover:bg-slate-900/50'}`}
                         onClick={() => setActiveTab(tab.key)}
                     >
                         <span className={activeTab === tab.key ? 'text-white' : 'text-indigo-400'}>{tab.icon}</span>
@@ -741,16 +744,13 @@ export default function UsersPage() {
 
                     <div className="flex items-center gap-2">
                         <label className="text-[0.82rem] font-medium text-text-muted">Sahifada:</label>
-                        <select
-                            className="py-1.5 pl-3 pr-8 bg-slate-900 border border-border rounded-lg text-[0.85rem] text-text font-medium outline-none focus:border-indigo-500 appearance-none cursor-pointer"
-                            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='%239CA3AF' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`, backgroundPosition: 'right 8px center', backgroundRepeat: 'no-repeat' }}
-                            value={pag.perPage}
-                            onChange={(e) => handlePerPageChange(Number(e.target.value))}
-                        >
-                            {PER_PAGE_OPTIONS.map(n => (
-                                <option key={n} value={n}>{n}</option>
-                            ))}
-                        </select>
+                        <CustomSelect
+                            value={String(pag.perPage)}
+                            onChange={(val) => handlePerPageChange(Number(val))}
+                            options={PER_PAGE_OPTIONS.map(n => ({ value: String(n), label: String(n) }))}
+                            buttonClassName="py-1.5 pl-3 pr-2 w-[70px] bg-slate-900 border border-border rounded-lg text-[0.85rem] text-text font-medium outline-none focus:border-indigo-500"
+                            dropUp
+                        />
                     </div>
                 </div>
             )}
@@ -931,17 +931,17 @@ export default function UsersPage() {
                             <label className="block text-[0.85rem] font-medium mb-2 opacity-80 text-text">
                                 Yangi rolni tanlang:
                             </label>
-                            <select
+                            <CustomSelect
                                 value={selectedRole}
-                                onChange={(e) => setSelectedRole(e.target.value)}
-                                className="w-full py-2.5 px-3.5 rounded-lg border border-border bg-white/5 text-text text-[0.9rem] outline-none cursor-pointer hover:border-indigo-500/50 focus:border-indigo-500 transition-colors appearance-none"
-                                style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='%239CA3AF' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`, backgroundPosition: 'right 12px center', backgroundRepeat: 'no-repeat' }}
-                            >
-                                <option value="admin" className="bg-surface text-text">👑 Administrator</option>
-                                <option value="staff" className="bg-surface text-text">💼 Xodim</option>
-                                <option value="teacher" className="bg-surface text-text">👨‍🏫 O'qituvchi</option>
-                                <option value="student" className="bg-surface text-text">🎓 Talaba</option>
-                            </select>
+                                onChange={(val) => setSelectedRole(val)}
+                                options={[
+                                    { value: 'admin', label: '👑 Administrator' },
+                                    { value: 'staff', label: '💼 Xodim' },
+                                    { value: 'teacher', label: '👨‍🏫 O\'qituvchi' },
+                                    { value: 'student', label: '🎓 Talaba' }
+                                ]}
+                                buttonClassName="w-full py-2.5 px-3.5 rounded-lg border border-border bg-white/5 text-text text-[0.9rem] outline-none cursor-pointer hover:border-indigo-500/50 focus:border-indigo-500 transition-colors"
+                            />
                         </div>
 
                         <div className="flex items-center justify-end gap-2.5 py-4 px-6 border-t border-border bg-white/5">

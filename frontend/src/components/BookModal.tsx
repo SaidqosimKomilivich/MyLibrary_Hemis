@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { X, Loader2, Upload, Check } from 'lucide-react'
 import { toast } from 'react-toastify'
 import { api, type CreateBookRequest, type Book } from '../services/api'
+import { CustomSelect } from './CustomSelect'
 
 interface BookModalProps {
     isOpen: boolean
@@ -229,25 +230,35 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
                         {/* Category */}
                         <div className="flex flex-col gap-1.5 min-w-0">
                             <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">Kategoriya</label>
-                            <select className="w-full bg-black/20 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%20%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M5%207.5L10%2012.5L15%207.5%22%20stroke%3D%22%239CA3AF%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-size-[20px] bg-position-[calc(100%-12px)_center] bg-no-repeat focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]" name="category" value={formData.category} onChange={handleChange}>
-                                <option className="bg-slate-800" value="">Tanlang</option>
-                                <option className="bg-slate-800" value="Badiiy adabiyot">Badiiy adabiyot</option>
-                                <option className="bg-slate-800" value="Darslik">Darslik</option>
-                                <option className="bg-slate-800" value="Ilmiy">Ilmiy</option>
-                                <option className="bg-slate-800" value="Siyosiy">Siyosiy</option>
-                                <option className="bg-slate-800" value="Tarixiy">Tarixiy</option>
-                                <option className="bg-slate-800" value="Texnologiya">Texnologiya</option>
-                            </select>
+                            <CustomSelect
+                                value={formData.category || ''}
+                                onChange={(val) => setFormData({ ...formData, category: val })}
+                                options={[
+                                    { value: '', label: 'Tanlang' },
+                                    { value: 'Badiiy adabiyot', label: 'Badiiy adabiyot' },
+                                    { value: 'Darslik', label: 'Darslik' },
+                                    { value: 'Ilmiy', label: 'Ilmiy' },
+                                    { value: 'Siyosiy', label: 'Siyosiy' },
+                                    { value: 'Tarixiy', label: 'Tarixiy' },
+                                    { value: 'Texnologiya', label: 'Texnologiya' }
+                                ]}
+                                buttonClassName="w-full bg-black/20 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
+                            />
                         </div>
 
                         {/* Format */}
                         <div className="flex flex-col gap-1.5 min-w-0">
                             <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">Format</label>
-                            <select className="w-full bg-black/20 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%20%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M5%207.5L10%2012.5L15%207.5%22%20stroke%3D%22%239CA3AF%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-size-[20px] bg-position-[calc(100%-12px)_center] bg-no-repeat focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]" name="format" value={formData.format} onChange={handleChange}>
-                                <option className="bg-slate-800" value="">Oddiy kitob</option>
-                                <option className="bg-slate-800" value="pdf">PDF</option>
-                                <option className="bg-slate-800" value="audio">Audio</option>
-                            </select>
+                            <CustomSelect
+                                value={formData.format || ''}
+                                onChange={(val) => setFormData({ ...formData, format: val })}
+                                options={[
+                                    { value: '', label: 'Oddiy kitob' },
+                                    { value: 'pdf', label: 'PDF' },
+                                    { value: 'audio', label: 'Audio' }
+                                ]}
+                                buttonClassName="w-full bg-black/20 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
+                            />
                         </div>
 
                         {/* ISBN */}
@@ -277,11 +288,16 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
                         {/* Language */}
                         <div className="flex flex-col gap-1.5 min-w-0">
                             <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">Til</label>
-                            <select className="w-full bg-black/20 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%20%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M5%207.5L10%2012.5L15%207.5%22%20stroke%3D%22%239CA3AF%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-size-[20px] bg-position-[calc(100%-12px)_center] bg-no-repeat focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]" name="language" value={formData.language} onChange={handleChange}>
-                                <option className="bg-slate-800" value="uz">O'zbek</option>
-                                <option className="bg-slate-800" value="ru">Rus</option>
-                                <option className="bg-slate-800" value="en">Ingliz</option>
-                            </select>
+                            <CustomSelect
+                                value={formData.language || 'uz'}
+                                onChange={(val) => setFormData({ ...formData, language: val })}
+                                options={[
+                                    { value: 'uz', label: 'O\'zbek' },
+                                    { value: 'ru', label: 'Rus' },
+                                    { value: 'en', label: 'Ingliz' }
+                                ]}
+                                buttonClassName="w-full bg-black/20 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
+                            />
                         </div>
 
                         {/* Page count */}

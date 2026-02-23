@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { api, type ReportDashboardResponse } from '../../services/api'
-import { FileSpreadsheet, Loader2, Calendar as CalendarIcon, Download, ArrowRightLeft, BookOpen, Clock, AlertCircle } from 'lucide-react'
+import { Loader2, Calendar as CalendarIcon, Download, ArrowRightLeft, BookOpen, Clock, AlertCircle } from 'lucide-react'
 import { toast } from 'react-toastify'
 
 export default function ReportsPage() {
@@ -60,237 +60,66 @@ export default function ReportsPage() {
     }
 
     return (
-        <div className="reports-page">
-            <style>{`
-                .reports-page {
-                    padding: 32px 40px;
-                    max-width: 1600px;
-                    margin: 0 auto;
-                    font-family: 'Inter', system-ui, sans-serif;
-                    min-height: 100vh;
-                }
-                .rep-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 40px;
-                    background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(59, 130, 246, 0.15) 100%);
-                    padding: 32px 40px;
-                    border-radius: 24px;
-                    border: 1px solid rgba(255, 255, 255, 0.08);
-                    position: relative;
-                    overflow: hidden;
-                    box-shadow: 0 20px 40px -20px rgba(0,0,0,0.3);
-                }
-                .rep-header::after {
-                    content: '';
-                    position: absolute;
-                    top: -50%; left: -50%;
-                    width: 200%; height: 200%;
-                    background: radial-gradient(circle at center, rgba(255,255,255,0.05) 0%, transparent 50%);
-                    pointer-events: none;
-                }
-                .rep-header h1 {
-                    font-size: 2.2rem;
-                    font-weight: 800;
-                    margin: 0 0 8px 0;
-                    background: linear-gradient(to right, #34d399, #60a5fa);
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                    letter-spacing: -0.5px;
-                }
-                .rep-header p {
-                    color: #9ca3af;
-                    margin: 0;
-                    font-size: 1.1rem;
-                    font-weight: 500;
-                }
-                
-                .export-panel {
-                    background: rgba(31, 41, 55, 0.4);
-                    border: 1px solid rgba(255, 255, 255, 0.05);
-                    border-radius: 20px;
-                    padding: 24px;
-                    margin-bottom: 32px;
-                    display: flex;
-                    align-items: center;
-                    gap: 24px;
-                    flex-wrap: wrap;
-                }
-                
-                .export-title {
-                    display: flex;
-                    align-items: center;
-                    gap: 12px;
-                    color: #f3f4f6;
-                    font-weight: 600;
-                    font-size: 1.1rem;
-                    margin-right: auto;
-                }
-                
-                .date-input-group {
-                    display: flex;
-                    align-items: center;
-                    gap: 12px;
-                    background: rgba(0,0,0,0.2);
-                    padding: 8px 16px;
-                    border-radius: 12px;
-                    border: 1px solid rgba(255,255,255,0.05);
-                }
-                
-                .date-input {
-                    background: transparent;
-                    border: none;
-                    color: #fff;
-                    font-family: inherit;
-                    outline: none;
-                    font-size: 0.95rem;
-                }
-                .date-input::-webkit-calendar-picker-indicator {
-                    filter: invert(1);
-                    opacity: 0.6;
-                    cursor: pointer;
-                }
-                
-                .export-btn {
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                    padding: 10px 20px;
-                    border-radius: 12px;
-                    border: none;
-                    font-weight: 600;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                    color: white;
-                }
-                .btn-rentals { background: linear-gradient(135deg, #3b82f6, #2563eb); }
-                .btn-controls { background: linear-gradient(135deg, #10b981, #059669); }
-                .export-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 16px -4px rgba(0,0,0,0.3); }
-                .export-btn:disabled { opacity: 0.7; cursor: not-allowed; }
-                
-                .dashboard-grid {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 32px;
-                }
-                @media (max-width: 1200px) {
-                    .dashboard-grid { grid-template-columns: 1fr; }
-                }
-                
-                .board-card {
-                    background: rgba(31, 41, 55, 0.4);
-                    border: 1px solid rgba(255, 255, 255, 0.05);
-                    border-radius: 20px;
-                    overflow: hidden;
-                }
-                
-                .board-header {
-                    padding: 20px 24px;
-                    border-bottom: 1px solid rgba(255,255,255,0.05);
-                    display: flex;
-                    align-items: center;
-                    gap: 12px;
-                    background: rgba(0,0,0,0.2);
-                }
-                
-                .board-header h3 {
-                    margin: 0;
-                    color: #fff;
-                    font-size: 1.15rem;
-                    font-weight: 600;
-                }
-                
-                .list-item {
-                    padding: 16px 24px;
-                    border-bottom: 1px dashed rgba(255,255,255,0.05);
-                    display: flex;
-                    align-items: center;
-                    gap: 16px;
-                }
-                .list-item:last-child { border-bottom: none; }
-                
-                .list-icon {
-                    width: 40px; height: 40px;
-                    border-radius: 10px;
-                    background: rgba(255,255,255,0.05);
-                    display: flex; align-items: center; justify-content: center;
-                }
-                
-                .list-content { flex: 1; }
-                .item-title { margin: 0 0 4px 0; color: #f9fafb; font-weight: 600; font-size: 0.95rem; }
-                .item-sub { margin: 0; color: #9ca3af; font-size: 0.85rem; display: flex; align-items: center; gap: 6px; }
-                
-                .status-badge {
-                    padding: 4px 10px;
-                    border-radius: 20px;
-                    font-size: 0.75rem;
-                    font-weight: 600;
-                    letter-spacing: 0.3px;
-                }
-                
-                @keyframes spin { to { transform: rotate(360deg); } }
-                .spin-icon { animation: spin 1s linear infinite; }
-            `}</style>
-
-            <div className="rep-header">
-                <div>
-                    <h1>Umumiy Hisobotlar</h1>
-                    <p>Tizimdagi keldi-ketdi va ijaralarni Excel formatida yuklash</p>
+        <div className="p-8 md:p-10 max-w-[1600px] mx-auto min-h-screen">
+            {/* <div className="flex justify-between items-center mb-10 bg-linear-to-br from-emerald-500/15 to-blue-500/15 p-8 md:p-10 rounded-3xl border border-white/10 relative overflow-hidden shadow-[0_20px_40px_-20px_rgba(0,0,0,0.3)] flex-wrap gap-6">
+                <div className="absolute top-1/2 left-1/2 w-[200%] h-[200%] bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_0%,transparent_50%)] -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
+                <div className="relative z-10">
+                    <h1 className="text-[2.2rem] font-extrabold m-0 mb-2 bg-linear-to-r from-emerald-400 to-blue-400 bg-clip-text text-transparent tracking-tight">Umumiy Hisobotlar</h1>
+                    <p className="text-text-muted m-0 text-[1.1rem] font-medium">Tizimdagi keldi-ketdi va ijaralarni Excel formatida yuklash</p>
                 </div>
-                <div style={{ padding: '16px 20px', background: 'rgba(255,255,255,0.05)', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                    <FileSpreadsheet size={28} color="#34d399" />
+                <div className="relative z-10 py-4 px-5 bg-white/5 rounded-2xl flex items-center gap-3 border border-white/10">
+                    <FileSpreadsheet size={28} className="text-emerald-400" />
                     <div>
-                        <div style={{ fontSize: '0.85rem', color: '#9ca3af', fontWeight: 500 }}>Admin Eksport</div>
-                        <div style={{ color: '#fff', fontWeight: 700 }}>.XLSX Generator</div>
+                        <div className="text-[0.85rem] text-text-muted font-medium">Admin Eksport</div>
+                        <div className="text-white font-bold">.XLSX Generator</div>
                     </div>
                 </div>
-            </div>
+            </div> */}
 
-            <div className="export-panel">
-                <div className="export-title">
-                    <Download size={22} color="#60a5fa" />
+            <div className="bg-slate-800/40 border border-white/5 rounded-[20px] p-6 mb-8 flex items-center gap-6 flex-wrap">
+                <div className="flex items-center gap-3 text-slate-100 font-semibold text-[1.1rem] mr-auto">
+                    <Download size={22} className="text-blue-400" />
                     Ma'lumotlarni qazib olish
                 </div>
 
-                <div className="date-input-group">
-                    <CalendarIcon size={18} color="#9ca3af" />
-                    <span>dan:</span>
+                <div className="flex items-center gap-3 bg-black/20 py-2 px-4 rounded-xl border border-white/5">
+                    <CalendarIcon size={18} className="text-text-muted" />
+                    <span className="text-text-muted text-[0.95rem]">dan:</span>
                     <input
                         type="date"
                         value={startDate}
                         onChange={e => setStartDate(e.target.value)}
-                        className="date-input"
+                        className="bg-transparent border-none text-white outline-none text-[0.95rem] [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-60 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                     />
                 </div>
 
-                <div className="date-input-group">
-                    <CalendarIcon size={18} color="#9ca3af" />
-                    <span>gacha:</span>
+                <div className="flex items-center gap-3 bg-black/20 py-2 px-4 rounded-xl border border-white/5">
+                    <CalendarIcon size={18} className="text-text-muted" />
+                    <span className="text-text-muted text-[0.95rem]">gacha:</span>
                     <input
                         type="date"
                         value={endDate}
                         onChange={e => setEndDate(e.target.value)}
-                        className="date-input"
+                        className="bg-transparent border-none text-white outline-none text-[0.95rem] [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-60 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                     />
                 </div>
 
-                <div style={{ display: 'flex', gap: 12 }}>
+                <div className="flex gap-3">
                     <button
-                        className="export-btn btn-rentals"
+                        className="flex items-center gap-2 py-2.5 px-5 rounded-xl border-none font-semibold cursor-pointer transition-all text-white bg-linear-to-br from-blue-500 to-blue-600 hover:-translate-y-0.5 hover:shadow-[0_8px_16px_-4px_rgba(0,0,0,0.3)] disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
                         onClick={() => handleExport('rentals')}
                         disabled={exporting !== null}
                     >
-                        {exporting === 'rentals' ? <Loader2 size={18} className="spin-icon" /> : <BookOpen size={18} />}
+                        {exporting === 'rentals' ? <Loader2 size={18} className="animate-spin" /> : <BookOpen size={18} />}
                         Ijaralarni yuklash
                     </button>
 
                     <button
-                        className="export-btn btn-controls"
+                        className="flex items-center gap-2 py-2.5 px-5 rounded-xl border-none font-semibold cursor-pointer transition-all text-white bg-linear-to-br from-emerald-500 to-emerald-600 hover:-translate-y-0.5 hover:shadow-[0_8px_16px_-4px_rgba(0,0,0,0.3)] disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
                         onClick={() => handleExport('controls')}
                         disabled={exporting !== null}
                     >
-                        {exporting === 'controls' ? <Loader2 size={18} className="spin-icon" /> : <ArrowRightLeft size={18} />}
+                        {exporting === 'controls' ? <Loader2 size={18} className="animate-spin" /> : <ArrowRightLeft size={18} />}
                         Keldi-ketdini yuklash
                     </button>
                 </div>

@@ -46,7 +46,7 @@ export default function BookCard({ book, role, onEdit, onDelete, onViewPdf, onLi
                 {/* Add to reading button */}
                 {onAddReading && (
                     <button
-                        className="absolute bottom-3 right-3 w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center border-none cursor-pointer shadow-lg transition-transform duration-200 hover:scale-110 hover:bg-emerald-400 z-10"
+                        className="absolute bottom-3 right-3 w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center border-none cursor-pointer shadow-lg transition-transform duration-200 hover:scale-110 hover:bg-emerald-400 z-20"
                         onClick={(e) => { e.stopPropagation(); onAddReading(book) }}
                         title="O'qiyotganlar ro'yxatiga qo'shish"
                     >
@@ -57,7 +57,7 @@ export default function BookCard({ book, role, onEdit, onDelete, onViewPdf, onLi
                 {/* Remove from reading button */}
                 {onRemoveReading && (
                     <button
-                        className="absolute bottom-3 right-3 w-10 h-10 rounded-full bg-rose-500 text-white flex items-center justify-center border-none cursor-pointer shadow-lg transition-transform duration-200 hover:scale-110 hover:bg-rose-400 z-10"
+                        className="absolute bottom-3 right-3 w-10 h-10 rounded-full bg-rose-500 text-white flex items-center justify-center border-none cursor-pointer shadow-lg transition-transform duration-200 hover:scale-110 hover:bg-rose-400 z-20"
                         onClick={(e) => { e.stopPropagation(); onRemoveReading(book) }}
                         title="Ro'yxatdan olib tashlash"
                     >

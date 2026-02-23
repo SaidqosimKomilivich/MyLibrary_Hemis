@@ -94,20 +94,20 @@ export default function EmployeeRentalsPage() {
 
     return (
         <div className="p-8 md:p-10 max-w-[1600px] mx-auto min-h-screen">
-            <div className="flex gap-3 mb-6 overflow-x-auto pb-3">
-                <button className={`px-6 py-3 rounded-xl border font-semibold text-[0.95rem] whitespace-nowrap transition-all ${filter === 'all' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400 shadow-[0_4px_12px_-4px_rgba(59,130,246,0.3)]' : 'bg-slate-800/50 border-white/5 text-text-muted hover:bg-slate-700/80 hover:text-slate-200'}`} onClick={() => setFilter('all')}>
+            <div className="flex w-full gap-3 mb-6 overflow-x-auto pb-3 hide-scrollbar">
+                <button className={`flex-1 w-full flex items-center justify-center px-4 py-3 rounded-xl border font-semibold text-[0.95rem] whitespace-nowrap transition-all ${filter === 'all' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400 shadow-[0_4px_12px_-4px_rgba(59,130,246,0.3)]' : 'bg-slate-800/50 border-white/5 text-text-muted hover:bg-slate-700/80 hover:text-slate-200'}`} onClick={() => setFilter('all')}>
                     Barcha ijara qilinganlar
                 </button>
-                <button className={`px-6 py-3 rounded-xl border font-semibold text-[0.95rem] whitespace-nowrap transition-all ${filter === 'active' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400 shadow-[0_4px_12px_-4px_rgba(59,130,246,0.3)]' : 'bg-slate-800/50 border-white/5 text-text-muted hover:bg-slate-700/80 hover:text-slate-200'}`} onClick={() => setFilter('active')}>
+                <button className={`flex-1 w-full flex items-center justify-center px-4 py-3 rounded-xl border font-semibold text-[0.95rem] whitespace-nowrap transition-all ${filter === 'active' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400 shadow-[0_4px_12px_-4px_rgba(59,130,246,0.3)]' : 'bg-slate-800/50 border-white/5 text-text-muted hover:bg-slate-700/80 hover:text-slate-200'}`} onClick={() => setFilter('active')}>
                     Topshirmagan (Ijarada)
                 </button>
-                <button className={`px-6 py-3 rounded-xl border font-semibold text-[0.95rem] whitespace-nowrap transition-all ${filter === 'due_soon' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400 shadow-[0_4px_12px_-4px_rgba(59,130,246,0.3)]' : 'bg-slate-800/50 border-white/5 text-text-muted hover:bg-slate-700/80 hover:text-slate-200'}`} onClick={() => setFilter('due_soon')}>
+                <button className={`flex-1 w-full flex items-center justify-center px-4 py-3 rounded-xl border font-semibold text-[0.95rem] whitespace-nowrap transition-all ${filter === 'due_soon' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400 shadow-[0_4px_12px_-4px_rgba(59,130,246,0.3)]' : 'bg-slate-800/50 border-white/5 text-text-muted hover:bg-slate-700/80 hover:text-slate-200'}`} onClick={() => setFilter('due_soon')}>
                     Muddati kelgan (Qaytarish vaqti)
                 </button>
-                <button className={`px-6 py-3 rounded-xl border font-semibold text-[0.95rem] whitespace-nowrap transition-all ${filter === 'overdue' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400 shadow-[0_4px_12px_-4px_rgba(59,130,246,0.3)]' : 'bg-slate-800/50 border-white/5 text-text-muted hover:bg-slate-700/80 hover:text-slate-200'}`} onClick={() => setFilter('overdue')}>
+                <button className={`flex-1 w-full flex items-center justify-center px-4 py-3 rounded-xl border font-semibold text-[0.95rem] whitespace-nowrap transition-all ${filter === 'overdue' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400 shadow-[0_4px_12px_-4px_rgba(59,130,246,0.3)]' : 'bg-slate-800/50 border-white/5 text-text-muted hover:bg-slate-700/80 hover:text-slate-200'}`} onClick={() => setFilter('overdue')}>
                     Muddati o'tgan
                 </button>
-                <button className={`px-6 py-3 rounded-xl border font-semibold text-[0.95rem] whitespace-nowrap transition-all ${filter === 'returned' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400 shadow-[0_4px_12px_-4px_rgba(59,130,246,0.3)]' : 'bg-slate-800/50 border-white/5 text-text-muted hover:bg-slate-700/80 hover:text-slate-200'}`} onClick={() => setFilter('returned')}>
+                <button className={`flex-1 w-full flex items-center justify-center px-4 py-3 rounded-xl border font-semibold text-[0.95rem] whitespace-nowrap transition-all ${filter === 'returned' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400 shadow-[0_4px_12px_-4px_rgba(59,130,246,0.3)]' : 'bg-slate-800/50 border-white/5 text-text-muted hover:bg-slate-700/80 hover:text-slate-200'}`} onClick={() => setFilter('returned')}>
                     Topshirgan (Arxiv)
                 </button>
             </div>

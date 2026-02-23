@@ -76,13 +76,13 @@ impl ControlRepository {
         let records = sqlx::query_as::<_, ControlWithUser>(
             r#"SELECT 
                  c."id", c."user_id", c."arrival", c."departure",
-                 u."full_name" as "full_name?",
-                 u."role" as "role?",
-                 u."department_name" as "department_name?",
-                 u."group_name" as "group_name?",
-                 u."staff_position" as "staff_position?"
+                 u."full_name",
+                 u."role",
+                 u."department_name",
+                 u."group_name",
+                 u."staff_position"
                FROM "control" c
-               LEFT JOIN "users" u ON u."id"::text = c."user_id"
+               LEFT JOIN "users" u ON u."user_id" = c."user_id"
                WHERE c."user_id" = $1
                ORDER BY c."arrival" DESC"#,
         )
@@ -98,13 +98,13 @@ impl ControlRepository {
         let records = sqlx::query_as::<_, ControlWithUser>(
             r#"SELECT 
                  c."id", c."user_id", c."arrival", c."departure",
-                 u."full_name" as "full_name?",
-                 u."role" as "role?",
-                 u."department_name" as "department_name?",
-                 u."group_name" as "group_name?",
-                 u."staff_position" as "staff_position?"
+                 u."full_name",
+                 u."role",
+                 u."department_name",
+                 u."group_name",
+                 u."staff_position"
                FROM "control" c
-               LEFT JOIN "users" u ON u."id"::text = c."user_id"
+               LEFT JOIN "users" u ON u."user_id" = c."user_id"
                WHERE c."arrival"::date = CURRENT_DATE
                ORDER BY c."arrival" DESC"#,
         )
