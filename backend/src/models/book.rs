@@ -28,6 +28,8 @@ pub struct Book {
     pub available_quantity: Option<i32>,
     pub rating: Option<f64>,
     pub is_active: Option<bool>,
+    pub submitted_by: Option<String>,
+    pub admin_comment: Option<String>,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }

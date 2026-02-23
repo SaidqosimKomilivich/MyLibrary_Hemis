@@ -110,11 +110,18 @@ async fn main() -> std::io::Result<()> {
             // Book routes
             .service(
                 web::scope("/api/books")
+                    // ⚠️ Aniq yo'llar /{id} DAN OLDIN bo'lishi shart!
                     .route("", web::get().to(book_handler::get_books))
-                    .route("/{id}", web::get().to(book_handler::get_book))
                     .route("", web::post().to(book_handler::create_book))
+                    .route("/submit", web::post().to(book_handler::submit_book))
+                    .route("/pending", web::get().to(book_handler::get_pending_books))
+                    .route("/my-submissions", web::get().to(book_handler::get_my_submissions))
+                    .route("/set-all-active", web::put().to(book_handler::set_all_active))
+                    // /{id} routelari — eng oxirida
+                    .route("/{id}", web::get().to(book_handler::get_book))
                     .route("/{id}", web::put().to(book_handler::update_book))
-                    .route("/{id}", web::delete().to(book_handler::delete_book)),
+                    .route("/{id}", web::delete().to(book_handler::delete_book))
+                    .route("/{id}/toggle-active", web::put().to(book_handler::toggle_book_active)),
             )
             // Control routes (foydalanuvchilar kelib-ketishini nazorat qilish)
             .service(

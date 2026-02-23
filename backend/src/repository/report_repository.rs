@@ -62,7 +62,7 @@ impl ReportRepository {
                 u."group_name" as "group_name?",
                 u."staff_position" as "staff_position?"
             FROM "control" c
-            LEFT JOIN "users" u ON u."id"::text = c."user_id"
+            LEFT JOIN "users" u ON u."user_id" = c."user_id"
             ORDER BY c."arrival" DESC
             LIMIT $1"#,
             limit
@@ -136,7 +136,7 @@ impl ReportRepository {
                 u."group_name" as "group_name?",
                 u."staff_position" as "staff_position?"
             FROM "control" c
-            LEFT JOIN "users" u ON u."id"::text = c."user_id"
+            LEFT JOIN "users" u ON u."user_id" = c."user_id"
             WHERE DATE(c."arrival") >= $1 AND DATE(c."arrival") <= $2
             ORDER BY c."arrival" DESC"#,
             start_date,

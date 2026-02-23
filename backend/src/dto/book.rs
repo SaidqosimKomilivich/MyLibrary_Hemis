@@ -61,6 +61,11 @@ pub struct PaginationParams {
     pub category: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct ToggleActiveRequest {
+    pub admin_comment: Option<String>,
+}
+
 /// Paginatsiyali javob
 #[derive(Debug, Serialize)]
 pub struct PaginatedBooksResponse {
@@ -104,6 +109,8 @@ pub struct BookResponse {
     pub available_quantity: Option<i32>,
     pub rating: Option<f64>,
     pub is_active: Option<bool>,
+    pub submitted_by: Option<String>,
+    pub admin_comment: Option<String>,
 }
 
 impl From<crate::models::book::Book> for BookResponse {
@@ -133,6 +140,8 @@ impl From<crate::models::book::Book> for BookResponse {
             available_quantity: book.available_quantity,
             rating: book.rating,
             is_active: book.is_active,
+            submitted_by: book.submitted_by,
+            admin_comment: book.admin_comment,
         }
     }
 }
