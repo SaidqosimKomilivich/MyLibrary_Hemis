@@ -82,6 +82,12 @@ impl BookService {
         Ok(books.into_iter().map(BookResponse::from).collect())
     }
 
+    /// O'qituvchilar tomonidan taqdim etilgan barcha kitoblarni olish
+    pub async fn get_all_submitted_books(pool: &PgPool) -> Result<Vec<BookResponse>, AppError> {
+        let books = BookRepository::find_all_submitted(pool).await?;
+        Ok(books.into_iter().map(BookResponse::from).collect())
+    }
+
     /// is_active ni almashtirish — admin/staff uchun
     pub async fn toggle_active(pool: &PgPool, id: Uuid, comment: Option<String>) -> Result<BookResponse, AppError> {
         let book = BookRepository::toggle_active(pool, id, comment)

@@ -189,6 +189,11 @@ export const api = {
         return request<{ success: boolean; data: Book[] }>('/books/my-submissions')
     },
 
+    // Admin/Staff fetching all submitted books
+    getTeacherSubmissions() {
+        return request<{ success: boolean; data: Book[] }>('/books/teacher-submissions')
+    },
+
     setAllBooksActive(active: boolean) {
         return request<{ success: boolean; affected: number; message: string }>('/books/set-all-active', {
             method: 'PUT',
@@ -429,7 +434,7 @@ export const api = {
         return request<{ success: boolean; data: ReportDashboardResponse }>('/reports/dashboard')
     },
 
-    exportReportExcel(type: 'rentals' | 'controls', startDate?: string, endDate?: string) {
+    exportReportExcel(type: 'rentals' | 'controls' | 'submissions', startDate?: string, endDate?: string) {
         const query = new URLSearchParams()
         query.append('report_type', type)
         if (startDate) query.append('start_date', startDate)

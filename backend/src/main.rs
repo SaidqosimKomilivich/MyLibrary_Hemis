@@ -115,6 +115,7 @@ async fn main() -> std::io::Result<()> {
                     .route("", web::post().to(book_handler::create_book))
                     .route("/submit", web::post().to(book_handler::submit_book))
                     .route("/pending", web::get().to(book_handler::get_pending_books))
+                    .route("/teacher-submissions", web::get().to(book_handler::get_teacher_submissions))
                     .route("/my-submissions", web::get().to(book_handler::get_my_submissions))
                     .route("/set-all-active", web::put().to(book_handler::set_all_active))
                     // /{id} routelari — eng oxirida

@@ -120,6 +120,47 @@ impl ReportRepository {
         Ok(records.into_iter().map(|r| r.into_response()).collect())
     }
 
+    /// Belgilangan sanalar oralig'idagi o'qituvchilar taqdim qilgan kitoblarni olish
+    pub async fn get_submissions_by_date(
+        pool: &PgPool,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<Vec<crate::dto::report::SubmittedBookReportResponse>, AppError> {
+        let records = sqlx::query!(
+            r#"SELECT 
+                b."id", 
+                b."title", 
+                b."author", 
+                b."is_active", 
+                b."admin_comment", 
+                b."created_at",
+                u."full_name" as "teacher_name?"
+            FROM "book" b
+            LEFT JOIN "users" u ON u."id"::text = b."submitted_by"
+            WHERE b."submitted_by" IS NOT NULL
+              AND DATE(b."created_at") >= $1 
+              AND DATE(b."created_at") <= $2
+            ORDER BY b."created_at" DESC"#,
+            start_date,
+            end_date
+        )
+        .fetch_all(pool)
+        .await?;
+
+        Ok(records
+            .into_iter()
+            .map(|r| crate::dto::report::SubmittedBookReportResponse {
+                id: r.id,
+                title: r.title,
+                author: r.author,
+                status: if r.is_active.unwrap_or(false) { "Faol".to_string() } else { "Kutilmoqda".to_string() },
+                admin_comment: r.admin_comment,
+                submitted_at: r.created_at.format("%Y-%m-%d %H:%M:%S").to_string(),
+                teacher_full_name: r.teacher_name,
+            })
+            .collect())
+    }
+
     /// Belgilangan sanalar oralig'idagi keldi-ketdilarni olish Excel uchun
     pub async fn get_controls_by_date(
         pool: &PgPool,

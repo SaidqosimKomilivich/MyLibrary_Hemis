@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { Briefcase, Search, RefreshCw, X, ArrowDownToLine, CheckCircle2, Eye, KeyRound, Power, AlertCircle, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, ShieldAlert, UserCog } from 'lucide-react'
+import { Briefcase, Search, RefreshCw, X, ArrowDownToLine, CheckCircle2, Eye, KeyRound, Power, AlertCircle, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, ShieldAlert, UserCog, Hash, BookUser, Mail, Phone, Calendar } from 'lucide-react'
 import { CustomSelect } from '../../components/CustomSelect'
 import { api } from '../../services/api'
 import type { UserData } from '../../services/api'
@@ -60,51 +60,61 @@ function UserDetailModal({ user, onClose }: { user: UserData; onClose: () => voi
     const getInitials = (name: string) => name.split(' ').map(n => n[0]).join('')
 
     const infoRows = [
-        { label: "Bo'lim", value: user.department_name || "Noma'lum" },
-        { label: 'Lavozim', value: user.staff_position || "Noma'lum" },
-        { label: 'Role', value: user.role === 'staff' ? 'Kutubxonachi' : user.role },
-        { label: 'Holat', value: user.active ? 'Faol' : 'Nofaol' }
+        { icon: <Hash size={16} />, label: 'ID', value: user.user_id },
+        { icon: <Briefcase size={16} />, label: "Bo'lim", value: user.department_name || "Noma'lum" },
+        { icon: <BookUser size={16} />, label: 'Lavozim', value: user.staff_position || "Noma'lum" },
+        { icon: <ShieldAlert size={16} />, label: 'Rol', value: user.role === 'staff' ? 'Kutubxonachi' : user.role === 'admin' ? 'Administrator' : user.role === 'teacher' ? "O'qituvchi" : user.role },
+        { icon: <Mail size={16} />, label: 'Email', value: user.email || '-' },
+        { icon: <Phone size={16} />, label: 'Telefon', value: user.phone || '-' },
+        { icon: <Calendar size={16} />, label: "Tug'ilgan sana", value: user.birth_date || '-' },
     ]
 
-    return (
-        <div className="fixed inset-0 z-200 flex items-center justify-center p-4 bg-black/60 backdrop-blur-[2px] animate-fade-in" onClick={onClose}>
-            <div className="relative w-full max-w-md bg-surface border border-border rounded-2xl overflow-hidden shadow-2xl animate-modal-scale" onClick={e => e.stopPropagation()}>
-                <div className="absolute top-0 left-0 w-full h-24 bg-linear-to-r from-primary/80 to-accent/80 opacity-40"></div>
-                <div className="relative flex justify-end p-4">
-                    <button className="flex items-center justify-center w-8 h-8 rounded-full bg-black/20 text-white hover:bg-black/40 transition-colors" onClick={onClose}>
-                        <X size={18} />
-                    </button>
-                </div>
+    return createPortal(
+        <div className="fixed inset-0 z-300 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={onClose}>
+            <div className="relative w-full max-w-[480px] bg-surface border border-border rounded-2xl overflow-hidden animate-modal-scale shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                <button className="absolute top-3.5 right-3.5 flex items-center justify-center w-8 h-8 rounded-lg border-none bg-transparent text-text-muted hover:bg-white/10 hover:text-text transition-colors z-10" onClick={onClose}>
+                    <X size={18} />
+                </button>
 
-                <div className="relative px-6 pb-6 mt-[-30px]">
-                    <div className="flex flex-col items-center mb-6">
+                {/* Header */}
+                <div className="flex flex-col items-center pt-8 pb-6 px-6 bg-linear-to-b from-indigo-500/15 to-transparent border-b border-border gap-3">
+                    <div className="relative p-1.5 rounded-3xl bg-linear-to-br from-indigo-500/30 to-indigo-500/5 shadow-[0_0_40px_rgba(99,102,241,0.25)] mb-2">
                         {user.image_url ? (
-                            <img src={user.image_url} alt={user.full_name} className="w-24 h-24 rounded-full object-cover border-4 border-surface shadow-lg mb-4" />
+                            <img src={user.image_url} alt={user.full_name} className="w-32 h-32 sm:w-36 sm:h-36 rounded-2xl object-cover shadow-[0_8px_24px_rgba(0,0,0,0.4)]" />
                         ) : (
-                            <div className="flex items-center justify-center w-24 h-24 rounded-full border-4 border-surface bg-linear-to-br from-indigo-500 to-indigo-600 text-white font-bold text-3xl shadow-lg mb-4">
+                            <div className="flex items-center justify-center w-32 h-32 sm:w-36 sm:h-36 rounded-2xl bg-linear-to-br from-indigo-500 to-indigo-600 font-bold text-[2.5rem] tracking-[2px] text-white shadow-[0_8px_24px_rgba(99,102,241,0.4)]">
                                 {getInitials(user.full_name)}
                             </div>
                         )}
-                        <h2 className="text-xl font-bold text-text text-center">{user.full_name}</h2>
-                        <div className="text-sm text-text-muted mt-1 bg-surface-hover py-1 px-3 rounded-full border border-border">
-                            Hemis ID: <span className="font-mono text-text">{user.user_id}</span>
-                        </div>
                     </div>
-
-                    <div className="space-y-3">
-                        <div className="text-xs font-semibold uppercase tracking-wider text-text-muted mb-2 pb-2 border-b border-border">Xodim Ma'lumotlari</div>
-                        {infoRows.map((row, i) => (
-                            <div key={i} className="flex justify-between items-center py-2 px-3 rounded-lg hover:bg-white/5 transition-colors">
-                                <div className="flex items-center gap-3 text-sm text-text-muted">
-                                    <span className="font-medium">{row.label}</span>
-                                </div>
-                                <div className="text-sm font-semibold text-text text-right max-w-[60%] truncate" title={row.value}>{row.value}</div>
-                            </div>
-                        ))}
+                    <h3 className="text-[1.35rem] leading-tight max-w-[90%] font-extrabold text-text text-center uppercase tracking-wide">{user.full_name}</h3>
+                    <div className="flex items-center gap-2 mt-1">
+                        <span className={`inline-flex items-center py-1.5 px-4 rounded-full text-[0.8rem] font-bold tracking-wide ${user.active ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.15)]' : 'bg-slate-500/20 text-slate-400 border border-slate-500/30'}`}>
+                            {user.active ? 'Faol' : 'Nofaol'}
+                        </span>
+                        <span className="inline-flex items-center py-1.5 px-4 rounded-full text-[0.8rem] font-bold bg-white/10 border border-white/20 text-text-muted shadow-sm">
+                            {user.role === 'admin' ? '👑 Admin' : '💼 Kutubxonachi'}
+                        </span>
                     </div>
                 </div>
+
+                {/* Info rows */}
+                <div className="flex flex-col gap-1 p-5 pb-6">
+                    {infoRows.map((row, i) => (
+                        <div key={i} className="flex items-center gap-3.5 py-2.5 px-3 rounded-xl transition-colors hover:bg-white/5 group">
+                            <div className="flex items-center justify-center w-9 h-9 shrink-0 rounded-xl bg-white/5 border border-border text-text-muted group-hover:text-indigo-400 group-hover:bg-indigo-500/10 group-hover:border-indigo-500/20 transition-colors">
+                                {row.icon}
+                            </div>
+                            <div className="flex flex-col min-w-0">
+                                <span className="text-[0.7rem] font-semibold uppercase tracking-[0.05em] text-text-muted mb-0.5">{row.label}</span>
+                                <span className="text-[0.9rem] font-medium text-text wrap-break-word leading-tight">{row.value}</span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </div>
-        </div>
+        </div>,
+        document.body
     )
 }
 

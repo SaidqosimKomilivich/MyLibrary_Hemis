@@ -6,7 +6,7 @@ import { toast } from 'react-toastify'
 export default function ReportsPage() {
     const [dashboardData, setDashboardData] = useState<ReportDashboardResponse | null>(null)
     const [isLoading, setIsLoading] = useState(true)
-    const [exporting, setExporting] = useState<'rentals' | 'controls' | null>(null)
+    const [exporting, setExporting] = useState<'rentals' | 'controls' | 'submissions' | null>(null)
 
     // Export filters
     const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0])
@@ -30,7 +30,7 @@ export default function ReportsPage() {
         fetchDashboard()
     }, [])
 
-    const handleExport = async (type: 'rentals' | 'controls') => {
+    const handleExport = async (type: 'rentals' | 'controls' | 'submissions') => {
         setExporting(type)
         try {
             const blob = await api.exportReportExcel(type, startDate, endDate)
@@ -104,7 +104,7 @@ export default function ReportsPage() {
                     />
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex gap-3 flex-wrap">
                     <button
                         className="flex items-center gap-2 py-2.5 px-5 rounded-xl border-none font-semibold cursor-pointer transition-all text-white bg-linear-to-br from-blue-500 to-blue-600 hover:-translate-y-0.5 hover:shadow-[0_8px_16px_-4px_rgba(0,0,0,0.3)] disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
                         onClick={() => handleExport('rentals')}
@@ -121,6 +121,15 @@ export default function ReportsPage() {
                     >
                         {exporting === 'controls' ? <Loader2 size={18} className="animate-spin" /> : <ArrowRightLeft size={18} />}
                         Keldi-ketdini yuklash
+                    </button>
+
+                    <button
+                        className="flex items-center gap-2 py-2.5 px-5 rounded-xl border-none font-semibold cursor-pointer transition-all text-white bg-linear-to-br from-purple-500 to-purple-600 hover:-translate-y-0.5 hover:shadow-[0_8px_16px_-4px_rgba(0,0,0,0.3)] disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
+                        onClick={() => handleExport('submissions')}
+                        disabled={exporting !== null}
+                    >
+                        {exporting === 'submissions' ? <Loader2 size={18} className="animate-spin" /> : <BookOpen size={18} />}
+                        Taqdim etilganlarni yuklash
                     </button>
                 </div>
             </div>

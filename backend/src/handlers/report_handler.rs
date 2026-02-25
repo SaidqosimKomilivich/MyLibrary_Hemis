@@ -63,6 +63,8 @@ pub async fn export_excel(
 
     let p = pool.get_ref();
     let is_rentals = params.report_type == "rentals";
+    let is_controls = params.report_type == "controls";
+    let is_submissions = params.report_type == "submissions";
 
     // 1. Data fetching and checking
     let mut workbook = Workbook::new();
@@ -124,7 +126,7 @@ pub async fn export_excel(
 
         let _ = worksheet.autofit();
 
-    } else {
+    } else if is_controls {
         // Keldi-ketdi (controls)
         let data = ReportRepository::get_controls_by_date(p, start_date, end_date).await?;
         
@@ -171,6 +173,39 @@ pub async fn export_excel(
         }
 
         let _ = worksheet.autofit();
+    } else if is_submissions {
+        // Taqdim etilgan kitoblar (submissions)
+        let data = ReportRepository::get_submissions_by_date(p, start_date, end_date).await?;
+        
+        if data.is_empty() {
+            return Err(AppError::NotFound("Tanlangan kunlar oralig'ida mualliflar taqdim etgan kitoblar topilmadi".into()));
+        }
+
+        // Sarlavhalar
+        let _ = worksheet.write_string_with_format(0, 0, "Tr", &header_format);
+        let _ = worksheet.write_string_with_format(0, 1, "Taqdim etilgan sana", &header_format);
+        let _ = worksheet.write_string_with_format(0, 2, "Kitob nomi", &header_format);
+        let _ = worksheet.write_string_with_format(0, 3, "Mualliflar", &header_format);
+        let _ = worksheet.write_string_with_format(0, 4, "O'qituvchi FISH", &header_format);
+        let _ = worksheet.write_string_with_format(0, 5, "Holati", &header_format);
+        let _ = worksheet.write_string_with_format(0, 6, "Admin izohi", &header_format);
+
+        // Ma'lumotlar
+        for (i, row) in data.iter().enumerate() {
+            let row_idx = (i + 1) as u32;
+
+            let _ = worksheet.write_number(row_idx, 0, (i + 1) as f64);
+            let _ = worksheet.write_string(row_idx, 1, &row.submitted_at);
+            let _ = worksheet.write_string(row_idx, 2, &row.title);
+            let _ = worksheet.write_string(row_idx, 3, &row.author);
+            let _ = worksheet.write_string(row_idx, 4, row.teacher_full_name.as_deref().unwrap_or("-"));
+            let _ = worksheet.write_string(row_idx, 5, &row.status);
+            let _ = worksheet.write_string(row_idx, 6, row.admin_comment.as_deref().unwrap_or("-"));
+        }
+
+        let _ = worksheet.autofit();
+    } else {
+        return Err(AppError::BadRequest("Noto'g'ri hisobot turi".into()));
     }
 
     // Xotiraga saqlash va javob berish
@@ -183,7 +218,7 @@ pub async fn export_excel(
         .append_header((
             "Content-Disposition",
             format!("attachment; filename=\"report_{}_{}_{}.xlsx\"", 
-                if is_rentals { "rentals" } else { "control" },
+                if is_rentals { "rentals" } else if is_controls { "controls" } else { "submissions" },
                 start_date.format("%Y%m%d"),
                 end_date.format("%Y%m%d")
             ),

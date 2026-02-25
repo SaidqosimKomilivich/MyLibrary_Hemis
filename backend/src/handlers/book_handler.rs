@@ -153,6 +153,22 @@ pub async fn get_pending_books(
     })))
 }
 
+/// GET /api/books/teacher-submissions — Admin/xodim: O'qituvchilar taqdim etgan barcha kitoblar
+pub async fn get_teacher_submissions(
+    pool: web::Data<PgPool>,
+    claims: Claims,
+) -> Result<HttpResponse, AppError> {
+    if let Err(resp) = auth_middleware::require_role(&claims, &["admin", "staff"]) {
+        return Ok(resp);
+    }
+
+    let books = BookService::get_all_submitted_books(pool.get_ref()).await?;
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "success": true,
+        "data": books
+    })))
+}
+
 /// GET /api/books/my-submissions — O'qituvchi o'zi yuborgan kitoblar
 pub async fn get_my_submissions(
     pool: web::Data<PgPool>,

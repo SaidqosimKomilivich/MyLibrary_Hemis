@@ -167,6 +167,16 @@ impl BookRepository {
         Ok(books)
     }
 
+    /// O'qituvchilar tomonidan taqdim etilgan barcha kitoblarni olish
+    pub async fn find_all_submitted(pool: &PgPool) -> Result<Vec<Book>, AppError> {
+        let books = sqlx::query_as::<_, Book>(
+            r#"SELECT * FROM "book" WHERE "submitted_by" IS NOT NULL ORDER BY "created_at" DESC"#
+        )
+        .fetch_all(pool)
+        .await?;
+        Ok(books)
+    }
+
     /// Kitobni ID bo'yicha topish
     pub async fn find_by_id(pool: &PgPool, id: Uuid) -> Result<Option<Book>, AppError> {
         let book = sqlx::query_as::<_, Book>(r#"SELECT * FROM "book" WHERE "id" = $1"#)

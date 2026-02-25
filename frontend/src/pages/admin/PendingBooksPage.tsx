@@ -13,9 +13,10 @@ interface ConfirmState {
 
 export default function PendingBooksPage() {
     const [books, setBooks] = useState<Book[]>([])
-    const [allBooks, setAllBooks] = useState<Book[]>([])
+    const [teacherBooks, setTeacherBooks] = useState<Book[]>([])
     const [loading, setLoading] = useState(true)
-    const [tab, setTab] = useState<'pending' | 'all'>('pending')
+    const [tab, setTab] = useState<'pending' | 'teachers'>('pending')
+    const [searchTerm, setSearchTerm] = useState('')
     const [togglingId, setTogglingId] = useState<string | null>(null)
     const [detailBook, setDetailBook] = useState<Book | null>(null)
     const [confirm, setConfirm] = useState<ConfirmState | null>(null)
@@ -29,16 +30,16 @@ export default function PendingBooksPage() {
         }
     }
 
-    const loadAll = async () => {
+    const loadTeacherBooks = async () => {
         try {
-            const res = await api.getBooks({ page: 1 })
-            setAllBooks(res.data || [])
+            const res = await api.getTeacherSubmissions()
+            setTeacherBooks(res.data || [])
         } catch { }
     }
 
     const refresh = () => {
         setLoading(true)
-        Promise.all([loadPending(), loadAll()]).finally(() => setLoading(false))
+        Promise.all([loadPending(), loadTeacherBooks()]).finally(() => setLoading(false))
     }
 
     useEffect(() => { refresh() }, [])
@@ -66,7 +67,7 @@ export default function PendingBooksPage() {
             if (comment.trim()) {
                 toast.info(`📝 Izoh: ${comment.trim()}`, { autoClose: 6000 })
             }
-            await Promise.all([loadPending(), loadAll()])
+            await Promise.all([loadPending(), loadTeacherBooks()])
         } catch (err: any) {
             toast.error(err.message || "Amalni bajarib bo'lmadi")
         } finally {
@@ -74,7 +75,12 @@ export default function PendingBooksPage() {
         }
     }
 
-    const displayBooks = tab === 'pending' ? books : allBooks
+    const baseDisplayBooks = tab === 'pending' ? books : teacherBooks
+    const displayBooks = baseDisplayBooks.filter(book =>
+        (book.title?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
+        (book.author?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
+        (book.category?.toLowerCase().includes(searchTerm.toLowerCase()) || false)
+    )
 
     const ACTION_CONFIG = {
         approve: {
@@ -129,7 +135,7 @@ export default function PendingBooksPage() {
             </div>
 
             {/* Stats row */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
                 <div className="flex items-center gap-3 p-4 bg-surface border border-border rounded-xl">
                     <div className="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0">
                         <Clock size={20} className="text-amber-400" />
@@ -140,44 +146,53 @@ export default function PendingBooksPage() {
                     </div>
                 </div>
                 <div className="flex items-center gap-3 p-4 bg-surface border border-border rounded-xl">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center shrink-0">
-                        <CheckCircle size={20} className="text-emerald-400" />
+                    <div className="w-10 h-10 rounded-xl bg-blue-500/15 flex items-center justify-center shrink-0">
+                        <BookOpen size={20} className="text-blue-400" />
                     </div>
                     <div>
-                        <p className="text-2xl font-bold text-text">{allBooks.length}</p>
-                        <p className="text-xs text-text-muted">Faol kitoblar</p>
-                    </div>
-                </div>
-                <div className="flex items-center gap-3 p-4 bg-surface border border-border rounded-xl">
-                    <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
-                        <BookOpen size={20} className="text-primary-light" />
-                    </div>
-                    <div>
-                        <p className="text-2xl font-bold text-text">{books.length + allBooks.length}</p>
-                        <p className="text-xs text-text-muted">Jami kitoblar</p>
+                        <p className="text-2xl font-bold text-text">{teacherBooks.length}</p>
+                        <p className="text-xs text-text-muted">O'qituvchilardan</p>
                     </div>
                 </div>
             </div>
 
-            {/* Tabs */}
-            <div className="flex gap-1 p-1 bg-white/5 rounded-xl w-fit border border-border">
-                <button
-                    onClick={() => setTab('pending')}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'pending' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'text-text-muted hover:text-text'}`}
-                >
-                    <Clock size={15} />
-                    Tasdiq kutmoqda
-                    {books.length > 0 && (
-                        <span className="bg-amber-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[20px] text-center">{books.length}</span>
-                    )}
-                </button>
-                <button
-                    onClick={() => setTab('all')}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'all' ? 'bg-primary/20 text-primary-light border border-primary/30' : 'text-text-muted hover:text-text'}`}
-                >
-                    <BookOpen size={15} />
-                    Barcha faol kitoblar
-                </button>
+            {/* Tabs and Filter */}
+            <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
+                <div className="flex gap-1 p-1 bg-white/5 rounded-xl w-fit border border-border flex-wrap">
+                    <button
+                        onClick={() => { setTab('pending'); setSearchTerm(''); }}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'pending' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'text-text-muted hover:text-text'}`}
+                    >
+                        <Clock size={15} />
+                        Tasdiq kutmoqda
+                        {books.length > 0 && (
+                            <span className="bg-amber-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[20px] text-center">{books.length}</span>
+                        )}
+                    </button>
+                    <button
+                        onClick={() => { setTab('teachers'); setSearchTerm(''); }}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'teachers' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' : 'text-text-muted hover:text-text'}`}
+                    >
+                        <BookOpen size={15} />
+                        O'qituvchilardan
+                        {teacherBooks.length > 0 && (
+                            <span className="bg-blue-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[20px] text-center">{teacherBooks.length}</span>
+                        )}
+                    </button>
+                </div>
+
+                <div className="relative w-full md:w-64">
+                    <input
+                        type="text"
+                        placeholder="Kitob yoki muallifni qidirish..."
+                        className="w-full bg-white/5 border border-border rounded-xl pl-4 pr-10 py-2.5 text-sm text-text outline-none focus:border-primary transition-colors placeholder:text-text-muted/50"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 opacity-50">
+                        <BookOpen size={16} />
+                    </div>
+                </div>
             </div>
 
             {/* Table */}
@@ -189,7 +204,7 @@ export default function PendingBooksPage() {
                 ) : displayBooks.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-40 text-text-muted gap-2">
                         <BookOpen size={32} className="opacity-30" />
-                        <p className="text-sm">{tab === 'pending' ? "Tasdiq kutayotgan kitoblar yo'q" : "Faol kitoblar yo'q"}</p>
+                        <p className="text-sm">{tab === 'pending' ? "Tasdiq kutayotgan kitoblar yo'q" : tab === 'teachers' ? "O'qituvchilar yuklagan kitoblar yo'q" : "Faol kitoblar yo'q"}</p>
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
