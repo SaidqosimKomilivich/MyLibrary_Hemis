@@ -13,7 +13,7 @@ const DEFAULT_PER_PAGE: i64 = 20;
 /// Umumiy paginatsiyali GET handler (students, teachers, employees uchun)
 async fn get_users_paginated(
     pool: &PgPool,
-    role: &str,
+    roles: &[&str],
     params: UserPaginationParams,
 ) -> Result<HttpResponse, actix_web::Error> {
     let page = params.page.unwrap_or(1).max(1);
@@ -21,7 +21,7 @@ async fn get_users_paginated(
     let search = params.search.as_deref();
     let status = params.status.as_deref();
 
-    let total_items = UserRepository::count_by_role(pool, role, search, status)
+    let total_items = UserRepository::count_by_roles(pool, roles, search, status)
         .await
         .map_err(actix_web::error::ErrorInternalServerError)?;
 
@@ -31,7 +31,7 @@ async fn get_users_paginated(
         (total_items as f64 / per_page as f64).ceil() as i64
     };
 
-    let users = UserRepository::find_paginated_by_role(pool, role, page, per_page, search, status)
+    let users = UserRepository::find_paginated_by_roles(pool, roles, page, per_page, search, status)
         .await
         .map_err(actix_web::error::ErrorInternalServerError)?;
 
@@ -57,7 +57,7 @@ pub async fn sync_students(
     pool: web::Data<PgPool>,
     config: web::Data<Config>,
 ) -> Result<HttpResponse, actix_web::Error> {
-    if let Err(resp) = require_role(&claims, &["admin", "teacher"]) {
+    if let Err(resp) = require_role(&claims, &["admin"]) {
         return Ok(resp);
     }
 
@@ -86,11 +86,11 @@ pub async fn get_students(
     pool: web::Data<PgPool>,
     query: web::Query<UserPaginationParams>,
 ) -> Result<HttpResponse, actix_web::Error> {
-    if let Err(resp) = require_role(&claims, &["admin", "teacher", "employee"]) {
+    if let Err(resp) = require_role(&claims, &["admin"]) {
         return Ok(resp);
     }
 
-    get_users_paginated(pool.get_ref(), "student", query.into_inner()).await
+    get_users_paginated(pool.get_ref(), &["student"], query.into_inner()).await
 }
 
 /// POST /api/sync/teachers
@@ -129,11 +129,25 @@ pub async fn get_teachers(
     pool: web::Data<PgPool>,
     query: web::Query<UserPaginationParams>,
 ) -> Result<HttpResponse, actix_web::Error> {
-    if let Err(resp) = require_role(&claims, &["admin", "teacher", "employee"]) {
+    if let Err(resp) = require_role(&claims, &["admin"]) {
         return Ok(resp);
     }
 
-    get_users_paginated(pool.get_ref(), "teacher", query.into_inner()).await
+    get_users_paginated(pool.get_ref(), &["teacher"], query.into_inner()).await
+}
+
+/// GET /api/sync/staff
+/// Bazadagi kutubxonachilarni paginatsiya bilan olish
+pub async fn get_staff(
+    claims: Claims,
+    pool: web::Data<PgPool>,
+    query: web::Query<UserPaginationParams>,
+) -> Result<HttpResponse, actix_web::Error> {
+    if let Err(resp) = require_role(&claims, &["admin"]) {
+        return Ok(resp);
+    }
+
+    get_users_paginated(pool.get_ref(), &["staff"], query.into_inner()).await
 }
 
 /// POST /api/sync/employees
@@ -172,11 +186,11 @@ pub async fn get_employees(
     pool: web::Data<PgPool>,
     query: web::Query<UserPaginationParams>,
 ) -> Result<HttpResponse, actix_web::Error> {
-    if let Err(resp) = require_role(&claims, &["admin", "teacher", "employee"]) {
+    if let Err(resp) = require_role(&claims, &["admin"]) {
         return Ok(resp);
     }
 
-    get_users_paginated(pool.get_ref(), "staff", query.into_inner()).await
+    get_users_paginated(pool.get_ref(), &["staff", "employee"], query.into_inner()).await
 }
 
 /// GET /api/users/{id} - ID orqali foydalanuvchini olish (Kamera skaneri uchun)

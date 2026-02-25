@@ -10,6 +10,7 @@ import ComingSoon from './components/ComingSoon'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import Library from './pages/student/Library'
 import UsersPage from './pages/admin/UsersPage'
+import AdminEmployeesPage from './pages/admin/AdminEmployeesPage'
 import EmployeeDashboard from './pages/employee/EmployeeDashboard'
 import AccessControl from './pages/employee/AccessControl'
 import TeacherDashboard from './pages/teacher/TeacherDashboard'
@@ -54,7 +55,7 @@ function App() {
               <Route path="pending-books" element={<PendingBooksPage />} />
               <Route path="rentals" element={<EmployeeRentalsPage />} />
               <Route path="requests" element={<EmployeeRequestsPage />} />
-              <Route path="employees" element={<ComingSoon title="Xodimlar" />} />
+              <Route path="employees" element={<AdminEmployeesPage />} />
               <Route path="stats" element={<ReportsPage />} />
               <Route path="profile" element={<ProfilePage />} />
             </Route>

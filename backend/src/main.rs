@@ -173,6 +173,8 @@ async fn main() -> std::io::Result<()> {
                     // O'qituvchilar
                     .route("/teachers", web::post().to(sync_handler::sync_teachers))
                     .route("/teachers", web::get().to(sync_handler::get_teachers))
+                    // Kutubxonachilar
+                    .route("/staff", web::get().to(sync_handler::get_staff))
                     // Xodimlar
                     .route("/employees", web::post().to(sync_handler::sync_employees))
                     .route("/employees", web::get().to(sync_handler::get_employees)),

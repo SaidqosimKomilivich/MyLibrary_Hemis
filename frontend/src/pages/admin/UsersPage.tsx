@@ -244,11 +244,11 @@ const defaultPagination: PaginationState = {
 }
 
 export default function UsersPage() {
-    const [search, setSearch] = useState('')
-    const [debouncedSearch, setDebouncedSearch] = useState('')
+    const [search, setSearch] = useState({ students: '', teachers: '', employees: '' })
+    const [debouncedSearch, setDebouncedSearch] = useState({ students: '', teachers: '', employees: '' })
     const [activeTab, setActiveTab] = useState<'students' | 'teachers' | 'employees'>('students')
     const [syncModalOpen, setSyncModalOpen] = useState(false)
-    const [statusFilter, setStatusFilter] = useState<string>('all')
+    const [statusFilter, setStatusFilter] = useState({ students: 'all', teachers: 'all', employees: 'all' })
 
     // Data from API
     const [students, setStudents] = useState<UserData[]>([])
@@ -294,9 +294,15 @@ export default function UsersPage() {
     // Reset page when search or status changes
     useEffect(() => {
         setStudentsPag(prev => ({ ...prev, currentPage: 1 }))
+    }, [debouncedSearch.students, statusFilter.students])
+
+    useEffect(() => {
         setTeachersPag(prev => ({ ...prev, currentPage: 1 }))
+    }, [debouncedSearch.teachers, statusFilter.teachers])
+
+    useEffect(() => {
         setEmployeesPag(prev => ({ ...prev, currentPage: 1 }))
-    }, [debouncedSearch, statusFilter])
+    }, [debouncedSearch.employees, statusFilter.employees])
 
     // Load functions
     const loadStudents = useCallback(async () => {
@@ -305,8 +311,8 @@ export default function UsersPage() {
             const resp = await api.getStudents({
                 page: studentsPag.currentPage,
                 per_page: studentsPag.perPage,
-                search: debouncedSearch || undefined,
-                status: statusFilter !== 'all' ? statusFilter : undefined,
+                search: debouncedSearch.students || undefined,
+                status: statusFilter.students !== 'all' ? statusFilter.students : undefined,
             })
             if (resp.success) {
                 setStudents(resp.data)
@@ -319,7 +325,7 @@ export default function UsersPage() {
             }
         } catch (e) { console.error('Talabalarni yuklashda xato:', e) }
         finally { setLoading(prev => ({ ...prev, students: false })) }
-    }, [studentsPag.currentPage, studentsPag.perPage, debouncedSearch, statusFilter])
+    }, [studentsPag.currentPage, studentsPag.perPage, debouncedSearch.students, statusFilter.students])
 
     const loadTeachers = useCallback(async () => {
         setLoading(prev => ({ ...prev, teachers: true }))
@@ -327,8 +333,8 @@ export default function UsersPage() {
             const resp = await api.getTeachers({
                 page: teachersPag.currentPage,
                 per_page: teachersPag.perPage,
-                search: debouncedSearch || undefined,
-                status: statusFilter !== 'all' ? statusFilter : undefined,
+                search: debouncedSearch.teachers || undefined,
+                status: statusFilter.teachers !== 'all' ? statusFilter.teachers : undefined,
             })
             if (resp.success) {
                 setTeachers(resp.data)
@@ -341,7 +347,7 @@ export default function UsersPage() {
             }
         } catch (e) { console.error("O'qituvchilarni yuklashda xato:", e) }
         finally { setLoading(prev => ({ ...prev, teachers: false })) }
-    }, [teachersPag.currentPage, teachersPag.perPage, debouncedSearch, statusFilter])
+    }, [teachersPag.currentPage, teachersPag.perPage, debouncedSearch.teachers, statusFilter.teachers])
 
     const loadEmployees = useCallback(async () => {
         setLoading(prev => ({ ...prev, employees: true }))
@@ -349,8 +355,8 @@ export default function UsersPage() {
             const resp = await api.getEmployees({
                 page: employeesPag.currentPage,
                 per_page: employeesPag.perPage,
-                search: debouncedSearch || undefined,
-                status: statusFilter !== 'all' ? statusFilter : undefined,
+                search: debouncedSearch.employees || undefined,
+                status: statusFilter.employees !== 'all' ? statusFilter.employees : undefined,
             })
             if (resp.success) {
                 setEmployees(resp.data)
@@ -363,7 +369,7 @@ export default function UsersPage() {
             }
         } catch (e) { console.error('Xodimlarni yuklashda xato:', e) }
         finally { setLoading(prev => ({ ...prev, employees: false })) }
-    }, [employeesPag.currentPage, employeesPag.perPage, debouncedSearch, statusFilter])
+    }, [employeesPag.currentPage, employeesPag.perPage, debouncedSearch.employees, statusFilter.employees])
 
     useEffect(() => { loadStudents() }, [loadStudents])
     useEffect(() => { loadTeachers() }, [loadTeachers])
@@ -602,11 +608,11 @@ export default function UsersPage() {
                         type="text"
                         className="w-full bg-slate-900/50 border border-transparent focus:border-indigo-500/50 focus:bg-slate-900 rounded-xl py-2.5 pl-11 pr-10 text-[0.9rem] transition-all outline-none placeholder:text-text-muted/60"
                         placeholder="Ism, guruh, kafedra yoki lavozim bo'yicha qidirish..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
+                        value={search[activeTab]}
+                        onChange={(e) => setSearch(prev => ({ ...prev, [activeTab]: e.target.value }))}
                     />
-                    {search && (
-                        <button className="absolute right-3 p-1 rounded-md text-text-muted hover:bg-white/10 hover:text-text transition-colors" onClick={() => setSearch('')}>
+                    {search[activeTab] && (
+                        <button className="absolute right-3 p-1 rounded-md text-text-muted hover:bg-white/10 hover:text-text transition-colors" onClick={() => setSearch(prev => ({ ...prev, [activeTab]: '' }))}>
                             <X size={16} />
                         </button>
                     )}
@@ -623,8 +629,8 @@ export default function UsersPage() {
                             ].map(opt => (
                                 <button
                                     key={opt.value}
-                                    className={`py-1.5 px-3 rounded-lg text-[0.8rem] font-medium transition-all ${statusFilter === opt.value ? 'bg-indigo-500/20 text-indigo-400 shadow-sm' : 'text-text-muted hover:text-text hover:bg-white/5'}`}
-                                    onClick={() => setStatusFilter(opt.value)}
+                                    className={`py-1.5 px-3 rounded-lg text-[0.8rem] font-medium transition-all ${statusFilter[activeTab] === opt.value ? 'bg-indigo-500/20 text-indigo-400 shadow-sm' : 'text-text-muted hover:text-text hover:bg-white/5'}`}
+                                    onClick={() => setStatusFilter(prev => ({ ...prev, [activeTab]: opt.value }))}
                                 >
                                     {opt.label}
                                 </button>

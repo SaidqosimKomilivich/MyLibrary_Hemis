@@ -10,6 +10,7 @@ import {
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode'
 import { api, type Rental, type Book, type ControlRecord, type UserData } from '../../services/api'
 import { toast } from 'react-toastify'
+import { CustomSelect } from '../../components/CustomSelect'
 
 /* ────────────────────────────────────────────────
    Muddat ranglari hisoblash
@@ -413,19 +414,16 @@ export default function AccessControl() {
                                 <Settings2 className="w-3.5 h-3.5" />
                                 Kamerani tanlash
                             </label>
-                            <select
+                            <CustomSelect
                                 value={selectedDeviceId}
-                                onChange={(e) => setSelectedDeviceId(e.target.value)}
+                                onChange={(device) => setSelectedDeviceId(device)}
                                 disabled={isScanning}
-                                className="w-full bg-surface border border-border text-sm rounded-lg p-2.5 outline-none text-text focus:border-primary transition-colors appearance-none"
-                                style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='%239CA3AF' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`, backgroundPosition: 'right 12px center', backgroundRepeat: 'no-repeat' }}
-                            >
-                                {devices.map((device, index) => (
-                                    <option key={device.deviceId} value={device.deviceId} className="bg-surface text-text">
-                                        {device.label || `Kamera ${index + 1}`}
-                                    </option>
-                                ))}
-                            </select>
+                                buttonClassName="w-full bg-surface border border-border text-sm rounded-lg p-2.5 outline-none text-text focus:border-primary transition-colors flex items-center justify-between"
+                                options={devices.map((device, index) => ({
+                                    value: device.deviceId,
+                                    label: device.label || `Kamera ${index + 1}`
+                                }))}
+                            />
                         </div>
                     )}
 

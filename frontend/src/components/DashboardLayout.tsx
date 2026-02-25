@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Outlet, NavLink, useNavigate, Navigate } from 'react-router-dom'
 import {
     LayoutDashboard,
@@ -110,6 +110,19 @@ export default function DashboardLayout({ role }: DashboardLayoutProps) {
     const { book, isMini, isPlaying, togglePlay, expandPlayer } = useAudio()
     const navItems = navByRole[role]
 
+    // Role mismatch check - logs the user out if they try to access a page meant for another role
+    // This MUST be called here, before any early returns (like if (isLoading)) to obey the Rules of Hooks.
+    useEffect(() => {
+        if (!isLoading && isAuthenticated && user && user.role !== role) {
+            const handleMismatch = async () => {
+                await logout()
+                toast.error("Sahifaga kirish ruxsati yo'q. Iltimos qaytadan kiring.", { toastId: 'role-mismatch' })
+                navigate('/login', { replace: true })
+            }
+            handleMismatch()
+        }
+    }, [isLoading, isAuthenticated, user, role, logout, navigate])
+
     const handleLogout = async () => {
         await logout()
         toast.info("Tizimdan chiqdingiz")
@@ -129,6 +142,15 @@ export default function DashboardLayout({ role }: DashboardLayoutProps) {
     // Redirect to login if not authenticated
     if (!isAuthenticated) {
         return <Navigate to="/login" replace />
+    }
+
+    if (user && user.role !== role) {
+        return (
+            <div className="flex items-center justify-center h-screen bg-surface text-text-muted gap-3 text-base">
+                <Loader2 size={24} className="animate-spin" />
+                Tizimdan chiqilmoqda...
+            </div>
+        )
     }
 
     // Force password update if required
