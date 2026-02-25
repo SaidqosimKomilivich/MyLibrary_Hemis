@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { BookOpen, Edit, Trash2, FileText, Headphones, Eye, MapPin, PlusCircle, MinusCircle, ToggleLeft, ToggleRight, Clock } from 'lucide-react'
 import type { Book } from '../services/api'
 
@@ -15,6 +16,7 @@ interface BookCardProps {
 }
 
 export default function BookCard({ book, role, onEdit, onDelete, onToggleActive, onViewPdf, onListenAudio, onAddReading, onRemoveReading, onRequestBook }: BookCardProps) {
+    const [showOverlay, setShowOverlay] = useState(false)
     const canManageBooks = role === 'admin' || role === 'staff'
     // Fayl mavjud bo'lsa, format='pdf'/'audio'/'elektron'/'ikkalasi' dan qat'i nazar ko'rsat
     const hasDigitalFile = !!book.digital_file_url
@@ -25,11 +27,16 @@ export default function BookCard({ book, role, onEdit, onDelete, onToggleActive,
     return (
         <div className="group relative bg-surface border border-border rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(0,0,0,0.4)] hover:border-white/10 flex flex-col h-full">
             {/* Cover Image */}
-            <div className="relative w-full pt-[135%] bg-slate-800/50 overflow-hidden">
+            <div
+                className="relative w-full pt-[135%] bg-slate-800/50 overflow-hidden cursor-pointer focus:outline-none"
+                tabIndex={0}
+                onClick={() => setShowOverlay(!showOverlay)}
+                onMouseLeave={() => setShowOverlay(false)}
+            >
                 {book.cover_image_url ? (
-                    <img src={book.cover_image_url} alt={book.title} className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                    <img src={book.cover_image_url} alt={book.title} className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 group-focus:scale-110" />
                 ) : (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-text-muted/40 font-medium">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-text-muted/40 font-medium transition-transform duration-500 group-hover:scale-110 group-focus:scale-110">
                         <BookOpen size={48} />
                         <span>Rasm yo'q</span>
                     </div>
@@ -50,7 +57,7 @@ export default function BookCard({ book, role, onEdit, onDelete, onToggleActive,
                 {/* Add to reading button — faqat fayli bor kitoblar uchun */}
                 {onAddReading && hasDigitalFile && (
                     <button
-                        className="absolute bottom-3 right-3 w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center border-none cursor-pointer shadow-lg transition-transform duration-200 hover:scale-110 hover:bg-emerald-400 z-20"
+                        className="absolute bottom-3 right-3 w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center border-none cursor-pointer shadow-lg transition-transform duration-200 hover:scale-110 hover:bg-emerald-400 focus:scale-110 focus:bg-emerald-400 z-20"
                         onClick={(e) => { e.stopPropagation(); onAddReading(book) }}
                         title="O'qiyotganlar ro'yxatiga qo'shish"
                     >
@@ -61,7 +68,7 @@ export default function BookCard({ book, role, onEdit, onDelete, onToggleActive,
                 {/* Remove from reading button */}
                 {onRemoveReading && (
                     <button
-                        className="absolute bottom-3 right-3 w-10 h-10 rounded-full bg-rose-500 text-white flex items-center justify-center border-none cursor-pointer shadow-lg transition-transform duration-200 hover:scale-110 hover:bg-rose-400 z-20"
+                        className="absolute bottom-3 right-3 w-10 h-10 rounded-full bg-rose-500 text-white flex items-center justify-center border-none cursor-pointer shadow-lg transition-transform duration-200 hover:scale-110 hover:bg-rose-400 focus:scale-110 focus:bg-rose-400 z-20"
                         onClick={(e) => { e.stopPropagation(); onRemoveReading(book) }}
                         title="Ro'yxatdan olib tashlash"
                     >
@@ -70,14 +77,14 @@ export default function BookCard({ book, role, onEdit, onDelete, onToggleActive,
                 )}
 
                 {/* Hover overlay */}
-                <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-3 opacity-0 transition-opacity duration-300 backdrop-blur-[2px] z-10 group-hover:opacity-100">
+                <div className={`absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-3 transition-opacity duration-300 backdrop-blur-[2px] z-10 ${showOverlay ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                     {hasPdf && (
-                        <button className="flex items-center gap-2 py-2.5 px-5 rounded-full border-none font-semibold text-[0.9rem] cursor-pointer transition-all hover:scale-105 shadow-lg bg-white text-rose-600" onClick={() => onViewPdf?.(book)}>
+                        <button className="flex items-center gap-2 py-2.5 px-5 rounded-full border-none font-semibold text-[0.9rem] cursor-pointer transition-all hover:scale-105 focus:scale-105 shadow-lg bg-white text-rose-600 outline-none" onClick={(e) => { e.stopPropagation(); onViewPdf?.(book); }}>
                             <Eye size={18} /> Ko'rish
                         </button>
                     )}
                     {hasAudio && (
-                        <button className="flex items-center gap-2 py-2.5 px-5 rounded-full border-none font-semibold text-[0.9rem] cursor-pointer transition-all hover:scale-105 shadow-lg bg-white text-violet-600" onClick={() => onListenAudio?.(book)}>
+                        <button className="flex items-center gap-2 py-2.5 px-5 rounded-full border-none font-semibold text-[0.9rem] cursor-pointer transition-all hover:scale-105 focus:scale-105 shadow-lg bg-white text-violet-600 outline-none" onClick={(e) => { e.stopPropagation(); onListenAudio?.(book); }}>
                             <Headphones size={18} /> Tinglash
                         </button>
                     )}
