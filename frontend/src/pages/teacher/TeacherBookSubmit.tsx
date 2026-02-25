@@ -53,6 +53,7 @@ export default function TeacherBookSubmit() {
     const [loadingBooks, setLoadingBooks] = useState(true)
     const [modalOpen, setModalOpen] = useState(false)
     const [selectedBook, setSelectedBook] = useState<Book | null>(null)
+    const [pdfBook, setPdfBook] = useState<Book | null>(null)
 
     // Cover image upload
     const [coverUploading, setCoverUploading] = useState(false)
@@ -574,10 +575,10 @@ export default function TeacherBookSubmit() {
                                 <div className="p-4 bg-emerald-500/8 border border-emerald-500/20 rounded-xl">
                                     <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3">Elektron nusxa</p>
                                     <div className="flex gap-3">
-                                        <a href={selectedBook.digital_file_url} target="_blank" rel="noopener noreferrer"
-                                            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 text-white rounded-xl text-sm font-semibold hover:bg-emerald-600 transition-colors shadow-sm">
+                                        <button onClick={() => setPdfBook(selectedBook)}
+                                            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 text-white rounded-xl text-sm font-semibold hover:bg-emerald-600 transition-colors shadow-sm cursor-pointer">
                                             <ExternalLink size={15} /> Brauzerda ochish
-                                        </a>
+                                        </button>
                                         <a href={selectedBook.digital_file_url} download
                                             className="flex items-center gap-2 px-4 py-2.5 bg-white/10 border border-border text-text rounded-xl text-sm font-semibold hover:bg-white/15 transition-colors">
                                             <Download size={15} /> Yuklab olish
@@ -590,6 +591,27 @@ export default function TeacherBookSubmit() {
                                     Elektron nusxa yuklanmagan
                                 </div>
                             )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* PDF Viewer Modal */}
+            {pdfBook && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-100 flex flex-col items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200" onClick={() => setPdfBook(null)}>
+                    <div className="w-full h-full max-w-6xl max-h-[90vh] bg-surface/95 rounded-2xl overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-200 border border-border" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex justify-between items-center px-6 py-4 border-b border-border bg-slate-900/40">
+                            <h3 className="m-0 text-[1.15rem] font-bold text-text truncate pr-4">{pdfBook.title}</h3>
+                            <button onClick={() => setPdfBook(null)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 border border-border text-text-muted cursor-pointer transition-colors hover:bg-red-500/20 hover:text-red-400 shrink-0 hover:border-red-500/30">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="flex-1 w-full bg-white relative">
+                            <iframe
+                                src={pdfBook.digital_file_url || ''}
+                                className="absolute inset-0 w-full h-full border-none bg-white"
+                                title={pdfBook.title}
+                            />
                         </div>
                     </div>
                 </div>

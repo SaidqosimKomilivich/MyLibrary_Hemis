@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { BookOpen, CheckCircle, XCircle, Clock, RefreshCw, Eye, MessageSquare, AlertTriangle, ExternalLink, Download } from 'lucide-react'
+import { BookOpen, CheckCircle, XCircle, Clock, RefreshCw, Eye, MessageSquare, AlertTriangle, ExternalLink, Download, X } from 'lucide-react'
 import { api, type Book } from '../../services/api'
 import { toast } from 'react-toastify'
 
@@ -20,6 +20,7 @@ export default function PendingBooksPage() {
     const [togglingId, setTogglingId] = useState<string | null>(null)
     const [detailBook, setDetailBook] = useState<Book | null>(null)
     const [confirm, setConfirm] = useState<ConfirmState | null>(null)
+    const [pdfBook, setPdfBook] = useState<Book | null>(null)
 
     const loadPending = async () => {
         try {
@@ -343,10 +344,10 @@ export default function PendingBooksPage() {
                         {/* Digital file */}
                         {detailBook.digital_file_url && (
                             <div className="px-5 pb-4 flex gap-2">
-                                <a href={detailBook.digital_file_url} target="_blank" rel="noopener noreferrer"
-                                    className="flex items-center gap-2 px-4 py-2 bg-primary/15 text-primary-light border border-primary/20 rounded-xl text-xs font-semibold hover:bg-primary/25 transition-colors">
+                                <button onClick={() => setPdfBook(detailBook)}
+                                    className="flex items-center gap-2 px-4 py-2 bg-primary/15 text-primary-light border border-primary/20 rounded-xl text-xs font-semibold hover:bg-primary/25 transition-colors cursor-pointer">
                                     <ExternalLink size={13} /> Faylni ochish
-                                </a>
+                                </button>
                                 <a href={detailBook.digital_file_url} download
                                     className="flex items-center gap-2 px-4 py-2 bg-white/5 text-text-muted border border-border rounded-xl text-xs font-semibold hover:bg-white/10 transition-colors">
                                     <Download size={13} /> Yuklab olish
@@ -464,6 +465,27 @@ export default function PendingBooksPage() {
                     </div>
                 )
             })()}
+
+            {/* PDF Viewer Modal */}
+            {pdfBook && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-100 flex flex-col items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200" onClick={() => setPdfBook(null)}>
+                    <div className="w-full h-full max-w-6xl max-h-[90vh] bg-surface/95 rounded-2xl overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-200 border border-border" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex justify-between items-center px-6 py-4 border-b border-border bg-slate-900/40">
+                            <h3 className="m-0 text-[1.15rem] font-bold text-text truncate pr-4">{pdfBook.title}</h3>
+                            <button onClick={() => setPdfBook(null)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 border border-border text-text-muted cursor-pointer transition-colors hover:bg-red-500/20 hover:text-red-400 shrink-0 hover:border-red-500/30">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="flex-1 w-full bg-white relative">
+                            <iframe
+                                src={pdfBook.digital_file_url || ''}
+                                className="absolute inset-0 w-full h-full border-none bg-white"
+                                title={pdfBook.title}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

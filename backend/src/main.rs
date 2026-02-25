@@ -187,8 +187,8 @@ async fn main() -> std::io::Result<()> {
                     .route("/{id}/role", web::put().to(sync_handler::update_user_role))
                     .route("/{id}/status", web::put().to(sync_handler::update_user_status)),
             )
-            // Static files (uploads papkasini brauzerdan ko'rish)
-            .service(actix_files::Files::new("/uploads", upload_dir.clone()))
+            // Static files (uploads papkasini brauzerdan ko'rish uchun explicit streaming NamedFile route)
+            .route("/uploads/{subdir}/{filename}", web::get().to(upload_handler::serve_file))
     })
     .bind(&server_addr)?
     .run()

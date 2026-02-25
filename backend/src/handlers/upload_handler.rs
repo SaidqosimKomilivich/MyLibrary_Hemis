@@ -174,3 +174,59 @@ pub async fn delete_file(
     })))
 }
 
+/// GET /uploads/{subdir}/{filename} — Faylni o'qish (NamedFile yordamida streaming)
+pub async fn serve_file(
+    path: web::Path<(String, String)>,
+    config: web::Data<Config>,
+) -> Result<actix_files::NamedFile, AppError> {
+    let (subdir, filename) = path.into_inner();
+    
+    // Xavfsizlik tekshiruvi (Path traversal oldini olish)
+    if subdir.contains("..") || filename.contains("..") {
+        return Err(AppError::BadRequest("Noto'g'ri fayl yo'li".to_string()));
+    }
+
+    let filepath = format!("{}/{}/{}", config.upload_dir, subdir, filename);
+    let file_path = Path::new(&filepath);
+
+    if !file_path.exists() {
+        return Err(AppError::NotFound("Fayl topilmadi".to_string()));
+    }
+
+    let mut file = actix_files::NamedFile::open(file_path).map_err(|e| {
+        tracing::error!("Faylni ochishda xatolik: {} — {}", filepath, e);
+        AppError::InternalError("Faylni o'qib bo'lmadi".to_string())
+    })?;
+
+    // Fayl kengaytmasini aniqlash va Content-Type ni explicitly (aniq) qilib o'rnatish
+    let ext = file_path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
+    if ext == "pdf" {
+        if let Ok(m) = "application/pdf".parse() {
+            file = file.set_content_type(m);
+        }
+    } else if ext == "png" {
+        if let Ok(m) = "image/png".parse() {
+            file = file.set_content_type(m);
+        }
+    } else if ext == "jpg" || ext == "jpeg" {
+        if let Ok(m) = "image/jpeg".parse() {
+            file = file.set_content_type(m);
+        }
+    }
+
+    // PDF fayllarni brauzer yuklab olib ketmasligi va to'g'ridan to'g'ri o'qishi uchun inline disposition
+    file = file.set_content_disposition(actix_web::http::header::ContentDisposition {
+        disposition: actix_web::http::header::DispositionType::Inline,
+        parameters: vec![
+            actix_web::http::header::DispositionParam::Filename(filename.clone())
+        ],
+    });
+
+    // Oldin xato keshlanib qolgan "attachment" larni tozalash va har safar tekshirish uchun:
+    file = file.use_last_modified(true).use_etag(true);
+    // Explicit Cache-Control ham qoshib qo'yamiz NamedFile HttpResponse ga o'tganda (uni setot qilib bo'lmasa-da, NamedFile qoidalari bajaradi).
+    // `NamedFile` avtomatik tarzda `Accept-Ranges: bytes` headerini o'rnatadi
+    // va `Range` so'rovlariga `206 Partial Content` bilan javob qaytaradi.
+    Ok(file)
+}
+
