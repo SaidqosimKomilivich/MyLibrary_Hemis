@@ -29,9 +29,7 @@ import { useAuth } from '../context/AuthContext'
 import { useAudio } from '../context/AudioContext'
 
 
-
-export type UserRole = 'admin' | 'employee' | 'teacher' | 'student'
-
+export type UserRole = 'admin' | 'staff' | 'teacher' | 'student' | 'employee'
 interface NavItem {
     label: string
     path: string
@@ -52,14 +50,23 @@ const navByRole: Record<UserRole, NavItem[]> = {
 
         { label: 'Profil', path: '/admin/profile', icon: <UserCircle size={20} /> },
     ],
+    staff: [
+        { label: 'Boshqaruv paneli', path: '/staff', icon: <LayoutDashboard size={20} /> },
+        { label: 'Kitoblar katalogi', path: '/staff/catalog', icon: <Library size={20} /> },
+        { label: 'Taqdim etilgan kitoblar', path: '/staff/pending-books', icon: <Clock size={20} /> },
+        { label: 'Ijaralar', path: '/staff/rentals', icon: <Library size={20} /> },
+        { label: "So'rovlar", path: '/staff/requests', icon: <ClipboardList size={20} /> },
+        { label: 'Nazorat', path: '/staff/access-control', icon: <ScanLine size={20} /> },
+        { label: "O'quvchilar", path: '/staff/readers', icon: <UserCheck size={20} /> },
+
+
+        { label: 'Profil', path: '/staff/profile', icon: <UserCircle size={20} /> },
+    ],
     employee: [
         { label: 'Boshqaruv paneli', path: '/employee', icon: <LayoutDashboard size={20} /> },
-        { label: 'Kitoblar katalogi', path: '/employee/catalog', icon: <Library size={20} /> },
-        { label: 'Taqdim etilgan kitoblar', path: '/employee/pending-books', icon: <Clock size={20} /> },
-        { label: 'Ijaralar', path: '/employee/rentals', icon: <Library size={20} /> },
+        { label: 'Kutubxona', path: '/employee/library', icon: <Library size={20} /> },
+        { label: "O'qiyotgan kitoblar", path: '/employee/my-books', icon: <BookOpen size={20} /> },
         { label: "So'rovlar", path: '/employee/requests', icon: <ClipboardList size={20} /> },
-        { label: 'Nazorat', path: '/employee/access-control', icon: <ScanLine size={20} /> },
-        { label: "O'quvchilar", path: '/employee/readers', icon: <UserCheck size={20} /> },
 
 
         { label: 'Profil', path: '/employee/profile', icon: <UserCircle size={20} /> },
@@ -84,12 +91,12 @@ const navByRole: Record<UserRole, NavItem[]> = {
         { label: 'Profil', path: '/student/profile', icon: <UserCircle size={20} /> },
     ],
 }
-
 const roleLabels: Record<UserRole, string> = {
     admin: 'Administrator',
-    employee: 'Xodim',
+    staff: 'Kutubxonachi',
     teacher: "O'qituvchi",
     student: 'Talaba',
+    employee: 'Xodim',
 }
 
 interface DashboardLayoutProps {

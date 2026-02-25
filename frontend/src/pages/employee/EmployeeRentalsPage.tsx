@@ -149,7 +149,7 @@ export default function EmployeeRentalsPage() {
                                         <h3 className="m-0 text-[1.2rem] text-slate-50 font-bold tracking-tight flex items-center gap-2">
                                             {r.user_full_name}
                                             <span className="text-[0.75rem] font-normal text-text-muted bg-white/5 px-2 py-0.5 rounded-full">
-                                                {r.role === 'student' ? 'Talaba' : r.role === 'employee' ? 'Xodim' : r.role === 'teacher' ? 'O\'qituvchi' : r.role}
+                                                {r.role === 'student' ? 'Talaba' : r.role === 'staff' ? 'Xodim (Kutubxonachi)' : r.role === 'employee' ? 'Xodim' : r.role === 'teacher' ? 'O\'qituvchi' : r.role}
                                             </span>
                                         </h3>
                                         <p className="m-0 mt-1.5 text-[0.9rem] text-text-muted font-mono">Ijara raqami: #{r.id.split('-')[0]}</p>

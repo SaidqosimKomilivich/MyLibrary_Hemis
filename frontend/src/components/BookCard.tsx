@@ -15,7 +15,7 @@ interface BookCardProps {
 }
 
 export default function BookCard({ book, role, onEdit, onDelete, onToggleActive, onViewPdf, onListenAudio, onAddReading, onRemoveReading, onRequestBook }: BookCardProps) {
-    const canManageBooks = role === 'admin' || role === 'employee'
+    const canManageBooks = role === 'admin' || role === 'staff'
     // Fayl mavjud bo'lsa, format='pdf'/'audio'/'elektron'/'ikkalasi' dan qat'i nazar ko'rsat
     const hasDigitalFile = !!book.digital_file_url
     const isAudioFormat = book.format?.toLowerCase() === 'audio'

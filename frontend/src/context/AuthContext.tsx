@@ -2,15 +2,13 @@ import { createContext, useContext, useState, useEffect, useCallback, type React
 import { api, type UserData } from '../services/api'
 import { toast } from 'react-toastify'
 
-/** Backend 'staff' → frontend 'employee' mapping */
+/** Ba'zi eski role mappinglarni saqlash mumkin bo'lsa, qoldiramiz, aks holda to'g'ridan to'g'ri o'zini qaytaramiz */
 function mapRole(backendRole: string): string {
-    if (backendRole === 'staff') return 'employee'
     return backendRole
 }
 
-/** Frontend 'employee' → backend 'staff' reverse mapping */
+/** Frontend rolini backend roliga o'tkazish */
 export function mapRoleToBackend(frontendRole: string): string {
-    if (frontendRole === 'employee') return 'staff'
     return frontendRole
 }
 

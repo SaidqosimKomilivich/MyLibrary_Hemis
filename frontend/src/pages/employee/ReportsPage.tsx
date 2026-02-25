@@ -149,7 +149,7 @@ export default function ReportsPage() {
                                         <p className="m-0 mb-1 text-slate-50 font-semibold text-[0.95rem] truncate">
                                             {item.full_name || 'Noma\'lum'}
                                             <span className="font-normal text-text-muted ml-2">
-                                                ({item.role === 'student' ? 'Talaba' : item.role === 'employee' ? 'Xodim' : item.role === 'teacher' ? 'O\'qituvchi' : item.role})
+                                                ({item.role === 'student' ? 'Talaba' : item.role === 'staff' ? 'Xodim (Kutubxonachi)' : item.role === 'employee' ? 'Xodim' : item.role === 'teacher' ? 'O\'qituvchi' : item.role})
                                             </span>
                                         </p>
                                         <p className="m-0 text-text-muted text-[0.85rem] flex items-center gap-1.5 flex-wrap">
@@ -186,7 +186,7 @@ export default function ReportsPage() {
                                         <p className="m-0 mb-1 text-slate-200 text-[0.85rem] truncate">
                                             {item.user_full_name || 'Noma\'lum'}
                                             <span className="font-normal text-text-muted ml-1.5">
-                                                ({item.role === 'student' ? 'Talaba' : item.role === 'employee' ? 'Xodim' : item.role === 'teacher' ? 'O\'qituvchi' : item.role})
+                                                ({item.role === 'student' ? 'Talaba' : item.role === 'staff' ? 'Xodim (Kutubxonachi)' : item.role === 'employee' ? 'Xodim' : item.role === 'teacher' ? 'O\'qituvchi' : item.role})
                                             </span>
                                         </p>
                                         <p className="m-0 text-text-muted text-[0.85rem] flex items-center gap-1.5 flex-wrap">

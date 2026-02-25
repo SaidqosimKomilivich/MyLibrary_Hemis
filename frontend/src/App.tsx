@@ -59,8 +59,8 @@ function App() {
               <Route path="profile" element={<ProfilePage />} />
             </Route>
 
-            {/* Employee (backend: staff) */}
-            <Route path="/employee" element={<DashboardLayout role="employee" />}>
+            {/* Kutubxonachi (backend: staff) */}
+            <Route path="/staff" element={<DashboardLayout role="staff" />}>
               <Route index element={<EmployeeDashboard />} />
               <Route path="catalog" element={<Library />} />
               <Route path="pending-books" element={<PendingBooksPage />} />
@@ -70,6 +70,15 @@ function App() {
               <Route path="lend" element={<AccessControl />} />
               <Route path="returns" element={<AccessControl />} />
               <Route path="readers" element={<ComingSoon title="O'quvchilar" />} />
+              <Route path="profile" element={<ProfilePage />} />
+            </Route>
+
+            {/* Oddiy Xodim (backend: employee) -> student kabi interfeys */}
+            <Route path="/employee" element={<DashboardLayout role="employee" />}>
+              <Route index element={<StudentDashboard />} />
+              <Route path="library" element={<Library />} />
+              <Route path="my-books" element={<MyReadings />} />
+              <Route path="requests" element={<MyRequestsPage />} />
               <Route path="profile" element={<ProfilePage />} />
             </Route>
 

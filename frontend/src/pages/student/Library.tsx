@@ -11,7 +11,7 @@ import { CustomSelect } from '../../components/CustomSelect'
 
 export default function Library() {
     const { role } = useAuth()
-    const canManageBooks = role === 'admin' || role === 'employee'
+    const canManageBooks = role === 'admin' || role === 'staff'
 
     const [books, setBooks] = useState<Book[]>([])
     const [isLoading, setIsLoading] = useState(true)

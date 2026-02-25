@@ -406,11 +406,9 @@ export default function UsersPage() {
         }
     }
 
-    // Rolni o'zgartirish
     const handleChangeRole = (user: UserData) => {
-        // Backend 'staff', frontend 'employee' — backendga mos rolni olish
         setRoleUser(user)
-        setSelectedRole(user.role === 'employee' ? 'staff' : user.role)
+        setSelectedRole(user.role)
     }
 
     const confirmChangeRole = async () => {
