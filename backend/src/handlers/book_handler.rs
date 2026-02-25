@@ -15,7 +15,10 @@ pub async fn get_books(
     claims: Option<Claims>,
     query: web::Query<PaginationParams>,
 ) -> Result<HttpResponse, AppError> {
-    let is_staff = claims.as_ref().map(|c| c.role == "admin" || c.role == "staff").unwrap_or(false);
+    let is_staff = claims
+        .as_ref()
+        .map(|c| c.role == "admin" || c.role == "staff")
+        .unwrap_or(false);
     let response = BookService::get_books(pool.get_ref(), query.into_inner(), is_staff).await?;
     Ok(HttpResponse::Ok().json(response))
 }
@@ -122,7 +125,11 @@ pub async fn toggle_book_active(
     let id = path.into_inner();
     let comment = body.and_then(|b| b.into_inner().admin_comment);
     let book = BookService::toggle_active(pool.get_ref(), id, comment).await?;
-    let status = if book.is_active.unwrap_or(false) { "faollashtirildi" } else { "nofaollashtirildi" };
+    let status = if book.is_active.unwrap_or(false) {
+        "faollashtirildi"
+    } else {
+        "nofaollashtirildi"
+    };
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "success": true,
         "message": format!("Kitob muvaffaqiyatli {}", status),

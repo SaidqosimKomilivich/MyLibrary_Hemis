@@ -218,7 +218,7 @@ pub async fn update_user_role(
         .ok_or_else(|| actix_web::error::ErrorBadRequest("'role' maydoni talab qilinadi"))?;
 
     // Ruxsat etilgan rollar
-    let allowed_roles = ["admin", "staff", "teacher", "student"];
+    let allowed_roles = ["admin", "staff", "teacher", "student", "employee"];
     if !allowed_roles.contains(&new_role) {
         return Err(actix_web::error::ErrorBadRequest(format!(
             "Noto'g'ri rol: '{}'. Ruxsat etilgan rollar: {:?}", new_role, allowed_roles
