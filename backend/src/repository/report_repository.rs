@@ -319,8 +319,8 @@ impl ReportRepository {
     /// Admin Dashboard Oxirgi Faoliyatlar belgilangan oy uchun
     pub async fn get_dashboard_activities(
         pool: &PgPool,
-        year: i32,
-        month: u32,
+        _year: i32,
+        _month: u32,
         limit: i64,
     ) -> Result<Vec<crate::dto::report::ActivityLog>, AppError> {
         let records = sqlx::query!(
@@ -387,6 +387,123 @@ impl ReportRepository {
                 crate::dto::report::ActivityLog {
                     id: r.id,
                     user: r.user_name,
+                    action: action_text,
+                    time: time_str,
+                }
+            })
+            .collect())
+    }
+
+    /// Personal Dashboard KPIs (hozirgi ijaralar, muddatidan o'tganlar, jami tarix, kutilayotgan so'rovlar)
+    pub async fn get_my_dashboard_kpis(
+        pool: &PgPool,
+        user_id: uuid::Uuid,
+    ) -> Result<(i64, i64, i64, i64), AppError> {
+        let active_rentals: i64 = sqlx::query_scalar!(
+            r#"SELECT COUNT(*) FROM "book_rentals" 
+               WHERE "user_id" = $1 AND "status" = 'active'"#,
+            user_id.to_string()
+        )
+        .fetch_one(pool)
+        .await?
+        .unwrap_or(0);
+
+        let overdue_rentals: i64 = sqlx::query_scalar!(
+            r#"SELECT COUNT(*) FROM "book_rentals" 
+               WHERE "user_id" = $1 AND "status" = 'overdue'"#,
+            user_id.to_string()
+        )
+        .fetch_one(pool)
+        .await?
+        .unwrap_or(0);
+
+        let total_read: i64 = sqlx::query_scalar!(
+            r#"SELECT COUNT(*) FROM "book_rentals" 
+               WHERE "user_id" = $1 AND "status" = 'returned'"#,
+            user_id.to_string()
+        )
+        .fetch_one(pool)
+        .await?
+        .unwrap_or(0);
+
+        let pending_requests: i64 = sqlx::query_scalar!(
+            r#"SELECT COUNT(*) FROM "book_requests" 
+               WHERE "user_id" = $1 AND "status" = 'pending'"#,
+            user_id
+        )
+        .fetch_one(pool)
+        .await?
+        .unwrap_or(0);
+
+        Ok((active_rentals, overdue_rentals, total_read, pending_requests))
+    }
+
+    /// Personal Dashboard Oxirgi Faoliyatlar (Timeline)
+    pub async fn get_my_activities(
+        pool: &PgPool,
+        user_id: uuid::Uuid,
+        limit: i64,
+    ) -> Result<Vec<crate::dto::report::ActivityLog>, AppError> {
+        let records = sqlx::query!(
+            r#"
+            SELECT 
+                "id" as "id!", "book_title", "action_type" as "action_type!", "action_date" as "action_date!"
+            FROM (
+                SELECT 
+                    r."id"::text as "id",
+                    b."title" as "book_title",
+                    'rented' as "action_type",
+                    r."loan_date"::timestamp as "action_date"
+                FROM "book_rentals" r
+                JOIN "book" b ON b."id"::text = r."book_id"
+                WHERE r."user_id" = $1
+
+                UNION ALL
+
+                SELECT 
+                    r."id"::text as "id",
+                    b."title" as "book_title",
+                    'returned' as "action_type",
+                    r."return_date"::timestamp as "action_date"
+                FROM "book_rentals" r
+                JOIN "book" b ON b."id"::text = r."book_id"
+                WHERE r."return_date" IS NOT NULL AND r."user_id" = $1
+
+                UNION ALL
+
+                SELECT 
+                    c."id"::text as "id",
+                    NULL as "book_title",
+                    'visited' as "action_type",
+                    c."arrival" as "action_date"
+                FROM "control" c
+                WHERE c."arrival" IS NOT NULL AND c."user_id" = $2
+            ) AS combined_activities
+            ORDER BY "action_date" DESC
+            LIMIT $3
+            "#,
+            user_id.to_string(), // rentals book_rentals user_id
+            user_id.to_string(), // control user_id
+            limit
+        )
+        .fetch_all(pool)
+        .await?;
+
+        Ok(records
+            .into_iter()
+            .map(|r| {
+                let action_text = match r.action_type.as_str() {
+                    "rented" => format!("\"{}\" kitobini ijaraga oldingiz", r.book_title.unwrap_or_default()),
+                    "returned" => format!("\"{}\" kitobini qaytardingiz", r.book_title.unwrap_or_default()),
+                    "visited" => "Kutubxonaga tashrif buyurdingiz".to_string(),
+                    _ => "Noma'lum harakat".to_string(),
+                };
+
+                let time_str = r.action_date.format("%Y-%m-%d %H:%M").to_string();
+
+                crate::dto::report::ActivityLog {
+                    id: r.id,
+                    user: "Siz".to_string(),
                     action: action_text,
                     time: time_str,
                 }

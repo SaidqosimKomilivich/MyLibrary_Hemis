@@ -36,6 +36,15 @@ pub struct AdminDashboardResponse {
 }
 
 #[derive(Debug, Serialize)]
+pub struct MyDashboardResponse {
+    pub active_rentals: i64,
+    pub overdue_rentals: i64,
+    pub total_read: i64,
+    pub pending_requests: i64,
+    pub recent_activities: Vec<ActivityLog>,
+}
+
+#[derive(Debug, Serialize)]
 pub struct DailyActivity {
     pub date: String,
     pub count: i64,

@@ -77,6 +77,33 @@ pub async fn get_admin_dashboard(
     })))
 }
 
+/// GET /api/reports/my-dashboard
+/// Foydalanuvchining shaxsiy dashboardi (KPI va Oxirgi faoliyatlar)
+pub async fn get_my_dashboard(
+    pool: web::Data<PgPool>,
+    claims: Claims,
+) -> Result<HttpResponse, AppError> {
+    let p = pool.get_ref();
+    let user_id = uuid::Uuid::parse_str(&claims.sub)
+        .map_err(|_| AppError::BadRequest("Noto'g'ri foydalanuvchi ID".into()))?;
+
+    let (active_rentals, overdue_rentals, total_read, pending_requests) = 
+        ReportRepository::get_my_dashboard_kpis(p, user_id).await?;
+        
+    let recent_activities = ReportRepository::get_my_activities(p, user_id, 10).await?;
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "success": true,
+        "data": crate::dto::report::MyDashboardResponse {
+            active_rentals,
+            overdue_rentals,
+            total_read,
+            pending_requests,
+            recent_activities,
+        }
+    })))
+}
+
 /// GET /api/reports/export
 /// Oraliqni tanlab, Excel formatida (.xlsx) yuklab beradigan endpoint (faqat admin).
 pub async fn export_excel(

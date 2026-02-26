@@ -144,6 +144,7 @@ export const api = {
         if (params.page) query.append('page', params.page.toString())
         if (params.search) query.append('search', params.search)
         if (params.category) query.append('category', params.category)
+        if (params.limit) query.append('limit', params.limit.toString()) // Added limit 
 
         return request<PaginatedBooksResponse>(`/books?${query.toString()}`)
     },
@@ -183,6 +184,13 @@ export const api = {
         return request<{ success: boolean; data: Book }>(`/books/${id}/toggle-active`, {
             method: 'PUT',
             body: admin_comment ? JSON.stringify({ admin_comment }) : undefined
+        })
+    },
+
+    updateBookTotalCopies(id: string, total_copies: number) {
+        return request<{ success: boolean; message: string; data: Book }>(`/books/${id}/total-copies`, {
+            method: 'PUT',
+            body: JSON.stringify({ total_copies })
         })
     },
 
@@ -317,6 +325,10 @@ export const api = {
         return request<RentalListResponse>(`/rentals${qs ? '?' + qs : ''}`)
     },
 
+    getMyRentals() {
+        return request<RentalListResponse>('/rentals/my')
+    },
+
     createRental(user_id: string, book_id: string, due_date: string, notes?: string) {
         return request<{ success: boolean; message: string; id: string }>('/rentals', {
             method: 'POST',
@@ -449,6 +461,10 @@ export const api = {
         return request<AdminDashboardResponse>(`/reports/admin-dashboard?year=${year}&month=${month}`)
     },
 
+    getMyDashboard() {
+        return request<MyDashboardResponse>('/reports/my-dashboard')
+    },
+
     exportReportExcel(type: 'rentals' | 'controls' | 'submissions', startDate?: string, endDate?: string) {
         const query = new URLSearchParams()
         query.append('report_type', type)
@@ -477,28 +493,28 @@ export interface ReportDashboardResponse {
     recent_controls: ControlRecord[]
 }
 
-// Book types
+// Detailed Book Type
 export interface Book {
     id: string
     title: string
     author: string
-    subtitle?: string | null
-    translator?: string | null
-    isbn_13?: string | null
-    isbn_10?: string | null
-    publisher?: string | null
-    publication_date?: number | null
-    edition?: string | null
-    language?: string | null
-    category?: string | null
-    genre?: string | null
-    description?: string | null
+    category: string
+    isbn: string | null
+    published_year: number | null
+    total_pages: number | null
+    total_copies: number
+    available_copies: number
+    shelf_location: string | null
+    cover_image: string | null
+    description: string | null
+    added_by: string
+    created_at: string
+    updated_at: string
     page_count?: number | null
     duration_seconds?: number | null
     format?: string | null
     cover_image_url?: string | null
     digital_file_url?: string | null
-    shelf_location?: string | null
     total_quantity?: number | null
     available_quantity?: number | null
     rating?: number | null
@@ -548,6 +564,7 @@ export interface PaginationParams {
     page?: number
     search?: string
     category?: string
+    limit?: number
 }
 
 export interface PaginatedBooksResponse {
@@ -691,6 +708,18 @@ export interface AdminDashboardResponse {
         overdue_rentals: number
         pending_requests: number
         chart_data: { date: string; count: number; controls_count: number }[]
+        recent_activities: { id: string; user: string; action: string; time: string }[]
+    }
+}
+
+// User Personal Dashboard Types
+export interface MyDashboardResponse {
+    success: boolean
+    data: {
+        active_rentals: number
+        overdue_rentals: number
+        total_read: number
+        pending_requests: number
         recent_activities: { id: string; user: string; action: string; time: string }[]
     }
 }
