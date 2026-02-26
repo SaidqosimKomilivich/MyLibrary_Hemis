@@ -445,6 +445,10 @@ export const api = {
         return request<{ success: boolean; data: ReportDashboardResponse }>('/reports/dashboard')
     },
 
+    getAdminDashboard(year: number, month: number) {
+        return request<AdminDashboardResponse>(`/reports/admin-dashboard?year=${year}&month=${month}`)
+    },
+
     exportReportExcel(type: 'rentals' | 'controls' | 'submissions', startDate?: string, endDate?: string) {
         const query = new URLSearchParams()
         query.append('report_type', type)
@@ -674,5 +678,19 @@ export interface PaginatedUsersResponse {
         per_page: number
         total_items: number
         total_pages: number
+    }
+}
+
+// Admin Dashboard Types
+export interface AdminDashboardResponse {
+    success: boolean
+    data: {
+        total_users: number
+        total_books: number
+        active_rentals: number
+        overdue_rentals: number
+        pending_requests: number
+        chart_data: { date: string; count: number }[]
+        recent_activities: { id: string; user: string; action: string; time: string }[]
     }
 }
