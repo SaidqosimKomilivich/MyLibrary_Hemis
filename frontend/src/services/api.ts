@@ -690,7 +690,7 @@ export interface AdminDashboardResponse {
         active_rentals: number
         overdue_rentals: number
         pending_requests: number
-        chart_data: { date: string; count: number }[]
+        chart_data: { date: string; count: number; controls_count: number }[]
         recent_activities: { id: string; user: string; action: string; time: string }[]
     }
 }
