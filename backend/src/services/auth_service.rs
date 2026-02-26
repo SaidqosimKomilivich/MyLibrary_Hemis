@@ -161,10 +161,14 @@ impl AuthService {
 
         tracing::info!(user_id = %user.user_id, role = %user.role, "Foydalanuvchi tizimga kirdi");
 
+        let is_super_admin = user.role == "admin" && user.user_id == config.admin_login;
+        let mut user_response = UserResponse::from(user);
+        user_response.is_super_admin = Some(is_super_admin);
+
         let response = LoginResponse {
             success: true,
             message: "Muvaffaqiyatli kirdingiz".to_string(),
-            user: UserResponse::from(user),
+            user: user_response,
         };
 
         Ok((response, access_token, refresh_token))
@@ -257,13 +261,18 @@ impl AuthService {
     /// Joriy foydalanuvchi ma'lumotlarini olish
     pub async fn get_current_user(
         pool: &PgPool,
+        config: &Config,
         user_id: Uuid,
     ) -> Result<UserResponse, AppError> {
         let user = UserRepository::find_by_id(pool, user_id)
             .await?
             .ok_or_else(|| AppError::NotFound("Foydalanuvchi topilmadi".to_string()))?;
 
-        Ok(UserResponse::from(user))
+        let is_super_admin = user.role == "admin" && user.user_id == config.admin_login;
+        let mut user_response = UserResponse::from(user);
+        user_response.is_super_admin = Some(is_super_admin);
+
+        Ok(user_response)
     }
 
     /// Parolni o'zgartirish

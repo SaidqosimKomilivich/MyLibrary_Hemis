@@ -9,10 +9,10 @@ import { toast } from 'react-toastify'
 // Sync progress helper
 function getSyncLabel(progress: number): string {
     if (progress === 0) return ''
-    if (progress < 20) return 'HEMIS platformasiga ulanilmoqda...'
-    if (progress < 50) return "Ma'lumotlar yuklanmoqda..."
-    if (progress < 80) return "Ma'lumotlar qayta ishlanmoqda..."
-    if (progress < 100) return 'Yakunlanmoqda...'
+    if (progress < 5) return 'HEMIS platformasiga ulanilmoqda...'
+    if (progress < 30) return "Ma'lumotlar yuklanmoqda..."
+    if (progress < 70) return "Ma'lumotlar qayta ishlanmoqda..."
+    if (progress < 90) return 'Yakunlanmoqda...'
     return 'Muvaffaqiyatli sinxronlandi!'
 }
 
@@ -242,6 +242,7 @@ const defaultPagination: PaginationState = {
     totalItems: 0,
     totalPages: 1,
 }
+
 
 export default function UsersPage() {
     const [search, setSearch] = useState({ students: '', teachers: '', employees: '' })

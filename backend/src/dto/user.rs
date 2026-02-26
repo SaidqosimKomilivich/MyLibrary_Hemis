@@ -23,6 +23,7 @@ pub struct UserResponse {
     pub staff_position: Option<String>,
     pub active: bool,
     pub is_password_update: bool,
+    pub is_super_admin: Option<bool>,
 }
 
 impl From<User> for UserResponse {
@@ -45,6 +46,7 @@ impl From<User> for UserResponse {
             staff_position: user.staff_position,
             active: user.active,
             is_password_update: user.is_password_update,
+            is_super_admin: None,
         }
     }
 }

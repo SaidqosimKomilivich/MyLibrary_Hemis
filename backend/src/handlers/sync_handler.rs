@@ -10,7 +10,29 @@ use crate::services::hemis_service::HemisService;
 
 const DEFAULT_PER_PAGE: i64 = 20;
 
-/// Umumiy paginatsiyali GET handler (students, teachers, employees uchun)
+/// Super admin (tizim egasi) ekanligini tekshirish
+async fn require_super_admin(claims: &Claims, pool: &PgPool, config: &Config) -> Result<(), HttpResponse> {
+    let user_id = uuid::Uuid::parse_str(&claims.sub).map_err(|_| {
+        HttpResponse::Unauthorized().finish()
+    })?;
+    
+    let user = UserRepository::find_by_id(pool, user_id)
+        .await
+        .map_err(|_| HttpResponse::InternalServerError().finish())?
+        .ok_or_else(|| HttpResponse::Unauthorized().finish())?;
+
+    let is_super = user.user_id == config.admin_login || user.user_id == "admin" || user.user_id == "superadmin";
+
+    if !is_super {
+        return Err(HttpResponse::Forbidden().json(serde_json::json!({
+            "error": true,
+            "message": "Sizda ushbu amalni bajarish uchun ruxsat yo'q. Faqat Bosh sahifa administratori ko'ra oladi."
+        })));
+    }
+    Ok(())
+}
+
+/// Umumiy paginatsiyali GET handler (students, teachers, employees, admins uchun)
 async fn get_users_paginated(
     pool: &PgPool,
     roles: &[&str],
@@ -191,6 +213,24 @@ pub async fn get_employees(
     }
 
     get_users_paginated(pool.get_ref(), &["staff", "employee"], query.into_inner()).await
+}
+
+/// GET /api/sync/admins
+/// Bazadagi adminlarni paginatsiya bilan olish (faqat super admin uchun)
+pub async fn get_admins(
+    claims: Claims,
+    pool: web::Data<PgPool>,
+    config: web::Data<Config>,
+    query: web::Query<UserPaginationParams>,
+) -> Result<HttpResponse, actix_web::Error> {
+    if let Err(resp) = require_role(&claims, &["admin"]) {
+        return Ok(resp);
+    }
+    if let Err(resp) = require_super_admin(&claims, pool.get_ref(), config.get_ref()).await {
+        return Ok(resp);
+    }
+
+    get_users_paginated(pool.get_ref(), &["admin"], query.into_inner()).await
 }
 
 /// GET /api/users/{id} - ID orqali foydalanuvchini olish (Kamera skaneri uchun)

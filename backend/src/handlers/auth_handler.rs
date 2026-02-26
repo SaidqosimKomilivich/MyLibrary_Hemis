@@ -128,15 +128,15 @@ pub async fn refresh(
         })))
 }
 
-/// GET /api/auth/me
 pub async fn me(
     pool: web::Data<PgPool>,
+    config: web::Data<Config>,
     claims: Claims,
 ) -> Result<HttpResponse, AppError> {
     let user_id = uuid::Uuid::parse_str(&claims.sub)
         .map_err(|_| AppError::InternalError("UUID noto'g'ri".to_string()))?;
 
-    let user = AuthService::get_current_user(pool.get_ref(), user_id).await?;
+    let user = AuthService::get_current_user(pool.get_ref(), config.get_ref(), user_id).await?;
 
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "success": true,

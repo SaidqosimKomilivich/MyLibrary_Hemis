@@ -25,6 +25,7 @@ export interface UserData {
     staff_position: string | null
     active: boolean
     is_password_update: boolean
+    is_super_admin?: boolean
 }
 
 interface LoginResponse {
@@ -400,6 +401,16 @@ export const api = {
         return request<PaginatedUsersResponse>(`/sync/staff?${query.toString()}`)
     },
 
+    // Admin endpoints (Faqat super admin olishi uchun)
+    getAdmins(params: UserPaginationParams = {}) {
+        const query = new URLSearchParams()
+        if (params.page) query.append('page', params.page.toString())
+        if (params.per_page) query.append('per_page', params.per_page.toString())
+        if (params.search) query.append('search', params.search)
+        if (params.status) query.append('status', params.status)
+        return request<PaginatedUsersResponse>(`/sync/admins?${query.toString()}`)
+    },
+
     // Book Requests endpoints
     createBookRequest(book_id: string, request_type: string) {
         return request<MessageResponse>('/requests', {
@@ -665,5 +676,3 @@ export interface PaginatedUsersResponse {
         total_pages: number
     }
 }
-
-

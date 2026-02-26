@@ -178,7 +178,9 @@ async fn main() -> std::io::Result<()> {
                     .route("/staff", web::get().to(sync_handler::get_staff))
                     // Xodimlar
                     .route("/employees", web::post().to(sync_handler::sync_employees))
-                    .route("/employees", web::get().to(sync_handler::get_employees)),
+                    .route("/employees", web::get().to(sync_handler::get_employees))
+                    // Adminlar
+                    .route("/admins", web::get().to(sync_handler::get_admins)),
             )
             // Users routes
             .service(
