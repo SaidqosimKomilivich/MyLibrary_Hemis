@@ -23,3 +23,29 @@ pub struct ReportExportParams {
     pub start_date: Option<String>, // yyyy-mm-dd
     pub end_date: Option<String>,   // yyyy-mm-dd
 }
+
+#[derive(Debug, Serialize)]
+pub struct AdminDashboardResponse {
+    pub total_users: i64,
+    pub total_books: i64,
+    pub active_rentals: i64,
+    pub overdue_rentals: i64,
+    pub pending_requests: i64,
+    pub chart_data: Vec<DailyActivity>,
+    pub recent_activities: Vec<ActivityLog>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct DailyActivity {
+    pub date: String,
+    pub count: i64,
+    pub controls_count: i64,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ActivityLog {
+    pub id: String,
+    pub user: String,
+    pub action: String,
+    pub time: String,
+}

@@ -201,4 +201,196 @@ impl ReportRepository {
             })
             .collect())
     }
+
+    /// Admin Dashboard KPI lari ma'lum bir yil va oy uchun
+    pub async fn get_dashboard_kpis(
+        pool: &PgPool,
+        year: i32,
+        month: u32,
+    ) -> Result<(i64, i64, i64, i64, i64), AppError> {
+        let start_date = chrono::NaiveDate::from_ymd_opt(year, month, 1)
+            .ok_or_else(|| AppError::BadRequest("Noto'g'ri sana".into()))?
+            .and_hms_opt(0, 0, 0)
+            .unwrap();
+            
+        let mut next_month = month + 1;
+        let mut next_year = year;
+        if next_month > 12 {
+            next_month = 1;
+            next_year += 1;
+        }
+        let end_date = chrono::NaiveDate::from_ymd_opt(next_year, next_month, 1)
+            .unwrap()
+            .and_hms_opt(0, 0, 0)
+            .unwrap();
+
+        // Jami foydalanuvchilar (filtrlanmaydi oygacha)
+        let total_users: i64 = sqlx::query_scalar!(r#"SELECT COUNT(*) FROM "users""#)
+            .fetch_one(pool)
+            .await?
+            .unwrap_or(0);
+            
+        // Jami aktiv kitoblar (filtrlanmaydi)
+        let total_books: i64 = sqlx::query_scalar!(r#"SELECT COUNT(*) FROM "book" WHERE "is_active" = true"#)
+            .fetch_one(pool)
+            .await?
+            .unwrap_or(0);
+
+        // O'sha oydagi aktiv ijaralar (shu oy ichida berilgan jami ijaralar)
+        let active_rentals: i64 = sqlx::query_scalar!(
+            r#"SELECT COUNT(*) FROM "book_rentals" 
+               WHERE ("loan_date" >= $1::date AND "loan_date" < $2::date)"#,
+            start_date.date(), end_date.date()
+        )
+        .fetch_one(pool)
+        .await?
+        .unwrap_or(0);
+
+        // O'sha oydagi qarzdorliklar (Muddatidan o'tgan qarzlar global miqdori)
+        let overdue_rentals: i64 = sqlx::query_scalar!(
+            r#"SELECT COUNT(*) FROM "book_rentals" WHERE "status" = 'overdue'"#
+        )
+        .fetch_one(pool)
+        .await?
+        .unwrap_or(0);
+
+        // O'sha oydagi kutilyotgan so'rovlar (faqat kitob taqdim etilganlar emas, umumiy so'rovlar)
+        // Yoki kitob arizalari (agar shunaqa bo'lsa)
+        let pending_requests: i64 = sqlx::query_scalar!(
+            r#"SELECT COUNT(*) FROM "book" 
+               WHERE ("created_at" >= $1 AND "created_at" < $2) AND "submitted_by" IS NOT NULL AND "is_active" = false"#,
+            start_date.and_utc(), end_date.and_utc()
+        )
+        .fetch_one(pool)
+        .await?
+        .unwrap_or(0);
+
+        Ok((total_users, total_books, active_rentals, overdue_rentals, pending_requests))
+    }
+
+    /// Admin Dashboard Chart ma'lumotlari (kunlik ijaralar soni) belgilangan oy uchun
+    pub async fn get_dashboard_chart(
+        pool: &PgPool,
+        year: i32,
+        month: u32,
+    ) -> Result<Vec<crate::dto::report::DailyActivity>, AppError> {
+        let start_date = chrono::NaiveDate::from_ymd_opt(year, month, 1)
+            .ok_or_else(|| AppError::BadRequest("Noto'g'ri sana".into()))?;
+        
+        let mut next_month = month + 1;
+        let mut next_year = year;
+        if next_month > 12 {
+            next_month = 1;
+            next_year += 1;
+        }
+        
+        let end_date = chrono::NaiveDate::from_ymd_opt(next_year, next_month, 1).unwrap();
+
+        // 1 oylik taqvim yasaymiz va har bir kun uchun ijaralar va tashriflarni sanaymiz.
+        let records = sqlx::query!(
+            r#"
+            WITH calendar AS (
+                SELECT generate_series($1::date, $2::date - interval '1 day', '1 day')::date AS d
+            )
+            SELECT 
+                calendar.d::text as "date_str",
+                (SELECT COUNT(*) FROM "book_rentals" r WHERE r."loan_date" = calendar.d) as "rentals_count!",
+                (SELECT COUNT(*) FROM "control" c WHERE c."arrival"::date = calendar.d) as "controls_count!"
+            FROM calendar
+            WHERE EXTRACT(ISODOW FROM calendar.d) != 7
+            ORDER BY calendar.d ASC
+            "#,
+            start_date,
+            end_date
+        )
+        .fetch_all(pool)
+        .await?;
+
+        Ok(records
+            .into_iter()
+            .map(|r| crate::dto::report::DailyActivity {
+                date: r.date_str.unwrap_or_default(),
+                count: r.rentals_count,
+                controls_count: r.controls_count,
+            })
+            .collect())
+    }
+
+    /// Admin Dashboard Oxirgi Faoliyatlar belgilangan oy uchun
+    pub async fn get_dashboard_activities(
+        pool: &PgPool,
+        year: i32,
+        month: u32,
+        limit: i64,
+    ) -> Result<Vec<crate::dto::report::ActivityLog>, AppError> {
+        let records = sqlx::query!(
+            r#"
+            SELECT 
+                "id" as "id!", "user_name" as "user_name!", "book_title", "action_type" as "action_type!", "action_date" as "action_date!"
+            FROM (
+                SELECT 
+                    r."id"::text as "id",
+                    u."full_name" as "user_name",
+                    b."title" as "book_title",
+                    'rented' as "action_type",
+                    r."loan_date"::timestamp as "action_date"
+                FROM "book_rentals" r
+                JOIN "users" u ON u."user_id" = r."user_id"
+                JOIN "book" b ON b."id"::text = r."book_id"
+                WHERE r."loan_date" = CURRENT_DATE
+
+                UNION ALL
+
+                SELECT 
+                    r."id"::text as "id",
+                    u."full_name" as "user_name",
+                    b."title" as "book_title",
+                    'returned' as "action_type",
+                    r."return_date"::timestamp as "action_date"
+                FROM "book_rentals" r
+                JOIN "users" u ON u."user_id" = r."user_id"
+                JOIN "book" b ON b."id"::text = r."book_id"
+                WHERE r."return_date" = CURRENT_DATE
+
+                UNION ALL
+
+                SELECT 
+                    c."id"::text as "id",
+                    u."full_name" as "user_name",
+                    NULL as "book_title",
+                    'visited' as "action_type",
+                    c."arrival" as "action_date"
+                FROM "control" c
+                JOIN "users" u ON u."user_id" = c."user_id"
+                WHERE c."arrival"::date = CURRENT_DATE
+            ) AS combined_activities
+            ORDER BY "action_date" DESC
+            LIMIT $1
+            "#,
+            limit
+        )
+        .fetch_all(pool)
+        .await?;
+
+        Ok(records
+            .into_iter()
+            .map(|r| {
+                let action_text = match r.action_type.as_str() {
+                    "rented" => format!("\"{}\" kitobini ijaraga oldi", r.book_title.unwrap_or_default()),
+                    "returned" => format!("\"{}\" kitobini qaytardi", r.book_title.unwrap_or_default()),
+                    "visited" => "Kutubxonaga tashrif buyurdi".to_string(),
+                    _ => "Noma'lum harakat".to_string(),
+                };
+
+                let time_str = r.action_date.format("%Y-%m-%d").to_string();
+
+                crate::dto::report::ActivityLog {
+                    id: r.id,
+                    user: r.user_name,
+                    action: action_text,
+                    time: time_str,
+                }
+            })
+            .collect())
+    }
 }

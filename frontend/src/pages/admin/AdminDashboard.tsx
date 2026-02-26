@@ -219,7 +219,7 @@ export default function AdminDashboard() {
                                         <strong className="block text-[0.85rem] font-semibold truncate" title={item.user}>{item.user}</strong>
                                         <span className="text-[0.8rem] text-text-muted truncate block" title={item.action}>{item.action}</span>
                                     </div>
-                                    <span className="text-[0.7rem] px-2 py-0.5 bg-slate-800 rounded text-slate-400 whitespace-nowrap border border-slate-700">{item.time}</span>
+                                    <span className="text-[0.75rem] font-medium px-3 py-1 bg-slate-800/80 rounded-full text-slate-300 whitespace-nowrap border border-slate-700/80 shadow-sm">{item.time}</span>
                                 </div>
                             ))
                         ) : (

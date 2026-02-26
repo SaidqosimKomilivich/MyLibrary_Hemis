@@ -56,7 +56,11 @@ export default function ReportsPage() {
     const formatDate = (dateStr?: string | null) => {
         if (!dateStr) return '-'
         const d = new Date(dateStr)
-        return d.toLocaleDateString('uz-UZ', { month: 'short', day: 'numeric', year: 'numeric' }) + ' ' + d.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })
+        const day = d.getDate().toString().padStart(2, '0')
+        const month = (d.getMonth() + 1).toString().padStart(2, '0')
+        const year = d.getFullYear()
+        const time = d.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })
+        return `${day}.${month}.${year} ${time}`
     }
 
     return (

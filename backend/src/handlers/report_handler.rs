@@ -3,7 +3,7 @@ use chrono::{Local, NaiveDate};
 use sqlx::PgPool;
 use rust_xlsxwriter::{Workbook, Format};
 
-use crate::dto::report::{ReportDashboardResponse, ReportExportParams};
+use crate::dto::report::{ReportDashboardResponse, ReportExportParams, AdminDashboardResponse};
 use crate::errors::AppError;
 use crate::middleware::auth_middleware::{self, Claims};
 use crate::repository::report_repository::ReportRepository;
@@ -29,6 +29,50 @@ pub async fn get_dashboard(
         "data": ReportDashboardResponse {
             recent_rentals,
             recent_controls,
+        }
+    })))
+}
+
+#[derive(serde::Deserialize)]
+pub struct AdminDashboardQuery {
+    pub year: Option<i32>,
+    pub month: Option<u32>,
+}
+
+/// GET /api/reports/admin-dashboard
+/// Admin dashboard uchun batafsil statistika (KPI, Diagramma, Oxirgi faoliyat)
+pub async fn get_admin_dashboard(
+    pool: web::Data<PgPool>,
+    claims: Claims,
+    query: web::Query<AdminDashboardQuery>,
+) -> Result<HttpResponse, AppError> {
+    if let Err(resp) = auth_middleware::require_role(&claims, &["admin"]) {
+        return Ok(resp);
+    }
+
+    let p = pool.get_ref();
+    let q = query.into_inner();
+    
+    let now = Local::now().date_naive();
+    let year = q.year.unwrap_or_else(|| now.format("%Y").to_string().parse().unwrap_or(2025));
+    let month = q.month.unwrap_or_else(|| now.format("%m").to_string().parse().unwrap_or(1));
+
+    let (total_users, total_books, active_rentals, overdue_rentals, pending_requests) = 
+        ReportRepository::get_dashboard_kpis(p, year, month).await?;
+        
+    let chart_data = ReportRepository::get_dashboard_chart(p, year, month).await?;
+    let recent_activities = ReportRepository::get_dashboard_activities(p, year, month, 10).await?;
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "success": true,
+        "data": AdminDashboardResponse {
+            total_users,
+            total_books,
+            active_rentals,
+            overdue_rentals,
+            pending_requests,
+            chart_data,
+            recent_activities,
         }
     })))
 }

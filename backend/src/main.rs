@@ -163,6 +163,7 @@ async fn main() -> std::io::Result<()> {
             .service(
                 web::scope("/api/reports")
                     .route("/dashboard", web::get().to(report_handler::get_dashboard))
+                    .route("/admin-dashboard", web::get().to(report_handler::get_admin_dashboard))
                     .route("/export", web::get().to(report_handler::export_excel)),
             )
             // Sync routes (HEMIS sinxronlash)
