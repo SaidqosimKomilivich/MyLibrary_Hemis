@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Users, BookOpen, UserCog, BarChart3, TrendingUp, ChevronLeft, ChevronRight, RefreshCcw } from 'lucide-react'
 import { api } from '../../services/api'
 import type { AdminDashboardResponse } from '../../services/api'
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { toast } from 'react-toastify'
 
 // Oylar nomi o'zbek tilida
@@ -121,121 +121,80 @@ export default function AdminDashboard() {
             <div className="grid grid-cols-[2fr_1fr] gap-5 max-lg:grid-cols-1">
 
                 {/* Left side: Charts */}
-                <div className="flex flex-col gap-5">
-                    {/* Chart 1: Ijaralar */}
-                    <div className="bg-surface border border-border rounded-xl overflow-hidden p-5 flex flex-col min-h-[350px]">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="flex items-center gap-2 text-[0.95rem] font-semibold">
-                                <BarChart3 size={18} />
-                                Oylik faoliyat ko'rsatkichlari (Ijara olingan kunlar bo'yicha)
-                            </h2>
-                        </div>
-                        <div className="flex-1 w-full relative">
-                            {loading && (
-                                <div className="absolute inset-0 bg-surface/50 z-10 flex items-center justify-center backdrop-blur-sm">
-                                    <RefreshCcw size={24} className="animate-spin text-primary" />
-                                </div>
-                            )}
-                            {data?.chart_data && data.chart_data.length > 0 ? (
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <AreaChart data={data.chart_data}>
-                                        <defs>
-                                            <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.3} />
-                                                <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
-                                            </linearGradient>
-                                        </defs>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                                        <XAxis
-                                            dataKey="date"
-                                            tickFormatter={(val) => val.split('-')[2]}
-                                            stroke="#94a3b8"
-                                            fontSize={12}
-                                            tickLine={false}
-                                            interval={0}
-                                        />
-                                        <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                                        <Tooltip
-                                            contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px', color: '#fff' }}
-                                            itemStyle={{ color: '#06b6d4' }}
-                                            formatter={(val) => [val, 'Ijaralar']}
-                                            labelFormatter={(label) => `Sana: ${label}`}
-                                        />
-                                        <Area
-                                            type="monotone"
-                                            dataKey="count"
-                                            stroke="#06b6d4"
-                                            strokeWidth={3}
-                                            fillOpacity={1}
-                                            fill="url(#colorCount)"
-                                            activeDot={{ r: 6, strokeWidth: 0, fill: '#06b6d4' }}
-                                        />
-                                    </AreaChart>
-                                </ResponsiveContainer>
-                            ) : (
-                                <div className="w-full h-full flex flex-col items-center justify-center text-text-muted">
-                                    {loading ? "Yuklanmoqda..." : "Ushbu oy uchun ma'lumot topilmadi"}
-                                </div>
-                            )}
-                        </div>
+                <div className="bg-surface border border-border rounded-xl overflow-hidden p-5 flex flex-col min-h-[450px]">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="flex items-center gap-2 text-[0.95rem] font-semibold">
+                            <BarChart3 size={18} />
+                            Oylik faoliyat ko'rsatkichlari (Ijara va Tashriflar)
+                        </h2>
                     </div>
-
-                    {/* Chart 2: Tashriflar */}
-                    <div className="bg-surface border border-border rounded-xl overflow-hidden p-5 flex flex-col min-h-[350px]">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="flex items-center gap-2 text-[0.95rem] font-semibold text-emerald-400">
-                                <Users size={18} />
-                                Kutubxona tashriflari
-                            </h2>
-                        </div>
-                        <div className="flex-1 w-full relative">
-                            {loading && (
-                                <div className="absolute inset-0 bg-surface/50 z-10 flex items-center justify-center backdrop-blur-sm">
-                                    <RefreshCcw size={24} className="animate-spin text-emerald-500" />
-                                </div>
-                            )}
-                            {data?.chart_data && data.chart_data.length > 0 ? (
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <AreaChart data={data.chart_data}>
-                                        <defs>
-                                            <linearGradient id="colorControls" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                                                <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                                            </linearGradient>
-                                        </defs>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                                        <XAxis
-                                            dataKey="date"
-                                            tickFormatter={(val) => val.split('-')[2]}
-                                            stroke="#94a3b8"
-                                            fontSize={12}
-                                            tickLine={false}
-                                            interval={0}
-                                        />
-                                        <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                                        <Tooltip
-                                            contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px', color: '#fff' }}
-                                            itemStyle={{ color: '#10b981' }}
-                                            formatter={(val) => [val, 'Tashriflar']}
-                                            labelFormatter={(label) => `Sana: ${label}`}
-                                        />
-                                        <Area
-                                            type="monotone"
-                                            dataKey="controls_count"
-                                            stroke="#10b981"
-                                            strokeWidth={3}
-                                            fillOpacity={1}
-                                            fill="url(#colorControls)"
-                                            activeDot={{ r: 6, strokeWidth: 0, fill: '#10b981' }}
-                                        />
-                                    </AreaChart>
-                                </ResponsiveContainer>
-                            ) : (
-                                <div className="w-full h-full flex flex-col items-center justify-center text-text-muted">
-                                    {loading ? "Yuklanmoqda..." : "Ushbu oy uchun ma'lumot topilmadi"}
-                                </div>
-                            )}
-                        </div>
+                    <div className="flex-1 w-full relative">
+                        {loading && (
+                            <div className="absolute inset-0 bg-surface/50 z-10 flex items-center justify-center backdrop-blur-sm">
+                                <RefreshCcw size={24} className="animate-spin text-primary" />
+                            </div>
+                        )}
+                        {data?.chart_data && data.chart_data.length > 0 ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={data.chart_data}>
+                                    <defs>
+                                        <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
+                                        </linearGradient>
+                                        <linearGradient id="colorControls" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                                    <XAxis
+                                        dataKey="date"
+                                        tickFormatter={(val) => val.split('-')[2]}
+                                        stroke="#94a3b8"
+                                        fontSize={12}
+                                        tickLine={false}
+                                        interval={0}
+                                    />
+                                    <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                                    <Tooltip
+                                        contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px', color: '#fff' }}
+                                        formatter={(val, name) => [val, name === 'count' ? 'Ijaralar' : 'Tashriflar']}
+                                        labelFormatter={(label) => `Sana: ${label}`}
+                                    />
+                                    <Legend
+                                        verticalAlign="top"
+                                        height={36}
+                                        wrapperStyle={{ fontSize: '13px', paddingTop: '10px' }}
+                                        formatter={(value: string) => value === 'count' ? 'Ijaralar' : 'Tashriflar'}
+                                    />
+                                    <Area
+                                        type="monotone"
+                                        dataKey="controls_count"
+                                        name="controls_count"
+                                        stroke="#10b981"
+                                        strokeWidth={3}
+                                        fillOpacity={1}
+                                        fill="url(#colorControls)"
+                                        activeDot={{ r: 6, strokeWidth: 0, fill: '#10b981' }}
+                                    />
+                                    <Area
+                                        type="monotone"
+                                        dataKey="count"
+                                        name="count"
+                                        stroke="#06b6d4"
+                                        strokeWidth={3}
+                                        fillOpacity={1}
+                                        fill="url(#colorCount)"
+                                        activeDot={{ r: 6, strokeWidth: 0, fill: '#06b6d4' }}
+                                    />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center text-text-muted">
+                                {loading ? "Yuklanmoqda..." : "Ushbu oy uchun ma'lumot topilmadi"}
+                            </div>
+                        )}
                     </div>
                 </div>
 
