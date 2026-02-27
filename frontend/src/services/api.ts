@@ -535,6 +535,13 @@ export interface Book {
     isbn_13?: string | null
 }
 
+export interface PopularBook {
+    title: string;
+    author: string;
+    count: number;
+    cover_image?: string;
+}
+
 export interface CreateBookRequest {
     title: string
     author: string
@@ -753,6 +760,7 @@ export interface EmployeeDashboardResponse {
         title: string
         author: string
         count: number
+        cover_image?: string
     }[]
 }
 
@@ -765,5 +773,6 @@ export interface PublicDashboardResponse {
         title: string
         author: string
         count: number
+        cover_image?: string
     }[]
 }

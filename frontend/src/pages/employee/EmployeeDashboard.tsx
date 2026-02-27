@@ -137,10 +137,16 @@ export default function EmployeeDashboard() {
                         {dashboardData?.popular_books && dashboardData.popular_books.length > 0 ? (
                             dashboardData.popular_books.map((book, i) => (
                                 <div key={i} className="flex items-center gap-3.5 py-3 px-5 transition-colors hover:bg-indigo-500/5">
-                                    <div className="w-7 text-center font-bold text-[0.9rem] text-text-muted">{i + 1}</div>
-                                    <div className="flex-1">
-                                        <strong className="block text-[0.85rem] font-semibold">{book.title}</strong>
-                                        <span className="text-[0.8rem] text-text-muted">{book.author}</span>
+                                    <div className="w-10 h-14 bg-slate-800 rounded flex items-center justify-center overflow-hidden shrink-0 border border-white/5">
+                                        {book.cover_image ? (
+                                            <img src={`http://localhost:8080${book.cover_image}`} alt={book.title} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="w-full text-center font-bold text-[0.8rem] text-text-muted">{i + 1}</div>
+                                        )}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <strong className="block text-[0.85rem] font-semibold truncate">{book.title}</strong>
+                                        <span className="text-[0.8rem] text-text-muted truncate block">{book.author}</span>
                                     </div>
                                     <div className="flex items-center gap-1.5 py-1 px-2.5 rounded-full bg-slate-900/50 border border-border text-[0.75rem] text-text-muted">
                                         <Library size={14} />

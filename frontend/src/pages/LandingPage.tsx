@@ -145,7 +145,11 @@ export default function LandingPage() {
                             stats.popular_books.slice(0, 8).map((book, i) => (
                                 <div key={i} className="group bg-surface border border-border/50 rounded-2xl overflow-hidden hover:border-emerald-500/50 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-emerald-500/10 cursor-pointer flex flex-col h-full">
                                     <div className="h-48 bg-slate-900/40 flex items-center justify-center border-b border-border/50 relative overflow-hidden">
-                                        <BookOpen size={48} className="text-border group-hover:text-emerald-500/50 transition-colors duration-500" />
+                                        {book.cover_image ? (
+                                            <img src={`http://localhost:8080${book.cover_image}`} alt={book.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                        ) : (
+                                            <BookOpen size={48} className="text-border group-hover:text-emerald-500/50 transition-colors duration-500" />
+                                        )}
                                         <div className="absolute top-3 right-3 bg-surface/90 backdrop-blur text-[0.7rem] font-bold px-2.5 py-1 rounded-full border border-border flex items-center gap-1.5 text-text-muted shadow-sm">
                                             <TrendingUp size={12} className="text-emerald-500" /> {book.count} marta
                                         </div>

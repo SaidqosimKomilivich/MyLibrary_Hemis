@@ -82,6 +82,7 @@ pub struct PopularBook {
     pub title: String,
     pub author: String,
     pub count: i64,
+    pub cover_image: Option<String>,
 }
 
 #[derive(Debug, Serialize)]

@@ -587,10 +587,11 @@ impl ReportRepository {
             SELECT 
                 b."title",
                 b."author",
+                b."cover_image_url" as cover_image,
                 COUNT(r."id") as "rent_count"
             FROM "book_rentals" r
             JOIN "book" b ON b."id"::text = r."book_id"
-            GROUP BY b."id", b."title", b."author"
+            GROUP BY b."id", b."title", b."author", b."cover_image_url"
             ORDER BY "rent_count" DESC
             LIMIT 4
             "#
@@ -603,6 +604,7 @@ impl ReportRepository {
                 title: rec.title,
                 author: rec.author,
                 count: rec.rent_count.unwrap_or(0),
+                cover_image: rec.cover_image,
             }
         }).collect();
 
@@ -622,7 +624,7 @@ impl ReportRepository {
     ) -> Result<crate::dto::report::PublicDashboardResponse, AppError> {
         // 1. Jami kitoblar soni (Barcha tillar, barcha nusxalar)
         let total_books: i64 = sqlx::query_scalar!(
-            r#"SELECT COALESCE(SUM("total_quantity"), 0)::bigint FROM "book""#
+            r#"SELECT COUNT(*)::bigint FROM "book""#
         )
         .fetch_one(pool)
         .await?
@@ -650,10 +652,11 @@ impl ReportRepository {
             SELECT 
                 b."title",
                 b."author",
+                b."cover_image_url" as cover_image,
                 COUNT(r."id") as "rent_count"
             FROM "book_rentals" r
             JOIN "book" b ON b."id"::text = r."book_id"
-            GROUP BY b."id", b."title", b."author"
+            GROUP BY b."id", b."title", b."author", b."cover_image_url"
             ORDER BY "rent_count" DESC
             LIMIT 8
             "#
@@ -666,6 +669,7 @@ impl ReportRepository {
                 title: rec.title,
                 author: rec.author,
                 count: rec.rent_count.unwrap_or(0),
+                cover_image: rec.cover_image,
             }
         }).collect();
 
