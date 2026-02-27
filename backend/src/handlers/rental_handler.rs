@@ -81,7 +81,11 @@ pub async fn get_my_rentals(
     pool: web::Data<PgPool>,
     claims: Claims,
 ) -> Result<HttpResponse, AppError> {
-    let user_id = &claims.sub;
-    let response = RentalService::get_my_rentals(pool.get_ref(), user_id).await?;
+    let user_uuid = uuid::Uuid::parse_str(&claims.sub).map_err(|_| AppError::BadRequest("Noto'g'ri UUID".into()))?;
+    let user = crate::repository::user_repository::UserRepository::find_by_id(pool.get_ref(), user_uuid)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Foydalanuvchi topilmadi".into()))?;
+
+    let response = RentalService::get_my_rentals(pool.get_ref(), &user.user_id).await?;
     Ok(HttpResponse::Ok().json(response))
 }

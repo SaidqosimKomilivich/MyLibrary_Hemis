@@ -24,7 +24,7 @@ import EmployeeRequestsPage from './pages/employee/EmployeeRequestsPage'
 import EmployeeRentalsPage from './pages/employee/EmployeeRentalsPage'
 import ReportsPage from './pages/employee/ReportsPage'
 import PendingBooksPage from './pages/admin/PendingBooksPage'
-
+import MyRentals from './pages/student/MyRentals'
 
 function App() {
   return (
@@ -79,6 +79,7 @@ function App() {
               <Route index element={<StudentDashboard />} />
               <Route path="library" element={<Library />} />
               <Route path="my-books" element={<MyReadings />} />
+              <Route path="rentals" element={<MyRentals />} />
               <Route path="requests" element={<MyRequestsPage />} />
               <Route path="profile" element={<ProfilePage />} />
             </Route>
@@ -88,6 +89,7 @@ function App() {
               <Route index element={<TeacherDashboard />} />
               <Route path="available" element={<Library />} />
               <Route path="my-books" element={<MyReadings />} />
+              <Route path="rentals" element={<MyRentals />} />
               <Route path="requests" element={<MyRequestsPage />} />
               <Route path="submit-book" element={<TeacherBookSubmit />} />
               <Route path="profile" element={<ProfilePage />} />
@@ -98,6 +100,7 @@ function App() {
               <Route index element={<StudentDashboard />} />
               <Route path="library" element={<Library />} />
               <Route path="my-books" element={<MyReadings />} />
+              <Route path="rentals" element={<MyRentals />} />
               <Route path="requests" element={<MyRequestsPage />} />
 
               <Route path="profile" element={<ProfilePage />} />

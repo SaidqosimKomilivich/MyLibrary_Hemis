@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { api, type MyDashboardResponse, type Rental, type Book } from '../../services/api'
-import { BookOpen, Clock, CheckCircle, Library, Star, AlertTriangle, Loader2, Calendar } from 'lucide-react'
+import { BookOpen, Clock, CheckCircle, Library, Star, AlertTriangle, Loader2, Calendar, ArrowRight } from 'lucide-react'
 import { toast } from 'react-toastify'
 
 export default function StudentDashboard() {
@@ -64,10 +65,10 @@ export default function StudentDashboard() {
 
     return (
         <div className="animate-page-enter">
-            <div className="mb-7">
+            {/* <div className="mb-7">
                 <h1 className="text-[1.6rem] font-bold tracking-[-0.02em] mb-1">Talaba paneli</h1>
                 <p className="text-[0.9rem] text-text-muted">Xush kelibsiz! Shaxsiy ko'rsatkichlaringiz va kitoblaringiz</p>
-            </div>
+            </div> */}
 
             {isLoading ? (
                 <div className="flex justify-center items-center py-20">
@@ -107,7 +108,7 @@ export default function StudentDashboard() {
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-1 gap-4">
-                                        {myRentals.map((r) => {
+                                        {myRentals.slice(0, 2).map((r) => {
                                             const daysLeft = calculateDaysLeft(r.due_date)
                                             const isOverdue = r.status === 'overdue' || daysLeft < 0
 
@@ -146,6 +147,15 @@ export default function StudentDashboard() {
                                                 </div>
                                             )
                                         })}
+
+                                        {myRentals.length > 2 && (
+                                            <div className="mt-2 flex justify-end">
+                                                <Link to="/student/rentals" className="inline-flex items-center gap-2 text-[0.85rem] font-semibold text-emerald-400 hover:text-emerald-300 transition-colors">
+                                                    Batafsil ko'rish
+                                                    <ArrowRight size={16} />
+                                                </Link>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>

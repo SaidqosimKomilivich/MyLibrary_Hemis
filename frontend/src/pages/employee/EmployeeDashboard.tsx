@@ -1,34 +1,49 @@
-import { BookCopy, Library, ClipboardList, UserCheck, TrendingUp, Clock } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { BookCopy, Library, ClipboardList, UserCheck, TrendingUp, Clock, Loader2 } from 'lucide-react'
+import { api, type EmployeeDashboardResponse } from '../../services/api'
+import { toast } from 'react-toastify'
 
 export default function EmployeeDashboard() {
+    const [dashboardData, setDashboardData] = useState<EmployeeDashboardResponse | null>(null)
+    const [isLoading, setIsLoading] = useState(true)
+
+    useEffect(() => {
+        const fetchDashboard = async () => {
+            try {
+                const res = await api.getEmployeeDashboard()
+                if (res.success) {
+                    setDashboardData(res.data)
+                }
+            } catch (err: any) {
+                toast.error(err.message || "Ma'lumotlarni yuklashda xatolik yuz berdi")
+            } finally {
+                setIsLoading(false)
+            }
+        }
+        fetchDashboard()
+    }, [])
+
     const stats = [
-        { label: 'Bugun berilgan', value: '23', icon: <BookCopy size={22} />, color: 'var(--stat-blue)' },
-        { label: 'Qaytarilgan', value: '15', icon: <ClipboardList size={22} />, color: 'var(--stat-green)' },
-        { label: "Kutilayotgan so'rovlar", value: '8', icon: <Clock size={22} />, color: 'var(--stat-orange)' },
-        { label: "Bugungi o'quvchilar", value: '42', icon: <UserCheck size={22} />, color: 'var(--stat-purple)' },
+        { label: 'Bugun berilgan', value: dashboardData?.today_rented || 0, icon: <BookCopy size={22} />, color: 'var(--stat-blue)' },
+        { label: 'Qaytarilgan', value: dashboardData?.today_returned || 0, icon: <ClipboardList size={22} />, color: 'var(--stat-green)' },
+        { label: "Kutilayotgan so'rovlar", value: dashboardData?.pending_requests || 0, icon: <Clock size={22} />, color: 'var(--stat-orange)' },
+        { label: "Bugungi o'quvchilar", value: dashboardData?.today_visitors || 0, icon: <UserCheck size={22} />, color: 'var(--stat-purple)' },
     ]
 
-    const pendingReturns = [
-        { student: 'Aliyev Sherzod', book: 'Oliy matematika', dueDate: '2026-02-18', status: 'normal' },
-        { student: 'Yusupova Madina', book: 'Dasturlash asoslari', dueDate: '2026-02-15', status: 'overdue' },
-        { student: 'Qodirov Anvar', book: 'Fizika', dueDate: '2026-02-20', status: 'normal' },
-        { student: 'Juraeva Sevara', book: 'Ingliz tili grammatikasi', dueDate: '2026-02-14', status: 'overdue' },
-        { student: 'Mirzaev Oybek', book: 'Algoritm va ma\'lumotlar tuzilmasi', dueDate: '2026-02-22', status: 'normal' },
-    ]
-
-    const popularBooks = [
-        { title: 'Oliy matematika', author: 'Piskunov N.S.', count: 45 },
-        { title: 'Dasturlash asoslari', author: 'Kernigan B.', count: 38 },
-        { title: 'Fizika', author: 'Savyolov I.V.', count: 32 },
-        { title: 'Ingliz tili', author: 'Murphy R.', count: 28 },
-    ]
+    if (isLoading) {
+        return (
+            <div className="flex justify-center py-24">
+                <Loader2 size={48} className="text-emerald-400 opacity-80 animate-spin" />
+            </div>
+        )
+    }
 
     return (
         <div className="animate-page-enter">
-            <div className="mb-7">
+            {/* <div className="mb-7">
                 <h1 className="text-[1.6rem] font-bold tracking-[-0.02em] mb-1">Xodim paneli</h1>
                 <p className="text-[0.9rem] text-text-muted">Bugungi ish holati</p>
-            </div>
+            </div> */}
 
             <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4 mb-6">
                 {stats.map((stat) => (
@@ -64,18 +79,47 @@ export default function EmployeeDashboard() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {pendingReturns.map((item, i) => (
-                                    <tr key={i} className="transition-colors hover:bg-indigo-500/5 border-t border-border">
-                                        <td className="py-3 px-4 text-[0.875rem]">{item.student}</td>
-                                        <td className="py-3 px-4 text-[0.875rem]">{item.book}</td>
-                                        <td className="py-3 px-4 text-[0.875rem]">{item.dueDate}</td>
-                                        <td className="py-3 px-4 text-[0.875rem]">
-                                            <span className={`inline-flex items-center py-1 px-2.5 rounded-full text-[0.75rem] font-semibold whitespace-nowrap ${item.status === 'overdue' ? 'bg-red-500/15 text-red-400' : 'bg-emerald-500/15 text-emerald-400'}`}>
-                                                {item.status === 'overdue' ? "Muddati o'tgan" : 'Normal'}
-                                            </span>
+                                {dashboardData?.pending_returns && dashboardData.pending_returns.length > 0 ? (
+                                    dashboardData.pending_returns.map((item, i) => (
+                                        <tr key={i} className="transition-colors hover:bg-indigo-500/5 border-t border-border">
+                                            <td className="py-3 px-4 text-[0.875rem]">{item.student}</td>
+                                            <td className="py-3 px-4 text-[0.875rem]">{item.book}</td>
+                                            <td className="py-3 px-4 text-[0.875rem]">{item.due_date}</td>
+                                            <td className="py-3 px-4 text-[0.875rem]">
+                                                {(() => {
+                                                    const [yyyy, mm, dd] = item.due_date.split('-');
+                                                    const due = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+                                                    const today = new Date();
+                                                    today.setHours(0, 0, 0, 0);
+                                                    const diffDays = Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+                                                    let colorClass = 'bg-emerald-500/15 text-emerald-400';
+                                                    let text = 'Normal';
+
+                                                    if (item.status === 'overdue' || diffDays <= 0) {
+                                                        colorClass = 'bg-red-500/15 text-red-400';
+                                                        text = "Muddati o'tgan";
+                                                    } else if (diffDays <= 3) {
+                                                        colorClass = 'bg-yellow-500/15 text-yellow-400';
+                                                        text = 'Yaqinlashdi';
+                                                    }
+
+                                                    return (
+                                                        <span className={`inline-flex items-center py-1 px-2.5 rounded-full text-[0.75rem] font-semibold whitespace-nowrap ${colorClass}`}>
+                                                            {text}
+                                                        </span>
+                                                    );
+                                                })()}
+                                            </td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan={4} className="py-8 text-center text-text-muted">
+                                            Qaytarish kutilayotgan kitoblar yo'q
                                         </td>
                                     </tr>
-                                ))}
+                                )}
                             </tbody>
                         </table>
                     </div>
@@ -90,19 +134,25 @@ export default function EmployeeDashboard() {
                         </h2>
                     </div>
                     <div className="py-2">
-                        {popularBooks.map((book, i) => (
-                            <div key={i} className="flex items-center gap-3.5 py-3 px-5 transition-colors hover:bg-indigo-500/5">
-                                <div className="w-7 text-center font-bold text-[0.9rem] text-text-muted">{i + 1}</div>
-                                <div className="flex-1">
-                                    <strong className="block text-[0.85rem] font-semibold">{book.title}</strong>
-                                    <span className="text-[0.8rem] text-text-muted">{book.author}</span>
+                        {dashboardData?.popular_books && dashboardData.popular_books.length > 0 ? (
+                            dashboardData.popular_books.map((book, i) => (
+                                <div key={i} className="flex items-center gap-3.5 py-3 px-5 transition-colors hover:bg-indigo-500/5">
+                                    <div className="w-7 text-center font-bold text-[0.9rem] text-text-muted">{i + 1}</div>
+                                    <div className="flex-1">
+                                        <strong className="block text-[0.85rem] font-semibold">{book.title}</strong>
+                                        <span className="text-[0.8rem] text-text-muted">{book.author}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 py-1 px-2.5 rounded-full bg-slate-900/50 border border-border text-[0.75rem] text-text-muted">
+                                        <Library size={14} />
+                                        <span>{book.count} marta</span>
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-1.5 py-1 px-2.5 rounded-full bg-slate-900/50 border border-border text-[0.75rem] text-text-muted">
-                                    <Library size={14} />
-                                    <span>{book.count} marta</span>
-                                </div>
+                            ))
+                        ) : (
+                            <div className="py-6 text-center text-[0.9rem] text-text-muted">
+                                Mashhur kitoblar ro'yxati hozircha bo'sh
                             </div>
-                        ))}
+                        )}
                     </div>
                 </div>
             </div>

@@ -64,7 +64,7 @@ function UserDetailModal({ user, onClose }: { user: UserData; onClose: () => voi
         { icon: <Hash size={16} />, label: 'ID', value: user.user_id },
         { icon: <Briefcase size={16} />, label: "Bo'lim", value: user.department_name || "Noma'lum" },
         { icon: <BookUser size={16} />, label: 'Lavozim', value: user.staff_position || "Noma'lum" },
-        { icon: <ShieldAlert size={16} />, label: 'Rol', value: user.role === 'staff' ? 'Kutubxonachi' : user.role === 'admin' ? 'Administrator' : user.role === 'teacher' ? "O'qituvchi" : user.role },
+        { icon: <ShieldAlert size={16} />, label: 'Rol', value: user.role === 'staff' ? 'Kutubxon' : user.role === 'admin' ? 'Administrator' : user.role === 'teacher' ? "O'qituvchi" : user.role },
         { icon: <Mail size={16} />, label: 'Email', value: user.email || '-' },
         { icon: <Phone size={16} />, label: 'Telefon', value: user.phone || '-' },
         { icon: <Calendar size={16} />, label: "Tug'ilgan sana", value: user.birth_date || '-' },

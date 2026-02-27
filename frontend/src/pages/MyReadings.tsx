@@ -12,11 +12,22 @@ function readingToBook(reading: Reading): Book {
         id: reading.book_id,
         title: reading.book_title || "Noma'lum kitob",
         author: reading.book_author || "Muallif noma'lum",
+        cover_image: reading.book_cover,
         cover_image_url: reading.book_cover,
-        category: reading.book_category,
+        category: reading.book_category || "Boshqa",
         page_count: reading.book_page_count,
         format: reading.book_format,
         digital_file_url: reading.book_digital_file_url,
+        total_copies: 1,
+        available_copies: 1,
+        added_by: "system",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        published_year: new Date().getFullYear(),
+        isbn: null,
+        total_pages: reading.book_page_count,
+        shelf_location: null,
+        description: null,
     }
 }
 

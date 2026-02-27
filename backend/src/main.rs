@@ -165,6 +165,7 @@ async fn main() -> std::io::Result<()> {
                     .route("/dashboard", web::get().to(report_handler::get_dashboard))
                     .route("/admin-dashboard", web::get().to(report_handler::get_admin_dashboard))
                     .route("/my-dashboard", web::get().to(report_handler::get_my_dashboard))
+                    .route("/employee-dashboard", web::get().to(report_handler::get_employee_dashboard))
                     .route("/export", web::get().to(report_handler::export_excel)),
             )
             // Sync routes (HEMIS sinxronlash)

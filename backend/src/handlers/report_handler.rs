@@ -84,13 +84,17 @@ pub async fn get_my_dashboard(
     claims: Claims,
 ) -> Result<HttpResponse, AppError> {
     let p = pool.get_ref();
-    let user_id = uuid::Uuid::parse_str(&claims.sub)
+    let user_uuid = uuid::Uuid::parse_str(&claims.sub)
         .map_err(|_| AppError::BadRequest("Noto'g'ri foydalanuvchi ID".into()))?;
 
+    let user = crate::repository::user_repository::UserRepository::find_by_id(p, user_uuid)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Foydalanuvchi topilmadi".into()))?;
+
     let (active_rentals, overdue_rentals, total_read, pending_requests) = 
-        ReportRepository::get_my_dashboard_kpis(p, user_id).await?;
+        ReportRepository::get_my_dashboard_kpis(p, &user.user_id, user.id).await?;
         
-    let recent_activities = ReportRepository::get_my_activities(p, user_id, 10).await?;
+    let recent_activities = ReportRepository::get_my_activities(p, &user.user_id, 10).await?;
 
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "success": true,
@@ -101,6 +105,25 @@ pub async fn get_my_dashboard(
             pending_requests,
             recent_activities,
         }
+    })))
+}
+
+/// GET /api/reports/employee-dashboard
+/// Librarian/Xodim dashboardi (Bugungi statistika, Qaytarilishi kerak bo'lganlar, Mashhur kitoblar)
+pub async fn get_employee_dashboard(
+    pool: web::Data<PgPool>,
+    claims: Claims,
+) -> Result<HttpResponse, AppError> {
+    if let Err(resp) = auth_middleware::require_role(&claims, &["employee", "staff", "admin"]) {
+        return Ok(resp);
+    }
+
+    let p = pool.get_ref();
+    let dashboard_data = ReportRepository::get_employee_dashboard(p).await?;
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "success": true,
+        "data": dashboard_data
     })))
 }
 

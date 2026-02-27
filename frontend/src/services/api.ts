@@ -461,6 +461,10 @@ export const api = {
         return request<AdminDashboardResponse>(`/reports/admin-dashboard?year=${year}&month=${month}`)
     },
 
+    getEmployeeDashboard() {
+        return request<{ success: boolean; data: EmployeeDashboardResponse }>('/reports/employee-dashboard')
+    },
+
     getMyDashboard() {
         return request<MyDashboardResponse>('/reports/my-dashboard')
     },
@@ -517,9 +521,14 @@ export interface Book {
     digital_file_url?: string | null
     total_quantity?: number | null
     available_quantity?: number | null
-    rating?: number | null
     is_active?: boolean | null
     admin_comment?: string | null
+    subtitle?: string | null
+    translator?: string | null
+    publisher?: string | null
+    publication_date?: number | null
+    language?: string | null
+    isbn_13?: string | null
 }
 
 export interface CreateBookRequest {
@@ -722,4 +731,23 @@ export interface MyDashboardResponse {
         pending_requests: number
         recent_activities: { id: string; user: string; action: string; time: string }[]
     }
+}
+
+// Employee Dashboard Types
+export interface EmployeeDashboardResponse {
+    today_rented: number
+    today_returned: number
+    pending_requests: number
+    today_visitors: number
+    pending_returns: {
+        student: string
+        book: string
+        due_date: string
+        status: string
+    }[]
+    popular_books: {
+        title: string
+        author: string
+        count: number
+    }[]
 }

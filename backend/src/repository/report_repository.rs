@@ -397,12 +397,13 @@ impl ReportRepository {
     /// Personal Dashboard KPIs (hozirgi ijaralar, muddatidan o'tganlar, jami tarix, kutilayotgan so'rovlar)
     pub async fn get_my_dashboard_kpis(
         pool: &PgPool,
-        user_id: uuid::Uuid,
+        user_id_str: &str,
+        user_uuid: uuid::Uuid,
     ) -> Result<(i64, i64, i64, i64), AppError> {
         let active_rentals: i64 = sqlx::query_scalar!(
             r#"SELECT COUNT(*) FROM "book_rentals" 
                WHERE "user_id" = $1 AND "status" = 'active'"#,
-            user_id.to_string()
+            user_id_str
         )
         .fetch_one(pool)
         .await?
@@ -411,7 +412,7 @@ impl ReportRepository {
         let overdue_rentals: i64 = sqlx::query_scalar!(
             r#"SELECT COUNT(*) FROM "book_rentals" 
                WHERE "user_id" = $1 AND "status" = 'overdue'"#,
-            user_id.to_string()
+            user_id_str
         )
         .fetch_one(pool)
         .await?
@@ -420,7 +421,7 @@ impl ReportRepository {
         let total_read: i64 = sqlx::query_scalar!(
             r#"SELECT COUNT(*) FROM "book_rentals" 
                WHERE "user_id" = $1 AND "status" = 'returned'"#,
-            user_id.to_string()
+            user_id_str
         )
         .fetch_one(pool)
         .await?
@@ -429,7 +430,7 @@ impl ReportRepository {
         let pending_requests: i64 = sqlx::query_scalar!(
             r#"SELECT COUNT(*) FROM "book_requests" 
                WHERE "user_id" = $1 AND "status" = 'pending'"#,
-            user_id
+            user_uuid
         )
         .fetch_one(pool)
         .await?
@@ -441,7 +442,7 @@ impl ReportRepository {
     /// Personal Dashboard Oxirgi Faoliyatlar (Timeline)
     pub async fn get_my_activities(
         pool: &PgPool,
-        user_id: uuid::Uuid,
+        user_id_str: &str,
         limit: i64,
     ) -> Result<Vec<crate::dto::report::ActivityLog>, AppError> {
         let records = sqlx::query!(
@@ -482,8 +483,8 @@ impl ReportRepository {
             ORDER BY "action_date" DESC
             LIMIT $3
             "#,
-            user_id.to_string(), // rentals book_rentals user_id
-            user_id.to_string(), // control user_id
+            user_id_str, // rentals book_rentals user_id
+            user_id_str, // control user_id
             limit
         )
         .fetch_all(pool)
@@ -509,5 +510,109 @@ impl ReportRepository {
                 }
             })
             .collect())
+    }
+
+    /// Employee Dashboard KPIs
+    pub async fn get_employee_dashboard(
+        pool: &PgPool,
+    ) -> Result<crate::dto::report::EmployeeDashboardResponse, AppError> {
+        let today = chrono::Local::now().date_naive();
+        
+        // 1. Bugun berilgan jami kitoblar
+        let today_rented: i64 = sqlx::query_scalar!(
+            r#"SELECT COUNT(*) FROM "book_rentals" WHERE "loan_date" = $1"#,
+            today
+        )
+        .fetch_one(pool)
+        .await?
+        .unwrap_or(0);
+
+        // 2. Bugun qaytarilgan kitoblar
+        let today_returned: i64 = sqlx::query_scalar!(
+            r#"SELECT COUNT(*) FROM "book_rentals" WHERE "return_date" = $1"#,
+            today
+        )
+        .fetch_one(pool)
+        .await?
+        .unwrap_or(0);
+
+        // 3. Kutilayotgan so'rovlar (Hali qabul qilinmagan pending kitob/ijara arizalari)
+        let pending_requests: i64 = sqlx::query_scalar!(
+            r#"SELECT COUNT(*) FROM "book_requests" WHERE "status" = 'pending'"#
+        )
+        .fetch_one(pool)
+        .await?
+        .unwrap_or(0);
+
+        // 4. Bugungi talabalar (Keldi-ketdi tizimiga bugun kirgan insonlar)
+        let today_visitors: i64 = sqlx::query_scalar!(
+            r#"SELECT COUNT(DISTINCT "user_id") FROM "control" WHERE DATE("arrival") = $1"#,
+            today
+        )
+        .fetch_one(pool)
+        .await?
+        .unwrap_or(0);
+
+        // 5. Qaytarish kutilayotganlar (Active bo'lib qolgan 5 ta kitobni qaytarish vaqti bo'yicha eng yaqin)
+        let pending_returns_records = sqlx::query!(
+            r#"
+            SELECT 
+                u."full_name" as "student_name",
+                b."title" as "book_title",
+                r."due_date",
+                r."status"::text as "status!"
+            FROM "book_rentals" r
+            JOIN "users" u ON u."user_id" = r."user_id"
+            JOIN "book" b ON b."id"::text = r."book_id"
+            WHERE r."status" IN ('active', 'overdue')
+            ORDER BY r."due_date" ASC
+            LIMIT 5
+            "#
+        )
+        .fetch_all(pool)
+        .await?;
+
+        let pending_returns = pending_returns_records.into_iter().map(|rec| {
+            crate::dto::report::PendingReturn {
+                student: rec.student_name,
+                book: rec.book_title,
+                due_date: rec.due_date.format("%Y-%m-%d").to_string(),
+                status: if rec.status == "overdue" { "overdue".to_string() } else { "normal".to_string() }
+            }
+        }).collect();
+
+        // 6. Mashhur kitoblar (Eng ko'p ijaraga olingan 4 ta kitob)
+        let popular_books_records = sqlx::query!(
+            r#"
+            SELECT 
+                b."title",
+                b."author",
+                COUNT(r."id") as "rent_count"
+            FROM "book_rentals" r
+            JOIN "book" b ON b."id"::text = r."book_id"
+            GROUP BY b."id", b."title", b."author"
+            ORDER BY "rent_count" DESC
+            LIMIT 4
+            "#
+        )
+        .fetch_all(pool)
+        .await?;
+
+        let popular_books = popular_books_records.into_iter().map(|rec| {
+            crate::dto::report::PopularBook {
+                title: rec.title,
+                author: rec.author,
+                count: rec.rent_count.unwrap_or(0),
+            }
+        }).collect();
+
+        Ok(crate::dto::report::EmployeeDashboardResponse {
+            today_rented,
+            today_returned,
+            pending_requests,
+            today_visitors,
+            pending_returns,
+            popular_books,
+        })
     }
 }

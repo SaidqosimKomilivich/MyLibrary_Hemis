@@ -58,3 +58,28 @@ pub struct ActivityLog {
     pub action: String,
     pub time: String,
 }
+
+#[derive(Debug, Serialize)]
+pub struct EmployeeDashboardResponse {
+    pub today_rented: i64,
+    pub today_returned: i64,
+    pub pending_requests: i64,
+    pub today_visitors: i64,
+    pub pending_returns: Vec<PendingReturn>,
+    pub popular_books: Vec<PopularBook>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PendingReturn {
+    pub student: String,
+    pub book: String,
+    pub due_date: String,
+    pub status: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PopularBook {
+    pub title: String,
+    pub author: String,
+    pub count: i64,
+}

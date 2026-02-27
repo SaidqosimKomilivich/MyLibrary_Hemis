@@ -203,7 +203,7 @@ export default function AdminDashboard() {
                     <div className="flex items-center justify-between py-4 px-5 border-b border-border">
                         <h2 className="flex items-center gap-2 text-[0.95rem] font-semibold">
                             <TrendingUp size={18} />
-                            Oxirgi faoliyatlar
+                            Kunlik faoliyatlar
                         </h2>
                     </div>
                     <div className="py-2 overflow-y-auto custom-scrollbar">

@@ -85,6 +85,7 @@ const navByRole: Record<UserRole, NavItem[]> = {
         { label: 'Boshqaruv paneli', path: '/student', icon: <LayoutDashboard size={20} /> },
         { label: 'Kutubxona', path: '/student/library', icon: <Library size={20} /> },
         { label: "O'qiyotgan kitoblar", path: '/student/my-books', icon: <BookOpen size={20} /> },
+        { label: 'Ijaralarim', path: '/student/rentals', icon: <Clock size={20} /> },
         { label: "So'rovlar", path: '/student/requests', icon: <ClipboardList size={20} /> },
 
 
@@ -93,7 +94,7 @@ const navByRole: Record<UserRole, NavItem[]> = {
 }
 const roleLabels: Record<UserRole, string> = {
     admin: 'Administrator',
-    staff: 'Kutubxonachi',
+    staff: 'Kutubxona',
     teacher: "O'qituvchi",
     student: 'Talaba',
     employee: 'Xodim',
