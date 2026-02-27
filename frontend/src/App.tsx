@@ -5,6 +5,7 @@ import { AuthProvider } from './context/AuthContext'
 import { AudioProvider } from './context/AudioContext'
 import AudioPlayerModal from './components/AudioPlayerModal'
 import Login from './pages/Login'
+import LandingPage from './pages/LandingPage'
 import DashboardLayout from './components/DashboardLayout'
 import ComingSoon from './components/ComingSoon'
 import AdminDashboard from './pages/admin/AdminDashboard'
@@ -42,6 +43,9 @@ function App() {
             theme="dark"
           />
           <Routes>
+            {/* Ochiq Bosh sahifa (Landing) */}
+            <Route path="/" element={<LandingPage />} />
+
             {/* Login */}
             <Route path="/login" element={<Login />} />
             <Route path="/change-password" element={<ChangePassword />} />
@@ -107,8 +111,8 @@ function App() {
 
             </Route>
 
-            {/* Default redirect */}
-            <Route path="*" element={<Navigate to="/login" replace />} />
+            {/* Default redirect (agar biron notanish manzil kiritilsa asosiysiga yuboradi) */}
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           <AudioPlayerModal />
         </AudioProvider>

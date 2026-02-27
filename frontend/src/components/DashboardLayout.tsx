@@ -118,7 +118,7 @@ export default function DashboardLayout({ role }: DashboardLayoutProps) {
             const handleMismatch = async () => {
                 await logout()
                 toast.error("Sahifaga kirish ruxsati yo'q. Iltimos qaytadan kiring.", { toastId: 'role-mismatch' })
-                navigate('/login', { replace: true })
+                navigate('/', { replace: true })
             }
             handleMismatch()
         }
@@ -127,7 +127,7 @@ export default function DashboardLayout({ role }: DashboardLayoutProps) {
     const handleLogout = async () => {
         await logout()
         toast.info("Tizimdan chiqdingiz")
-        navigate('/login')
+        navigate('/')
     }
 
     // Show loading while checking auth
@@ -142,7 +142,7 @@ export default function DashboardLayout({ role }: DashboardLayoutProps) {
 
     // Redirect to login if not authenticated
     if (!isAuthenticated) {
-        return <Navigate to="/login" replace />
+        return <Navigate to="/" replace />
     }
 
     if (user && user.role !== role) {

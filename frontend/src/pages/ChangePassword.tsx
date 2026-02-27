@@ -12,7 +12,7 @@ export default function ChangePassword() {
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
-    const { logout } = useAuth();
+    const { logout, role } = useAuth();
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
@@ -37,10 +37,16 @@ export default function ChangePassword() {
         try {
             const res = await api.changePassword(oldPassword, newPassword);
             if (res.success) {
-                toast.success("Parol muvaffaqiyatli o'zgartirildi! Iltimos, qaytadan kiring.");
-                // Logout to force re-login with new token and updated user state
-                await logout();
-                navigate('/login');
+                toast.success("Parol muvaffaqiyatli o'zgartirildi!");
+
+                if (role) {
+                    // Parolni yangilagach qaysi rolga tegishli bo'lsa o'sha dashbordga yuboramiz.
+                    // To'liq sahifa yangilanadi, bu AuthContextdagi 'is_password_update' holatini to'g'irlaydi
+                    window.location.href = `/${role}`;
+                } else {
+                    await logout();
+                    navigate('/');
+                }
             }
         } catch (err: any) {
             toast.error(err.message || "Parolni o'zgartirishda xatolik yuz berdi");
@@ -140,7 +146,7 @@ export default function ChangePassword() {
                     <div className="text-center mt-4 pt-4 border-t border-white/10" style={{ marginTop: '1rem' }}>
                         <button
                             type="button"
-                            onClick={async () => { await logout(); navigate('/login'); }}
+                            onClick={async () => { await logout(); navigate('/'); }}
                             className="bg-transparent border-none text-[0.9rem] font-medium text-text-muted cursor-pointer transition-colors hover:text-white hover:underline decoration-white/30 underline-offset-4 outline-none"
                         >
                             Chiqish

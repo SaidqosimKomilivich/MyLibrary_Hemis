@@ -127,6 +127,20 @@ pub async fn get_employee_dashboard(
     })))
 }
 
+/// GET /api/reports/public-stats
+/// Umumiy Bosh sahifa (Landing) uchun ochiq statistika
+pub async fn get_public_stats(
+    pool: web::Data<PgPool>,
+) -> Result<HttpResponse, AppError> {
+    let p = pool.get_ref();
+    let stats_data = ReportRepository::get_public_stats(p).await?;
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "success": true,
+        "data": stats_data
+    })))
+}
+
 /// GET /api/reports/export
 /// Oraliqni tanlab, Excel formatida (.xlsx) yuklab beradigan endpoint (faqat admin).
 pub async fn export_excel(

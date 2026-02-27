@@ -1,6 +1,6 @@
 // API service layer for backend communication
 
-const API_BASE = '/api'
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api'
 
 interface LoginPayload {
     user_id: string
@@ -461,6 +461,10 @@ export const api = {
         return request<AdminDashboardResponse>(`/reports/admin-dashboard?year=${year}&month=${month}`)
     },
 
+    getPublicStats() {
+        return request<{ success: boolean; data: PublicDashboardResponse }>('/public/stats')
+    },
+
     getEmployeeDashboard() {
         return request<{ success: boolean; data: EmployeeDashboardResponse }>('/reports/employee-dashboard')
     },
@@ -745,6 +749,18 @@ export interface EmployeeDashboardResponse {
         due_date: string
         status: string
     }[]
+    popular_books: {
+        title: string
+        author: string
+        count: number
+    }[]
+}
+
+// Public Dashboard Types
+export interface PublicDashboardResponse {
+    total_books: number
+    total_users: number
+    total_rentals: number
     popular_books: {
         title: string
         author: string

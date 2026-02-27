@@ -83,3 +83,11 @@ pub struct PopularBook {
     pub author: String,
     pub count: i64,
 }
+
+#[derive(Debug, Serialize)]
+pub struct PublicDashboardResponse {
+    pub total_books: i64,
+    pub total_users: i64,
+    pub total_rentals: i64,
+    pub popular_books: Vec<PopularBook>,
+}

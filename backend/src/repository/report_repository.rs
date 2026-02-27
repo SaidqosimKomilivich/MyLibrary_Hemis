@@ -615,4 +615,65 @@ impl ReportRepository {
             popular_books,
         })
     }
+
+    /// Public Dashboard Stats (Landing Page)
+    pub async fn get_public_stats(
+        pool: &PgPool,
+    ) -> Result<crate::dto::report::PublicDashboardResponse, AppError> {
+        // 1. Jami kitoblar soni (Barcha tillar, barcha nusxalar)
+        let total_books: i64 = sqlx::query_scalar!(
+            r#"SELECT COALESCE(SUM("total_quantity"), 0)::bigint FROM "book""#
+        )
+        .fetch_one(pool)
+        .await?
+        .unwrap_or(0);
+
+        // 2. Jami foydalanuvchilar (O'quvchilar va O'qituvchilar/Xodimlar)
+        let total_users: i64 = sqlx::query_scalar!(
+            r#"SELECT COUNT(*)::bigint FROM "users""#
+        )
+        .fetch_one(pool)
+        .await?
+        .unwrap_or(0);
+
+        // 3. Jami qilingan ijaralar (O'qib bo'lingan yoki faol kutubxona jarayonlari)
+        let total_rentals: i64 = sqlx::query_scalar!(
+            r#"SELECT COUNT(*)::bigint FROM "book_rentals""#
+        )
+        .fetch_one(pool)
+        .await?
+        .unwrap_or(0);
+
+        // 4. Eng mashhur 8 ta kitob
+        let popular_books_records = sqlx::query!(
+            r#"
+            SELECT 
+                b."title",
+                b."author",
+                COUNT(r."id") as "rent_count"
+            FROM "book_rentals" r
+            JOIN "book" b ON b."id"::text = r."book_id"
+            GROUP BY b."id", b."title", b."author"
+            ORDER BY "rent_count" DESC
+            LIMIT 8
+            "#
+        )
+        .fetch_all(pool)
+        .await?;
+
+        let popular_books = popular_books_records.into_iter().map(|rec| {
+            crate::dto::report::PopularBook {
+                title: rec.title,
+                author: rec.author,
+                count: rec.rent_count.unwrap_or(0),
+            }
+        }).collect();
+
+        Ok(crate::dto::report::PublicDashboardResponse {
+            total_books,
+            total_users,
+            total_rentals,
+            popular_books,
+        })
+    }
 }
