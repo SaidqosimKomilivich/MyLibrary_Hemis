@@ -4,8 +4,6 @@ import { api } from "../services/api"
 import type { News } from "../services/api"
 import { toast } from "react-toastify"
 import { ChevronLeft, ChevronRight, Circle, CircleDot, X, Maximize } from "lucide-react"
-import PublicNavbar from "../components/PublicNavbar"
-
 export default function NewsDetailPage() {
     const { slug } = useParams<{ slug: string }>()
     const [news, setNews] = useState<News | null>(null)
@@ -53,7 +51,7 @@ export default function NewsDetailPage() {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-[#0f1015] flex items-center justify-center">
+            <div className="w-full h-[60vh] flex items-center justify-center">
                 <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
             </div>
         )
@@ -61,7 +59,7 @@ export default function NewsDetailPage() {
 
     if (!news) {
         return (
-            <div className="min-h-screen bg-[#0f1015] flex flex-col items-center justify-center p-4">
+            <div className="w-full h-[60vh] flex flex-col items-center justify-center p-4">
                 <h1 className="text-4xl font-bold text-white mb-4">404</h1>
                 <p className="text-white/60 mb-8">Yangilik topilmadi yoki o'chirilgan.</p>
                 <Link to="/" className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition-colors">
@@ -72,8 +70,7 @@ export default function NewsDetailPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#0f1015] pt-24 pb-12 px-4 selection:bg-blue-500/30">
-            <PublicNavbar />
+        <div className="w-full pb-12 px-4 pt-10">
             {/* Nav / Back */}
             <div className="max-w-4xl mx-auto mb-8">
                 <Link to="/" className="inline-flex items-center text-white/50 hover:text-white transition-colors gap-2 text-sm font-medium">

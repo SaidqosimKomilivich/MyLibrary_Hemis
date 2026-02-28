@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
-import PublicNavbar from "../components/PublicNavbar"
 import { Calendar, Megaphone } from "lucide-react"
 import { api } from "../services/api"
 import type { News } from "../services/api"
@@ -36,10 +35,8 @@ export default function PublicNewsPage() {
     }, [currentPage])
 
     return (
-        <div className="min-h-screen bg-canvas text-text font-sans">
-            <PublicNavbar />
-
-            <main className="pt-32 pb-20 px-6 max-w-7xl mx-auto">
+        <div className="w-full">
+            <main className="pt-10 pb-20 px-6 max-w-7xl mx-auto">
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 border-b border-border/50 pb-8">
                     <div>
                         <h1 className="text-4xl md:text-5xl font-bold mb-4 flex items-center gap-3">

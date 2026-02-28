@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { BookOpen, Users, Search, ChevronRight, TrendingUp, Megaphone, Calendar, Info, ShieldCheck, Clock, HelpCircle, Phone, Mail, MapPin, ChevronDown } from 'lucide-react'
-import PublicNavbar from '../components/PublicNavbar'
 import { api, type PublicDashboardResponse, type News } from '../services/api'
 
 export default function LandingPage() {
@@ -42,31 +41,42 @@ export default function LandingPage() {
     }, [])
 
     return (
-        <div className="min-h-screen bg-canvas text-text font-sans">
-            <PublicNavbar />
-
+        <div className="w-full">
             {/* Hero Section */}
-            <section className="relative pt-32 pb-20 px-6 overflow-hidden">
+            <section className="relative pt-20 pb-20 px-6 overflow-hidden">
                 <div className="absolute inset-0 bg-linear-to-br from-emerald-500/5 via-canvas to-indigo-500/5 -z-10" />
                 <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[100px] -z-10 pointer-events-none" />
                 <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-indigo-500/10 rounded-full blur-[100px] -z-10 pointer-events-none" />
 
                 <div className="max-w-4xl mx-auto text-center">
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface border border-border/50 text-sm font-medium mb-8 text-emerald-400 shadow-sm">
+                    <div
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface border border-border/50 text-sm font-medium mb-8 text-emerald-400 shadow-sm stagger-fade-up"
+                        style={{ animationDelay: '0.1s' }}
+                    >
                         <span>🚀</span> Yangi raqamli kutubxona tizimi
                     </div>
 
-                    <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 leading-[1.1]">
+                    <h1
+                        className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 leading-[1.1] stagger-fade-up"
+                        style={{ animationDelay: '0.25s' }}
+                    >
                         Bilimlar olamiga <br className="hidden md:block" />
                         <span className="text-transparent bg-clip-text bg-linear-to-r from-emerald-400 to-cyan-400">xush kelibsiz</span>
                     </h1>
 
-                    <p className="text-lg md:text-xl text-text-muted mb-10 max-w-2xl mx-auto leading-relaxed">
+                    <p
+                        className="text-lg md:text-xl text-text-muted mb-10 max-w-2xl mx-auto leading-relaxed stagger-fade-up"
+                        style={{ animationDelay: '0.4s' }}
+                    >
                         Minglab kitoblar, raqamli resurslar va o'quv zallari endi bitta platformada.
                         O'zingizga kerakli kitobni qidiring, band qiling va o'qishni boshlang.
                     </p>
 
-                    <form onSubmit={handleSearchSubmit} className="max-w-2xl mx-auto relative group">
+                    <form
+                        onSubmit={handleSearchSubmit}
+                        className="max-w-2xl mx-auto relative group stagger-fade-up"
+                        style={{ animationDelay: '0.55s' }}
+                    >
                         <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-text-muted group-focus-within:text-emerald-500 transition-colors">
                             <Search size={22} />
                         </div>
@@ -89,7 +99,7 @@ export default function LandingPage() {
                 <div className="max-w-7xl mx-auto">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
                         <div className="space-y-8">
-                            <div>
+                            <div className="stagger-fade-up" style={{ animationDelay: '0.2s' }}>
                                 <h2 className="text-3xl font-bold tracking-tight mb-4 flex items-center gap-3">
                                     <Info className="text-emerald-500" size={32} />
                                     Biz haqimizda
@@ -100,12 +110,12 @@ export default function LandingPage() {
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                <div className="bg-canvas p-6 rounded-2xl border border-border/50">
+                                <div className="bg-canvas p-6 rounded-2xl border border-border/50 stagger-fade-up" style={{ animationDelay: '0.4s' }}>
                                     <ShieldCheck className="text-emerald-500 mb-4" size={28} />
                                     <h4 className="font-bold text-lg mb-2">Ishonchli Manbalar</h4>
                                     <p className="text-sm text-text-muted">Barcha adabiyotlar ekspertlar tomonidan tasdiqlangan va saralangan.</p>
                                 </div>
-                                <div className="bg-canvas p-6 rounded-2xl border border-border/50">
+                                <div className="bg-canvas p-6 rounded-2xl border border-border/50 stagger-fade-up" style={{ animationDelay: '0.6s' }}>
                                     <Clock className="text-indigo-400 mb-4" size={28} />
                                     <h4 className="font-bold text-lg mb-2">24/7 Raqamli Kirish</h4>
                                     <p className="text-sm text-text-muted">Istalgan vaqtda va istalgan joydan elektron tizim orqali ulanish imkoniyati.</p>
@@ -113,7 +123,7 @@ export default function LandingPage() {
                             </div>
                         </div>
 
-                        <div className="relative">
+                        <div className="relative stagger-fade-up" style={{ animationDelay: '0.8s' }}>
                             <div className="absolute inset-0 bg-linear-to-tr from-emerald-500/20 to-indigo-500/20 rounded-3xl transform rotate-3 scale-105 z-0 border border-border/50 backdrop-blur-3xl"></div>
                             <div className="relative z-10 bg-canvas border border-border/50 rounded-3xl p-8 shadow-2xl overflow-hidden aspect-video flex items-center justify-center">
                                 {/* Optional: A decorative image or abstract hero visual can go here */}

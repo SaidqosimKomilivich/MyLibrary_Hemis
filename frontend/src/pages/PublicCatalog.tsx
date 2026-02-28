@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { Search, Loader2, BookOpen, Layers, Star, ArrowLeft } from 'lucide-react';
-import PublicNavbar from '../components/PublicNavbar';
 import { api, type Book } from '../services/api';
 
 const categories = [
@@ -81,11 +80,9 @@ const PublicCatalog = () => {
     };
 
     return (
-        <div className="min-h-screen bg-bg text-text selection:bg-emerald-500/30 font-sans flex flex-col">
-            <PublicNavbar />
-
+        <div className="w-full flex flex-col">
             {/* Universal Search Bar */}
-            <div className="pt-24 pb-6 px-6 border-b border-border bg-bg">
+            <div className="pt-6 pb-6 px-6 border-b border-border bg-bg">
                 <div className="max-w-7xl mx-auto flex flex-col gap-4">
                     <h1 className="text-2xl font-bold tracking-tight">Katalog</h1>
                     <form onSubmit={handleSearch} className="relative group max-w-3xl">

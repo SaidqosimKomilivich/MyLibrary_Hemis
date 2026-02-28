@@ -110,6 +110,55 @@
   }
 }
 
+/* 
+  ===========================================
+  Unusual Page Transitions
+  ===========================================
+*/
+.page-transition-wrapper {
+  animation: unusual-page-enter 0.6s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  transform-origin: center top;
+  will-change: transform, opacity, filter;
+}
+
+@keyframes unusual-page-enter {
+  0% {
+    opacity: 0;
+    transform: rotateX(-15deg) translateY(40px) scale(0.95);
+    filter: blur(8px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: rotateX(0deg) translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+/* 
+  ===========================================
+  Landing Page Staggered Fade Up 
+  (For applying inline animationDelay)
+  ===========================================
+*/
+.stagger-fade-up {
+  opacity: 0;
+  animation: stagger-enter 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  will-change: transform, opacity;
+}
+
+@keyframes stagger-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Beautiful Animated CSS Book Loader inside LandingPage */
 .book-wrap {
   position: relative;

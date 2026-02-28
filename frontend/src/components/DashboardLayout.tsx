@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Outlet, NavLink, useNavigate, Navigate } from 'react-router-dom'
+import { Outlet, NavLink, useNavigate, Navigate, useLocation } from 'react-router-dom'
 import {
     LayoutDashboard,
     BookOpen,
@@ -110,6 +110,7 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ role }: DashboardLayoutProps) {
     const [sidebarOpen, setSidebarOpen] = useState(false)
     const navigate = useNavigate()
+    const location = useLocation()
     const { user, isLoading, isAuthenticated, logout } = useAuth()
     const { book, isMini, isPlaying, togglePlay, expandPlayer } = useAudio()
     const navItems = navByRole[role]
@@ -262,8 +263,10 @@ export default function DashboardLayout({ role }: DashboardLayoutProps) {
                 </header>
 
                 {/* Page content */}
-                <main className="flex-1 p-6 max-md:p-4">
-                    <Outlet />
+                <main className="flex-1 p-6 max-md:p-4 relative">
+                    <div key={location.pathname} className="page-transition-wrapper w-full h-full">
+                        <Outlet />
+                    </div>
                 </main>
             </div>
         </div>
