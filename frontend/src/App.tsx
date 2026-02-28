@@ -6,10 +6,13 @@ import { AudioProvider } from './context/AudioContext'
 import AudioPlayerModal from './components/AudioPlayerModal'
 import Login from './pages/Login'
 import LandingPage from './pages/LandingPage'
+import PublicNewsPage from './pages/PublicNewsPage'
 import PublicCatalog from './pages/PublicCatalog'
 import DashboardLayout from './components/DashboardLayout'
 import ComingSoon from './components/ComingSoon'
 import AdminDashboard from './pages/admin/AdminDashboard'
+import NewsPage from './pages/admin/NewsPage'
+import NewsDetailPage from './pages/NewsDetailPage'
 import Library from './pages/student/Library'
 import UsersPage from './pages/admin/UsersPage'
 import AdminEmployeesPage from './pages/admin/AdminEmployeesPage'
@@ -47,6 +50,8 @@ function App() {
             {/* Ochiq Bosh sahifa (Landing) */}
             <Route path="/" element={<LandingPage />} />
             <Route path="/search" element={<PublicCatalog />} />
+            <Route path="/news" element={<PublicNewsPage />} />
+            <Route path="/news/:slug" element={<NewsDetailPage />} />
 
             {/* Login */}
             <Route path="/login" element={<Login />} />
@@ -56,6 +61,7 @@ function App() {
             {/* Admin */}
             <Route path="/admin" element={<DashboardLayout role="admin" />}>
               <Route index element={<AdminDashboard />} />
+              <Route path="news" element={<NewsPage />} />
               <Route path="users" element={<UsersPage />} />
               <Route path="books" element={<Library />} />
               <Route path="pending-books" element={<PendingBooksPage />} />
@@ -69,6 +75,7 @@ function App() {
             {/* Kutubxonachi (backend: staff) */}
             <Route path="/staff" element={<DashboardLayout role="staff" />}>
               <Route index element={<EmployeeDashboard />} />
+              <Route path="news" element={<NewsPage />} />
               <Route path="catalog" element={<Library />} />
               <Route path="pending-books" element={<PendingBooksPage />} />
               <Route path="rentals" element={<EmployeeRentalsPage />} />

@@ -22,6 +22,7 @@ import {
     Pause,
     Music2,
     Maximize2,
+    Megaphone,
 } from 'lucide-react'
 
 import { toast } from 'react-toastify'
@@ -39,6 +40,7 @@ interface NavItem {
 const navByRole: Record<UserRole, NavItem[]> = {
     admin: [
         { label: 'Boshqaruv paneli', path: '/admin', icon: <LayoutDashboard size={20} /> },
+        { label: 'Yangiliklar', path: '/admin/news', icon: <Megaphone size={20} /> },
         { label: 'Foydalanuvchilar', path: '/admin/users', icon: <Users size={20} /> },
         { label: 'Kitoblar', path: '/admin/books', icon: <BookOpen size={20} /> },
         { label: 'Taqdim etilgan kitoblar', path: '/admin/pending-books', icon: <Clock size={20} /> },
@@ -52,6 +54,7 @@ const navByRole: Record<UserRole, NavItem[]> = {
     ],
     staff: [
         { label: 'Boshqaruv paneli', path: '/staff', icon: <LayoutDashboard size={20} /> },
+        { label: 'Yangiliklar', path: '/staff/news', icon: <Megaphone size={20} /> },
         { label: 'Kitoblar katalogi', path: '/staff/catalog', icon: <Library size={20} /> },
         { label: 'Taqdim etilgan kitoblar', path: '/staff/pending-books', icon: <Clock size={20} /> },
         { label: 'Ijaralar', path: '/staff/rentals', icon: <Library size={20} /> },

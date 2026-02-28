@@ -1,0 +1,215 @@
+import { useEffect, useState } from "react"
+import { api } from "../../services/api"
+import type { News } from "../../services/api"
+import { toast } from "react-toastify"
+import AddNewsModal from "./AddNewsModal"
+
+export default function NewsPage() {
+    const [news, setNews] = useState<News[]>([])
+    const [isLoading, setIsLoading] = useState(true)
+    const [page, setPage] = useState(1)
+    const [totalPages, setTotalPages] = useState(1)
+
+    const [isModalOpen, setIsModalOpen] = useState(false)
+    const [editingNews, setEditingNews] = useState<News | null>(null)
+
+    const fetchNews = async () => {
+        setIsLoading(true)
+        try {
+            const res = await api.getNewsList({ page, limit: 20 })
+            if (res.success) {
+                setNews(res.data)
+                setTotalPages(res.pagination.total_pages || 1)
+            }
+        } catch (error: any) {
+            toast.error(error.message || "Yangiliklarni yuklashda xatolik")
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    useEffect(() => {
+        fetchNews()
+    }, [page])
+
+    const handleDelete = async (id: string) => {
+        if (!window.confirm("Rostdan ham bu yangilikni o'chirmoqchimisiz?")) return
+
+        try {
+            await api.deleteNews(id)
+            toast.success("Yangilik o'chirildi")
+            fetchNews()
+        } catch (error: any) {
+            toast.error(error.message || "O'chirishda xatolik")
+        }
+    }
+
+    const handleTogglePublish = async (id: string) => {
+        try {
+            await api.toggleNewsPublish(id)
+            toast.success("Holat o'zgartirildi")
+            fetchNews()
+        } catch (error: any) {
+            toast.error(error.message || "Holatni o'zgartirishda xatolik")
+        }
+    }
+
+    const openAddModal = () => {
+        setEditingNews(null)
+        setIsModalOpen(true)
+    }
+
+    const openEditModal = (item: News) => {
+        setEditingNews(item)
+        setIsModalOpen(true)
+    }
+
+    return (
+        <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-white">Yangiliklar boshqaruvi</h1>
+                    <p className="text-white/60 text-sm mt-1">Platformadagi barcha e'lon va yangiliklar</p>
+                </div>
+                <button
+                    onClick={openAddModal}
+                    className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl font-medium transition-colors flex items-center gap-2 shadow-lg shadow-blue-500/20"
+                >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Yangi qo'shish
+                </button>
+            </div>
+
+            <div className="bg-[#1a1b26] rounded-2xl border border-white/10 overflow-hidden shadow-xl">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="bg-white/5 border-b border-white/10 text-white/50 text-sm">
+                                <th className="px-6 py-4 font-medium">Sarlavha</th>
+                                <th className="px-6 py-4 font-medium">Rukn</th>
+                                <th className="px-6 py-4 font-medium">Holat</th>
+                                <th className="px-6 py-4 font-medium">Sana</th>
+                                <th className="px-6 py-4 font-medium text-right">Amallar</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                            {isLoading ? (
+                                <tr>
+                                    <td colSpan={5} className="px-6 py-12 text-center text-white/50">
+                                        Yuklanmoqda...
+                                    </td>
+                                </tr>
+                            ) : news.length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} className="px-6 py-12 text-center text-white/50">
+                                        Yangiliklar topilmadi
+                                    </td>
+                                </tr>
+                            ) : (
+                                news.map((item) => (
+                                    <tr key={item.id} className="hover:bg-white/2 transition-colors group">
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-3">
+                                                {item.images && item.images.length > 0 ? (
+                                                    <img src={item.images[0]} alt="" className="w-10 h-10 rounded object-cover shrink-0" />
+                                                ) : (
+                                                    <div className="w-10 h-10 rounded bg-white/5 flex items-center justify-center shrink-0">
+                                                        <svg className="w-5 h-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5L18.5 7H20a2 2 0 012 2v1m-2 13v-m0 0l-m0 0h.01M12 12h4.01M12 16h4.01M16 8h.01" />
+                                                        </svg>
+                                                    </div>
+                                                )}
+                                                <div>
+                                                    <div className="text-white font-medium line-clamp-1">{item.title}</div>
+                                                    <a href={`/news/${item.slug}`} target="_blank" rel="noreferrer" className="text-blue-400 hover:text-blue-300 text-xs mt-0.5 line-clamp-1">/{item.slug}</a>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-white/5 text-white/70 border border-white/10">
+                                                {item.category || 'Boshqa'}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <button
+                                                onClick={() => handleTogglePublish(item.id)}
+                                                className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${item.is_published
+                                                    ? 'bg-green-500/10 text-green-400 border-green-500/20 hover:bg-green-500/20'
+                                                    : 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20 hover:bg-yellow-500/20'
+                                                    }`}
+                                            >
+                                                <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${item.is_published ? 'bg-green-400' : 'bg-yellow-400'}`}></span>
+                                                {item.is_published ? 'Nashr qilingan' : 'Qoralama'}
+                                            </button>
+                                        </td>
+                                        <td className="px-6 py-4 text-white/60 text-sm truncate">
+                                            {new Date(item.created_at).toLocaleDateString()}
+                                        </td>
+                                        <td className="px-6 py-4 text-right">
+                                            <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button
+                                                    onClick={() => openEditModal(item)}
+                                                    className="p-1.5 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors"
+                                                    title="Tahrirlash"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                    </svg>
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(item.id)}
+                                                    className="p-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
+                                                    title="O'chirish"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                    <div className="px-6 py-4 border-t border-white/10 flex items-center justify-between">
+                        <span className="text-sm text-white/50">
+                            Sahifa {page} / {totalPages}
+                        </span>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setPage(p => Math.max(1, p - 1))}
+                                disabled={page === 1}
+                                className="px-3 py-1.5 rounded bg-white/5 text-white/70 hover:bg-white/10 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed text-sm transition-colors"
+                            >
+                                Oldingi
+                            </button>
+                            <button
+                                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                disabled={page === totalPages}
+                                className="px-3 py-1.5 rounded bg-white/5 text-white/70 hover:bg-white/10 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed text-sm transition-colors"
+                            >
+                                Keyingi
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {isModalOpen && (
+                <AddNewsModal
+                    isOpen={isModalOpen}
+                    onClose={() => setIsModalOpen(false)}
+                    onSuccess={fetchNews}
+                    editingNews={editingNews}
+                />
+            )}
+        </div>
+    )
+}

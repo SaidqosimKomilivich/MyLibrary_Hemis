@@ -503,6 +503,59 @@ export const api = {
             }
             return res.blob()
         })
+    },
+
+    // News endpoints (Admin CRUD)
+    getNewsList(params: PaginationParams & { published_only?: boolean } = {}) {
+        const query = new URLSearchParams()
+        if (params.page) query.append('page', params.page.toString())
+        if (params.search) query.append('search', params.search)
+        if (params.category) query.append('category', params.category)
+        if (params.limit) query.append('limit', params.limit.toString())
+        if (params.published_only) query.append('published_only', params.published_only.toString())
+
+        return request<PaginatedNewsResponse>(`/news?${query.toString()}`)
+    },
+
+    getPublicNewsList(params: PaginationParams = {}) {
+        const query = new URLSearchParams()
+        if (params.page) query.append('page', params.page.toString())
+        if (params.search) query.append('search', params.search)
+        if (params.category) query.append('category', params.category)
+        if (params.limit) query.append('limit', params.limit.toString())
+
+        return request<PaginatedNewsResponse>(`/public/news?${query.toString()}`)
+    },
+
+    getNewsDetail(idOrSlug: string, isPublic = false) {
+        const path = isPublic ? `/public/news/${idOrSlug}` : `/news/${idOrSlug}`;
+        return request<SingleNewsResponse>(path)
+    },
+
+    createNews(data: CreateNewsRequest) {
+        return request<SingleNewsResponse>('/news', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        })
+    },
+
+    updateNews(id: string, data: Partial<CreateNewsRequest>) {
+        return request<SingleNewsResponse>(`/news/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        })
+    },
+
+    deleteNews(id: string) {
+        return request<MessageResponse>(`/news/${id}`, {
+            method: 'DELETE',
+        })
+    },
+
+    toggleNewsPublish(id: string) {
+        return request<SingleNewsResponse>(`/news/${id}/publish`, {
+            method: 'PUT',
+        })
     }
 }
 
@@ -786,4 +839,48 @@ export interface PublicDashboardResponse {
         count: number
         cover_image?: string
     }[]
+}
+
+// News Types
+export interface News {
+    id: string
+    title: string
+    slug: string
+    summary: string | null
+    content: string
+    images: string[]
+    category: string | null
+    tags: string[]
+    author_id: string | null
+    is_published: boolean
+    published_at: string | null
+    created_at: string
+    updated_at: string
+}
+
+export interface CreateNewsRequest {
+    title: string
+    summary?: string
+    content: string
+    images?: string[]
+    category?: string
+    tags?: string[]
+    is_published?: boolean
+}
+
+export interface PaginatedNewsResponse {
+    success: boolean
+    data: News[]
+    pagination: {
+        current_page: number
+        per_page: number
+        total_items: number
+        total_pages: number
+    }
+}
+
+export interface SingleNewsResponse {
+    success: boolean
+    message?: string
+    data: News
 }

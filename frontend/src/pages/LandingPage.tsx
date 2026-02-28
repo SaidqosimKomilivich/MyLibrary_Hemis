@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { BookOpen, Users, Library, Search, ChevronRight, TrendingUp } from 'lucide-react'
-import { api, type PublicDashboardResponse } from '../services/api'
+import { BookOpen, Users, Search, ChevronRight, TrendingUp, Megaphone, Calendar, Info, ShieldCheck, Clock, HelpCircle, Phone, Mail, MapPin, ChevronDown } from 'lucide-react'
+import PublicNavbar from '../components/PublicNavbar'
+import { api, type PublicDashboardResponse, type News } from '../services/api'
 
 export default function LandingPage() {
     const [stats, setStats] = useState<PublicDashboardResponse | null>(null)
+    const [news, setNews] = useState<News[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState('')
+    const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null)
     const navigate = useNavigate()
 
     const handleSearchSubmit = (e: React.FormEvent) => {
@@ -17,46 +20,30 @@ export default function LandingPage() {
     }
 
     useEffect(() => {
-        const fetchStats = async () => {
+        const fetchData = async () => {
             try {
-                const res = await api.getPublicStats()
-                if (res.success) {
-                    setStats(res.data)
+                const [statsRes, newsRes] = await Promise.all([
+                    api.getPublicStats(),
+                    api.getPublicNewsList({ limit: 4 })
+                ]);
+                if (statsRes.success) {
+                    setStats(statsRes.data)
+                }
+                if (newsRes.success) {
+                    setNews(newsRes.data)
                 }
             } catch (err) {
-                console.error("Failed to fetch public stats")
+                console.error("Failed to fetch public data")
             } finally {
                 setIsLoading(false)
             }
         }
-        fetchStats()
+        fetchData()
     }, [])
 
     return (
         <div className="min-h-screen bg-canvas text-text font-sans">
-            {/* Navbar */}
-            <nav className="fixed top-0 left-0 right-0 z-50 bg-surface/80 backdrop-blur-md border-b border-border/50">
-                <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-emerald-500">
-                        <Library size={24} />
-                        <span className="text-xl font-bold tracking-tight text-text">Kutubxona</span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        {/* <Link
-                            to="/login"
-                            className="text-sm font-medium text-text-muted hover:text-text transition-colors"
-                        >
-                            Tizimga kirish
-                        </Link> */}
-                        <Link
-                            to="/login"
-                            className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2 rounded-full text-sm font-semibold transition-all shadow-lg shadow-emerald-500/20"
-                        >
-                            Kirish
-                        </Link>
-                    </div>
-                </div>
-            </nav>
+            <PublicNavbar />
 
             {/* Hero Section */}
             <section className="relative pt-32 pb-20 px-6 overflow-hidden">
@@ -97,8 +84,58 @@ export default function LandingPage() {
                 </div>
             </section>
 
+            {/* About Section */}
+            <section id="about" className="py-20 px-6 relative bg-surface/30 border-y border-border/30">
+                <div className="max-w-7xl mx-auto">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+                        <div className="space-y-8">
+                            <div>
+                                <h2 className="text-3xl font-bold tracking-tight mb-4 flex items-center gap-3">
+                                    <Info className="text-emerald-500" size={32} />
+                                    Biz haqimizda
+                                </h2>
+                                <p className="text-lg text-text-muted leading-relaxed">
+                                    Bizning xalqaro darajadagi zamonaviy kutubxonamiz ilm-fan, ta'lim va madaniyat o'chog'idir. Bu yerda siz nodir qo'lyozmalardan tortib, eng so'nggi raqamli resurslargacha bo'lgan cheksiz bilimlar bazasiga ega bo'lasiz.
+                                </p>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                <div className="bg-canvas p-6 rounded-2xl border border-border/50">
+                                    <ShieldCheck className="text-emerald-500 mb-4" size={28} />
+                                    <h4 className="font-bold text-lg mb-2">Ishonchli Manbalar</h4>
+                                    <p className="text-sm text-text-muted">Barcha adabiyotlar ekspertlar tomonidan tasdiqlangan va saralangan.</p>
+                                </div>
+                                <div className="bg-canvas p-6 rounded-2xl border border-border/50">
+                                    <Clock className="text-indigo-400 mb-4" size={28} />
+                                    <h4 className="font-bold text-lg mb-2">24/7 Raqamli Kirish</h4>
+                                    <p className="text-sm text-text-muted">Istalgan vaqtda va istalgan joydan elektron tizim orqali ulanish imkoniyati.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="relative">
+                            <div className="absolute inset-0 bg-linear-to-tr from-emerald-500/20 to-indigo-500/20 rounded-3xl transform rotate-3 scale-105 z-0 border border-border/50 backdrop-blur-3xl"></div>
+                            <div className="relative z-10 bg-canvas border border-border/50 rounded-3xl p-8 shadow-2xl overflow-hidden aspect-video flex items-center justify-center">
+                                {/* Optional: A decorative image or abstract hero visual can go here */}
+                                <div className="absolute inset-0 bg-linear-to-b from-transparent to-surface/80 pointer-events-none"></div>
+                                <div className="book-wrap relative z-20 scale-90 md:scale-100 hover:scale-110 transition-transform duration-700 cursor-pointer">
+                                    <div className="book-page-left"></div>
+                                    <div className="book-page-right"></div>
+                                    <div className="book-page"></div>
+                                    <div className="book-page"></div>
+                                    <div className="book-page"></div>
+                                    <div className="book-page"></div>
+                                    <div className="book-page"></div>
+                                    <div className="book-page"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             {/* Stats Section */}
-            <section className="py-12 border-y border-border/30 bg-surface/30">
+            <section className="py-12 border-b border-border/30 bg-surface/30">
                 <div className="max-w-7xl mx-auto px-6">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
                         <div className="flex flex-col items-center justify-center p-6 rounded-2xl bg-surface/50 border border-border/40 hover:border-emerald-500/30 transition-colors">
@@ -134,8 +171,74 @@ export default function LandingPage() {
                 </div>
             </section>
 
+            {/* Latest News */}
+            <section id="news" className="py-16 px-6 relative bg-canvas">
+                <div className="max-w-7xl mx-auto">
+                    <div className="flex items-end justify-between mb-10">
+                        <div>
+                            <h2 className="text-3xl font-bold tracking-tight mb-2 flex items-center gap-2">
+                                <Megaphone className="text-blue-500" size={28} />
+                                So'nggi yangiliklar
+                            </h2>
+                            <p className="text-text-muted">Kutubxonamizdagi eng muhim e'lon va voqealar</p>
+                        </div>
+                        <Link to="/news" className="hidden md:flex items-center gap-1 text-blue-500 hover:text-blue-400 font-medium transition-colors">
+                            Barchasini ko'rish <ChevronRight size={18} />
+                        </Link>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {isLoading ? (
+                            Array(4).fill(0).map((_, i) => (
+                                <div key={i} className="bg-surface border border-border/50 rounded-2xl p-4 animate-pulse h-64" />
+                            ))
+                        ) : news && news.length > 0 ? (
+                            news.map((item, i) => (
+                                <Link to={`/news/${item.slug}`} key={i} className="group bg-surface border border-border/50 rounded-2xl overflow-hidden hover:border-blue-500/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-500/10 flex flex-col h-full">
+                                    {item.images && item.images.length > 0 ? (
+                                        <div className="h-40 bg-slate-900/40 border-b border-border/50 overflow-hidden shrink-0">
+                                            <img src={item.images[0]} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                        </div>
+                                    ) : (
+                                        <div className="h-40 bg-slate-900/40 border-b border-border/50 flex flex-col justify-center items-center shrink-0">
+                                            <Megaphone size={36} className="text-blue-500/30 mb-2 group-hover:scale-110 transition-transform duration-500" />
+                                            <span className="text-blue-500/30 font-bold tracking-wider text-xs uppercase">{item.category || "E'lon"}</span>
+                                        </div>
+                                    )}
+                                    <div className="p-5 flex-1 flex flex-col">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            {item.category && (
+                                                <span className="bg-blue-500/10 text-blue-400 text-[0.65rem] uppercase tracking-wider font-bold px-2 py-0.5 rounded-sm">
+                                                    {item.category}
+                                                </span>
+                                            )}
+                                            <span className="text-text-muted flex items-center gap-1 text-[0.7rem] ml-auto font-medium">
+                                                <Calendar size={12} />
+                                                {new Date(item.published_at || item.created_at).toLocaleDateString()}
+                                            </span>
+                                        </div>
+                                        <h3 className="font-bold text-[1.05rem] mb-2 line-clamp-2 leading-snug group-hover:text-blue-400 transition-colors">
+                                            {item.title}
+                                        </h3>
+                                        {item.summary && (
+                                            <p className="text-[0.85rem] text-text-muted line-clamp-2 leading-relaxed mt-auto">
+                                                {item.summary}
+                                            </p>
+                                        )}
+                                    </div>
+                                </Link>
+                            ))
+                        ) : (
+                            <div className="col-span-full py-12 text-center text-text-muted border border-dashed border-border/50 rounded-2xl">
+                                Hozircha yangiliklar yo'q
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </section>
+
             {/* Popular Books */}
-            <section className="py-24 px-6 relative">
+            <section id="books" className="py-24 px-6 relative">
                 <div className="max-w-7xl mx-auto">
                     <div className="flex items-end justify-between mb-10">
                         <div>
@@ -180,6 +283,105 @@ export default function LandingPage() {
                                 Hozircha mashhur kitoblar ro'yxati mavjud emas
                             </div>
                         )}
+                    </div>
+                </div>
+            </section>
+
+            {/* Help / Support & FAQ */}
+            <section id="help" className="py-24 px-6 relative bg-canvas border-t border-border/30">
+                <div className="max-w-7xl mx-auto">
+                    <div className="text-center mb-16 max-w-2xl mx-auto">
+                        <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-indigo-500/10 text-indigo-400 mb-4">
+                            <HelpCircle size={32} />
+                        </div>
+                        <h2 className="text-3xl font-bold tracking-tight mb-4">Yordam va Qo'llab-quvvatlash</h2>
+                        <p className="text-lg text-text-muted">Kutubxonamizdan foydalanish bo'yicha eng ko'p beriladigan savollar va bog'lanish usullari.</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+                        {/* FAQ Accordion */}
+                        <div className="lg:col-span-7 space-y-4">
+                            <h3 className="text-xl font-bold mb-6">Ko'p beriladigan savollar</h3>
+                            {[
+                                {
+                                    q: "Tizimdan qanday ro'yxatdan o'tishim mumkin?",
+                                    a: "Tizim ma'murlari (universitet yoxud muassasa xodimi) orqali yopiq tizimga a'zo bo'lasiz. Saytdagi 'Kirish' tugmasi orqali o'z login/parolingiz bilan kirishingiz mumkin."
+                                },
+                                {
+                                    q: "Oflayn o'qish uchun qanday kitob band qilaman?",
+                                    a: "Tizimga kirgach katalogdan kerakli kitobni tanlang va 'Band qilish' tugmasini bosing. Kutubxonachi so'rovingizni tasdiqlaganidan so'ng kutubxonaga kelib kitobni olib ketishingiz mumkin."
+                                },
+                                {
+                                    q: "Kitobni qancha muddatga olsa bo'ladi?",
+                                    a: "Standart ijaraga berish muddati tuzilmaga qarab 10 kundan 30 kungacha. Bu haqida aniq ma'lumot kitobni band qilayotganingizda profilingizda ko'rsatiladi."
+                                },
+                                {
+                                    q: "Elektron PDF kitoblarni saqlab olishim mumkinmi?",
+                                    a: "Mualliflik huquqini himoya qilish maqsadida, elektron resurslarni faqat tizim ichidagi maxsus o'qish oynasida (Read Mode) mutolaa qila olasiz. Ularni yuklash cheklangan ba'zi hollar bundan mustasno."
+                                }
+                            ].map((faq, i) => (
+                                <div key={i} className="bg-surface border border-border/50 rounded-2xl overflow-hidden transition-all duration-300">
+                                    <button
+                                        onClick={() => setOpenFaqIndex(openFaqIndex === i ? null : i)}
+                                        className="w-full text-left px-6 py-5 font-bold flex items-center justify-between hover:bg-surface/80"
+                                    >
+                                        <span className="text-[1rem] leading-snug pr-4">{faq.q}</span>
+                                        <ChevronDown size={20} className={`text-text-muted transition-transform duration-300 shrink-0 ${openFaqIndex === i ? 'rotate-180 text-emerald-500' : ''}`} />
+                                    </button>
+                                    <div
+                                        className={`px-6 overflow-hidden transition-all duration-300 ease-in-out ${openFaqIndex === i ? 'max-h-48 pb-5 opacity-100' : 'max-h-0 opacity-0'}`}
+                                    >
+                                        <p className="text-text-muted text-[0.95rem] leading-relaxed border-t border-border/30 pt-4">
+                                            {faq.a}
+                                        </p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Contact Info */}
+                        <div className="lg:col-span-5 relative">
+                            <div className="sticky top-28 bg-surface/50 border border-border/50 rounded-3xl p-8 backdrop-blur shadow-xl shadow-black/5">
+                                <h3 className="text-xl font-bold mb-6">Bog'lanish</h3>
+
+                                <div className="space-y-6">
+                                    <div className="flex items-start gap-4">
+                                        <div className="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center shrink-0">
+                                            <Phone size={24} />
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-lg mb-0.5">+998 71 123 45 67</p>
+                                            <p className="text-sm text-text-muted">Ish vaqti: Du-Ju | 09:00 - 18:00</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-start gap-4">
+                                        <div className="w-12 h-12 rounded-xl bg-orange-500/10 text-orange-400 flex items-center justify-center shrink-0">
+                                            <Mail size={24} />
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-[1.05rem] mb-0.5">support@library.uz</p>
+                                            <p className="text-sm text-text-muted">24/7 onlayn qabul va murojaatlar</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-start gap-4">
+                                        <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
+                                            <MapPin size={24} />
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-[1.05rem] mb-1 line-clamp-2 leading-tight">
+                                                Toshkent shahar, Universitetlar ko'chasi 1-A uy.
+                                            </p>
+                                            <a href="#" className="text-sm text-emerald-500 hover:text-emerald-400 transition-colors font-medium hover:underline">Xaritada ko'rish</a>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Decor */}
+                                <div className="absolute -z-10 -bottom-10 -right-10 w-48 h-48 bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>

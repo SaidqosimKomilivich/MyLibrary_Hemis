@@ -23,6 +23,7 @@ use crate::handlers::report_handler;
 use crate::handlers::request_handler;
 use crate::handlers::sync_handler;
 use crate::handlers::upload_handler;
+use crate::handlers::news_handler;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -168,11 +169,23 @@ async fn main() -> std::io::Result<()> {
                     .route("/employee-dashboard", web::get().to(report_handler::get_employee_dashboard))
                     .route("/export", web::get().to(report_handler::export_excel)),
             )
+            // News routes (admin: full CRUD)
+            .service(
+                web::scope("/api/news")
+                    .route("", web::get().to(news_handler::list_news))
+                    .route("", web::post().to(news_handler::create_news))
+                    .route("/{id}", web::get().to(news_handler::get_news))
+                    .route("/{id}", web::put().to(news_handler::update_news))
+                    .route("/{id}", web::delete().to(news_handler::delete_news))
+                    .route("/{id}/publish", web::put().to(news_handler::toggle_publish)),
+            )
             // Public routes
             .service(
                 web::scope("/api/public")
                     .route("/stats", web::get().to(report_handler::get_public_stats))
-                    .route("/books", web::get().to(book_handler::get_public_books)),
+                    .route("/books", web::get().to(book_handler::get_public_books))
+                    .route("/news", web::get().to(news_handler::list_public_news))
+                    .route("/news/{id_or_slug}", web::get().to(news_handler::get_public_news)),
             )
             // Sync routes (HEMIS sinxronlash)
             .service(

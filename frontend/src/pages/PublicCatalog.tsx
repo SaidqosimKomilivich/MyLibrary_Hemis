@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { Search, Loader2, BookOpen, Layers, Star, ArrowLeft } from 'lucide-react';
+import PublicNavbar from '../components/PublicNavbar';
 import { api, type Book } from '../services/api';
 
 const categories = [
@@ -81,58 +82,26 @@ const PublicCatalog = () => {
 
     return (
         <div className="min-h-screen bg-bg text-text selection:bg-emerald-500/30 font-sans flex flex-col">
-            {/* Header / Navbar */}
-            <header className="sticky top-0 z-50 bg-surface/80 backdrop-blur-md border-b border-border/50">
-                <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between gap-6">
-                    <div
-                        className="flex items-center gap-3 cursor-pointer group"
-                        onClick={() => navigate('/')}
-                    >
-                        <div className="w-10 h-10 rounded-xl bg-linear-to-br from-emerald-400 to-cyan-500 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-emerald-500/20 group-hover:scale-105 transition-transform">
-                            L
-                        </div>
-                        <span className="text-xl font-bold tracking-tight">Library<span className="text-emerald-500">.uz</span></span>
-                    </div>
+            <PublicNavbar />
 
-                    <form onSubmit={handleSearch} className="flex-1 max-w-2xl hidden md:flex relative group">
-                        <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-text-muted group-focus-within:text-emerald-500 transition-colors">
+            {/* Universal Search Bar */}
+            <div className="pt-24 pb-6 px-6 border-b border-border bg-bg">
+                <div className="max-w-7xl mx-auto flex flex-col gap-4">
+                    <h1 className="text-2xl font-bold tracking-tight">Katalog</h1>
+                    <form onSubmit={handleSearch} className="relative group max-w-3xl">
+                        <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-text-muted">
                             <Search size={18} />
                         </div>
                         <input
                             type="text"
                             value={searchInput}
                             onChange={(e) => setSearchInput(e.target.value)}
-                            placeholder="Kitoblarni qidiring..."
-                            className="w-full bg-bg border border-border/80 text-text rounded-full py-2.5 pl-12 pr-4 focus:outline-none focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/10 transition-all text-sm placeholder:text-text-muted/50"
+                            placeholder="Kitob nomi, muallif yoki qidiring..."
+                            className="w-full bg-surface border border-border/80 text-text rounded-full py-3.5 pl-12 pr-4 focus:outline-none focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/10 transition-all text-[0.95rem]"
                         />
                         <button type="submit" className="hidden"></button>
                     </form>
-
-                    <div className="flex items-center gap-4">
-                        <button
-                            onClick={() => navigate('/login')}
-                            className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-xl font-medium transition-all hover:-translate-y-0.5 shadow-lg shadow-emerald-500/20 active:translate-y-0 text-sm"
-                        >
-                            Tizimga kirish
-                        </button>
-                    </div>
                 </div>
-            </header>
-
-            {/* Mobile Search */}
-            <div className="md:hidden p-4 border-b border-border bg-surface">
-                <form onSubmit={handleSearch} className="relative group">
-                    <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-text-muted">
-                        <Search size={18} />
-                    </div>
-                    <input
-                        type="text"
-                        value={searchInput}
-                        onChange={(e) => setSearchInput(e.target.value)}
-                        placeholder="Qidirish..."
-                        className="w-full bg-bg border border-border/80 text-text rounded-full py-2.5 pl-12 pr-4 focus:outline-none focus:border-emerald-500/50 transition-all text-sm"
-                    />
-                </form>
             </div>
 
             <main className="flex-1 max-w-7xl mx-auto px-6 py-8 w-full flex flex-col md:flex-row gap-8">
