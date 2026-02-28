@@ -10,6 +10,7 @@ import PublicNewsPage from './pages/PublicNewsPage'
 import PublicCatalog from './pages/PublicCatalog'
 import PublicLayout from './components/PublicLayout'
 import DashboardLayout from './components/DashboardLayout'
+import GlobalParticles from './components/GlobalParticles'
 import ComingSoon from './components/ComingSoon'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import NewsPage from './pages/admin/NewsPage'
@@ -122,6 +123,7 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <GlobalParticles />
         <AudioProvider>
           <ToastContainer
             position="top-center"

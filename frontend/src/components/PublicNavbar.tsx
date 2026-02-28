@@ -1,5 +1,4 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Library } from 'lucide-react';
 
 export default function PublicNavbar() {
     const location = useLocation();
@@ -22,9 +21,15 @@ export default function PublicNavbar() {
     return (
         <nav className="sticky top-0 z-50 w-full bg-surface/80 backdrop-blur-md border-b border-border/50">
             <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-                <Link to="/" className="flex items-center gap-2 text-emerald-500 hover:text-emerald-400 transition-colors">
-                    <Library size={24} />
-                    <span className="text-xl font-bold tracking-tight text-text">Kutubxona</span>
+                <Link to="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity">
+                    <img
+                        src="/icon_arm_transparent.png"
+                        alt="ARM logo"
+                        className="w-8 h-8 object-contain"
+                    />
+                    <span className="text-[0.72rem] font-bold leading-snug text-text max-w-[200px] sm:max-w-xs">
+                        Mirzo Ulug'bek nomidagi O'zbekiston Milliy universitetining Jizzax filiali «ARM»
+                    </span>
                 </Link>
                 <div className="flex items-center gap-6">
                     <button

@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, GraduationCap, Lock, User } from 'lucide-react'
+import { Eye, EyeOff, Lock, User } from 'lucide-react'
 import { toast } from 'react-toastify'
 import { useAuth } from '../context/AuthContext'
 
@@ -44,12 +44,18 @@ export default function Login() {
             <div className="relative w-full max-w-[420px] bg-surface backdrop-blur-2xl saturate-150 border border-border rounded-lg p-10 px-8 pb-8 shadow-card animate-card-enter max-sm:px-5 max-sm:pt-8 max-sm:pb-6">
                 {/* Header */}
                 <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-linear-to-br from-primary to-accent text-white mb-4 shadow-[0_8px_24px_rgba(79,70,229,0.35)]">
-                        <GraduationCap size={32} strokeWidth={1.8} />
+                    <div className="flex items-center justify-center mb-4">
+                        <img
+                            src="/icon_arm.png"
+                            alt="ARM logo"
+                            className="w-25 h-25 rounded-full p-0.5 object-contain drop-shadow-lg"
+                        />
                     </div>
-                    <h1 className="text-2xl font-bold tracking-tight text-text mb-1 max-sm:text-[1.3rem]">Kutubxona Tizimi</h1>
-                    <p className="text-[0.85rem] text-text-muted font-normal">
-                        O'zbekiston Milliy Universiteti — Jizzax filiali
+                    <h1 className="text-[1rem] font-bold tracking-tight text-text mb-1 leading-snug px-2">
+                        Mirzo Ulug'bek nomidagi O'zbekiston Milliy universitetining Jizzax filiali
+                    </h1>
+                    <p className="text-[0.9rem] text-emerald-400 font-semibold mt-1">
+                        "Axborot Resurs Markazi"
                     </p>
                 </div>
 

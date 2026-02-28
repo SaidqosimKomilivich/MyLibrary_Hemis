@@ -10,7 +10,6 @@ import {
     LogOut,
     Menu,
     X,
-    GraduationCap,
     ClipboardList,
     UserCheck,
     Library,
@@ -178,13 +177,17 @@ export default function DashboardLayout({ role }: DashboardLayoutProps) {
 
             {/* Sidebar */}
             <aside className={`fixed top-0 left-0 w-[260px] h-dvh bg-slate-900/95 backdrop-blur-2xl border-r border-border flex flex-col z-100 transition-transform duration-250 max-md:-translate-x-full ${sidebarOpen ? 'max-md:translate-x-0' : ''}`}>
-                <div className="flex items-center gap-2.5 p-5 border-b border-border">
-                    <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-linear-to-br from-primary to-accent text-white shrink-0">
-                        <GraduationCap size={24} />
-                    </div>
-                    <span className="text-[1.1rem] font-bold tracking-[-0.02em]">Kutubxona</span>
+                <div className="flex items-center gap-2.5 p-4 border-b border-border">
+                    <img
+                        src="/icon_arm.png"
+                        alt="ARM logo"
+                        className="w-13 h-13 rounded-full p-0.5 object-contain shrink-0"
+                    />
+                    <span className="text-sm font-bold leading-snug tracking-tight">
+                        Axborot Resurs Markazi
+                    </span>
                     <button
-                        className="hidden ml-auto bg-transparent border-none text-text-muted cursor-pointer p-1 max-md:block"
+                        className="hidden ml-auto bg-transparent border-none text-text-muted cursor-pointer p-1 max-md:block shrink-0"
                         onClick={() => setSidebarOpen(false)}
                     >
                         <X size={20} />

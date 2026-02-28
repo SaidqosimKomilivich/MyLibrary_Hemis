@@ -48,7 +48,7 @@ export default function LandingPage() {
                 <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[100px] -z-10 pointer-events-none" />
                 <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-indigo-500/10 rounded-full blur-[100px] -z-10 pointer-events-none" />
 
-                <div className="max-w-4xl mx-auto text-center">
+                <div className="max-w-4xl mx-auto text-center relative z-10">
                     <div
                         className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface border border-border/50 text-sm font-medium mb-8 text-emerald-400 shadow-sm stagger-fade-up"
                         style={{ animationDelay: '0.1s' }}
@@ -65,7 +65,7 @@ export default function LandingPage() {
                     </h1>
 
                     <p
-                        className="text-lg md:text-xl text-text-muted mb-10 max-w-2xl mx-auto leading-relaxed stagger-fade-up"
+                        className="text-lg md:text-xl text-text-muted mb-10 max-w-2xl mx-auto leading-relaxed stagger-fade-up pointer-events-auto"
                         style={{ animationDelay: '0.4s' }}
                     >
                         Minglab kitoblar, raqamli resurslar va o'quv zallari endi bitta platformada.
@@ -74,7 +74,7 @@ export default function LandingPage() {
 
                     <form
                         onSubmit={handleSearchSubmit}
-                        className="max-w-2xl mx-auto relative group stagger-fade-up"
+                        className="max-w-2xl mx-auto relative group stagger-fade-up pointer-events-auto"
                         style={{ animationDelay: '0.55s' }}
                     >
                         <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-text-muted group-focus-within:text-emerald-500 transition-colors">
