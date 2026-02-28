@@ -139,6 +139,17 @@ export const api = {
 
 
     // Book endpoints
+    getPublicBooks(params: PaginationParams = {}) {
+        const urlParams = new URLSearchParams()
+        if (params.page !== undefined) urlParams.append('page', params.page.toString())
+        if (params.limit !== undefined) urlParams.append('limit', params.limit.toString())
+        if (params.search !== undefined) urlParams.append('search', params.search)
+        if (params.category !== undefined) urlParams.append('category', params.category)
+
+        const qs = urlParams.toString()
+        return request<PaginatedBooksResponse>(`/public/books${qs ? '?' + qs : ''}`)
+    },
+
     getBooks(params: PaginationParams = {}) {
         const query = new URLSearchParams()
         if (params.page) query.append('page', params.page.toString())

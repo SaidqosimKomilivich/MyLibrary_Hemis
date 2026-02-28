@@ -1,11 +1,20 @@
-import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { BookOpen, Users, Library, Search, ChevronRight, TrendingUp } from 'lucide-react'
 import { api, type PublicDashboardResponse } from '../services/api'
 
 export default function LandingPage() {
     const [stats, setStats] = useState<PublicDashboardResponse | null>(null)
     const [isLoading, setIsLoading] = useState(true)
+    const [searchQuery, setSearchQuery] = useState('')
+    const navigate = useNavigate()
+
+    const handleSearchSubmit = (e: React.FormEvent) => {
+        e.preventDefault()
+        if (searchQuery.trim()) {
+            navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`)
+        }
+    }
 
     useEffect(() => {
         const fetchStats = async () => {
@@ -70,19 +79,21 @@ export default function LandingPage() {
                         O'zingizga kerakli kitobni qidiring, band qiling va o'qishni boshlang.
                     </p>
 
-                    <div className="max-w-2xl mx-auto relative group">
+                    <form onSubmit={handleSearchSubmit} className="max-w-2xl mx-auto relative group">
                         <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-text-muted group-focus-within:text-emerald-500 transition-colors">
                             <Search size={22} />
                         </div>
                         <input
                             type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Kitob nomi, muallif yoki ISBN bo'yicha qidiring..."
                             className="w-full bg-surface border-2 border-border/80 text-text rounded-full py-4 pl-14 pr-36 focus:outline-none focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/10 transition-all text-[1rem] placeholder:text-text-muted/50 shadow-sm"
                         />
-                        <button className="absolute inset-y-2 right-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full px-8 font-medium transition-colors flex items-center gap-2 shadow-md">
+                        <button type="submit" className="absolute inset-y-2 right-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full px-8 font-medium transition-colors flex items-center gap-2 shadow-md">
                             Izlash
                         </button>
-                    </div>
+                    </form>
                 </div>
             </section>
 

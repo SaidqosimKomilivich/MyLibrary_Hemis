@@ -6,6 +6,7 @@ import { AudioProvider } from './context/AudioContext'
 import AudioPlayerModal from './components/AudioPlayerModal'
 import Login from './pages/Login'
 import LandingPage from './pages/LandingPage'
+import PublicCatalog from './pages/PublicCatalog'
 import DashboardLayout from './components/DashboardLayout'
 import ComingSoon from './components/ComingSoon'
 import AdminDashboard from './pages/admin/AdminDashboard'
@@ -45,6 +46,7 @@ function App() {
           <Routes>
             {/* Ochiq Bosh sahifa (Landing) */}
             <Route path="/" element={<LandingPage />} />
+            <Route path="/search" element={<PublicCatalog />} />
 
             {/* Login */}
             <Route path="/login" element={<Login />} />

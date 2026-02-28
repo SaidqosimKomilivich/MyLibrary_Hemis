@@ -171,7 +171,8 @@ async fn main() -> std::io::Result<()> {
             // Public routes
             .service(
                 web::scope("/api/public")
-                    .route("/stats", web::get().to(report_handler::get_public_stats)),
+                    .route("/stats", web::get().to(report_handler::get_public_stats))
+                    .route("/books", web::get().to(book_handler::get_public_books)),
             )
             // Sync routes (HEMIS sinxronlash)
             .service(

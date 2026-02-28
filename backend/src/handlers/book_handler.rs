@@ -23,6 +23,17 @@ pub async fn get_books(
     Ok(HttpResponse::Ok().json(response))
 }
 
+/// GET /api/public/books — Barcha uchun ochiq qidiruv va kitoblar ro'yxati (paginatsiya bilan).
+/// Faqat is_active = true bo'lgan kitoblar qaytadi.
+pub async fn get_public_books(
+    pool: web::Data<PgPool>,
+    query: web::Query<PaginationParams>,
+) -> Result<HttpResponse, AppError> {
+    // is_staff = false jo'natamiz, chunki bu ochiq endpoint (faqat active kitoblar uchun)
+    let response = BookService::get_books(pool.get_ref(), query.into_inner(), false).await?;
+    Ok(HttpResponse::Ok().json(response))
+}
+
 /// GET /api/books/{id} — Barcha foydalanuvchilar uchun
 pub async fn get_book(
     pool: web::Data<PgPool>,
