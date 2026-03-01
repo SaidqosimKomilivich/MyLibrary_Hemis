@@ -72,16 +72,16 @@ export default function EmployeeDashboard() {
                         <table className="w-full border-collapse">
                             <thead>
                                 <tr>
-                                    <th className="py-2.5 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-slate-900/40">Talaba</th>
-                                    <th className="py-2.5 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-slate-900/40">Kitob</th>
-                                    <th className="py-2.5 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-slate-900/40">Muddat</th>
-                                    <th className="py-2.5 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-slate-900/40">Holat</th>
+                                    <th className="py-2.5 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-surface-hover/50">Talaba</th>
+                                    <th className="py-2.5 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-surface-hover/50">Kitob</th>
+                                    <th className="py-2.5 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-surface-hover/50">Muddat</th>
+                                    <th className="py-2.5 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-surface-hover/50">Holat</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {dashboardData?.pending_returns && dashboardData.pending_returns.length > 0 ? (
                                     dashboardData.pending_returns.map((item, i) => (
-                                        <tr key={i} className="transition-colors hover:bg-indigo-500/5 border-t border-border">
+                                        <tr key={i} className="transition-colors hover:bg-surface-hover/50 border-t border-border">
                                             <td className="py-3 px-4 text-[0.875rem]">{item.student}</td>
                                             <td className="py-3 px-4 text-[0.875rem]">{item.book}</td>
                                             <td className="py-3 px-4 text-[0.875rem]">{item.due_date}</td>
@@ -136,8 +136,8 @@ export default function EmployeeDashboard() {
                     <div className="py-2">
                         {dashboardData?.popular_books && dashboardData.popular_books.length > 0 ? (
                             dashboardData.popular_books.map((book, i) => (
-                                <div key={i} className="flex items-center gap-3.5 py-3 px-5 transition-colors hover:bg-indigo-500/5">
-                                    <div className="w-10 h-14 bg-slate-800 rounded flex items-center justify-center overflow-hidden shrink-0 border border-white/5">
+                                <div key={i} className="flex items-center gap-3.5 py-3 px-5 transition-colors hover:bg-surface-hover/50">
+                                    <div className="w-10 h-14 bg-surface rounded flex items-center justify-center overflow-hidden shrink-0 border border-border">
                                         {book.cover_image ? (
                                             <img src={`http://localhost:8080${book.cover_image}`} alt={book.title} className="w-full h-full object-cover" />
                                         ) : (
@@ -148,7 +148,7 @@ export default function EmployeeDashboard() {
                                         <strong className="block text-[0.85rem] font-semibold truncate">{book.title}</strong>
                                         <span className="text-[0.8rem] text-text-muted truncate block">{book.author}</span>
                                     </div>
-                                    <div className="flex items-center gap-1.5 py-1 px-2.5 rounded-full bg-slate-900/50 border border-border text-[0.75rem] text-text-muted">
+                                    <div className="flex items-center gap-1.5 py-1 px-2.5 rounded-full bg-surface-hover border border-border text-[0.75rem] text-text-muted">
                                         <Library size={14} />
                                         <span>{book.count} marta</span>
                                     </div>

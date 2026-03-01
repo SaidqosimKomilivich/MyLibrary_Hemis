@@ -60,8 +60,8 @@ export default function NewsDetailPage() {
     if (!news) {
         return (
             <div className="w-full h-[60vh] flex flex-col items-center justify-center p-4">
-                <h1 className="text-4xl font-bold text-white mb-4">404</h1>
-                <p className="text-white/60 mb-8">Yangilik topilmadi yoki o'chirilgan.</p>
+                <h1 className="text-4xl font-bold text-text mb-4">404</h1>
+                <p className="text-text-muted mb-8">Yangilik topilmadi yoki o'chirilgan.</p>
                 <Link to="/" className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition-colors">
                     Bosh sahifaga qaytish
                 </Link>
@@ -73,7 +73,7 @@ export default function NewsDetailPage() {
         <div className="w-full pb-12 px-4 pt-10">
             {/* Nav / Back */}
             <div className="max-w-4xl mx-auto mb-8">
-                <Link to="/" className="inline-flex items-center text-white/50 hover:text-white transition-colors gap-2 text-sm font-medium">
+                <Link to="/" className="inline-flex items-center text-text-muted hover:text-text transition-colors gap-2 text-sm font-medium">
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
@@ -81,7 +81,7 @@ export default function NewsDetailPage() {
                 </Link>
             </div>
 
-            <article className="max-w-4xl mx-auto bg-[#1a1b26] rounded-3xl border border-white/5 overflow-hidden shadow-2xl">
+            <article className="max-w-4xl mx-auto bg-surface rounded-3xl border border-border/50 overflow-hidden shadow-2xl">
                 {/* Cover Image Carousel */}
                 {news.images && news.images.length > 0 && (
                     <div className="w-full aspect-21/9 relative overflow-hidden bg-black/20 group">
@@ -150,7 +150,7 @@ export default function NewsDetailPage() {
                                 {news.category}
                             </span>
                         )}
-                        <span className="text-white/60 text-sm font-medium drop-shadow-md bg-black/40 px-3 py-1 rounded-full backdrop-blur-md">
+                        <span className="text-text-muted text-sm font-medium border border-border/50 bg-surface-hover px-3 py-1 rounded-full">
                             {new Date(news.published_at || news.created_at).toLocaleDateString('uz-UZ', {
                                 year: 'numeric',
                                 month: 'long',
@@ -160,19 +160,19 @@ export default function NewsDetailPage() {
                     </div>
 
                     {/* Title */}
-                    <h1 className="text-3xl md:text-5xl font-bold text-white mb-6 leading-tight drop-shadow-md">
+                    <h1 className="text-3xl md:text-5xl font-bold text-text mb-6 leading-tight">
                         {news.title}
                     </h1>
 
                     {/* Summary */}
                     {news.summary && (
-                        <p className="text-xl text-white/80 font-medium mb-10 leading-relaxed border-l-4 border-blue-500 pl-6 drop-shadow-sm">
+                        <p className="text-xl text-text-muted font-medium mb-10 leading-relaxed border-l-4 border-blue-500 pl-6">
                             {news.summary}
                         </p>
                     )}
 
                     {/* Content (Basic rendering - replace with Markdown parser later if needed) */}
-                    <div className="text-white/70 prose prose-invert prose-blue max-w-none text-lg leading-relaxed space-y-6">
+                    <div className="text-text prose prose-blue max-w-none text-lg leading-relaxed space-y-6">
                         {news.content.split('\n').map((paragraph, idx) => (
                             <p key={idx}>{paragraph}</p>
                         ))}
@@ -180,9 +180,9 @@ export default function NewsDetailPage() {
 
                     {/* Tags */}
                     {news.tags.length > 0 && (
-                        <div className="mt-12 pt-8 border-t border-white/10 flex flex-wrap gap-2">
+                        <div className="mt-12 pt-8 border-t border-border flex flex-wrap gap-2">
                             {news.tags.map(tag => (
-                                <span key={tag} className="bg-white/5 border border-white/10 text-white/60 px-3 py-1 rounded-lg text-sm transition-colors hover:bg-white/10 hover:text-white cursor-default">
+                                <span key={tag} className="bg-surface-hover border border-border text-text-muted px-3 py-1 rounded-lg text-sm transition-colors hover:bg-border/50 cursor-default">
                                     #{tag}
                                 </span>
                             ))}

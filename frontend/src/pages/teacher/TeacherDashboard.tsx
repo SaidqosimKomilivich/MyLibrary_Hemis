@@ -106,14 +106,14 @@ export default function TeacherDashboard() {
                             {/* My books (Active Rentals) */}
                             <div className="bg-surface border border-border rounded-xl overflow-hidden p-6 shadow-sm">
                                 <div className="flex items-center justify-between mb-5">
-                                    <h2 className="flex items-center gap-2 text-[1.1rem] font-bold text-slate-100">
+                                    <h2 className="flex items-center gap-2 text-[1.1rem] font-bold text-text">
                                         <BookOpen size={20} className="text-blue-400" />
                                         Hozirgi ijaralarim
                                     </h2>
                                 </div>
 
                                 {myRentals.length === 0 ? (
-                                    <div className="text-center py-10 bg-slate-800/20 rounded-xl border border-dashed border-white/5">
+                                    <div className="text-center py-10 bg-surface-hover/50 rounded-xl border border-dashed border-border">
                                         <BookOpen size={40} className="mx-auto mb-3 opacity-20" />
                                         <p className="text-text-muted">Ayni paytda qo'lingizda kitob yo'q. Kutubxonadan kitob oling!</p>
                                     </div>
@@ -124,19 +124,19 @@ export default function TeacherDashboard() {
                                             const isOverdue = r.status === 'overdue' || daysLeft < 0
 
                                             return (
-                                                <div key={r.id} className={`flex max-md:flex-col gap-4 p-5 rounded-2xl border transition-all ${isOverdue ? 'bg-red-500/5 border-red-500/20 shadow-[0_4px_20px_-10px_rgba(239,68,68,0.1)]' : 'bg-slate-800/40 border-white/5 hover:border-blue-500/30'}`}>
+                                                <div key={r.id} className={`flex max-md:flex-col gap-4 p-5 rounded-2xl border transition-all ${isOverdue ? 'bg-red-500/5 border-red-500/20 shadow-[0_4px_20px_-10px_rgba(239,68,68,0.1)]' : 'bg-surface-hover border-border hover:border-blue-500/30'}`}>
                                                     <div className="flex-1 min-w-0">
-                                                        <h3 className="text-[1.1rem] font-bold text-slate-100 mb-1 truncate">{r.book_title}</h3>
+                                                        <h3 className="text-[1.1rem] font-bold text-text mb-1 truncate">{r.book_title}</h3>
                                                         <p className="text-[0.85rem] text-text-muted mb-4 truncate">{r.book_author}</p>
 
                                                         <div className="flex flex-wrap items-center gap-4">
                                                             <div className="flex flex-col">
-                                                                <span className="text-[0.7rem] uppercase tracking-wider text-slate-500 font-semibold mb-0.5">Berilgan sana</span>
+                                                                <span className="text-[0.7rem] uppercase tracking-wider text-text-muted font-semibold mb-0.5">Berilgan sana</span>
                                                                 <span className="text-[0.85rem] font-medium flex items-center gap-1.5"><Calendar size={12} className="opacity-50" /> {formatDate(r.loan_date)}</span>
                                                             </div>
-                                                            <div className="w-px h-8 bg-white/10 hidden sm:block"></div>
+                                                            <div className="w-px h-8 bg-border hidden sm:block"></div>
                                                             <div className="flex flex-col">
-                                                                <span className={`text-[0.7rem] uppercase tracking-wider font-semibold mb-0.5 ${isOverdue ? 'text-red-400' : 'text-slate-500'}`}>Qaytarish muddati</span>
+                                                                <span className={`text-[0.7rem] uppercase tracking-wider font-semibold mb-0.5 ${isOverdue ? 'text-red-400' : 'text-text-muted'}`}>Qaytarish muddati</span>
                                                                 <span className={`text-[0.85rem] font-medium flex items-center gap-1.5 ${isOverdue ? 'text-red-400' : ''}`}><Clock size={12} className="opacity-50" /> {formatDate(r.due_date)}</span>
                                                             </div>
                                                         </div>
@@ -173,20 +173,20 @@ export default function TeacherDashboard() {
 
                             {/* Personal Timeline Log */}
                             <div className="bg-surface border border-border rounded-xl p-6 shadow-sm">
-                                <h2 className="flex items-center gap-2 text-[1.1rem] font-bold mb-6 text-slate-100">
+                                <h2 className="flex items-center gap-2 text-[1.1rem] font-bold mb-6 text-text">
                                     <Clock size={20} className="text-emerald-400" />
                                     Mening oxirgi harakatlarim
                                 </h2>
 
-                                <div className="relative pl-6 space-y-6 before:absolute before:inset-y-0 before:left-[11px] before:w-[2px] before:bg-white/5">
+                                <div className="relative pl-6 space-y-6 before:absolute before:inset-y-0 before:left-[11px] before:w-[2px] before:bg-border">
                                     {dashboardData?.recent_activities?.length === 0 ? (
                                         <p className="text-[0.9rem] text-text-muted">Harakatlar tarixi bo'sh.</p>
                                     ) : dashboardData?.recent_activities.map((act, i) => (
                                         <div key={act.id + i} className="relative">
-                                            <div className="absolute -left-[30px] top-1 w-[12px] h-[12px] rounded-full bg-slate-800 border-2 border-emerald-400 ring-4 ring-slate-900"></div>
+                                            <div className="absolute -left-[30px] top-1 w-[12px] h-[12px] rounded-full bg-surface border-2 border-emerald-400 ring-4 ring-canvas"></div>
                                             <div className="flex flex-col">
-                                                <p className="text-[0.95rem] text-slate-200 m-0 leading-snug">{act.action}</p>
-                                                <span className="text-[0.75rem] text-slate-500 font-mono mt-1">{act.time}</span>
+                                                <p className="text-[0.95rem] text-text m-0 leading-snug">{act.action}</p>
+                                                <span className="text-[0.75rem] text-text-muted font-mono mt-1">{act.time}</span>
                                             </div>
                                         </div>
                                     ))}
@@ -210,7 +210,7 @@ export default function TeacherDashboard() {
 
                             {/* Recommended books */}
                             <div className="bg-surface border border-border rounded-xl p-6 shadow-sm flex-1">
-                                <h2 className="flex items-center gap-2 text-[1.1rem] font-bold mb-5 text-slate-100">
+                                <h2 className="flex items-center gap-2 text-[1.1rem] font-bold mb-5 text-text">
                                     <Star size={20} className="text-yellow-400" />
                                     Yangi kelgan kitoblar
                                 </h2>
@@ -218,16 +218,16 @@ export default function TeacherDashboard() {
                                     {recommendedBooks.length === 0 ? (
                                         <p className="text-[0.9rem] text-text-muted">Hozircha kitoblar yo'q</p>
                                     ) : recommendedBooks.map((book) => (
-                                        <div key={book.id} className="flex gap-3 py-3 px-4 rounded-xl transition-colors hover:bg-slate-800/50 border border-transparent hover:border-white/5 group cursor-pointer">
-                                            <div className="w-[45px] h-[65px] shrink-0 bg-slate-800 rounded flex items-center justify-center overflow-hidden border border-white/5 group-hover:border-white/10 transition-colors">
+                                        <div key={book.id} className="flex gap-3 py-3 px-4 rounded-xl transition-colors hover:bg-surface-hover border border-transparent hover:border-border group cursor-pointer">
+                                            <div className="w-[45px] h-[65px] shrink-0 bg-surface-hover rounded flex items-center justify-center overflow-hidden border border-border group-hover:border-border transition-colors">
                                                 {book.cover_image ? (
                                                     <img src={book.cover_image} alt={book.title} className="w-full h-full object-cover" />
                                                 ) : (
-                                                    <BookOpen size={20} className="text-slate-600" />
+                                                    <BookOpen size={20} className="text-text-muted" />
                                                 )}
                                             </div>
                                             <div className="flex-1 min-w-0 flex flex-col justify-center">
-                                                <strong className="block text-[0.9rem] font-bold text-slate-200 truncate group-hover:text-emerald-400 transition-colors">{book.title}</strong>
+                                                <strong className="block text-[0.9rem] font-bold text-text truncate group-hover:text-emerald-400 transition-colors">{book.title}</strong>
                                                 <span className="text-[0.8rem] text-text-muted truncate mb-1">{book.author}</span>
                                                 <div className="flex items-center gap-2 mt-auto">
                                                     <span className={`inline-flex items-center py-0.5 px-2 rounded-md text-[0.65rem] font-bold uppercase tracking-wider ${book.available_copies > 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>

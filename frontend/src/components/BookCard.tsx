@@ -28,7 +28,7 @@ export default function BookCard({ book, role, onEdit, onDelete, onToggleActive,
         <div className="group relative bg-surface border border-border rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(0,0,0,0.4)] hover:border-white/10 flex flex-col h-full">
             {/* Cover Image */}
             <div
-                className="relative w-full pt-[135%] bg-slate-800/50 overflow-hidden cursor-pointer focus:outline-none"
+                className="relative w-full pt-[135%] bg-surface-hover overflow-hidden cursor-pointer focus:outline-none"
                 tabIndex={0}
                 onClick={() => setShowOverlay(!showOverlay)}
                 onMouseLeave={() => setShowOverlay(false)}

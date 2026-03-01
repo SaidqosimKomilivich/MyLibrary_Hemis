@@ -2,6 +2,8 @@ import { useState, useRef } from "react"
 import { api } from "../../services/api"
 import type { CreateNewsRequest } from "../../services/api"
 import { toast } from "react-toastify"
+import { X, Image as ImageIcon, Loader2, Tag, AlignLeft, Newspaper } from "lucide-react"
+import { CustomSelect } from "../../components/CustomSelect"
 
 interface AdminNewsModalProps {
     isOpen: boolean
@@ -26,7 +28,6 @@ export default function AdminNewsModal({
     const [tagInput, setTagInput] = useState("")
     const [images, setImages] = useState<string[]>(editingNews?.images || [])
     const [isPublished, setIsPublished] = useState(editingNews?.is_published || false)
-
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [isUploading, setIsUploading] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
@@ -51,21 +52,16 @@ export default function AdminNewsModal({
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || [])
         if (!files.length) return
-
         setIsUploading(true)
         try {
-            // Promise.all to map over files and upload
             const uploadPromises = files.map(file => {
                 const { promise } = api.uploadFile(file, () => { })
                 return promise
             })
-
             const results = await Promise.all(uploadPromises)
-
             const newImageUrls = results
                 .filter(res => res.success && res.files.length > 0)
                 .map(res => res.files[0].url)
-
             if (newImageUrls.length > 0) {
                 setImages(prev => [...prev, ...newImageUrls])
                 toast.success(`${newImageUrls.length} ta rasm yuklandi`)
@@ -74,10 +70,7 @@ export default function AdminNewsModal({
             toast.error(error.message || 'Rasm yuklashda xatolik')
         } finally {
             setIsUploading(false)
-            // reset file input
-            if (fileInputRef.current) {
-                fileInputRef.current.value = ''
-            }
+            if (fileInputRef.current) fileInputRef.current.value = ''
         }
     }
 
@@ -91,7 +84,6 @@ export default function AdminNewsModal({
             toast.error("Sarlavha va matn kiritilishi shart")
             return
         }
-
         setIsSubmitting(true)
         try {
             const payload: CreateNewsRequest = {
@@ -103,7 +95,6 @@ export default function AdminNewsModal({
                 images,
                 is_published: isPublished
             }
-
             if (editingNews) {
                 await api.updateNews(editingNews.id, payload)
                 toast.success("Yangilik muvaffaqiyatli yangilandi")
@@ -111,7 +102,6 @@ export default function AdminNewsModal({
                 await api.createNews(payload)
                 toast.success("Yangilik muvaffaqiyatli yaratildi")
             }
-
             onSuccess()
             onClose()
         } catch (error: any) {
@@ -121,111 +111,171 @@ export default function AdminNewsModal({
         }
     }
 
+    const inputClass = "w-full bg-surface/50 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
+    const labelClass = "text-[0.85rem] font-semibold text-text-muted tracking-wide"
+
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="bg-[#1a1b26] rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden border border-white/10">
+        <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-100 flex items-center justify-center p-4 animate-in fade-in duration-200"
+            onClick={onClose}
+            style={{ pointerEvents: isSubmitting || isUploading ? 'none' : 'auto' }}
+        >
+            <div
+                className="bg-surface border border-border rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200"
+                onClick={e => e.stopPropagation()}
+            >
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 shrink-0">
-                    <h2 className="text-xl font-semibold text-white">
+                <div className="flex justify-between items-center p-5 border-b border-border bg-white/3 rounded-t-2xl shrink-0">
+                    <h2 className="m-0 text-lg font-bold text-text flex items-center gap-2">
+                        <Newspaper size={20} className="text-primary-light" />
                         {editingNews ? "Yangilikni Tahrirlash" : "Yangi Yangilik Qo'shish"}
                     </h2>
                     <button
                         onClick={onClose}
-                        className="p-2 hover:bg-white/10 rounded-full transition-colors text-white/70 hover:text-white"
+                        className="flex p-1.5 rounded-lg border-none bg-transparent cursor-pointer text-text-muted transition-colors hover:bg-surface-hover hover:text-rose-400"
                     >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
+                        <X size={20} />
                     </button>
                 </div>
 
-                {/* Form */}
-                <div className="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-                    <form id="news-form" onSubmit={handleSubmit} className="space-y-6">
-                        {/* Title */}
-                        <div>
-                            <label className="block text-sm font-medium text-white/70 mb-2">
-                                Sarlavha <span className="text-red-500">*</span>
-                            </label>
+                {/* Form body */}
+                <form id="news-form" onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+                    <div className="flex-1 overflow-y-auto p-5 custom-scrollbar grid grid-cols-1 md:grid-cols-2 gap-5 content-start">
+
+                        {/* Title — full width */}
+                        <div className="md:col-span-2 flex flex-col gap-1.5 min-w-0">
+                            <label className={labelClass}>Sarlavha <span className="text-rose-400">*</span></label>
                             <input
                                 type="text"
                                 value={title}
                                 onChange={(e) => setTitle(e.target.value)}
-                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-white/30"
-                                placeholder="Yangilik sarlavhasi (min 3 harf)"
+                                className={inputClass}
+                                placeholder="Yangilik sarlavhasi"
                                 required
                             />
                         </div>
 
-                        {/* Category & Publish status */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label className="block text-sm font-medium text-white/70 mb-2">Rukn</label>
-                                <select
-                                    value={category}
-                                    onChange={(e) => setCategory(e.target.value)}
-                                    className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    {CATEGORIES.map(cat => (
-                                        <option key={cat} value={cat}>{cat}</option>
-                                    ))}
-                                </select>
-                            </div>
+                        {/* Category */}
+                        <div className="flex flex-col gap-1.5 min-w-0">
+                            <label className={labelClass}>Rukn</label>
+                            <CustomSelect
+                                value={category}
+                                onChange={(val) => setCategory(val)}
+                                options={CATEGORIES.map(cat => ({ value: cat, label: cat }))}
+                                buttonClassName="w-full bg-surface/50 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
+                            />
+                        </div>
 
-                            <div className="flex items-end pb-3">
-                                <label className="flex items-center space-x-3 cursor-pointer group">
-                                    <input
-                                        type="checkbox"
-                                        checked={isPublished}
-                                        onChange={(e) => setIsPublished(e.target.checked)}
-                                        className="w-5 h-5 rounded border-white/20 bg-white/5 text-blue-500 focus:ring-0 focus:ring-offset-0 transition-colors"
-                                    />
-                                    <span className="text-white/80 group-hover:text-white transition-colors">Darxol nashr qilinadimi?</span>
-                                </label>
+                        {/* Publish toggle */}
+                        <div className="flex flex-col gap-1.5 min-w-0 justify-end">
+                            <label className={labelClass}>Nashr holati</label>
+                            <label className="flex items-center gap-3 h-[42px] px-3 border border-border rounded-xl bg-surface/50 cursor-pointer group select-none">
+                                <div className={`relative w-10 h-6 rounded-full transition-all duration-200 ${isPublished ? 'bg-emerald-500' : 'bg-border'}`}>
+                                    <div className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all duration-200 ${isPublished ? 'left-5' : 'left-1'}`} />
+                                </div>
+                                <input
+                                    type="checkbox"
+                                    checked={isPublished}
+                                    onChange={(e) => setIsPublished(e.target.checked)}
+                                    className="hidden"
+                                />
+                                <span className={`text-[0.9rem] font-medium transition-colors ${isPublished ? 'text-emerald-500' : 'text-text-muted'}`}>
+                                    {isPublished ? 'Nashr qilindi' : 'Qoralama'}
+                                </span>
+                            </label>
+                        </div>
+
+                        {/* Summary — full width */}
+                        <div className="md:col-span-2 flex flex-col gap-1.5 min-w-0">
+                            <label className={labelClass}>
+                                <span className="flex items-center gap-1.5"><AlignLeft size={13} /> Qisqacha mazmun</span>
+                            </label>
+                            <textarea
+                                value={summary}
+                                onChange={(e) => setSummary(e.target.value)}
+                                className={`${inputClass} resize-none h-20`}
+                                placeholder="..."
+                            />
+                        </div>
+
+                        {/* Content — full width */}
+                        <div className="md:col-span-2 flex flex-col gap-1.5 min-w-0">
+                            <label className={labelClass}>
+                                To'liq matn <span className="text-rose-400">*</span>
+                            </label>
+                            <textarea
+                                value={content}
+                                onChange={(e) => setContent(e.target.value)}
+                                className={`${inputClass} resize-y min-h-[120px]`}
+                                placeholder="Yangilikning to'liq matni (Markdown ham qabul qilinadi)"
+                                required
+                            />
+                        </div>
+
+                        {/* Tags — full width */}
+                        <div className="md:col-span-2 flex flex-col gap-1.5 min-w-0">
+                            <label className={`${labelClass} flex items-center gap-1.5`}>
+                                <Tag size={13} /> Teglar
+                                <span className="font-normal text-text-muted/60 normal-case">(Vergul yoki Enter)</span>
+                            </label>
+                            <div className="w-full bg-surface/50 border border-border rounded-xl px-3 py-2 flex flex-wrap gap-2 focus-within:border-primary focus-within:shadow-[0_0_0_3px_rgba(99,102,241,0.1)] transition-all min-h-[42px]">
+                                {tags.map(tag => (
+                                    <span key={tag} className="flex items-center gap-1 bg-primary/10 text-primary border border-primary/20 px-2.5 py-0.5 rounded-full text-[0.8rem] font-semibold">
+                                        {tag}
+                                        <button type="button" onClick={() => removeTag(tag)} className="text-primary/50 hover:text-rose-400 transition-colors ml-0.5">
+                                            <X size={12} />
+                                        </button>
+                                    </span>
+                                ))}
+                                <input
+                                    type="text"
+                                    value={tagInput}
+                                    onChange={(e) => setTagInput(e.target.value)}
+                                    onKeyDown={handleAddTag}
+                                    placeholder={tags.length === 0 ? "Teg yozing..." : ""}
+                                    className="bg-transparent border-none outline-none text-text text-[0.9rem] flex-1 min-w-[100px] py-0.5 placeholder:text-text-muted/50"
+                                />
                             </div>
                         </div>
 
-                        {/* Image Upload Gallery */}
-                        <div>
-                            <div className="flex items-center justify-between mb-2">
-                                <label className="block text-sm font-medium text-white/70">
-                                    Rasmlar galereyasi
+                        {/* Image gallery — full width */}
+                        <div className="md:col-span-2 flex flex-col gap-2 min-w-0">
+                            <div className="flex items-center justify-between">
+                                <label className={`${labelClass} flex items-center gap-1.5`}>
+                                    <ImageIcon size={13} /> Rasmlar galereyasi
                                 </label>
-                                <span className="text-white/40 text-xs">{images.length} ta rasm yuklangan</span>
+                                <span className="text-[0.75rem] text-text-muted/60">{images.length} ta rasm yuklangan</span>
                             </div>
 
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                                 {images.map((imgUrl, idx) => (
-                                    <div key={idx} className="relative rounded-xl overflow-hidden group border border-white/10 aspect-video">
+                                    <div key={idx} className="relative rounded-xl overflow-hidden group border border-border aspect-square">
                                         <img
                                             src={imgUrl}
                                             alt={`Gallery ${idx + 1}`}
                                             className="w-full h-full object-cover"
                                         />
-                                        <div className="absolute inset-x-0 top-0 p-2 flex justify-end bg-linear-to-b from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                             <button
                                                 type="button"
                                                 onClick={() => removeImage(idx)}
-                                                className="bg-red-500/80 hover:bg-red-500 text-white p-1.5 rounded-lg backdrop-blur-sm transition-all"
-                                                title="Rasmni o'chirish"
+                                                className="w-8 h-8 bg-rose-500/90 hover:bg-rose-500 text-white rounded-full flex items-center justify-center transition-all"
                                             >
-                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                </svg>
+                                                <X size={14} />
                                             </button>
                                         </div>
                                         {idx === 0 && (
-                                            <div className="absolute bottom-2 left-2 bg-blue-500/90 backdrop-blur text-[0.65rem] font-bold px-2 py-0.5 rounded text-white shadow-sm">
-                                                Asosiy (Muqova)
+                                            <div className="absolute bottom-1 left-1 bg-primary/90 text-[0.6rem] font-bold px-1.5 py-0.5 rounded text-white">
+                                                Muqova
                                             </div>
                                         )}
                                     </div>
                                 ))}
 
-                                {/* Upload Button inside Grid */}
+                                {/* Upload slot */}
                                 <div
-                                    onClick={() => fileInputRef.current?.click()}
-                                    className="border-2 border-dashed border-white/20 rounded-xl flex flex-col items-center justify-center text-center hover:border-blue-500/50 hover:bg-blue-500/5 transition-all cursor-pointer group aspect-video"
+                                    onClick={() => !isUploading && fileInputRef.current?.click()}
+                                    className="border-2 border-dashed border-border rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all aspect-square group"
                                 >
                                     <input
                                         type="file"
@@ -236,99 +286,42 @@ export default function AdminNewsModal({
                                         multiple
                                     />
                                     {isUploading ? (
-                                        <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                                        <Loader2 size={22} className="text-primary animate-spin" />
                                     ) : (
                                         <>
-                                            <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                                                <svg className="w-5 h-5 text-white/50 group-hover:text-blue-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                                </svg>
+                                            <div className="w-8 h-8 rounded-full bg-surface-hover flex items-center justify-center mb-1 group-hover:bg-primary/10 transition-colors">
+                                                <ImageIcon size={16} className="text-text-muted group-hover:text-primary transition-colors" />
                                             </div>
-                                            <p className="text-white/60 text-[0.8rem] px-2">Rasm yuklash</p>
+                                            <p className="text-text-muted text-[0.7rem] text-center px-1">Rasm qo'sh</p>
                                         </>
                                     )}
                                 </div>
                             </div>
                         </div>
 
-                        {/* Summary */}
-                        <div>
-                            <label className="block text-sm font-medium text-white/70 mb-2">Qisqacha mazmuni</label>
-                            <textarea
-                                value={summary}
-                                onChange={(e) => setSummary(e.target.value)}
-                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-white/30 resize-none h-20"
-                                placeholder="..."
-                            />
-                        </div>
+                    </div>
 
-                        {/* Content */}
-                        <div>
-                            <label className="block text-sm font-medium text-white/70 mb-2">
-                                To'liq matn <span className="text-red-500">*</span>
-                            </label>
-                            <textarea
-                                value={content}
-                                onChange={(e) => setContent(e.target.value)}
-                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-white/30 resize-y min-h-[150px]"
-                                placeholder="Yangilikning to'liq matni (Markdown yozish matni ham maqsadga muvofiq)"
-                                required
-                            />
-                        </div>
-
-                        {/* Tags */}
-                        <div>
-                            <label className="block text-sm font-medium text-white/70 mb-2">Teglar (Vergul yoki Enter)</label>
-                            <div className="w-full bg-white/5 border border-white/10 rounded-xl p-2 flex flex-wrap gap-2 focus-within:ring-2 ring-blue-500 transition-all">
-                                {tags.map(tag => (
-                                    <span key={tag} className="flex items-center gap-1 bg-white/10 text-white px-3 py-1 rounded-full text-sm">
-                                        {tag}
-                                        <button type="button" onClick={() => removeTag(tag)} className="text-white/50 hover:text-red-400 transition-colors">
-                                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                            </svg>
-                                        </button>
-                                    </span>
-                                ))}
-                                <input
-                                    type="text"
-                                    value={tagInput}
-                                    onChange={(e) => setTagInput(e.target.value)}
-                                    onKeyDown={handleAddTag}
-                                    placeholder={tags.length === 0 ? "Teg yozing..." : ""}
-                                    className="bg-transparent border-none outline-none text-white text-sm flex-1 min-w-[120px] px-2 py-1 placeholder:text-white/30"
-                                />
-                            </div>
-                        </div>
-
-                    </form>
-                </div>
-
-                {/* Footer */}
-                <div className="border-t border-white/10 px-6 py-4 flex items-center justify-end gap-3 shrink-0 bg-white/2">
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="px-5 py-2.5 rounded-xl text-white/70 hover:text-white hover:bg-white/5 transition-all font-medium border border-transparent"
-                    >
-                        Bekor qilish
-                    </button>
-                    <button
-                        type="submit"
-                        form="news-form"
-                        disabled={isSubmitting || isUploading}
-                        className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg shadow-blue-500/20"
-                    >
-                        {isSubmitting ? (
-                            <>
-                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                Saqlanmoqda...
-                            </>
-                        ) : (
-                            editingNews ? "Yangilash" : "Saqlash"
-                        )}
-                    </button>
-                </div>
+                    {/* Footer */}
+                    <div className="flex justify-end gap-3 p-5 border-t border-border bg-white/3 rounded-b-2xl shrink-0">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            disabled={isSubmitting}
+                            className="px-5 py-2.5 rounded-xl border border-transparent font-semibold text-text hover:bg-surface-hover transition-colors text-[0.95rem] disabled:opacity-50"
+                        >
+                            Bekor qilish
+                        </button>
+                        <button
+                            type="submit"
+                            form="news-form"
+                            disabled={isSubmitting || isUploading || !title || !content}
+                            className="flex items-center gap-2 px-6 py-2.5 bg-primary text-white font-bold rounded-xl hover:bg-primary-hover transition-colors text-[0.95rem] shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : null}
+                            {editingNews ? "Yangilash" : "Saqlash"}
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     )

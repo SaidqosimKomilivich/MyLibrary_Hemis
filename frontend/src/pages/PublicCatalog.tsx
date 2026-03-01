@@ -160,7 +160,7 @@ const PublicCatalog = () => {
                                         onClick={handleBookClick}
                                         className="group bg-surface border border-border/50 rounded-2xl overflow-hidden hover:border-emerald-500/50 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-emerald-500/10 cursor-pointer flex flex-col"
                                     >
-                                        <div className="aspect-2/3 bg-slate-800/50 flex items-center justify-center border-b border-border/50 relative overflow-hidden shrink-0">
+                                        <div className="aspect-2/3 bg-surface-hover flex items-center justify-center border-b border-border/50 relative overflow-hidden shrink-0">
                                             {book.cover_image_url ? (
                                                 <img
                                                     src={book.cover_image_url}
@@ -220,8 +220,8 @@ const PublicCatalog = () => {
                                                     key={pageNum}
                                                     onClick={() => handlePageChange(pageNum)}
                                                     className={`w-9 h-9 rounded-lg border text-sm font-medium transition-colors ${pageQuery === pageNum
-                                                        ? 'bg-emerald-500 border-emerald-500 text-white'
-                                                        : 'border-border bg-surface hover:bg-border/50'
+                                                        ? 'bg-primary border-primary text-white'
+                                                        : 'border-border bg-surface hover:bg-surface-hover hover:text-text'
                                                         }`}
                                                 >
                                                     {pageNum}
@@ -242,7 +242,7 @@ const PublicCatalog = () => {
                         </>
                     ) : (
                         <div className="h-64 flex flex-col items-center justify-center text-center bg-surface/50 rounded-2xl border border-border/50 border-dashed">
-                            <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center text-text-muted mb-4">
+                            <div className="w-16 h-16 rounded-full bg-surface-hover flex items-center justify-center text-text-muted mb-4">
                                 <Search size={28} />
                             </div>
                             <h3 className="text-lg font-semibold mb-2">Kitob topilmadi</h3>

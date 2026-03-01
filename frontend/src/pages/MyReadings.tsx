@@ -148,7 +148,7 @@ export default function MyReadings() {
             {pdfBook && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-300 flex flex-col items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200" onClick={() => setPdfBook(null)}>
                     <div className="w-full h-full max-w-6xl max-h-[90vh] bg-surface/95 rounded-2xl overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-200 border border-border" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex justify-between items-center px-6 py-4 border-b border-border bg-slate-900/40">
+                        <div className="flex justify-between items-center px-6 py-4 border-b border-border bg-surface-hover">
                             <h3 className="m-0 text-[1.15rem] font-bold text-text truncate pr-4">{pdfBook.title}</h3>
                             <button onClick={() => setPdfBook(null)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 border border-border text-text-muted cursor-pointer transition-colors hover:bg-red-500/20 hover:text-red-400 shrink-0 hover:border-red-500/30">
                                 <X size={20} />
@@ -169,7 +169,7 @@ export default function MyReadings() {
             {audioBook && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-100 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setAudioBook(null)}>
                     <div className="w-full max-w-md bg-surface rounded-2xl overflow-hidden shadow-2xl border border-white/10 animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex justify-between items-start p-5 border-b border-white/10 bg-black/20">
+                        <div className="flex justify-between items-start p-5 border-b border-white/10 bg-surface-hover">
                             <div className="flex items-center gap-4">
                                 {audioBook.cover_image_url ? (
                                     <img src={audioBook.cover_image_url} alt={audioBook.title} className="w-16 h-16 rounded-xl object-cover shrink-0 border border-white/10 shadow-sm" />
@@ -185,7 +185,7 @@ export default function MyReadings() {
                                 <X size={20} />
                             </button>
                         </div>
-                        <div className="p-5 bg-black/10">
+                        <div className="p-5 bg-surface-hover/50">
                             <audio controls autoPlay src={audioBook.digital_file_url || ''} className="w-full h-10 outline-none rounded-lg custom-audio">
                                 Brauzeringiz audio elementini qo'llab-quvvatlamaydi.
                             </audio>

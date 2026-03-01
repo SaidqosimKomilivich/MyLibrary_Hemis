@@ -264,7 +264,7 @@ export default function TeacherBookSubmit() {
                                 <div className="flex flex-col gap-1.5 min-w-0">
                                     <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">Kitob nomi <span className="text-rose-400">*</span></label>
                                     <input
-                                        className="w-full bg-black/20 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
+                                        className="w-full bg-surface-hover border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
                                         placeholder="Masalan: O'tkan kunlar"
                                         value={form.title}
                                         onChange={e => handleChange('title', e.target.value)}
@@ -275,7 +275,7 @@ export default function TeacherBookSubmit() {
                                 <div className="flex flex-col gap-1.5 min-w-0">
                                     <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">Muallif <span className="text-rose-400">*</span></label>
                                     <input
-                                        className="w-full bg-black/20 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
+                                        className="w-full bg-surface-hover border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
                                         placeholder="Masalan: Abdulla Qodiriy"
                                         value={form.author}
                                         onChange={e => handleChange('author', e.target.value)}
@@ -286,7 +286,7 @@ export default function TeacherBookSubmit() {
                                 <div className="flex flex-col gap-1.5 min-w-0">
                                     <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">Nashriyot</label>
                                     <input
-                                        className="w-full bg-black/20 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
+                                        className="w-full bg-surface-hover border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
                                         placeholder="Nashriyot nomi"
                                         value={form.publisher}
                                         onChange={e => handleChange('publisher', e.target.value)}
@@ -303,7 +303,7 @@ export default function TeacherBookSubmit() {
                                             { value: '', label: 'Tanlang' },
                                             ...CATEGORIES.map(c => ({ value: c, label: c }))
                                         ]}
-                                        buttonClassName="w-full bg-black/20 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
+                                        buttonClassName="w-full bg-surface-hover border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
                                     />
                                 </div>
 
@@ -317,7 +317,7 @@ export default function TeacherBookSubmit() {
                                             { value: '', label: 'Tanlang' },
                                             ...LANGUAGES.map(l => ({ value: l, label: l }))
                                         ]}
-                                        buttonClassName="w-full bg-black/20 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
+                                        buttonClassName="w-full bg-surface-hover border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
                                     />
                                 </div>
 
@@ -326,7 +326,7 @@ export default function TeacherBookSubmit() {
                                     <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">Nashr yili</label>
                                     <input
                                         type="number"
-                                        className="w-full bg-black/20 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
+                                        className="w-full bg-surface-hover border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
                                         placeholder="2024"
                                         value={form.publication_date}
                                         onChange={e => handleChange('publication_date', e.target.value)}
@@ -338,7 +338,7 @@ export default function TeacherBookSubmit() {
                                     <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">Sahifalar soni</label>
                                     <input
                                         type="number"
-                                        className="w-full bg-black/20 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
+                                        className="w-full bg-surface-hover border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
                                         placeholder="Masalan: 320"
                                         value={form.page_count}
                                         onChange={e => handleChange('page_count', e.target.value)}
@@ -350,7 +350,7 @@ export default function TeacherBookSubmit() {
                                     <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">Nusxa soni</label>
                                     <input
                                         type="number" min="1"
-                                        className="w-full bg-black/20 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
+                                        className="w-full bg-surface-hover border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
                                         placeholder="1"
                                         value={form.total_quantity}
                                         onChange={e => handleChange('total_quantity', e.target.value)}
@@ -361,7 +361,7 @@ export default function TeacherBookSubmit() {
                                 <div className="md:col-span-2 flex flex-col gap-1.5 min-w-0">
                                     <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">Qisqacha tavsif (Annotatsiya)</label>
                                     <textarea
-                                        className="w-full bg-black/20 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)] resize-y min-h-[100px]"
+                                        className="w-full bg-surface-hover border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)] resize-y min-h-[100px]"
                                         placeholder="Kitob haqida ma'lumot qoldiring..."
                                         value={form.description}
                                         onChange={e => handleChange('description', e.target.value)}
@@ -420,7 +420,7 @@ export default function TeacherBookSubmit() {
                                     {/* Elektron fayl */}
                                     <div className="flex flex-col gap-2">
                                         <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">Elektron nusxasi (ixtiyoriy)</label>
-                                        <div className="bg-black/20 border border-border p-4 rounded-xl flex flex-col items-center justify-center gap-3 text-center min-h-[112px]">
+                                        <div className="bg-surface-hover border border-border p-4 rounded-xl flex flex-col items-center justify-center gap-3 text-center min-h-[112px]">
                                             <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".pdf,.epub,.doc,.docx,.mp3,.m4a" className="hidden" />
 
                                             {form.digital_file_url ? (
@@ -598,18 +598,18 @@ export default function TeacherBookSubmit() {
 
             {/* PDF Viewer Modal */}
             {pdfBook && (
-                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-100 flex flex-col items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200" onClick={() => setPdfBook(null)}>
-                    <div className="w-full h-full max-w-6xl max-h-[90vh] bg-surface/95 rounded-2xl overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-200 border border-border" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex justify-between items-center px-6 py-4 border-b border-border bg-slate-900/40">
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-9999 flex flex-col animate-in fade-in duration-200" onClick={() => setPdfBook(null)}>
+                    <div className="w-full h-full flex flex-col" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex justify-between items-center px-6 py-3 border-b border-border bg-surface shrink-0">
                             <h3 className="m-0 text-[1.15rem] font-bold text-text truncate pr-4">{pdfBook.title}</h3>
-                            <button onClick={() => setPdfBook(null)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 border border-border text-text-muted cursor-pointer transition-colors hover:bg-red-500/20 hover:text-red-400 shrink-0 hover:border-red-500/30">
+                            <button onClick={() => setPdfBook(null)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-surface-hover border border-border text-text-muted cursor-pointer transition-colors hover:bg-red-500/20 hover:text-red-400 shrink-0 hover:border-red-500/30">
                                 <X size={20} />
                             </button>
                         </div>
-                        <div className="flex-1 w-full bg-white relative">
+                        <div className="flex-1 w-full relative">
                             <iframe
                                 src={pdfBook.digital_file_url || ''}
-                                className="absolute inset-0 w-full h-full border-none bg-white"
+                                className="absolute inset-0 w-full h-full border-none"
                                 title={pdfBook.title}
                             />
                         </div>

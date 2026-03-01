@@ -95,7 +95,7 @@ export function CustomSelect({
 
     const defaultBtnClass = buttonClassName
         ? buttonClassName
-        : 'w-full flex items-center justify-between text-left bg-slate-900/60 border border-white/10 py-3 px-4 rounded-xl text-text transition-all focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-400/15';
+        : 'w-full flex items-center justify-between text-left bg-surface-hover border border-border py-3 px-4 rounded-xl text-text transition-all focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/15';
     const cleanBtnClass = defaultBtnClass.replace('appearance-none', '').replace(/bg-\[url\([^\]]+\)\](.*?)bg-no-repeat/g, '');
 
     return (
@@ -134,14 +134,14 @@ export function CustomSelect({
                 <div
                     data-custom-select-dropdown
                     style={dropdownStyle}
-                    className="bg-slate-800 border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-in fade-in duration-150"
+                    className="bg-surface border border-border rounded-xl shadow-2xl overflow-hidden animate-in fade-in duration-150"
                 >
                     <div className="max-h-60 overflow-y-auto custom-scrollbar py-1.5">
                         {options.map((option) => (
                             <button
                                 key={option.value}
                                 type="button"
-                                className={`w-full flex items-center justify-between px-4 py-2.5 text-[0.95rem] text-left transition-colors ${String(value) === String(option.value) ? 'bg-indigo-500/20 text-indigo-400 font-medium' : 'text-slate-200 hover:bg-white/5 hover:text-white'}`}
+                                className={`w-full flex items-center justify-between px-4 py-2.5 text-[0.95rem] text-left transition-colors ${String(value) === String(option.value) ? 'bg-primary/20 text-primary font-medium' : 'text-text hover:bg-surface-hover hover:text-text'}`}
                                 onClick={() => {
                                     onChange(option.value);
                                     setIsOpen(false);
@@ -151,7 +151,7 @@ export function CustomSelect({
                                     {option.icon}
                                     <span className="truncate">{option.label}</span>
                                 </span>
-                                {String(value) === String(option.value) && <Check size={16} className="text-indigo-400 shrink-0 ml-3" />}
+                                {String(value) === String(option.value) && <Check size={16} className="text-primary shrink-0 ml-3" />}
                             </button>
                         ))}
                     </div>

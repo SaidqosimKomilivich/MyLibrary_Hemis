@@ -198,7 +198,7 @@ export default function ProfilePage() {
                             {displayRole}
                         </span>
                         {user.department_name && (
-                            <p className="m-0 text-[0.9rem] text-text-muted font-medium bg-white/5 border border-white/10 px-3 py-1 rounded-full">
+                            <p className="m-0 text-[0.9rem] text-text-muted font-medium bg-surface-hover border border-border px-3 py-1 rounded-full">
                                 {user.department_name}
                             </p>
                         )}
@@ -209,7 +209,7 @@ export default function ProfilePage() {
             </div>
 
             {/* Tabs */}
-            <div className="flex w-full gap-2 p-1 bg-black/20 rounded-xl mb-6 overflow-x-auto no-scrollbar border border-white/5">
+            <div className="flex w-full gap-2 p-1 bg-surface-hover rounded-xl mb-6 overflow-x-auto no-scrollbar border border-border">
                 <button
                     className={`flex-1 w-full flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-[0.95rem] font-medium transition-all whitespace-nowrap cursor-pointer border-none outline-none ${activeTab === 'info' ? 'bg-primary text-white shadow-md' : 'bg-transparent text-text-muted hover:text-text hover:bg-white/5'}`}
                     onClick={() => setActiveTab('info')}
@@ -239,8 +239,8 @@ export default function ProfilePage() {
                 {activeTab === 'info' && (
                     <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4">
                         {infoItems.map((item, i) => (
-                            <div className="bg-surface p-5 rounded-xl border border-border flex items-start gap-4 transition-transform hover:-translate-y-1 hover:shadow-lg hover:border-primary/30 group" key={i}>
-                                <div className="w-10 h-10 rounded-lg bg-black/20 flex items-center justify-center text-primary group-hover:scale-110 group-hover:bg-primary/20 transition-all shrink-0">
+                            <div key={i} className="bg-surface p-5 rounded-xl border border-border flex items-start gap-4 transition-transform hover:-translate-y-1 hover:shadow-lg hover:border-primary/30 group">
+                                <div className="w-10 h-10 rounded-lg bg-surface-hover border border-border flex items-center justify-center text-primary group-hover:scale-110 group-hover:bg-primary/20 transition-all shrink-0">
                                     {item.icon}
                                 </div>
                                 <div className="min-w-0">
@@ -271,7 +271,7 @@ export default function ProfilePage() {
                                 <div className="relative flex items-center">
                                     <input
                                         type={showOld ? 'text' : 'password'}
-                                        className="w-full bg-black/20 border border-border text-text py-3 px-4 rounded-xl text-[1rem] outline-none transition-all pr-12 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.15)]"
+                                        className="w-full bg-surface-hover border border-border text-text py-3 px-4 rounded-xl text-[1rem] outline-none transition-all pr-12 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.15)]"
                                         placeholder="Joriy parolni kiriting"
                                         value={oldPassword}
                                         onChange={e => setOldPassword(e.target.value)}
@@ -292,7 +292,7 @@ export default function ProfilePage() {
                                 <div className="relative flex items-center">
                                     <input
                                         type={showNew ? 'text' : 'password'}
-                                        className="w-full bg-black/20 border border-border text-text py-3 px-4 rounded-xl text-[1rem] outline-none transition-all pr-12 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.15)]"
+                                        className="w-full bg-surface-hover border border-border text-text py-3 px-4 rounded-xl text-[1rem] outline-none transition-all pr-12 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.15)]"
                                         placeholder="Yangi parolni kiriting"
                                         value={newPassword}
                                         onChange={e => setNewPassword(e.target.value)}
@@ -313,7 +313,7 @@ export default function ProfilePage() {
                                 <div className="relative flex items-center">
                                     <input
                                         type={showConfirm ? 'text' : 'password'}
-                                        className="w-full bg-black/20 border text-text py-3 px-4 rounded-xl text-[1rem] outline-none transition-all pr-12 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.15)] border-border"
+                                        className="w-full bg-surface-hover border text-text py-3 px-4 rounded-xl text-[1rem] outline-none transition-all pr-12 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.15)] border-border"
                                         style={{ borderColor: confirmPassword && newPassword !== confirmPassword ? '#ef4444' : undefined, boxShadow: confirmPassword && newPassword !== confirmPassword ? '0 0 0 3px rgba(239,68,68,0.15)' : undefined }}
                                         placeholder="Yangi parolni qayta kiriting"
                                         value={confirmPassword}

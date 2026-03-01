@@ -102,10 +102,8 @@ export default function EmployeeRequestsPage() {
                     <Search size={22} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
                     <input
                         type="text"
-                        placeholder="Foydalanuvchi ismi yoki kitob qidirish..."
-                        value={search}
-                        onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                        className="w-full bg-slate-900/60 border border-white/10 py-4 pr-5 pl-12 rounded-xl text-text text-[1.05rem] transition-all focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-400/15"
+                        placeholder="Murojaat id orqali qidirish..."
+                        className="w-full bg-surface-hover border border-border py-4 pr-5 pl-12 rounded-xl text-text text-[1.05rem] transition-all focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-400/15"
                     />
                 </div>
                 <CustomSelect
@@ -118,7 +116,7 @@ export default function EmployeeRequestsPage() {
                         { value: 'ready', label: 'Tayyor (Tasdiqlangan)' },
                         { value: 'rejected', label: 'Rad etilgan' }
                     ]}
-                    buttonClassName="w-full md:w-auto bg-slate-900/60 border border-white/10 py-4 px-5 rounded-xl text-text text-[1.05rem] transition-all focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-400/15 shrink-0"
+                    buttonClassName="w-full md:w-auto bg-surface-hover border border-border py-4 px-5 rounded-xl text-text text-[1.05rem] transition-all focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-400/15 shrink-0"
                 />
             </div>
 
@@ -127,7 +125,7 @@ export default function EmployeeRequestsPage() {
                     <Loader2 size={48} className="text-blue-400 opacity-80 animate-spin" />
                 </div>
             ) : requests.length === 0 ? (
-                <div className="text-center py-24 text-text-muted bg-slate-800/30 rounded-3xl border border-dashed border-white/10">
+                <div className="text-center py-24 text-text-muted bg-surface/50 rounded-3xl border border-dashed border-border">
                     <BookOpen size={64} className="opacity-20 mx-auto mb-5 text-current" />
                     <h2 className="text-text m-0 mb-2">Hech narsa topilmadi</h2>
                     <p className="m-0">So'rovlar ro'yxati bo'sh yoki qidiruvga mos natija yo'q.</p>
@@ -137,7 +135,7 @@ export default function EmployeeRequestsPage() {
                     {requests.map((req) => {
                         const style = getStatusStyle(req.status);
                         return (
-                            <div key={req.id} className="bg-linear-to-br from-slate-800/60 to-slate-900/60 border border-white/5 rounded-3xl p-6 transition-all duration-300 relative flex flex-col shadow-lg hover:-translate-y-1 hover:border-blue-400/30 hover:shadow-blue-500/20 hover:shadow-2xl group">
+                            <div key={req.id} className="bg-surface border border-border rounded-3xl p-6 transition-all duration-300 relative flex flex-col shadow-lg hover:-translate-y-1 hover:border-blue-400/30 hover:shadow-blue-500/20 hover:shadow-2xl group">
                                 <div className="flex items-start justify-between gap-4 mb-6">
                                     <div className="flex items-center gap-4 min-w-0">
                                         <div className="w-12 h-12 rounded-2xl bg-linear-to-br from-blue-500 to-purple-500 flex shrink-0 items-center justify-center font-bold text-white text-lg shadow-lg shadow-blue-500/40">
@@ -157,8 +155,8 @@ export default function EmployeeRequestsPage() {
                                     </div>
                                 </div>
 
-                                <div className="bg-black/25 border border-white/5 rounded-2xl p-5 mb-6 flex-1">
-                                    <h4 className="text-[1.2rem] font-bold text-white m-0 mb-3 flex items-start gap-2.5 leading-snug">
+                                <div className="bg-surface-hover/50 border border-border rounded-2xl p-5 mb-6 flex-1">
+                                    <h4 className="text-[1.2rem] font-bold text-text m-0 mb-3 flex items-start gap-2.5 leading-snug">
                                         <BookOpen size={20} className="text-blue-400 shrink-0 mt-0.5" />
                                         {req.book_title}
                                     </h4>
@@ -167,7 +165,7 @@ export default function EmployeeRequestsPage() {
                                     </span>
                                 </div>
 
-                                <div className="flex justify-between items-center pt-4 border-t border-dashed border-white/10">
+                                <div className="flex justify-between items-center pt-4 border-t border-dashed border-border">
                                     <button className="w-full flex items-center justify-center gap-2 bg-blue-500 text-white border-none py-3 px-6 rounded-xl font-semibold text-[0.95rem] cursor-pointer transition-all shadow-[0_8px_20px_-6px_rgba(59,130,246,0.5)] hover:bg-blue-600 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_-8px_rgba(59,130,246,0.6)]" onClick={() => handleActionClick(req)}>
                                         Amal bajarish
                                     </button>
@@ -183,7 +181,7 @@ export default function EmployeeRequestsPage() {
                     <button
                         onClick={() => setPage(p => Math.max(1, p - 1))}
                         disabled={page === 1}
-                        className="flex items-center gap-2 bg-white/5 border border-white/10 px-5 py-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-white hover:bg-white/10 disabled:hover:bg-white/5"
+                        className="flex items-center gap-2 bg-surface-hover border border-border px-5 py-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-text hover:bg-surface disabled:hover:bg-surface-hover"
                     >
                         <ChevronLeft size={18} /> Oldingi
                     </button>
@@ -203,10 +201,10 @@ export default function EmployeeRequestsPage() {
             {/* Action Modal */}
             {modalOpen && selectedRequest && createPortal(
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-9999 animate-in fade-in duration-200 p-4" onClick={() => !isUpdating && setModalOpen(false)}>
-                    <div className="bg-linear-to-br from-slate-800 to-slate-900 border border-white/10 rounded-3xl w-full max-w-[550px] shadow-2xl animate-in fade-in zoom-in-95 duration-200 overflow-hidden relative" onClick={(e) => e.stopPropagation()}>
-                        <div className="bg-black/20 px-8 py-6 border-b border-white/5 flex justify-between items-center">
+                    <div className="bg-surface border border-border rounded-3xl w-full max-w-[550px] shadow-2xl animate-in fade-in zoom-in-95 duration-200 overflow-hidden relative" onClick={(e) => e.stopPropagation()}>
+                        <div className="bg-surface-hover/50 px-8 py-6 border-b border-border flex justify-between items-center">
                             <div>
-                                <h2 className="m-0 mb-1 text-[1.4rem] text-white font-bold">So'rov tartibi</h2>
+                                <h2 className="m-0 mb-1 text-[1.4rem] text-text font-bold">So'rov tartibi</h2>
                                 <p className="m-0 text-text-muted text-[0.9rem]">Foydalanuvchiga kerakli javobni taqdim eting</p>
                             </div>
                             <button onClick={() => !isUpdating && setModalOpen(false)} className="bg-white/10 border-none text-white w-9 h-9 rounded-full flex items-center justify-center cursor-pointer transition-colors hover:bg-white/20">
@@ -221,11 +219,11 @@ export default function EmployeeRequestsPage() {
                                         {getInitials(selectedRequest.user_name)}
                                     </div>
                                     <div>
-                                        <div className="text-white font-semibold">{selectedRequest.user_name}</div>
+                                        <div className="text-text font-semibold">{selectedRequest.user_name}</div>
                                         <div className="text-text-muted text-[0.85rem]">{formatDate(selectedRequest.created_at)}</div>
                                     </div>
                                 </div>
-                                <div className="text-slate-200 text-[0.95rem] leading-normal bg-black/20 p-3 rounded-lg">
+                                <div className="text-text text-[0.95rem] leading-normal bg-surface-hover p-3 rounded-lg">
                                     <span className="text-blue-400 font-semibold">So'ralgan kitob:</span> {selectedRequest.book_title} <br />
                                     <span className="text-purple-400 font-semibold">So'rov turi:</span> {selectedRequest.request_type === 'physical' ? 'Asl nusxa' : 'Elektron variant'}
                                 </div>
@@ -245,12 +243,12 @@ export default function EmployeeRequestsPage() {
                                         { value: 'ready', label: 'Tasdiqlash & Tayyor' },
                                         { value: 'rejected', label: 'Rad etish' }
                                     ]}
-                                    buttonClassName="w-full bg-black/30 border border-white/10 py-4 px-5 rounded-xl text-text text-[1.05rem] transition-all focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-400/15"
+                                    buttonClassName="w-full bg-surface-hover border border-border py-4 px-5 rounded-xl text-text text-[1.05rem] transition-all focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-400/15"
                                 />
                             </div>
 
                             <div>
-                                <label className="flex items-center gap-2 mb-3 text-[0.95rem] text-slate-300 font-medium">
+                                <label className="flex items-center gap-2 mb-3 text-[0.95rem] text-text-muted font-medium">
                                     <MessageSquare size={18} className="text-purple-400" />
                                     Izoh qoldirish (Talaba buni ko'radi)
                                 </label>
@@ -259,16 +257,15 @@ export default function EmployeeRequestsPage() {
                                     onChange={(e) => setUpdateComment(e.target.value)}
                                     placeholder="Masalan: Kitobni kutubxonadan kelib olishingiz mumkin..."
                                     rows={4}
-                                    className="w-full p-4 rounded-2xl bg-black/30 border border-white/10 text-white outline-none text-[0.95rem] resize-y font-inherit transition-all focus:border-blue-400 focus:ring-4 focus:ring-blue-400/15"
+                                    className="w-full p-4 rounded-2xl bg-surface-hover border border-border text-text outline-none text-[0.95rem] resize-y font-inherit transition-all focus:border-blue-400 focus:ring-4 focus:ring-blue-400/15"
                                 />
                             </div>
                         </div>
 
-                        <div className="bg-black/20 px-8 py-5 border-t border-white/5 flex justify-end gap-4">
+                        <div className="bg-surface-hover/50 px-8 py-5 border-t border-border flex justify-end gap-4">
                             <button
-                                onClick={() => setModalOpen(false)}
                                 disabled={isUpdating}
-                                className="px-6 py-3 rounded-xl bg-transparent border border-white/10 text-white font-semibold cursor-pointer transition-all hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="px-6 py-3 rounded-xl bg-transparent border border-border text-text font-semibold cursor-pointer transition-all hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Bekor qilish
                             </button>

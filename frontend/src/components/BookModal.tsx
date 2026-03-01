@@ -218,13 +218,13 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
                         {/* Title */}
                         <div className="flex flex-col gap-1.5 min-w-0">
                             <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">Kitob nomi *</label>
-                            <input className="w-full bg-black/20 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]" required name="title" value={formData.title} onChange={handleChange} placeholder="Masalan: O'tkan kunlar" />
+                            <input className="w-full bg-surface/50 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]" required name="title" value={formData.title} onChange={handleChange} placeholder="Masalan: O'tkan kunlar" />
                         </div>
 
                         {/* Author */}
                         <div className="flex flex-col gap-1.5 min-w-0">
                             <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">Muallif *</label>
-                            <input className="w-full bg-black/20 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]" required name="author" value={formData.author} onChange={handleChange} placeholder="Masalan: Abdulla Qodiriy" />
+                            <input className="w-full bg-surface/50 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]" required name="author" value={formData.author} onChange={handleChange} placeholder="Masalan: Abdulla Qodiriy" />
                         </div>
 
                         {/* Category */}
@@ -242,7 +242,7 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
                                     { value: 'Tarixiy', label: 'Tarixiy' },
                                     { value: 'Texnologiya', label: 'Texnologiya' }
                                 ]}
-                                buttonClassName="w-full bg-black/20 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
+                                buttonClassName="w-full bg-surface/50 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
                             />
                         </div>
 
@@ -257,32 +257,32 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
                                     { value: 'pdf', label: 'PDF' },
                                     { value: 'audio', label: 'Audio' }
                                 ]}
-                                buttonClassName="w-full bg-black/20 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
+                                buttonClassName="w-full bg-surface/50 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
                             />
                         </div>
 
                         {/* ISBN */}
                         <div className="flex flex-col gap-1.5 min-w-0">
                             <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">ISBN</label>
-                            <input className="w-full bg-black/20 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]" name="isbn_13" value={formData.isbn_13} onChange={handleChange} maxLength={13} placeholder="9781234567890" />
+                            <input className="w-full bg-surface/50 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]" name="isbn_13" value={formData.isbn_13} onChange={handleChange} maxLength={13} placeholder="9781234567890" />
                         </div>
 
                         {/* Total quantity */}
                         <div className="flex flex-col gap-1.5 min-w-0">
                             <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">Umumiy soni</label>
-                            <input className="w-full bg-black/20 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]" type="number" min="1" name="total_quantity" value={formData.total_quantity} onChange={handleChange} />
+                            <input className="w-full bg-surface/50 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]" type="number" min="1" name="total_quantity" value={formData.total_quantity} onChange={handleChange} />
                         </div>
 
                         {/* Publisher */}
                         <div className="flex flex-col gap-1.5 min-w-0">
                             <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">Nashriyot</label>
-                            <input className="w-full bg-black/20 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]" name="publisher" value={formData.publisher} onChange={handleChange} />
+                            <input className="w-full bg-surface/50 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]" name="publisher" value={formData.publisher} onChange={handleChange} />
                         </div>
 
                         {/* Publication year */}
                         <div className="flex flex-col gap-1.5 min-w-0">
                             <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">Nashr yili</label>
-                            <input className="w-full bg-black/20 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]" type="number" name="publication_date" value={formData.publication_date} onChange={handleChange} />
+                            <input className="w-full bg-surface/50 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]" type="number" name="publication_date" value={formData.publication_date} onChange={handleChange} />
                         </div>
 
                         {/* Language */}
@@ -296,34 +296,34 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
                                     { value: 'ru', label: 'Rus' },
                                     { value: 'en', label: 'Ingliz' }
                                 ]}
-                                buttonClassName="w-full bg-black/20 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
+                                buttonClassName="w-full bg-surface/50 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
                             />
                         </div>
 
                         {/* Page count */}
                         <div className="flex flex-col gap-1.5 min-w-0">
                             <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">Sahifalar soni</label>
-                            <input className="w-full bg-black/20 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]" type="number" name="page_count" value={formData.page_count} onChange={handleChange} />
+                            <input className="w-full bg-surface/50 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]" type="number" name="page_count" value={formData.page_count} onChange={handleChange} />
                         </div>
 
                         {/* Shelf location */}
                         <div className="flex flex-col gap-1.5 min-w-0">
                             <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">Joylashuvi (Polka)</label>
-                            <input className="w-full bg-black/20 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]" name="shelf_location" value={formData.shelf_location} onChange={handleChange} placeholder="A-12" />
+                            <input className="w-full bg-surface/50 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]" name="shelf_location" value={formData.shelf_location} onChange={handleChange} placeholder="A-12" />
                         </div>
 
                         {/* Duration (audio only) */}
                         {formData.format === 'audio' && (
                             <div className="flex flex-col gap-1.5 min-w-0">
                                 <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">Davomiyligi (soniya)</label>
-                                <input className="w-full bg-black/20 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]" type="number" name="duration_seconds" value={formData.duration_seconds} onChange={handleChange} />
+                                <input className="w-full bg-surface/50 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]" type="number" name="duration_seconds" value={formData.duration_seconds} onChange={handleChange} />
                             </div>
                         )}
 
                         {/* Description - full width */}
                         <div className="flex flex-col gap-1.5 min-w-0 md:col-span-2">
                             <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">Tavsif</label>
-                            <textarea className="w-full bg-black/20 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)] resize-y min-h-[100px]" name="description" value={formData.description} onChange={handleChange} rows={3} />
+                            <textarea className="w-full bg-surface/50 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)] resize-y min-h-[100px]" name="description" value={formData.description} onChange={handleChange} rows={3} />
                         </div>
 
                         {/* File uploads */}
@@ -331,7 +331,7 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
                             {/* Cover image upload */}
                             <div className="flex-1 flex flex-col gap-2">
                                 <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">Muqova rasmi</label>
-                                <div className="border border-dashed border-border rounded-xl p-2 bg-black/10 transition-colors hover:border-text-muted/50 hover:bg-black/20 flex-1 flex flex-col items-center justify-center min-h-[140px] relative overflow-hidden">
+                                <div className="border border-dashed border-border rounded-xl p-2 bg-surface/50 transition-colors hover:border-border/80 flex-1 flex flex-col items-center justify-center min-h-[140px] relative overflow-hidden">
                                     {formData.cover_image_url ? (
                                         <div className="flex flex-col items-center justify-center gap-2 group w-full h-full relative">
                                             <img src={formData.cover_image_url} alt="Muqova" className="max-h-[110px] w-auto rounded object-cover shadow-sm bg-white" />
@@ -369,7 +369,7 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
                             {formData.format && (
                                 <div className="flex-1 flex flex-col gap-2">
                                     <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">{formData.format === 'pdf' ? 'PDF fayl' : 'Audio fayl'}</label>
-                                    <div className="border border-dashed border-border rounded-xl p-2 bg-black/10 transition-colors hover:border-text-muted/50 hover:bg-black/20 flex-1 flex flex-col items-center justify-center min-h-[140px] relative overflow-hidden">
+                                    <div className="border border-dashed border-border rounded-xl p-2 bg-surface/50 transition-colors hover:border-border/80 flex-1 flex flex-col items-center justify-center min-h-[140px] relative overflow-hidden">
                                         {formData.digital_file_url ? (
                                             <div className="flex flex-col items-center justify-center gap-3 w-full h-full text-emerald-400">
                                                 <div className="w-12 h-12 bg-emerald-500/20 rounded-full flex items-center justify-center">
@@ -416,7 +416,7 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
                     </div>
 
                     {/* Actions */}
-                    <div className="flex justify-end gap-3 p-5 border-t border-border bg-black/20 rounded-b-2xl mt-auto shrink-0">
+                    <div className="flex justify-end gap-3 p-5 border-t border-border bg-surface-hover rounded-b-2xl mt-auto shrink-0">
                         <button type="button" onClick={onClose} className="px-5 py-2.5 rounded-xl border border-white/10 bg-transparent text-text font-semibold cursor-pointer transition-colors hover:bg-white/5">
                             Bekor qilish
                         </button>

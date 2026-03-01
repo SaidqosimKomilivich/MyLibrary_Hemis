@@ -58,12 +58,12 @@ export default function PublicNewsPage() {
                         newsList.map((item, i) => (
                             <Link to={`/news/${item.slug}`} key={item.id || i} className="group bg-surface border border-border/50 rounded-3xl overflow-hidden hover:border-blue-500/50 transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-blue-500/10 flex flex-col h-full">
                                 {item.images && item.images.length > 0 ? (
-                                    <div className="aspect-video bg-slate-900/40 border-b border-border/50 overflow-hidden shrink-0 relative">
+                                    <div className="aspect-video bg-surface-hover border-b border-border/50 overflow-hidden shrink-0 relative">
                                         <img src={item.images[0]} alt={item.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-in-out" />
                                         <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                                     </div>
                                 ) : (
-                                    <div className="aspect-video bg-slate-900/40 border-b border-border/50 flex flex-col justify-center items-center shrink-0">
+                                    <div className="aspect-video bg-surface-hover border-b border-border/50 flex flex-col justify-center items-center shrink-0">
                                         <Megaphone size={48} className="text-blue-500/20 mb-3 group-hover:scale-110 transition-transform duration-500" />
                                         <span className="text-blue-500/30 font-bold tracking-widest text-xs uppercase">{item.category || "E'lon"}</span>
                                     </div>

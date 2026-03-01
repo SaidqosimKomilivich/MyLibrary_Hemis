@@ -80,31 +80,31 @@ export default function ReportsPage() {
                 </div>
             </div> */}
 
-            <div className="bg-slate-800/40 border border-white/5 rounded-[20px] p-6 mb-8 flex items-center gap-6 flex-wrap">
-                <div className="flex items-center gap-3 text-slate-100 font-semibold text-[1.1rem] mr-auto">
+            <div className="bg-surface border border-border rounded-[20px] p-6 mb-8 flex items-center gap-6 flex-wrap">
+                <div className="flex items-center gap-3 text-text font-semibold text-[1.1rem] mr-auto">
                     <Download size={22} className="text-blue-400" />
                     Ma'lumotlarni qazib olish
                 </div>
 
-                <div className="flex items-center gap-3 bg-black/20 py-2 px-4 rounded-xl border border-white/5">
+                <div className="flex items-center gap-3 bg-surface-hover/50 py-2 px-4 rounded-xl border border-border">
                     <CalendarIcon size={18} className="text-text-muted" />
                     <span className="text-text-muted text-[0.95rem]">dan:</span>
                     <input
                         type="date"
                         value={startDate}
                         onChange={e => setStartDate(e.target.value)}
-                        className="bg-transparent border-none text-white outline-none text-[0.95rem] [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-60 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                        className="bg-transparent border-none text-text outline-none text-[0.95rem] [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-60 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                     />
                 </div>
 
-                <div className="flex items-center gap-3 bg-black/20 py-2 px-4 rounded-xl border border-white/5">
+                <div className="flex items-center gap-3 bg-surface-hover/50 py-2 px-4 rounded-xl border border-border">
                     <CalendarIcon size={18} className="text-text-muted" />
                     <span className="text-text-muted text-[0.95rem]">gacha:</span>
                     <input
                         type="date"
                         value={endDate}
                         onChange={e => setEndDate(e.target.value)}
-                        className="bg-transparent border-none text-white outline-none text-[0.95rem] [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-60 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                        className="bg-transparent border-none text-text outline-none text-[0.95rem] [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-60 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                     />
                 </div>
 
@@ -145,21 +145,21 @@ export default function ReportsPage() {
             ) : dashboardData && (
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
                     {/* Keldi Ketdi */}
-                    <div className="bg-slate-800/40 border border-white/5 rounded-[20px] overflow-hidden">
-                        <div className="px-6 py-5 border-b border-white/5 flex items-center gap-3 bg-black/20">
+                    <div className="bg-surface border border-border rounded-[20px] overflow-hidden">
+                        <div className="px-6 py-5 border-b border-border flex items-center gap-3 bg-surface-hover/50">
                             <ArrowRightLeft size={20} className="text-emerald-400" />
-                            <h3 className="m-0 text-white text-[1.15rem] font-semibold">Oxirgi 10 ta Keldi-Ketdi</h3>
+                            <h3 className="m-0 text-text text-[1.15rem] font-semibold">Oxirgi 10 ta Keldi-Ketdi</h3>
                         </div>
                         <div>
                             {dashboardData.recent_controls.length === 0 ? (
                                 <div className="p-10 text-center text-text-muted">Ma'lumot yo'q</div>
                             ) : dashboardData.recent_controls.map(item => (
-                                <div key={item.id} className="px-6 py-4 border-b border-dashed border-white/5 flex items-center gap-4 last:border-b-0">
-                                    <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-emerald-500 shrink-0">
+                                <div key={item.id} className="px-6 py-4 border-b border-dashed border-border flex items-center gap-4 last:border-b-0">
+                                    <div className="w-10 h-10 rounded-xl bg-surface-hover border border-border flex items-center justify-center text-emerald-500 shrink-0">
                                         <ArrowRightLeft size={20} />
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <p className="m-0 mb-1 text-slate-50 font-semibold text-[0.95rem] truncate">
+                                        <p className="m-0 mb-1 text-text font-semibold text-[0.95rem] truncate">
                                             {item.full_name || 'Noma\'lum'}
                                             <span className="font-normal text-text-muted ml-2">
                                                 ({item.role === 'student' ? 'Talaba' : item.role === 'staff' ? 'Xodim (Kutubxonachi)' : item.role === 'employee' ? 'Xodim' : item.role === 'teacher' ? 'O\'qituvchi' : item.role})
@@ -181,22 +181,22 @@ export default function ReportsPage() {
                     </div>
 
                     {/* Ijaralar */}
-                    <div className="bg-slate-800/40 border border-white/5 rounded-[20px] overflow-hidden">
-                        <div className="px-6 py-5 border-b border-white/5 flex items-center gap-3 bg-black/20">
+                    <div className="bg-surface border border-border rounded-[20px] overflow-hidden">
+                        <div className="px-6 py-5 border-b border-border flex items-center gap-3 bg-surface-hover/50">
                             <BookOpen size={20} className="text-blue-400" />
-                            <h3 className="m-0 text-white text-[1.15rem] font-semibold">Oxirgi 10 ta Ijara</h3>
+                            <h3 className="m-0 text-text text-[1.15rem] font-semibold">Oxirgi 10 ta Ijara</h3>
                         </div>
                         <div>
                             {dashboardData.recent_rentals.length === 0 ? (
                                 <div className="p-10 text-center text-text-muted">Ma'lumot yo'q</div>
                             ) : dashboardData.recent_rentals.map(item => (
-                                <div key={item.id} className="px-6 py-4 border-b border-dashed border-white/5 flex items-center gap-4 last:border-b-0">
-                                    <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-blue-500 shrink-0">
+                                <div key={item.id} className="px-6 py-4 border-b border-dashed border-border flex items-center gap-4 last:border-b-0">
+                                    <div className="w-10 h-10 rounded-xl bg-surface-hover border border-border flex items-center justify-center text-blue-500 shrink-0">
                                         <BookOpen size={20} />
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <p className="m-0 mb-1 text-slate-50 font-semibold text-[0.95rem] truncate">{item.book_title}</p>
-                                        <p className="m-0 mb-1 text-slate-200 text-[0.85rem] truncate">
+                                        <p className="m-0 mb-1 text-text font-semibold text-[0.95rem] truncate">{item.book_title}</p>
+                                        <p className="m-0 mb-1 text-text-muted text-[0.85rem] truncate">
                                             {item.user_full_name || 'Noma\'lum'}
                                             <span className="font-normal text-text-muted ml-1.5">
                                                 ({item.role === 'student' ? 'Talaba' : item.role === 'staff' ? 'Xodim (Kutubxonachi)' : item.role === 'employee' ? 'Xodim' : item.role === 'teacher' ? 'O\'qituvchi' : item.role})

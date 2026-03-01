@@ -159,7 +159,7 @@ export default function PendingBooksPage() {
 
             {/* Tabs and Filter */}
             <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
-                <div className="flex gap-1 p-1 bg-white/5 rounded-xl w-fit border border-border flex-wrap">
+                <div className="flex gap-1 p-1 bg-surface-hover rounded-xl w-fit border border-border flex-wrap">
                     <button
                         onClick={() => { setTab('pending'); setSearchTerm(''); }}
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'pending' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'text-text-muted hover:text-text'}`}
@@ -186,7 +186,7 @@ export default function PendingBooksPage() {
                     <input
                         type="text"
                         placeholder="Kitob yoki muallifni qidirish..."
-                        className="w-full bg-white/5 border border-border rounded-xl pl-4 pr-10 py-2.5 text-sm text-text outline-none focus:border-primary transition-colors placeholder:text-text-muted/50"
+                        className="w-full bg-surface-hover border border-border rounded-xl pl-4 pr-10 py-2.5 text-sm text-text outline-none focus:border-primary transition-colors placeholder:text-text-muted/50"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -211,7 +211,7 @@ export default function PendingBooksPage() {
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead>
-                                <tr className="border-b border-border bg-white/3">
+                                <tr className="border-b border-border bg-surface-hover/50">
                                     <th className="text-left p-4 font-semibold text-text-muted text-xs uppercase tracking-wider">Kitob</th>
                                     <th className="text-left p-4 font-semibold text-text-muted text-xs uppercase tracking-wider">Muallif</th>
                                     <th className="text-left p-4 font-semibold text-text-muted text-xs uppercase tracking-wider hidden md:table-cell">Kategoriya</th>
@@ -222,13 +222,13 @@ export default function PendingBooksPage() {
                             </thead>
                             <tbody className="divide-y divide-border">
                                 {displayBooks.map(book => (
-                                    <tr key={book.id} className="hover:bg-white/3 transition-colors">
+                                    <tr key={book.id} className="hover:bg-surface-hover/50 transition-colors">
                                         <td className="p-4">
                                             <div className="flex items-center gap-3">
                                                 {book.cover_image_url ? (
                                                     <img src={book.cover_image_url} alt="" className="w-9 h-12 object-cover rounded-lg border border-border shrink-0" />
                                                 ) : (
-                                                    <div className="w-9 h-12 bg-white/5 border border-border rounded-lg flex items-center justify-center shrink-0">
+                                                    <div className="w-9 h-12 bg-surface-hover border border-border rounded-lg flex items-center justify-center shrink-0">
                                                         <BookOpen size={14} className="text-text-muted" />
                                                     </div>
                                                 )}
@@ -320,7 +320,7 @@ export default function PendingBooksPage() {
                             {detailBook.cover_image_url ? (
                                 <img src={detailBook.cover_image_url} alt="" className="w-24 h-32 object-cover rounded-xl border border-border shrink-0" />
                             ) : (
-                                <div className="w-24 h-32 bg-white/5 border border-border rounded-xl flex items-center justify-center shrink-0">
+                                <div className="w-24 h-32 bg-surface-hover border border-border rounded-xl flex items-center justify-center shrink-0">
                                     <BookOpen size={24} className="text-text-muted" />
                                 </div>
                             )}
@@ -349,7 +349,7 @@ export default function PendingBooksPage() {
                                     <ExternalLink size={13} /> Faylni ochish
                                 </button>
                                 <a href={detailBook.digital_file_url} download
-                                    className="flex items-center gap-2 px-4 py-2 bg-white/5 text-text-muted border border-border rounded-xl text-xs font-semibold hover:bg-white/10 transition-colors">
+                                    className="flex items-center gap-2 px-4 py-2 bg-surface-hover text-text-muted border border-border rounded-xl text-xs font-semibold hover:bg-white/10 transition-colors">
                                     <Download size={13} /> Yuklab olish
                                 </a>
                             </div>
@@ -411,11 +411,11 @@ export default function PendingBooksPage() {
                             {/* Body */}
                             <div className="p-5 flex flex-col gap-4">
                                 {/* Book preview mini */}
-                                <div className="flex items-center gap-3 p-3 bg-white/3 rounded-xl border border-border">
+                                <div className="flex items-center gap-3 p-3 bg-surface-hover rounded-xl border border-border">
                                     {confirm.book.cover_image_url ? (
                                         <img src={confirm.book.cover_image_url} alt="" className="w-10 h-14 object-cover rounded-lg border border-border shrink-0" />
                                     ) : (
-                                        <div className="w-10 h-14 bg-white/5 border border-border rounded-lg flex items-center justify-center shrink-0">
+                                        <div className="w-10 h-14 bg-surface-hover border border-border rounded-lg flex items-center justify-center shrink-0">
                                             <BookOpen size={14} className="text-text-muted" />
                                         </div>
                                     )}
@@ -435,7 +435,7 @@ export default function PendingBooksPage() {
                                         Izoh <span className="text-text-muted/60 normal-case font-normal">(ixtiyoriy)</span>
                                     </label>
                                     <textarea
-                                        className="w-full bg-white/5 border border-border rounded-xl px-3 py-2.5 text-sm text-text outline-none focus:border-primary transition-colors resize-none placeholder:text-text-muted/50"
+                                        className="w-full bg-surface-hover border border-border rounded-xl px-3 py-2.5 text-sm text-text outline-none focus:border-primary transition-colors resize-none placeholder:text-text-muted/50"
                                         rows={3}
                                         placeholder={cfg.commentPlaceholder}
                                         value={confirm.comment}
@@ -449,7 +449,7 @@ export default function PendingBooksPage() {
                             <div className="flex items-center justify-end gap-3 p-5 border-t border-border">
                                 <button
                                     onClick={() => setConfirm(null)}
-                                    className="px-4 py-2.5 border border-border rounded-xl text-sm font-medium text-text-muted hover:bg-white/5 transition-colors"
+                                    className="px-4 py-2.5 border border-border rounded-xl text-sm font-medium text-text-muted hover:bg-surface-hover transition-colors"
                                 >
                                     Bekor qilish
                                 </button>
@@ -468,18 +468,18 @@ export default function PendingBooksPage() {
 
             {/* PDF Viewer Modal */}
             {pdfBook && (
-                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-100 flex flex-col items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200" onClick={() => setPdfBook(null)}>
-                    <div className="w-full h-full max-w-6xl max-h-[90vh] bg-surface/95 rounded-2xl overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-200 border border-border" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex justify-between items-center px-6 py-4 border-b border-border bg-slate-900/40">
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-9999 flex flex-col animate-in fade-in duration-200" onClick={() => setPdfBook(null)}>
+                    <div className="w-full h-full flex flex-col" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex justify-between items-center px-6 py-3 border-b border-border bg-surface shrink-0">
                             <h3 className="m-0 text-[1.15rem] font-bold text-text truncate pr-4">{pdfBook.title}</h3>
-                            <button onClick={() => setPdfBook(null)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 border border-border text-text-muted cursor-pointer transition-colors hover:bg-red-500/20 hover:text-red-400 shrink-0 hover:border-red-500/30">
+                            <button onClick={() => setPdfBook(null)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-surface-hover border border-border text-text-muted cursor-pointer transition-colors hover:bg-red-500/20 hover:text-red-400 shrink-0 hover:border-red-500/30">
                                 <X size={20} />
                             </button>
                         </div>
-                        <div className="flex-1 w-full bg-white relative">
+                        <div className="flex-1 w-full relative">
                             <iframe
                                 src={pdfBook.digital_file_url || ''}
-                                className="absolute inset-0 w-full h-full border-none bg-white"
+                                className="absolute inset-0 w-full h-full border-none"
                                 title={pdfBook.title}
                             />
                         </div>

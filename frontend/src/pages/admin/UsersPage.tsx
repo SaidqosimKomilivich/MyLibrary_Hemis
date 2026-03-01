@@ -45,7 +45,7 @@ function SyncSection({ title, icon, color, count, progress, onSync, syncResult }
                 <button
                     className={`flex items-center gap-1.5 py-2 px-4 border rounded-lg font-semibold text-[0.82rem] transition-colors ${isDone ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400' :
                         isActive ? 'bg-indigo-500/10 border-indigo-500 text-indigo-400 cursor-wait' :
-                            'bg-white/5 border-border text-text hover:bg-indigo-500/15 hover:border-indigo-500 hover:text-indigo-400'
+                            'bg-surface-hover border-border text-text hover:bg-indigo-500/15 hover:border-indigo-500 hover:text-indigo-400'
                         }`}
                     onClick={onSync}
                     disabled={isActive}
@@ -81,7 +81,7 @@ function SyncSection({ title, icon, color, count, progress, onSync, syncResult }
                             {progress}%
                         </span>
                     </div>
-                    <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+                    <div className="h-1.5 rounded-full bg-surface-hover overflow-hidden">
                         <div
                             className={`h-full rounded-full transition-[width] duration-300 ${isDone ? 'bg-linear-to-r from-emerald-500 to-emerald-400' : 'bg-linear-to-r from-primary to-primary-light'}`}
                             style={{ width: `${progress}%` }}
@@ -152,7 +152,7 @@ function UserDetailModal({ user, type, onClose }: { user: UserData; type: 'stude
                         <span className={`inline-flex items-center py-1.5 px-4 rounded-full text-[0.8rem] font-bold tracking-wide ${user.active ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.15)]' : 'bg-slate-500/20 text-slate-400 border border-slate-500/30'}`}>
                             {user.active ? 'Faol' : 'Nofaol'}
                         </span>
-                        <span className="inline-flex items-center py-1.5 px-4 rounded-full text-[0.8rem] font-bold bg-white/10 border border-white/20 text-text-muted shadow-sm">
+                        <span className="inline-flex items-center py-1.5 px-4 rounded-full text-[0.8rem] font-bold bg-surface-hover border border-border text-text-muted shadow-sm">
                             {type === 'student' ? '🎓 Talaba' : type === 'teacher' ? "👨‍🏫 O'qituvchi" : '💼 Xodim'}
                         </span>
                     </div>
@@ -161,8 +161,8 @@ function UserDetailModal({ user, type, onClose }: { user: UserData; type: 'stude
                 {/* Info rows */}
                 <div className="flex flex-col gap-1 p-5 pb-6">
                     {infoRows.map((row, i) => (
-                        <div key={i} className="flex items-center gap-3.5 py-2.5 px-3 rounded-xl transition-colors hover:bg-white/5 group">
-                            <div className="flex items-center justify-center w-9 h-9 shrink-0 rounded-xl bg-white/5 border border-border text-text-muted group-hover:text-indigo-400 group-hover:bg-indigo-500/10 group-hover:border-indigo-500/20 transition-colors">
+                        <div key={i} className="flex items-center gap-3.5 py-2.5 px-3 rounded-xl transition-colors hover:bg-surface-hover group">
+                            <div className="flex items-center justify-center w-9 h-9 shrink-0 rounded-xl bg-surface-hover border border-border text-text-muted group-hover:text-indigo-400 group-hover:bg-indigo-500/10 group-hover:border-indigo-500/20 transition-colors">
                                 {row.icon}
                             </div>
                             <div className="flex flex-col min-w-0">
@@ -535,11 +535,11 @@ export default function UsersPage() {
             <table className="w-full border-collapse">
                 <thead>
                     <tr>
-                        <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-slate-900/40 border-b border-border">#</th>
-                        <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-slate-900/40 border-b border-border">Ism</th>
-                        {columns.map((col, i) => <th key={i} className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-slate-900/40 border-b border-border">{col.header}</th>)}
-                        <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-slate-900/40 border-b border-border">Holat</th>
-                        <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-slate-900/40 border-b border-border">Amallar</th>
+                        <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-surface-hover/50 border-b border-border">#</th>
+                        <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-surface-hover/50 border-b border-border">Ism</th>
+                        {columns.map((col, i) => <th key={i} className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-surface-hover/50 border-b border-border">{col.header}</th>)}
+                        <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-surface-hover/50 border-b border-border">Holat</th>
+                        <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-surface-hover/50 border-b border-border">Amallar</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -607,13 +607,13 @@ export default function UsersPage() {
                     <Search size={18} className="absolute left-4 text-text-muted" />
                     <input
                         type="text"
-                        className="w-full bg-slate-900/50 border border-transparent focus:border-indigo-500/50 focus:bg-slate-900 rounded-xl py-2.5 pl-11 pr-10 text-[0.9rem] transition-all outline-none placeholder:text-text-muted/60"
+                        className="w-full bg-surface-hover border border-transparent focus:border-border focus:bg-surface rounded-xl py-2.5 pl-11 pr-10 text-[0.9rem] transition-all outline-none placeholder:text-text-muted/60"
                         placeholder="Ism, guruh, kafedra yoki lavozim bo'yicha qidirish..."
                         value={search[activeTab]}
                         onChange={(e) => setSearch(prev => ({ ...prev, [activeTab]: e.target.value }))}
                     />
                     {search[activeTab] && (
-                        <button className="absolute right-3 p-1 rounded-md text-text-muted hover:bg-white/10 hover:text-text transition-colors" onClick={() => setSearch(prev => ({ ...prev, [activeTab]: '' }))}>
+                        <button className="absolute right-3 p-1 rounded-md text-text-muted hover:bg-surface-hover hover:text-text transition-colors" onClick={() => setSearch(prev => ({ ...prev, [activeTab]: '' }))}>
                             <X size={16} />
                         </button>
                     )}
@@ -622,7 +622,7 @@ export default function UsersPage() {
                     <div className="flex items-center gap-2 text-text-muted">
                         <Filter size={15} />
                         <span className="text-[0.82rem] font-medium whitespace-nowrap">Holat:</span>
-                        <div className="flex gap-1 p-1 bg-slate-900 rounded-xl border border-border">
+                        <div className="flex gap-1 p-1 bg-surface-hover/50 rounded-xl border border-border">
                             {[
                                 { value: 'all', label: 'Hammasi' },
                                 { value: 'active', label: 'Faol' },
@@ -630,7 +630,7 @@ export default function UsersPage() {
                             ].map(opt => (
                                 <button
                                     key={opt.value}
-                                    className={`py-1.5 px-3 rounded-lg text-[0.8rem] font-medium transition-all ${statusFilter[activeTab] === opt.value ? 'bg-indigo-500/20 text-indigo-400 shadow-sm' : 'text-text-muted hover:text-text hover:bg-white/5'}`}
+                                    className={`py-1.5 px-3 rounded-lg text-[0.8rem] font-medium transition-all ${statusFilter[activeTab] === opt.value ? 'bg-indigo-500/20 text-indigo-400 shadow-sm' : 'text-text-muted hover:text-text hover:bg-surface-hover'}`}
                                     onClick={() => setStatusFilter(prev => ({ ...prev, [activeTab]: opt.value }))}
                                 >
                                     {opt.label}
@@ -646,7 +646,7 @@ export default function UsersPage() {
                 {tabs.map(tab => (
                     <button
                         key={tab.key}
-                        className={`flex flex-1 justify-center items-center gap-2.5 py-2.5 px-5 rounded-xl font-semibold text-[0.9rem] whitespace-nowrap transition-all border ${activeTab === tab.key ? 'bg-indigo-500 text-white border-transparent shadow-[0_4px_12px_rgba(99,102,241,0.25)]' : 'bg-surface border-border text-text-muted hover:border-indigo-500/30 hover:text-text hover:bg-slate-900/50'}`}
+                        className={`flex flex-1 justify-center items-center gap-2.5 py-2.5 px-5 rounded-xl font-semibold text-[0.9rem] whitespace-nowrap transition-all border ${activeTab === tab.key ? 'bg-indigo-500 text-white border-transparent shadow-[0_4px_12px_rgba(99,102,241,0.25)]' : 'bg-surface border-border text-text-muted hover:border-indigo-500/30 hover:text-text hover:bg-surface-hover'}`}
                         onClick={() => setActiveTab(tab.key)}
                     >
                         <span className={activeTab === tab.key ? 'text-white' : 'text-indigo-400'}>{tab.icon}</span>
@@ -663,7 +663,7 @@ export default function UsersPage() {
                 {activeTab === 'students' && renderUserTable(
                     students, loading.students, 'Talabalar', 'student',
                     [
-                        { header: 'Guruh', render: u => <span className="inline-flex py-1 px-3 bg-slate-900/60 border border-border rounded-lg text-[0.8rem] font-medium font-mono">{u.group_name || '-'}</span> },
+                        { header: 'Guruh', render: u => <span className="inline-flex py-1 px-3 bg-surface-hover border border-border rounded-lg text-[0.8rem] font-medium font-mono">{u.group_name || '-'}</span> },
                         { header: 'Fakultet', render: u => u.department_name || '-' },
                     ],
                     studentsPag,
@@ -753,7 +753,7 @@ export default function UsersPage() {
                             value={String(pag.perPage)}
                             onChange={(val) => handlePerPageChange(Number(val))}
                             options={PER_PAGE_OPTIONS.map(n => ({ value: String(n), label: String(n) }))}
-                            buttonClassName="py-1.5 pl-3 pr-2 w-[70px] bg-slate-900 border border-border rounded-lg text-[0.85rem] text-text font-medium outline-none focus:border-indigo-500"
+                            buttonClassName="py-1.5 pl-3 pr-2 w-[70px] bg-surface-hover border border-border rounded-lg text-[0.85rem] text-text font-medium outline-none focus:border-indigo-500"
                             dropUp
                         />
                     </div>
@@ -783,7 +783,7 @@ export default function UsersPage() {
                                     <p className="text-[0.82rem] text-text-muted mt-0.5">Foydalanuvchilarni HEMIS platformasidan yangilash</p>
                                 </div>
                             </div>
-                            <button className="flex items-center justify-center w-8 h-8 rounded-lg border-none bg-transparent text-text-muted hover:bg-white/10 hover:text-text transition-colors" onClick={() => setSyncModalOpen(false)}>
+                            <button className="flex items-center justify-center w-8 h-8 rounded-lg border-none bg-transparent text-text-muted hover:bg-surface-hover hover:text-text transition-colors" onClick={() => setSyncModalOpen(false)}>
                                 <X size={18} />
                             </button>
                         </div>

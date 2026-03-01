@@ -68,8 +68,8 @@ export default function NewsPage() {
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-white">Yangiliklar boshqaruvi</h1>
-                    <p className="text-white/60 text-sm mt-1">Platformadagi barcha e'lon va yangiliklar</p>
+                    <h1 className="text-2xl font-bold text-text">Yangiliklar boshqaruvi</h1>
+                    <p className="text-text-muted text-sm mt-1">Platformadagi barcha e'lon va yangiliklar</p>
                 </div>
                 <button
                     onClick={openAddModal}
@@ -82,11 +82,11 @@ export default function NewsPage() {
                 </button>
             </div>
 
-            <div className="bg-[#1a1b26] rounded-2xl border border-white/10 overflow-hidden shadow-xl">
+            <div className="bg-surface rounded-2xl border border-border overflow-hidden shadow-xl">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr className="bg-white/5 border-b border-white/10 text-white/50 text-sm">
+                            <tr className="bg-surface-hover/50 border-b border-border text-text-muted text-sm">
                                 <th className="px-6 py-4 font-medium">Sarlavha</th>
                                 <th className="px-6 py-4 font-medium">Rukn</th>
                                 <th className="px-6 py-4 font-medium">Holat</th>
@@ -94,41 +94,41 @@ export default function NewsPage() {
                                 <th className="px-6 py-4 font-medium text-right">Amallar</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-white/5">
+                        <tbody className="divide-y divide-border">
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-12 text-center text-white/50">
+                                    <td colSpan={5} className="px-6 py-12 text-center text-text-muted">
                                         Yuklanmoqda...
                                     </td>
                                 </tr>
                             ) : news.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-12 text-center text-white/50">
+                                    <td colSpan={5} className="px-6 py-12 text-center text-text-muted">
                                         Yangiliklar topilmadi
                                     </td>
                                 </tr>
                             ) : (
                                 news.map((item) => (
-                                    <tr key={item.id} className="hover:bg-white/2 transition-colors group">
+                                    <tr key={item.id} className="hover:bg-surface-hover/50 transition-colors group">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
                                                 {item.images && item.images.length > 0 ? (
                                                     <img src={item.images[0]} alt="" className="w-10 h-10 rounded object-cover shrink-0" />
                                                 ) : (
-                                                    <div className="w-10 h-10 rounded bg-white/5 flex items-center justify-center shrink-0">
-                                                        <svg className="w-5 h-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <div className="w-10 h-10 rounded bg-surface-hover border border-border flex items-center justify-center shrink-0">
+                                                        <svg className="w-5 h-5 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5L18.5 7H20a2 2 0 012 2v1m-2 13v-m0 0l-m0 0h.01M12 12h4.01M12 16h4.01M16 8h.01" />
                                                         </svg>
                                                     </div>
                                                 )}
                                                 <div>
-                                                    <div className="text-white font-medium line-clamp-1">{item.title}</div>
+                                                    <div className="text-text font-medium line-clamp-1">{item.title}</div>
                                                     <a href={`/news/${item.slug}`} target="_blank" rel="noreferrer" className="text-blue-400 hover:text-blue-300 text-xs mt-0.5 line-clamp-1">/{item.slug}</a>
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-white/5 text-white/70 border border-white/10">
+                                            <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-surface-hover text-text border border-border">
                                                 {item.category || 'Boshqa'}
                                             </span>
                                         </td>
@@ -144,7 +144,7 @@ export default function NewsPage() {
                                                 {item.is_published ? 'Nashr qilingan' : 'Qoralama'}
                                             </button>
                                         </td>
-                                        <td className="px-6 py-4 text-white/60 text-sm truncate">
+                                        <td className="px-6 py-4 text-text-muted text-sm truncate">
                                             {new Date(item.created_at).toLocaleDateString()}
                                         </td>
                                         <td className="px-6 py-4 text-right">
@@ -178,22 +178,22 @@ export default function NewsPage() {
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                    <div className="px-6 py-4 border-t border-white/10 flex items-center justify-between">
-                        <span className="text-sm text-white/50">
+                    <div className="px-6 py-4 border-t border-border flex items-center justify-between">
+                        <span className="text-sm text-text-muted">
                             Sahifa {page} / {totalPages}
                         </span>
                         <div className="flex gap-2">
                             <button
                                 onClick={() => setPage(p => Math.max(1, p - 1))}
                                 disabled={page === 1}
-                                className="px-3 py-1.5 rounded bg-white/5 text-white/70 hover:bg-white/10 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed text-sm transition-colors"
+                                className="px-3 py-1.5 rounded bg-surface-hover text-text-muted hover:bg-surface-hover/80 hover:text-text disabled:opacity-50 disabled:cursor-not-allowed text-sm transition-colors"
                             >
                                 Oldingi
                             </button>
                             <button
                                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                                 disabled={page === totalPages}
-                                className="px-3 py-1.5 rounded bg-white/5 text-white/70 hover:bg-white/10 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed text-sm transition-colors"
+                                className="px-3 py-1.5 rounded bg-surface-hover text-text-muted hover:bg-surface-hover/80 hover:text-text disabled:opacity-50 disabled:cursor-not-allowed text-sm transition-colors"
                             >
                                 Keyingi
                             </button>

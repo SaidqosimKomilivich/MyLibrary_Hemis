@@ -98,19 +98,19 @@ export default function EmployeeRentalsPage() {
     return (
         <div className="p-8 md:p-10 max-w-[1600px] mx-auto min-h-screen">
             <div className="flex w-full gap-3 mb-6 overflow-x-auto pb-3 hide-scrollbar">
-                <button className={`flex-1 w-full flex items-center justify-center px-4 py-3 rounded-xl border font-semibold text-[0.95rem] whitespace-nowrap transition-all ${filter === 'all' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400 shadow-[0_4px_12px_-4px_rgba(59,130,246,0.3)]' : 'bg-slate-800/50 border-white/5 text-text-muted hover:bg-slate-700/80 hover:text-slate-200'}`} onClick={() => setFilter('all')}>
+                <button className={`flex-1 w-full flex items-center justify-center px-4 py-3 rounded-xl border font-semibold text-[0.95rem] whitespace-nowrap transition-all ${filter === 'all' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400 shadow-[0_4px_12px_-4px_rgba(59,130,246,0.3)]' : 'bg-surface-hover/50 border-border text-text-muted hover:bg-surface-hover hover:text-text'}`} onClick={() => setFilter('all')}>
                     Barcha ijara qilinganlar
                 </button>
-                <button className={`flex-1 w-full flex items-center justify-center px-4 py-3 rounded-xl border font-semibold text-[0.95rem] whitespace-nowrap transition-all ${filter === 'active' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400 shadow-[0_4px_12px_-4px_rgba(59,130,246,0.3)]' : 'bg-slate-800/50 border-white/5 text-text-muted hover:bg-slate-700/80 hover:text-slate-200'}`} onClick={() => setFilter('active')}>
+                <button className={`flex-1 w-full flex items-center justify-center px-4 py-3 rounded-xl border font-semibold text-[0.95rem] whitespace-nowrap transition-all ${filter === 'active' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400 shadow-[0_4px_12px_-4px_rgba(59,130,246,0.3)]' : 'bg-surface-hover/50 border-border text-text-muted hover:bg-surface-hover hover:text-text'}`} onClick={() => setFilter('active')}>
                     Topshirmagan (Ijarada)
                 </button>
-                <button className={`flex-1 w-full flex items-center justify-center px-4 py-3 rounded-xl border font-semibold text-[0.95rem] whitespace-nowrap transition-all ${filter === 'due_soon' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400 shadow-[0_4px_12px_-4px_rgba(59,130,246,0.3)]' : 'bg-slate-800/50 border-white/5 text-text-muted hover:bg-slate-700/80 hover:text-slate-200'}`} onClick={() => setFilter('due_soon')}>
+                <button className={`flex-1 w-full flex items-center justify-center px-4 py-3 rounded-xl border font-semibold text-[0.95rem] whitespace-nowrap transition-all ${filter === 'due_soon' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400 shadow-[0_4px_12px_-4px_rgba(59,130,246,0.3)]' : 'bg-surface-hover/50 border-border text-text-muted hover:bg-surface-hover hover:text-text'}`} onClick={() => setFilter('due_soon')}>
                     Muddati kelgan (Qaytarish vaqti)
                 </button>
-                <button className={`flex-1 w-full flex items-center justify-center px-4 py-3 rounded-xl border font-semibold text-[0.95rem] whitespace-nowrap transition-all ${filter === 'overdue' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400 shadow-[0_4px_12px_-4px_rgba(59,130,246,0.3)]' : 'bg-slate-800/50 border-white/5 text-text-muted hover:bg-slate-700/80 hover:text-slate-200'}`} onClick={() => setFilter('overdue')}>
+                <button className={`flex-1 w-full flex items-center justify-center px-4 py-3 rounded-xl border font-semibold text-[0.95rem] whitespace-nowrap transition-all ${filter === 'overdue' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400 shadow-[0_4px_12px_-4px_rgba(59,130,246,0.3)]' : 'bg-surface-hover/50 border-border text-text-muted hover:bg-surface-hover hover:text-text'}`} onClick={() => setFilter('overdue')}>
                     Muddati o'tgan
                 </button>
-                <button className={`flex-1 w-full flex items-center justify-center px-4 py-3 rounded-xl border font-semibold text-[0.95rem] whitespace-nowrap transition-all ${filter === 'returned' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400 shadow-[0_4px_12px_-4px_rgba(59,130,246,0.3)]' : 'bg-slate-800/50 border-white/5 text-text-muted hover:bg-slate-700/80 hover:text-slate-200'}`} onClick={() => setFilter('returned')}>
+                <button className={`flex-1 w-full flex items-center justify-center px-4 py-3 rounded-xl border font-semibold text-[0.95rem] whitespace-nowrap transition-all ${filter === 'returned' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400 shadow-[0_4px_12px_-4px_rgba(59,130,246,0.3)]' : 'bg-surface-hover/50 border-border text-text-muted hover:bg-surface-hover hover:text-text'}`} onClick={() => setFilter('returned')}>
                     Topshirgan (Arxiv)
                 </button>
             </div>
@@ -122,7 +122,7 @@ export default function EmployeeRentalsPage() {
                     placeholder="Talaba ismi yoki kitob qidirish..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="w-full bg-slate-800/50 border border-white/10 py-[18px] pr-5 pl-14 rounded-2xl text-slate-100 text-[1.05rem] transition-all focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-400/15 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.2)] backdrop-blur-md"
+                    className="w-full bg-surface border border-border py-[18px] pr-5 pl-14 rounded-2xl text-text text-[1.05rem] transition-all focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-400/15 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.2)] backdrop-blur-md"
                 />
             </div>
 
@@ -131,9 +131,9 @@ export default function EmployeeRentalsPage() {
                     <Loader2 size={48} className="text-emerald-400 opacity-80 animate-spin" />
                 </div>
             ) : filteredRentals.length === 0 ? (
-                <div className="text-center py-24 text-text-muted bg-slate-800/30 rounded-3xl border border-dashed border-white/10">
+                <div className="text-center py-24 text-text-muted bg-surface/50 rounded-3xl border border-dashed border-border">
                     <BookOpen size={64} className="opacity-20 mx-auto mb-5 text-current" />
-                    <h2 className="text-slate-100 m-0 mb-2">Ma'lumot topilmadi</h2>
+                    <h2 className="text-text m-0 mb-2">Ma'lumot topilmadi</h2>
                     <p className="m-0">Belgilangan holat yoki qidiruv so'ziga mos ijaralar yo'q.</p>
                 </div>
             ) : (
@@ -141,17 +141,17 @@ export default function EmployeeRentalsPage() {
                     {filteredRentals.map((r) => {
                         const style = getStatusStyle(r);
                         return (
-                            <div key={r.id} className="bg-linear-to-br from-slate-800/60 to-slate-900/60 border border-white/5 rounded-3xl p-6 transition-all duration-300 relative flex flex-col shadow-lg overflow-hidden hover:-translate-y-1.5 hover:border-emerald-400/30 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.2)]">
+                            <div key={r.id} className="bg-surface border border-border rounded-3xl p-6 transition-all duration-300 relative flex flex-col shadow-lg overflow-hidden hover:-translate-y-1.5 hover:border-emerald-400/30 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.2)]">
                                 <div className="absolute top-0 left-0 right-0 h-1" style={{ background: style.color }}></div>
 
                                 <div className="flex items-center gap-4 mb-6 mt-2">
-                                    <div className="w-[52px] h-[52px] rounded-2xl bg-linear-to-br from-white/10 to-white/5 border border-white/10 flex items-center justify-center font-bold text-white text-[1.2rem]">
+                                    <div className="w-[52px] h-[52px] rounded-2xl bg-linear-to-br from-surface-hover/50 to-surface-hover border border-border flex items-center justify-center font-bold text-text text-[1.2rem]">
                                         {getInitials(r.user_full_name || '')}
                                     </div>
                                     <div className="flex flex-col">
-                                        <h3 className="m-0 text-[1.2rem] text-slate-50 font-bold tracking-tight flex items-center gap-2">
+                                        <h3 className="m-0 text-[1.2rem] text-text font-bold tracking-tight flex items-center gap-2">
                                             {r.user_full_name}
-                                            <span className="text-[0.75rem] font-normal text-text-muted bg-white/5 px-2 py-0.5 rounded-full">
+                                            <span className="text-[0.75rem] font-normal text-text-muted bg-surface-hover/50 border border-border px-2 py-0.5 rounded-full">
                                                 {r.role === 'student' ? 'Talaba' : r.role === 'staff' ? 'Xodim (Kutubxonachi)' : r.role === 'employee' ? 'Xodim' : r.role === 'teacher' ? 'O\'qituvchi' : r.role}
                                             </span>
                                         </h3>
@@ -159,19 +159,19 @@ export default function EmployeeRentalsPage() {
                                     </div>
                                 </div>
 
-                                <div className="bg-black/25 border border-white/5 rounded-2xl p-5 mb-6 flex-1">
-                                    <h4 className="text-[1.15rem] font-bold text-white m-0 mb-2 leading-snug">{r.book_title}</h4>
+                                <div className="bg-surface-hover/50 border border-border rounded-2xl p-5 mb-6 flex-1">
+                                    <h4 className="text-[1.15rem] font-bold text-text m-0 mb-2 leading-snug">{r.book_title}</h4>
                                     <p className="text-[0.9rem] text-text-muted m-0">{r.book_author}</p>
                                 </div>
 
                                 <div className="flex gap-3 mb-6">
-                                    <div className="flex-1 bg-white/5 border border-white/5 p-3 rounded-xl">
-                                        <div className="text-[0.8rem] text-slate-500 uppercase tracking-wide font-semibold mb-1">Berilgan sana</div>
-                                        <div className="text-[0.95rem] text-slate-200 font-medium flex items-center gap-1.5"><Calendar size={14} className="text-text-muted" /> {formatDate(r.loan_date)}</div>
+                                    <div className="flex-1 bg-surface-hover/50 border border-border p-3 rounded-xl">
+                                        <div className="text-[0.8rem] text-text-muted uppercase tracking-wide font-semibold mb-1">Berilgan sana</div>
+                                        <div className="text-[0.95rem] text-text font-medium flex items-center gap-1.5"><Calendar size={14} className="text-text-muted" /> {formatDate(r.loan_date)}</div>
                                     </div>
-                                    <div className={`flex-1 border p-3 rounded-xl ${isDueSoon(r.due_date) && r.status === 'active' ? 'bg-amber-500/5 border-amber-500/10' : r.status === 'overdue' ? 'bg-red-500/5 border-red-500/10' : 'bg-white/5 border-white/5'}`}>
-                                        <div className={`text-[0.8rem] uppercase tracking-wide font-semibold mb-1 ${r.status === 'overdue' ? 'text-red-400' : 'text-slate-500'}`}>Qaytarish muddati</div>
-                                        <div className={`text-[0.95rem] font-medium flex items-center gap-1.5 ${r.status === 'overdue' ? 'text-red-300' : 'text-slate-200'}`}><Clock size={14} className={r.status === 'overdue' ? 'text-red-400' : 'text-text-muted'} /> {formatDate(r.due_date)}</div>
+                                    <div className={`flex-1 border p-3 rounded-xl ${isDueSoon(r.due_date) && r.status === 'active' ? 'bg-amber-500/5 border-amber-500/10' : r.status === 'overdue' ? 'bg-red-500/5 border-red-500/10' : 'bg-surface-hover border-border'}`}>
+                                        <div className={`text-[0.8rem] uppercase tracking-wide font-semibold mb-1 ${r.status === 'overdue' ? 'text-red-400' : 'text-text-muted'}`}>Qaytarish muddati</div>
+                                        <div className={`text-[0.95rem] font-medium flex items-center gap-1.5 ${r.status === 'overdue' ? 'text-red-300' : 'text-text'}`}><Clock size={14} className={r.status === 'overdue' ? 'text-red-400' : 'text-text-muted'} /> {formatDate(r.due_date)}</div>
                                     </div>
                                 </div>
 

@@ -73,7 +73,7 @@ function UserDetailModal({ user, onClose }: { user: UserData; onClose: () => voi
     return createPortal(
         <div className="fixed inset-0 z-300 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={onClose}>
             <div className="relative w-full max-w-[480px] bg-surface border border-border rounded-2xl overflow-hidden animate-modal-scale shadow-2xl" onClick={(e) => e.stopPropagation()}>
-                <button className="absolute top-3.5 right-3.5 flex items-center justify-center w-8 h-8 rounded-lg border-none bg-transparent text-text-muted hover:bg-white/10 hover:text-text transition-colors z-10" onClick={onClose}>
+                <button className="absolute top-3.5 right-3.5 flex items-center justify-center w-8 h-8 rounded-lg border-none bg-transparent text-text-muted hover:bg-surface-hover hover:text-text transition-colors z-10" onClick={onClose}>
                     <X size={18} />
                 </button>
 
@@ -334,13 +334,13 @@ export default function AdminEmployeesPage() {
                     <Search size={18} className="absolute left-4 text-text-muted" />
                     <input
                         type="text"
-                        className="w-full bg-slate-900/50 border border-transparent focus:border-indigo-500/50 focus:bg-slate-900 rounded-xl py-2.5 pl-11 pr-10 text-[0.9rem] transition-all outline-none placeholder:text-text-muted/60"
+                        className="w-full bg-surface-hover border border-transparent focus:border-border focus:bg-surface rounded-xl py-2.5 pl-11 pr-10 text-[0.9rem] transition-all outline-none placeholder:text-text-muted/60"
                         placeholder="Ism, bo'lim yoki lavozim bo'yicha qidirish..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                     />
                     {search && (
-                        <button className="absolute right-3 p-1 rounded-md text-text-muted hover:bg-white/10 hover:text-text transition-colors" onClick={() => setSearch('')}>
+                        <button className="absolute right-3 p-1 rounded-md text-text-muted hover:bg-surface-hover hover:text-text transition-colors" onClick={() => setSearch('')}>
                             <X size={16} />
                         </button>
                     )}
@@ -349,7 +349,7 @@ export default function AdminEmployeesPage() {
                     <div className="flex items-center gap-2 text-text-muted">
                         <Filter size={15} />
                         <span className="text-[0.82rem] font-medium whitespace-nowrap">Holat:</span>
-                        <div className="flex gap-1 p-1 bg-slate-900 rounded-xl border border-border">
+                        <div className="flex gap-1 p-1 bg-surface-hover/50 rounded-xl border border-border">
                             {[
                                 { value: 'all', label: 'Hammasi' },
                                 { value: 'active', label: 'Faol' },
@@ -357,7 +357,7 @@ export default function AdminEmployeesPage() {
                             ].map(opt => (
                                 <button
                                     key={opt.value}
-                                    className={`py-1.5 px-3 rounded-lg text-[0.8rem] font-medium transition-all ${statusFilter === opt.value ? 'bg-indigo-500/20 text-indigo-400 shadow-sm' : 'text-text-muted hover:text-text hover:bg-white/5'}`}
+                                    className={`py-1.5 px-3 rounded-lg text-[0.8rem] font-medium transition-all ${statusFilter === opt.value ? 'bg-indigo-500/20 text-indigo-400 shadow-sm' : 'text-text-muted hover:text-text hover:bg-surface-hover'}`}
                                     onClick={() => setStatusFilter(opt.value)}
                                 >
                                     {opt.label}
@@ -372,22 +372,22 @@ export default function AdminEmployeesPage() {
             {isSuperAdmin && (
                 <div className="flex gap-2 w-full overflow-x-auto pb-2 mb-4 scrollbar-hide">
                     <button
-                        className={`flex flex-1 justify-center items-center gap-2.5 py-2.5 px-5 rounded-xl font-semibold text-[0.9rem] whitespace-nowrap transition-all border ${subTab === 'staff' ? 'bg-indigo-500 text-white border-transparent shadow-[0_4px_12px_rgba(99,102,241,0.25)]' : 'bg-surface border-border text-text-muted hover:border-indigo-500/30 hover:text-text hover:bg-slate-900/50'}`}
+                        className={`flex flex-1 justify-center items-center gap-2.5 py-2.5 px-5 rounded-xl font-semibold text-[0.9rem] whitespace-nowrap transition-all border ${subTab === 'staff' ? 'bg-indigo-500 text-white border-transparent shadow-[0_4px_12px_rgba(99,102,241,0.25)]' : 'bg-surface border-border text-text-muted hover:border-indigo-500/30 hover:text-text hover:bg-surface-hover'}`}
                         onClick={() => setSubTab('staff')}
                     >
                         <span className={subTab === 'staff' ? 'text-white' : 'text-indigo-400'}><Briefcase size={16} /></span>
                         Barcha xodimlar
-                        <span className={`py-0.5 px-2 rounded-full text-[0.75rem] font-bold ${subTab === 'staff' ? 'bg-white/20 text-white' : 'bg-indigo-500/10 text-indigo-400'}`}>
+                        <span className={`py-0.5 px-2 rounded-full text-[0.75rem] font-bold ${subTab === 'staff' ? 'bg-surface-hover/50 text-white' : 'bg-indigo-500/10 text-indigo-400'}`}>
                             {pag.totalItems}
                         </span>
                     </button>
                     <button
-                        className={`flex flex-1 justify-center items-center gap-2.5 py-2.5 px-5 rounded-xl font-semibold text-[0.9rem] whitespace-nowrap transition-all border ${subTab === 'admins' ? 'bg-indigo-500 text-white border-transparent shadow-[0_4px_12px_rgba(99,102,241,0.25)]' : 'bg-surface border-border text-text-muted hover:border-indigo-500/30 hover:text-text hover:bg-slate-900/50'}`}
+                        className={`flex flex-1 justify-center items-center gap-2.5 py-2.5 px-5 rounded-xl font-semibold text-[0.9rem] whitespace-nowrap transition-all border ${subTab === 'admins' ? 'bg-indigo-500 text-white border-transparent shadow-[0_4px_12px_rgba(99,102,241,0.25)]' : 'bg-surface border-border text-text-muted hover:border-indigo-500/30 hover:text-text hover:bg-surface-hover'}`}
                         onClick={() => setSubTab('admins')}
                     >
                         <span className={subTab === 'admins' ? 'text-white' : 'text-indigo-400'}><ShieldAlert size={16} /></span>
                         Adminlar ro'yxati
-                        <span className={`py-0.5 px-2 rounded-full text-[0.75rem] font-bold ${subTab === 'admins' ? 'bg-white/20 text-white' : 'bg-indigo-500/10 text-indigo-400'}`}>
+                        <span className={`py-0.5 px-2 rounded-full text-[0.75rem] font-bold ${subTab === 'admins' ? 'bg-surface-hover/50 text-white' : 'bg-indigo-500/10 text-indigo-400'}`}>
                             {adminsPag.totalItems}
                         </span>
                     </button>
@@ -412,17 +412,17 @@ export default function AdminEmployeesPage() {
                         <table className="w-full border-collapse">
                             <thead>
                                 <tr>
-                                    <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-slate-900/40 border-b border-border">#</th>
-                                    <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-slate-900/40 border-b border-border">Ism</th>
-                                    <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-slate-900/40 border-b border-border">Bo'lim</th>
-                                    <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-slate-900/40 border-b border-border">Lavozim</th>
-                                    <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-slate-900/40 border-b border-border">Holat</th>
-                                    <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-slate-900/40 border-b border-border">Amallar</th>
+                                    <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-surface-hover/50 border-b border-border">#</th>
+                                    <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-surface-hover/50 border-b border-border">Ism</th>
+                                    <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-surface-hover/50 border-b border-border">Bo'lim</th>
+                                    <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-surface-hover/50 border-b border-border">Lavozim</th>
+                                    <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-surface-hover/50 border-b border-border">Holat</th>
+                                    <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-surface-hover/50 border-b border-border">Amallar</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {staff.map((u, i) => (
-                                    <tr key={u.id} className="transition-colors hover:bg-indigo-500/5 group border-b border-border/50">
+                                    <tr key={u.id} className="transition-colors hover:bg-surface-hover/50 group border-b border-border/50">
                                         <td className="py-3 px-4 text-[0.875rem] text-text-muted">{(pag.currentPage - 1) * pag.perPage + i + 1}</td>
                                         <td className="py-3 px-4">
                                             <div className="flex items-center gap-3 font-semibold text-[0.9rem]">
@@ -437,7 +437,7 @@ export default function AdminEmployeesPage() {
                                         <td className="py-3 px-4 text-[0.875rem] text-text-muted">{u.department_name || '-'}</td>
                                         <td className="py-3 px-4 text-[0.875rem] text-text-muted">{u.staff_position || '-'}</td>
                                         <td className="py-3 px-4">
-                                            <span className={`inline-flex items-center py-1 px-2.5 rounded-full text-[0.75rem] font-bold tracking-wide whitespace-nowrap ${u.active ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' : 'bg-slate-500/15 text-slate-400 border border-slate-500/20'}`}>
+                                            <span className={`inline-flex items-center py-1 px-2.5 rounded-full text-[0.75rem] font-bold tracking-wide whitespace-nowrap ${u.active ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' : 'bg-surface-hover/50 text-slate-400 border border-slate-500/20'}`}>
                                                 {u.active ? 'Faol' : 'Nofaol'}
                                             </span>
                                         </td>
@@ -478,17 +478,17 @@ export default function AdminEmployeesPage() {
                         <table className="w-full border-collapse">
                             <thead>
                                 <tr>
-                                    <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-slate-900/40 border-b border-border">#</th>
-                                    <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-slate-900/40 border-b border-border">Ism</th>
-                                    <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-slate-900/40 border-b border-border">Logini (ID)</th>
-                                    <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-slate-900/40 border-b border-border">Lavozim</th>
-                                    <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-slate-900/40 border-b border-border">Holat</th>
-                                    <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-slate-900/40 border-b border-border">Amallar</th>
+                                    <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-surface-hover/50 border-b border-border">#</th>
+                                    <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-surface-hover/50 border-b border-border">Ism</th>
+                                    <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-surface-hover/50 border-b border-border">Logini (ID)</th>
+                                    <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-surface-hover/50 border-b border-border">Lavozim</th>
+                                    <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-surface-hover/50 border-b border-border">Holat</th>
+                                    <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-surface-hover/50 border-b border-border">Amallar</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {admins.map((u, i) => (
-                                    <tr key={u.id} className="transition-colors hover:bg-indigo-500/5 group border-b border-border/50">
+                                    <tr key={u.id} className="transition-colors hover:bg-surface-hover/50 group border-b border-border/50">
                                         <td className="py-3 px-4 text-[0.875rem] text-text-muted">{(adminsPag.currentPage - 1) * adminsPag.perPage + i + 1}</td>
                                         <td className="py-3 px-4">
                                             <div className="flex items-center gap-3 font-semibold text-[0.9rem]">
@@ -501,11 +501,11 @@ export default function AdminEmployeesPage() {
                                             </div>
                                         </td>
                                         <td className="py-3 px-4 text-[0.875rem] text-text-muted">
-                                            <span className="inline-flex py-1 px-3 bg-slate-900/60 border border-border rounded-lg font-mono font-medium">{u.user_id}</span>
+                                            <span className="inline-flex py-1 px-3 bg-surface-hover border border-border rounded-lg font-mono font-medium">{u.user_id}</span>
                                         </td>
                                         <td className="py-3 px-4 text-[0.875rem] text-text-muted">{u.staff_position || 'Administrator'}</td>
                                         <td className="py-3 px-4">
-                                            <span className={`inline-flex items-center py-1 px-2.5 rounded-full text-[0.75rem] font-bold tracking-wide whitespace-nowrap ${u.active ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' : 'bg-slate-500/15 text-slate-400 border border-slate-500/20'}`}>
+                                            <span className={`inline-flex items-center py-1 px-2.5 rounded-full text-[0.75rem] font-bold tracking-wide whitespace-nowrap ${u.active ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' : 'bg-surface-hover/50 text-slate-400 border border-slate-500/20'}`}>
                                                 {u.active ? 'Faol' : 'Nofaol'}
                                             </span>
                                         </td>
@@ -578,7 +578,7 @@ export default function AdminEmployeesPage() {
                             value={String(activePag.perPage)}
                             onChange={(val) => handlePerPageChange(Number(val))}
                             options={PER_PAGE_OPTIONS.map(n => ({ value: String(n), label: String(n) }))}
-                            buttonClassName="py-1.5 pl-3 pr-2 w-[70px] bg-slate-900 border border-border rounded-lg text-[0.85rem] text-text font-medium outline-none focus:border-indigo-500"
+                            buttonClassName="py-1.5 pl-3 pr-2 w-[70px] bg-surface-hover border border-border rounded-lg text-[0.85rem] text-text font-medium outline-none focus:border-indigo-500"
                             dropUp
                         />
                     </div>
@@ -602,7 +602,7 @@ export default function AdminEmployeesPage() {
                                     <p className="text-[0.82rem] text-text-muted mt-0.5">Xodimlarni HEMIS platformasidan yangilash</p>
                                 </div>
                             </div>
-                            <button className="flex items-center justify-center w-8 h-8 rounded-lg border-none bg-transparent text-text-muted hover:bg-white/10 hover:text-text transition-colors" onClick={() => setSyncModalOpen(false)}>
+                            <button className="flex items-center justify-center w-8 h-8 rounded-lg border-none bg-transparent text-text-muted hover:bg-surface-hover hover:text-text transition-colors" onClick={() => setSyncModalOpen(false)}>
                                 <X size={18} />
                             </button>
                         </div>
