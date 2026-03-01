@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import {
     BookOpen, Upload, X, CheckCircle, Clock, PlusCircle,
     FileText, Image as ImageIcon, AlertCircle, RefreshCw,
@@ -9,6 +10,7 @@ import { api, type Book } from '../../services/api'
 import { toast } from 'react-toastify'
 import { CustomSelect } from '../../components/CustomSelect'
 import { useAuth } from '../../context/AuthContext'
+import PdfViewerModal from '../../components/PdfViewerModal'
 
 interface BookFormData {
     title: string
@@ -238,7 +240,7 @@ export default function TeacherBookSubmit() {
             </div>
 
             {/* ══════════════════════════ SUBMIT MODAL ══════════════════════════ */}
-            {modalOpen && (
+            {modalOpen && createPortal(
                 <div
                     className="fixed inset-0 bg-black/60 backdrop-blur-sm z-100 flex items-center justify-center p-4 animate-in fade-in duration-200"
                     onClick={handleCloseModal}
@@ -484,24 +486,25 @@ export default function TeacherBookSubmit() {
                             </div>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* ══════════════════════════ DETAIL MODAL ══════════════════════════ */}
-            {selectedBook && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedBook(null)}>
-                    <div className="bg-surface border border-border rounded-2xl w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-                        <div className="flex items-center justify-between p-5 border-b border-border sticky top-0 bg-surface z-10">
-                            <h3 className="flex items-center gap-2 font-bold text-text">
+            {selectedBook && createPortal(
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-100 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setSelectedBook(null)}>
+                    <div className="bg-surface border border-border rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-center p-5 border-b border-border bg-white/5 rounded-t-2xl shrink-0">
+                            <h3 className="flex items-center gap-2 m-0 text-lg font-bold text-text">
                                 <BookOpen size={18} className="text-primary-light" />
                                 Kitob tafsilotlari
                             </h3>
-                            <button onClick={() => setSelectedBook(null)} className="p-1.5 rounded-lg hover:bg-white/10 text-text-muted hover:text-text transition-colors">
-                                <X size={18} />
+                            <button onClick={() => setSelectedBook(null)} className="flex p-1.5 rounded-lg border-none bg-transparent cursor-pointer text-text-muted transition-colors hover:bg-white/10 hover:text-rose-400">
+                                <X size={20} />
                             </button>
                         </div>
 
-                        <div className="p-5">
+                        <div className="p-5 flex-1 overflow-y-auto custom-scrollbar">
                             <div className="flex gap-5 mb-5">
                                 {selectedBook.cover_image_url ? (
                                     <img src={selectedBook.cover_image_url} alt={selectedBook.title} className="w-28 h-40 object-cover rounded-xl border border-border shrink-0 shadow-md" />
@@ -593,28 +596,17 @@ export default function TeacherBookSubmit() {
                             )}
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* PDF Viewer Modal */}
             {pdfBook && (
-                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-9999 flex flex-col animate-in fade-in duration-200" onClick={() => setPdfBook(null)}>
-                    <div className="w-full h-full flex flex-col" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex justify-between items-center px-6 py-3 border-b border-border bg-surface shrink-0">
-                            <h3 className="m-0 text-[1.15rem] font-bold text-text truncate pr-4">{pdfBook.title}</h3>
-                            <button onClick={() => setPdfBook(null)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-surface-hover border border-border text-text-muted cursor-pointer transition-colors hover:bg-red-500/20 hover:text-red-400 shrink-0 hover:border-red-500/30">
-                                <X size={20} />
-                            </button>
-                        </div>
-                        <div className="flex-1 w-full relative">
-                            <iframe
-                                src={pdfBook.digital_file_url || ''}
-                                className="absolute inset-0 w-full h-full border-none"
-                                title={pdfBook.title}
-                            />
-                        </div>
-                    </div>
-                </div>
+                <PdfViewerModal
+                    title={pdfBook.title}
+                    fileUrl={pdfBook.digital_file_url || ''}
+                    onClose={() => setPdfBook(null)}
+                />
             )}
         </div>
     )

@@ -51,10 +51,10 @@ export default function MyRequestsPage() {
     return (
         <div className="p-6">
             <div className="mb-8">
-                <h1 className="text-[1.8rem] font-bold text-white m-0 mb-2">
+                <h1 className="text-[1.8rem] font-bold text-text m-0 mb-2">
                     Mening so'rovlarim
                 </h1>
-                <p className="m-0 text-[0.95rem] opacity-70">
+                <p className="m-0 text-[0.95rem] text-text-muted">
                     Kutubxonaga yuborgan kitob so'rovlaringiz tarixi va holati
                 </p>
             </div>
@@ -64,7 +64,7 @@ export default function MyRequestsPage() {
                     <div className="w-10 h-10 border-3 border-border border-t-primary rounded-full animate-spin"></div>
                 </div>
             ) : requests.length === 0 ? (
-                <div className="bg-white/5 border border-dashed border-white/10 rounded-xl p-10 text-center text-white/50">
+                <div className="bg-surface-hover/50 border border-dashed border-border rounded-xl p-10 text-center text-text-muted">
                     Hozircha hech qanday so'rov yubormagansiz.
                 </div>
             ) : (
@@ -72,16 +72,16 @@ export default function MyRequestsPage() {
                     {requests.map(req => {
                         const sInfo = getStatusInfo(req.status)
                         return (
-                            <div key={req.id} className="bg-white/5 border border-white/10 rounded-xl p-5 flex flex-col gap-4">
+                            <div key={req.id} className="bg-surface border border-border rounded-xl p-5 flex flex-col gap-4">
                                 <div className="flex justify-between items-start flex-wrap gap-3">
                                     <div className="flex gap-4 items-center">
-                                        <div className="w-12 h-12 rounded-lg bg-white/10 flex items-center justify-center">
-                                            <Book size={24} className="text-zinc-400" />
+                                        <div className="w-12 h-12 rounded-lg bg-surface-hover flex items-center justify-center">
+                                            <Book size={24} className="text-text-muted" />
                                         </div>
                                         <div>
-                                            <div className="font-semibold text-[1.1rem] text-white">{req.book_title}</div>
-                                            <div className="text-[0.85rem] text-zinc-400 mt-1">
-                                                Turi: <span className="font-medium text-zinc-200">{getTypeLabel(req.request_type)}</span>
+                                            <div className="font-semibold text-[1.1rem] text-text">{req.book_title}</div>
+                                            <div className="text-[0.85rem] text-text-muted mt-1">
+                                                Turi: <span className="font-medium text-text">{getTypeLabel(req.request_type)}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -98,7 +98,7 @@ export default function MyRequestsPage() {
                                             {sInfo.icon}
                                             {sInfo.label}
                                         </div>
-                                        <div className="text-[0.8rem] text-zinc-500 mt-2">
+                                        <div className="text-[0.8rem] text-text-muted mt-2">
                                             {formatDate(req.created_at)}
                                         </div>
                                     </div>
@@ -106,10 +106,10 @@ export default function MyRequestsPage() {
 
                                 {req.employee_comment && (
                                     <div
-                                        className="bg-black/20 py-3 px-4 rounded-lg text-[0.9rem] text-zinc-200 leading-relaxed"
+                                        className="bg-surface-hover/50 py-3 px-4 rounded-lg text-[0.9rem] text-text leading-relaxed"
                                         style={{ borderLeft: `4px solid ${sInfo.color}` }}
                                     >
-                                        <strong className="block text-[0.8rem] text-zinc-400 mb-1">Kutubxonachi javobi:</strong>
+                                        <strong className="block text-[0.8rem] text-text-muted mb-1">Kutubxonachi javobi:</strong>
                                         {req.employee_comment}
                                     </div>
                                 )}

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { BookOpen, CheckCircle, XCircle, Clock, RefreshCw, Eye, MessageSquare, AlertTriangle, ExternalLink, Download, X } from 'lucide-react'
+import { BookOpen, CheckCircle, XCircle, Clock, RefreshCw, Eye, MessageSquare, AlertTriangle, ExternalLink, Download } from 'lucide-react'
 import { api, type Book } from '../../services/api'
 import { toast } from 'react-toastify'
+import PdfViewerModal from '../../components/PdfViewerModal'
 
 type ActionType = 'approve' | 'reject' | 'deactivate'
 
@@ -468,23 +469,11 @@ export default function PendingBooksPage() {
 
             {/* PDF Viewer Modal */}
             {pdfBook && (
-                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-9999 flex flex-col animate-in fade-in duration-200" onClick={() => setPdfBook(null)}>
-                    <div className="w-full h-full flex flex-col" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex justify-between items-center px-6 py-3 border-b border-border bg-surface shrink-0">
-                            <h3 className="m-0 text-[1.15rem] font-bold text-text truncate pr-4">{pdfBook.title}</h3>
-                            <button onClick={() => setPdfBook(null)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-surface-hover border border-border text-text-muted cursor-pointer transition-colors hover:bg-red-500/20 hover:text-red-400 shrink-0 hover:border-red-500/30">
-                                <X size={20} />
-                            </button>
-                        </div>
-                        <div className="flex-1 w-full relative">
-                            <iframe
-                                src={pdfBook.digital_file_url || ''}
-                                className="absolute inset-0 w-full h-full border-none"
-                                title={pdfBook.title}
-                            />
-                        </div>
-                    </div>
-                </div>
+                <PdfViewerModal
+                    title={pdfBook.title}
+                    fileUrl={pdfBook.digital_file_url || ''}
+                    onClose={() => setPdfBook(null)}
+                />
             )}
         </div>
     )
