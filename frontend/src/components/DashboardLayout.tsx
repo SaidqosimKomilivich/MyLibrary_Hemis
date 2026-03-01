@@ -27,6 +27,8 @@ import {
 import { toast } from 'react-toastify'
 import { useAuth } from '../context/AuthContext'
 import { useAudio } from '../context/AudioContext'
+import { useTheme } from '../context/ThemeContext'
+import { Sun, Moon } from 'lucide-react'
 
 
 export type UserRole = 'admin' | 'staff' | 'teacher' | 'student' | 'employee'
@@ -112,6 +114,7 @@ export default function DashboardLayout({ role }: DashboardLayoutProps) {
     const location = useLocation()
     const { user, isLoading, isAuthenticated, logout } = useAuth()
     const { book, isMini, isPlaying, togglePlay, expandPlayer } = useAudio()
+    const { theme, toggleTheme } = useTheme()
     const navItems = navByRole[role]
 
     // Role mismatch check - logs the user out if they try to access a page meant for another role
@@ -176,7 +179,7 @@ export default function DashboardLayout({ role }: DashboardLayoutProps) {
             )}
 
             {/* Sidebar */}
-            <aside className={`fixed top-0 left-0 w-[260px] h-dvh bg-slate-900/95 backdrop-blur-2xl border-r border-border flex flex-col z-100 transition-transform duration-250 max-md:-translate-x-full ${sidebarOpen ? 'max-md:translate-x-0' : ''}`}>
+            <aside className={`fixed top-0 left-0 w-[260px] h-dvh bg-surface border-r border-border flex flex-col z-100 transition-transform duration-250 max-md:-translate-x-full ${sidebarOpen ? 'max-md:translate-x-0' : ''}`}>
                 <div className="flex items-center gap-2.5 p-4 border-b border-border">
                     <img
                         src="/icon_arm.png"
@@ -222,7 +225,7 @@ export default function DashboardLayout({ role }: DashboardLayoutProps) {
             {/* Main */}
             <div className="flex-1 ml-[260px] flex flex-col min-h-dvh max-md:ml-0">
                 {/* Top bar */}
-                <header className="sticky top-0 z-50 flex items-center gap-4 h-[64px] px-6 bg-slate-900/60 backdrop-blur-xl border-b border-border max-md:px-4">
+                <header className="sticky top-0 z-50 flex items-center gap-4 h-[64px] px-6 bg-surface/80 backdrop-blur-xl border-b border-border max-md:px-4">
                     <button
                         className="hidden bg-transparent border-none text-text cursor-pointer p-1.5 max-md:block"
                         onClick={() => setSidebarOpen(true)}
@@ -259,6 +262,15 @@ export default function DashboardLayout({ role }: DashboardLayoutProps) {
                                 </button>
                             </div>
                         )}
+                        {/* Theme Toggle Button */}
+                        <button
+                            onClick={toggleTheme}
+                            className="w-9 h-9 rounded-full bg-surface-hover hover:bg-slate-500/20 text-text-muted hover:text-emerald-500 flex items-center justify-center transition-colors shrink-0"
+                            title={theme === 'dark' ? "Yorug' rejim" : "Tungi rejim"}
+                        >
+                            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+                        </button>
+
                         <div className="w-9 h-9 rounded-full bg-linear-to-br from-primary to-accent text-white flex items-center justify-center font-bold text-[0.85rem]" title={displayName}>
                             {displayName.charAt(0).toUpperCase()}
                         </div>

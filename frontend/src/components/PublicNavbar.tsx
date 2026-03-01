@@ -1,8 +1,11 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Sun, Moon } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
 export default function PublicNavbar() {
     const location = useLocation();
     const navigate = useNavigate();
+    const { theme, toggleTheme } = useTheme();
 
     const handleScrollOrNavigate = (targetId: string, fallbackPath: string) => {
         if (location.pathname === '/') {
@@ -73,6 +76,16 @@ export default function PublicNavbar() {
                     >
                         Yordam
                     </button>
+
+                    {/* Theme Toggle Button */}
+                    <button
+                        onClick={toggleTheme}
+                        className="p-2 rounded-full text-text-muted hover:text-emerald-500 hover:bg-surface-hover transition-colors"
+                        title={theme === 'dark' ? "Yorug' rejim" : "Tungi rejim"}
+                    >
+                        {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+                    </button>
+
                     <Link
                         to="/login"
                         className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2 rounded-full text-sm font-semibold transition-all shadow-lg shadow-emerald-500/20"

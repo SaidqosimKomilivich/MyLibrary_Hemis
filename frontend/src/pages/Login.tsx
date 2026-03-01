@@ -76,7 +76,7 @@ export default function Login() {
                                 placeholder="Hemis ID ni kiriting"
                                 value={hemisId}
                                 onChange={(e) => setHemisId(e.target.value)}
-                                className="w-full py-3 pr-3.5 pl-[42px] bg-slate-900/60 border border-border rounded-md text-text text-[0.95rem] font-inherit outline-none transition-all duration-250 hover:border-slate-400/30 hover:bg-slate-900/80 focus:border-primary-light focus:ring-[3px] focus:ring-indigo-500/20 focus:bg-slate-900/90 placeholder:text-slate-400/50"
+                                className="w-full py-3 pr-3.5 pl-[42px] bg-canvas/40 border border-border rounded-md text-text text-[0.95rem] font-inherit outline-none transition-all duration-250 hover:border-text-muted/30 hover:bg-canvas/60 focus:border-primary-light focus:ring-[3px] focus:ring-primary/20 focus:bg-canvas/80 placeholder:text-text-muted/50"
                                 autoComplete="username"
                             />
                         </div>
@@ -95,7 +95,7 @@ export default function Login() {
                                 placeholder="Parolni kiriting"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="w-full py-3 pr-[44px] pl-[42px] bg-slate-900/60 border border-border rounded-md text-text text-[0.95rem] font-inherit outline-none transition-all duration-250 hover:border-slate-400/30 hover:bg-slate-900/80 focus:border-primary-light focus:ring-[3px] focus:ring-indigo-500/20 focus:bg-slate-900/90 placeholder:text-slate-400/50"
+                                className="w-full py-3 pr-[44px] pl-[42px] bg-canvas/40 border border-border rounded-md text-text text-[0.95rem] font-inherit outline-none transition-all duration-250 hover:border-text-muted/30 hover:bg-canvas/60 focus:border-primary-light focus:ring-[3px] focus:ring-primary/20 focus:bg-canvas/80 placeholder:text-text-muted/50"
                                 autoComplete="current-password"
                             />
                             <button

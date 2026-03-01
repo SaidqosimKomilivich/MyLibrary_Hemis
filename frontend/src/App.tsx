@@ -3,6 +3,7 @@ import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import { AuthProvider } from './context/AuthContext'
 import { AudioProvider } from './context/AudioContext'
+import { ThemeProvider, useTheme } from './context/ThemeContext'
 import AudioPlayerModal from './components/AudioPlayerModal'
 import Login from './pages/Login'
 import LandingPage from './pages/LandingPage'
@@ -119,7 +120,9 @@ function AnimatedRoutes() {
   );
 }
 
-function App() {
+function AppContent() {
+  const { theme } = useTheme();
+
   return (
     <BrowserRouter>
       <AuthProvider>
@@ -133,13 +136,21 @@ function App() {
             closeOnClick
             pauseOnHover
             draggable
-            theme="dark"
+            theme={theme}
           />
           <AnimatedRoutes />
           <AudioPlayerModal />
         </AudioProvider>
       </AuthProvider>
-    </BrowserRouter >
+    </BrowserRouter>
+  )
+}
+
+function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
   )
 }
 
