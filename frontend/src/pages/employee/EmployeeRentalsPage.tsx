@@ -29,8 +29,10 @@ export default function EmployeeRentalsPage() {
         fetchRentals()
     }, [])
 
-    const isDueSoon = (dueDateStr: string): boolean => {
+    const isDueSoon = (dueDateStr?: string | null): boolean => {
+        if (!dueDateStr) return false
         const due = new Date(dueDateStr)
+        if (isNaN(due.getTime())) return false
         due.setHours(0, 0, 0, 0)
         const today = new Date()
         today.setHours(0, 0, 0, 0)
@@ -38,11 +40,25 @@ export default function EmployeeRentalsPage() {
         const diffTime = due.getTime() - today.getTime()
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
+        // 0..3 kun qolgan => muddati kelgan
         return diffDays >= 0 && diffDays <= 3
     }
 
+    const isOverdue = (rental: Rental): boolean => {
+        // Backend overdue yoki active lekin muddati o'tgan
+        if (rental.status === 'overdue') return true
+        if (rental.status !== 'active') return false
+        if (!rental.due_date) return false
+        const due = new Date(rental.due_date)
+        if (isNaN(due.getTime())) return false
+        due.setHours(0, 0, 0, 0)
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        return due.getTime() < today.getTime()
+    }
+
     // Front-end filtering since backend filter only supports basic states 
-    // and we need "due_soon" logic logic here.
+    // and we need "due_soon" logic here.
     const filteredRentals = useMemo(() => {
         return rentals.filter(r => {
             // Search logic
@@ -55,9 +71,9 @@ export default function EmployeeRentalsPage() {
             // Filter logic
             if (filter === 'all') return true;
             if (filter === 'returned') return r.status === 'returned';
-            if (filter === 'overdue') return r.status === 'overdue';
-            if (filter === 'active') return r.status === 'active';
-            if (filter === 'due_soon') return r.status === 'active' && isDueSoon(r.due_date);
+            if (filter === 'overdue') return isOverdue(r);
+            if (filter === 'active') return r.status === 'active' && !isOverdue(r);
+            if (filter === 'due_soon') return r.status === 'active' && !isOverdue(r) && isDueSoon(r.due_date);
 
             return true;
         })
@@ -67,7 +83,7 @@ export default function EmployeeRentalsPage() {
         if (rental.status === 'returned') {
             return { color: '#34d399', bg: 'rgba(52, 211, 153, 0.1)', icon: <CheckCircle size={16} />, label: 'Topshirgan' }
         }
-        if (rental.status === 'overdue') {
+        if (isOverdue(rental)) {
             return { color: '#f87171', bg: 'rgba(248, 113, 113, 0.1)', icon: <XCircle size={16} />, label: "Muddati o'tgan" }
         }
         if (rental.status === 'lost') {

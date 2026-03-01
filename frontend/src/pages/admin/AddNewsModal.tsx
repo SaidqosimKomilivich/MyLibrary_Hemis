@@ -1,8 +1,9 @@
 import { useState, useRef } from "react"
+import { createPortal } from "react-dom"
 import { api } from "../../services/api"
 import type { CreateNewsRequest } from "../../services/api"
 import { toast } from "react-toastify"
-import { X, Image as ImageIcon, Loader2, Tag, AlignLeft, Newspaper } from "lucide-react"
+import { X, Image as ImageIcon, Loader2, Tag, AlignLeft } from "lucide-react"
 import { CustomSelect } from "../../components/CustomSelect"
 
 interface AdminNewsModalProps {
@@ -114,7 +115,7 @@ export default function AdminNewsModal({
     const inputClass = "w-full bg-surface/50 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
     const labelClass = "text-[0.85rem] font-semibold text-text-muted tracking-wide"
 
-    return (
+    return createPortal(
         <div
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-100 flex items-center justify-center p-4 animate-in fade-in duration-200"
             onClick={onClose}
@@ -125,14 +126,13 @@ export default function AdminNewsModal({
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="flex justify-between items-center p-5 border-b border-border bg-white/3 rounded-t-2xl shrink-0">
-                    <h2 className="m-0 text-lg font-bold text-text flex items-center gap-2">
-                        <Newspaper size={20} className="text-primary-light" />
+                <div className="flex justify-between items-center p-5 border-b border-border bg-white/5 rounded-t-2xl">
+                    <h2 className="m-0 text-lg font-bold text-text">
                         {editingNews ? "Yangilikni Tahrirlash" : "Yangi Yangilik Qo'shish"}
                     </h2>
                     <button
                         onClick={onClose}
-                        className="flex p-1.5 rounded-lg border-none bg-transparent cursor-pointer text-text-muted transition-colors hover:bg-surface-hover hover:text-rose-400"
+                        className="flex p-1.5 rounded-lg border-none bg-transparent cursor-pointer text-text-muted transition-colors hover:bg-white/10 hover:text-rose-400"
                     >
                         <X size={20} />
                     </button>
@@ -153,6 +153,67 @@ export default function AdminNewsModal({
                                 placeholder="Yangilik sarlavhasi"
                                 required
                             />
+                        </div>
+
+                        {/* Image gallery — full width */}
+                        <div className="md:col-span-2 flex flex-col gap-2 min-w-0">
+                            <div className="flex items-center justify-between">
+                                <label className={`${labelClass} flex items-center gap-1.5`}>
+                                    <ImageIcon size={13} /> Rasmlar galereyasi
+                                </label>
+                                <span className="text-[0.75rem] text-text-muted/60">{images.length} ta rasm yuklangan</span>
+                            </div>
+
+                            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                                {images.map((imgUrl, idx) => (
+                                    <div key={idx} className="relative rounded-xl overflow-hidden group border border-border aspect-square">
+                                        <img
+                                            src={imgUrl}
+                                            alt={`Gallery ${idx + 1}`}
+                                            className="w-full h-full object-cover"
+                                        />
+                                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                            <button
+                                                type="button"
+                                                onClick={() => removeImage(idx)}
+                                                className="w-8 h-8 bg-rose-500/90 hover:bg-rose-500 text-white rounded-full flex items-center justify-center transition-all"
+                                            >
+                                                <X size={14} />
+                                            </button>
+                                        </div>
+                                        {idx === 0 && (
+                                            <div className="absolute bottom-1 left-1 bg-primary/90 text-[0.6rem] font-bold px-1.5 py-0.5 rounded text-white">
+                                                Muqova
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+
+                                {/* Upload slot */}
+                                <div
+                                    onClick={() => !isUploading && fileInputRef.current?.click()}
+                                    className="border-2 border-dashed border-border rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all aspect-square group"
+                                >
+                                    <input
+                                        type="file"
+                                        ref={fileInputRef}
+                                        onChange={handleFileUpload}
+                                        accept="image/jpeg,image/png,image/webp"
+                                        className="hidden"
+                                        multiple
+                                    />
+                                    {isUploading ? (
+                                        <Loader2 size={22} className="text-primary animate-spin" />
+                                    ) : (
+                                        <>
+                                            <div className="w-8 h-8 rounded-full bg-surface-hover flex items-center justify-center mb-1 group-hover:bg-primary/10 transition-colors">
+                                                <ImageIcon size={16} className="text-text-muted group-hover:text-primary transition-colors" />
+                                            </div>
+                                            <p className="text-text-muted text-[0.7rem] text-center px-1">Rasm qo'sh</p>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
                         </div>
 
                         {/* Category */}
@@ -238,76 +299,17 @@ export default function AdminNewsModal({
                             </div>
                         </div>
 
-                        {/* Image gallery — full width */}
-                        <div className="md:col-span-2 flex flex-col gap-2 min-w-0">
-                            <div className="flex items-center justify-between">
-                                <label className={`${labelClass} flex items-center gap-1.5`}>
-                                    <ImageIcon size={13} /> Rasmlar galereyasi
-                                </label>
-                                <span className="text-[0.75rem] text-text-muted/60">{images.length} ta rasm yuklangan</span>
-                            </div>
-
-                            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-                                {images.map((imgUrl, idx) => (
-                                    <div key={idx} className="relative rounded-xl overflow-hidden group border border-border aspect-square">
-                                        <img
-                                            src={imgUrl}
-                                            alt={`Gallery ${idx + 1}`}
-                                            className="w-full h-full object-cover"
-                                        />
-                                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                            <button
-                                                type="button"
-                                                onClick={() => removeImage(idx)}
-                                                className="w-8 h-8 bg-rose-500/90 hover:bg-rose-500 text-white rounded-full flex items-center justify-center transition-all"
-                                            >
-                                                <X size={14} />
-                                            </button>
-                                        </div>
-                                        {idx === 0 && (
-                                            <div className="absolute bottom-1 left-1 bg-primary/90 text-[0.6rem] font-bold px-1.5 py-0.5 rounded text-white">
-                                                Muqova
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-
-                                {/* Upload slot */}
-                                <div
-                                    onClick={() => !isUploading && fileInputRef.current?.click()}
-                                    className="border-2 border-dashed border-border rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all aspect-square group"
-                                >
-                                    <input
-                                        type="file"
-                                        ref={fileInputRef}
-                                        onChange={handleFileUpload}
-                                        accept="image/jpeg,image/png,image/webp"
-                                        className="hidden"
-                                        multiple
-                                    />
-                                    {isUploading ? (
-                                        <Loader2 size={22} className="text-primary animate-spin" />
-                                    ) : (
-                                        <>
-                                            <div className="w-8 h-8 rounded-full bg-surface-hover flex items-center justify-center mb-1 group-hover:bg-primary/10 transition-colors">
-                                                <ImageIcon size={16} className="text-text-muted group-hover:text-primary transition-colors" />
-                                            </div>
-                                            <p className="text-text-muted text-[0.7rem] text-center px-1">Rasm qo'sh</p>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
+                        
 
                     </div>
 
-                    {/* Footer */}
-                    <div className="flex justify-end gap-3 p-5 border-t border-border bg-white/3 rounded-b-2xl shrink-0">
+                    {/* Actions */}
+                    <div className="flex justify-end gap-3 p-5 border-t border-border bg-surface-hover rounded-b-2xl mt-auto shrink-0">
                         <button
                             type="button"
                             onClick={onClose}
                             disabled={isSubmitting}
-                            className="px-5 py-2.5 rounded-xl border border-transparent font-semibold text-text hover:bg-surface-hover transition-colors text-[0.95rem] disabled:opacity-50"
+                            className="px-5 py-2.5 rounded-xl border border-white/10 bg-transparent text-text font-semibold cursor-pointer transition-colors hover:bg-white/5 disabled:opacity-50"
                         >
                             Bekor qilish
                         </button>
@@ -315,14 +317,15 @@ export default function AdminNewsModal({
                             type="submit"
                             form="news-form"
                             disabled={isSubmitting || isUploading || !title || !content}
-                            className="flex items-center gap-2 px-6 py-2.5 bg-primary text-white font-bold rounded-xl hover:bg-primary-hover transition-colors text-[0.95rem] shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex items-center gap-2 px-6 py-2.5 rounded-xl border-none font-semibold cursor-pointer transition-all bg-primary text-white hover:bg-primary-hover hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(99,102,241,0.3)] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
                         >
-                            {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : null}
+                            {isSubmitting && <Loader2 size={18} className="animate-spin" />}
                             {editingNews ? "Yangilash" : "Saqlash"}
                         </button>
                     </div>
                 </form>
             </div>
-        </div>
+        </div>,
+        document.body
     )
 }
