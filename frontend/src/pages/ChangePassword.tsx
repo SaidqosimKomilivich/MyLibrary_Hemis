@@ -68,7 +68,7 @@ export default function ChangePassword() {
                         <GraduationCap size={32} strokeWidth={1.8} />
                         <div className="absolute inset-0 rounded-2xl border border-white/20" />
                     </div>
-                    <h1 className="text-[1.8rem] font-extrabold text-white mb-2 tracking-tight">Parolni Yangilash</h1>
+                    <h1 className="text-[1.8rem] font-extrabold text-text mb-2 tracking-tight">Parolni Yangilash</h1>
                     <p className="text-[0.95rem] text-text-muted m-0">
                         Xavfsizlik uchun parolingizni yangilashingiz shart
                     </p>
@@ -85,7 +85,7 @@ export default function ChangePassword() {
                                 placeholder="Joriy parolni kiriting"
                                 value={oldPassword}
                                 onChange={(e) => setOldPassword(e.target.value)}
-                                className="w-full bg-black/20 border border-border text-white px-4 py-3.5 pl-11 rounded-xl text-[1rem] outline-none transition-all focus:border-primary-light focus:bg-black/30 placeholder:text-text-muted/50"
+                                className="w-full bg-surface-hover border border-border text-text px-4 py-3.5 pl-11 rounded-xl text-[1rem] outline-none transition-all focus:border-primary-light focus:bg-canvas/50 placeholder:text-text-muted/50"
                             />
                         </div>
                     </div>
@@ -100,7 +100,7 @@ export default function ChangePassword() {
                                 placeholder="Yangi parolni kiriting"
                                 value={newPassword}
                                 onChange={(e) => setNewPassword(e.target.value)}
-                                className="w-full bg-black/20 border border-border text-white px-4 py-3.5 pl-11 rounded-xl text-[1rem] outline-none transition-all focus:border-primary-light focus:bg-black/30 placeholder:text-text-muted/50"
+                                className="w-full bg-surface-hover border border-border text-text px-4 py-3.5 pl-11 rounded-xl text-[1rem] outline-none transition-all focus:border-primary-light focus:bg-canvas/50 placeholder:text-text-muted/50"
                             />
                         </div>
                     </div>
@@ -115,12 +115,12 @@ export default function ChangePassword() {
                                 placeholder="Yangi parolni qayta kiriting"
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
-                                className="w-full bg-black/20 border border-border text-white px-4 py-3.5 pl-11 pr-12 rounded-xl text-[1rem] outline-none transition-all focus:border-primary-light focus:bg-black/30 placeholder:text-text-muted/50"
+                                className="w-full bg-surface-hover border border-border text-text px-4 py-3.5 pl-11 pr-12 rounded-xl text-[1rem] outline-none transition-all focus:border-primary-light focus:bg-canvas/50 placeholder:text-text-muted/50"
                             />
                             <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-3 p-1.5 bg-transparent border-none text-text-muted cursor-pointer transition-colors hover:text-white rounded-lg hover:bg-white/10 flex items-center justify-center outline-none"
+                                className="absolute right-3 p-1.5 bg-transparent border-none text-text-muted cursor-pointer transition-colors hover:text-text rounded-lg hover:bg-surface-hover flex items-center justify-center outline-none"
                             >
                                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                             </button>
@@ -143,11 +143,11 @@ export default function ChangePassword() {
                         )}
                     </button>
 
-                    <div className="text-center mt-4 pt-4 border-t border-white/10" style={{ marginTop: '1rem' }}>
+                    <div className="text-center mt-4 pt-4 border-t border-border" style={{ marginTop: '1rem' }}>
                         <button
                             type="button"
                             onClick={async () => { await logout(); navigate('/'); }}
-                            className="bg-transparent border-none text-[0.9rem] font-medium text-text-muted cursor-pointer transition-colors hover:text-white hover:underline decoration-white/30 underline-offset-4 outline-none"
+                            className="bg-transparent border-none text-[0.9rem] font-medium text-text-muted cursor-pointer transition-colors hover:text-text hover:underline decoration-text/30 underline-offset-4 outline-none"
                         >
                             Chiqish
                         </button>

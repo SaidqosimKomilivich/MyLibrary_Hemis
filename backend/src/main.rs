@@ -6,6 +6,7 @@ mod handlers;
 mod middleware;
 mod models;
 mod repository;
+mod scheduler;
 mod seeder;
 mod services;
 
@@ -17,13 +18,13 @@ use crate::config::Config;
 use crate::handlers::auth_handler;
 use crate::handlers::book_handler;
 use crate::handlers::control_handler;
+use crate::handlers::news_handler;
 use crate::handlers::reading_handler;
 use crate::handlers::rental_handler;
 use crate::handlers::report_handler;
 use crate::handlers::request_handler;
 use crate::handlers::sync_handler;
 use crate::handlers::upload_handler;
-use crate::handlers::news_handler;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -65,6 +66,12 @@ async fn main() -> std::io::Result<()> {
     if let Err(e) = seeder::seed_admin(&pool).await {
         tracing::error!("❌ Admin yaratishda xatolik: {}", e);
     }
+
+    // AUTO-CHECKOUT SCHEDULER: fonda ishga tushirish
+    // Har kuni 20:00 da chiqmay ketib qolgan foydalanuvchilarni avtomatik yopadi
+    let scheduler_pool = pool.clone();
+    tokio::spawn(scheduler::start_auto_checkout_scheduler(scheduler_pool));
+    tracing::info!("Auto-checkout scheduleri fonda ishga tushirildi");
 
     // 5. Uploads papkasini yaratish
     let upload_dir = config.upload_dir.clone();
@@ -116,14 +123,26 @@ async fn main() -> std::io::Result<()> {
                     .route("", web::post().to(book_handler::create_book))
                     .route("/submit", web::post().to(book_handler::submit_book))
                     .route("/pending", web::get().to(book_handler::get_pending_books))
-                    .route("/teacher-submissions", web::get().to(book_handler::get_teacher_submissions))
-                    .route("/my-submissions", web::get().to(book_handler::get_my_submissions))
-                    .route("/set-all-active", web::put().to(book_handler::set_all_active))
+                    .route(
+                        "/teacher-submissions",
+                        web::get().to(book_handler::get_teacher_submissions),
+                    )
+                    .route(
+                        "/my-submissions",
+                        web::get().to(book_handler::get_my_submissions),
+                    )
+                    .route(
+                        "/set-all-active",
+                        web::put().to(book_handler::set_all_active),
+                    )
                     // /{id} routelari — eng oxirida
                     .route("/{id}", web::get().to(book_handler::get_book))
                     .route("/{id}", web::put().to(book_handler::update_book))
                     .route("/{id}", web::delete().to(book_handler::delete_book))
-                    .route("/{id}/toggle-active", web::put().to(book_handler::toggle_book_active)),
+                    .route(
+                        "/{id}/toggle-active",
+                        web::put().to(book_handler::toggle_book_active),
+                    ),
             )
             // Control routes (foydalanuvchilar kelib-ketishini nazorat qilish)
             .service(
@@ -158,15 +177,27 @@ async fn main() -> std::io::Result<()> {
                     .route("", web::post().to(request_handler::create_request))
                     .route("", web::get().to(request_handler::get_all_requests))
                     .route("/my", web::get().to(request_handler::get_my_requests))
-                    .route("/{id}/status", web::put().to(request_handler::update_request_status)),
+                    .route(
+                        "/{id}/status",
+                        web::put().to(request_handler::update_request_status),
+                    ),
             )
             // Report routes
             .service(
                 web::scope("/api/reports")
                     .route("/dashboard", web::get().to(report_handler::get_dashboard))
-                    .route("/admin-dashboard", web::get().to(report_handler::get_admin_dashboard))
-                    .route("/my-dashboard", web::get().to(report_handler::get_my_dashboard))
-                    .route("/employee-dashboard", web::get().to(report_handler::get_employee_dashboard))
+                    .route(
+                        "/admin-dashboard",
+                        web::get().to(report_handler::get_admin_dashboard),
+                    )
+                    .route(
+                        "/my-dashboard",
+                        web::get().to(report_handler::get_my_dashboard),
+                    )
+                    .route(
+                        "/employee-dashboard",
+                        web::get().to(report_handler::get_employee_dashboard),
+                    )
                     .route("/export", web::get().to(report_handler::export_excel)),
             )
             // News routes (admin: full CRUD)
@@ -185,7 +216,10 @@ async fn main() -> std::io::Result<()> {
                     .route("/stats", web::get().to(report_handler::get_public_stats))
                     .route("/books", web::get().to(book_handler::get_public_books))
                     .route("/news", web::get().to(news_handler::list_public_news))
-                    .route("/news/{id_or_slug}", web::get().to(news_handler::get_public_news)),
+                    .route(
+                        "/news/{id_or_slug}",
+                        web::get().to(news_handler::get_public_news),
+                    ),
             )
             // Sync routes (HEMIS sinxronlash)
             .service(
@@ -209,10 +243,16 @@ async fn main() -> std::io::Result<()> {
                 web::scope("/api/users")
                     .route("/{id}", web::get().to(sync_handler::get_user_by_id))
                     .route("/{id}/role", web::put().to(sync_handler::update_user_role))
-                    .route("/{id}/status", web::put().to(sync_handler::update_user_status)),
+                    .route(
+                        "/{id}/status",
+                        web::put().to(sync_handler::update_user_status),
+                    ),
             )
             // Static files (uploads papkasini brauzerdan ko'rish uchun explicit streaming NamedFile route)
-            .route("/uploads/{subdir}/{filename}", web::get().to(upload_handler::serve_file))
+            .route(
+                "/uploads/{subdir}/{filename}",
+                web::get().to(upload_handler::serve_file),
+            )
     })
     .bind(&server_addr)?
     .run()

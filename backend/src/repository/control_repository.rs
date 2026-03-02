@@ -72,7 +72,10 @@ impl ControlRepository {
     }
 
     /// Foydalanuvchining barcha kelish-ketish tarixi
-    pub async fn find_by_user_id(pool: &PgPool, user_id: &str) -> Result<Vec<ControlWithUser>, AppError> {
+    pub async fn find_by_user_id(
+        pool: &PgPool,
+        user_id: &str,
+    ) -> Result<Vec<ControlWithUser>, AppError> {
         let records = sqlx::query_as::<_, ControlWithUser>(
             r#"SELECT 
                  c."id", c."user_id", c."arrival", c."departure",
@@ -122,5 +125,20 @@ impl ControlRepository {
             .await?;
 
         Ok(result.rows_affected() > 0)
+    }
+
+    /// Bugungi barcha aktiv sessiyalarni avtomatik yopish (20:00:00 ga o'rnatish)
+    /// Chiqmay ketib qolgan foydalanuvchilar uchun scheduler tomonidan chaqiriladi
+    pub async fn auto_depart_all_active(pool: &PgPool) -> Result<u64, AppError> {
+        let result = sqlx::query(
+            r#"UPDATE "control"
+               SET "departure" = (CURRENT_DATE + TIME '20:00:00')
+               WHERE "arrival"::date = CURRENT_DATE
+                 AND ("departure" IS NULL OR "arrival" = "departure")"#,
+        )
+        .execute(pool)
+        .await?;
+
+        Ok(result.rows_affected())
     }
 }
