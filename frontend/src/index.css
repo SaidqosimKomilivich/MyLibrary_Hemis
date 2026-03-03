@@ -213,20 +213,21 @@
   transform: rotateX(25deg);
 }
 
+/* ===== LIGHT THEME (default) ===== */
 .book-page {
   position: absolute;
   top: 0;
   right: 0;
   width: 50%;
   height: 100%;
-  background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  border-left: 1px solid rgba(16, 185, 129, 0.8);
+  background: linear-gradient(135deg, rgba(241, 245, 249, 0.95), rgba(226, 232, 240, 0.98));
+  border: 1px solid rgba(79, 70, 229, 0.25);
+  border-left: 1px solid rgba(79, 70, 229, 0.6);
   border-radius: 0 16px 16px 0;
   transform-origin: left center;
   transform-style: preserve-3d;
   animation: page-flip-anim 8s cubic-bezier(0.645, 0.045, 0.355, 1) infinite;
-  box-shadow: inset 6px 0 15px rgba(0, 0, 0, 0.5), inset -2px 0 5px rgba(255, 255, 255, 0.05);
+  box-shadow: inset 6px 0 15px rgba(0, 0, 0, 0.08), inset -2px 0 5px rgba(255, 255, 255, 0.5);
 }
 
 .book-page::before {
@@ -236,8 +237,8 @@
   left: 15%;
   right: 15%;
   height: 2px;
-  background: rgba(16, 185, 129, 0.2);
-  box-shadow: 0 15px 0 rgba(16, 185, 129, 0.2), 0 30px 0 rgba(16, 185, 129, 0.2), 0 45px 0 rgba(16, 185, 129, 0.2), 0 60px 0 rgba(16, 185, 129, 0.2);
+  background: rgba(79, 70, 229, 0.15);
+  box-shadow: 0 15px 0 rgba(79, 70, 229, 0.15), 0 30px 0 rgba(79, 70, 229, 0.15), 0 45px 0 rgba(79, 70, 229, 0.15), 0 60px 0 rgba(79, 70, 229, 0.15);
 }
 
 .book-page-right {
@@ -246,11 +247,11 @@
   right: 0;
   width: 50%;
   height: 100%;
-  background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  border-left: 1px solid rgba(16, 185, 129, 0.8);
+  background: linear-gradient(135deg, rgba(241, 245, 249, 0.95), rgba(226, 232, 240, 0.98));
+  border: 1px solid rgba(79, 70, 229, 0.25);
+  border-left: 1px solid rgba(79, 70, 229, 0.6);
   border-radius: 0 16px 16px 0;
-  box-shadow: inset 6px 0 15px rgba(0, 0, 0, 0.5);
+  box-shadow: inset 6px 0 15px rgba(0, 0, 0, 0.08);
 }
 
 .book-page-left {
@@ -259,10 +260,37 @@
   left: 0;
   width: 50%;
   height: 100%;
+  background: linear-gradient(-135deg, rgba(241, 245, 249, 0.95), rgba(226, 232, 240, 0.98));
+  border: 1px solid rgba(79, 70, 229, 0.25);
+  border-right: 1px solid rgba(79, 70, 229, 0.6);
+  border-radius: 16px 0 0 16px;
+  box-shadow: inset -6px 0 15px rgba(0, 0, 0, 0.08);
+}
+
+/* ===== DARK THEME ===== */
+.dark .book-page {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-left: 1px solid rgba(16, 185, 129, 0.8);
+  box-shadow: inset 6px 0 15px rgba(0, 0, 0, 0.5), inset -2px 0 5px rgba(255, 255, 255, 0.05);
+}
+
+.dark .book-page::before {
+  background: rgba(16, 185, 129, 0.2);
+  box-shadow: 0 15px 0 rgba(16, 185, 129, 0.2), 0 30px 0 rgba(16, 185, 129, 0.2), 0 45px 0 rgba(16, 185, 129, 0.2), 0 60px 0 rgba(16, 185, 129, 0.2);
+}
+
+.dark .book-page-right {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-left: 1px solid rgba(16, 185, 129, 0.8);
+  box-shadow: inset 6px 0 15px rgba(0, 0, 0, 0.5);
+}
+
+.dark .book-page-left {
   background: linear-gradient(-135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
   border: 1px solid rgba(16, 185, 129, 0.3);
   border-right: 1px solid rgba(16, 185, 129, 0.8);
-  border-radius: 16px 0 0 16px;
   box-shadow: inset -6px 0 15px rgba(0, 0, 0, 0.5);
 }
 

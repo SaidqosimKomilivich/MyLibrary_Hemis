@@ -78,13 +78,45 @@ export default function ProfilePage() {
                 isTransformed = true
             }
 
-            await new Promise(r => setTimeout(r, 50))
+            // Tashqi rasmlarni backend proxy orqali data URL ga aylantirish (CORS muammosini hal qiladi)
+            const externalImages = targetRef.current.querySelectorAll('img') as NodeListOf<HTMLImageElement>
+            const originalSrcs: { img: HTMLImageElement; src: string }[] = []
+
+            for (const img of externalImages) {
+                const src = img.src
+                if (src && src.startsWith('http') && !src.includes(window.location.hostname)) {
+                    try {
+                        const proxyUrl = `/api/proxy/image?url=${encodeURIComponent(src)}`
+                        const res = await fetch(proxyUrl)
+                        if (res.ok) {
+                            const blob = await res.blob()
+                            const dataUrl = await new Promise<string>((resolve) => {
+                                const reader = new FileReader()
+                                reader.onloadend = () => resolve(reader.result as string)
+                                reader.readAsDataURL(blob)
+                            })
+                            originalSrcs.push({ img, src })
+                            img.src = dataUrl
+                        }
+                    } catch (e) {
+                        console.warn('Rasmni proxy orqali yuklashda xatolik:', e)
+                    }
+                }
+            }
+
+            await new Promise(r => setTimeout(r, 100))
 
             const dataUrl = await toPng(targetRef.current, {
                 cacheBust: true,
                 pixelRatio: 1,
                 backgroundColor: '#ffffff',
+                skipFonts: true,
             })
+
+            // Asl src larni qaytarish
+            for (const { img, src } of originalSrcs) {
+                img.src = src
+            }
 
             if (cardFlipped && backRef.current) {
                 backRef.current.style.transform = 'rotateY(180deg)'
@@ -359,26 +391,26 @@ export default function ProfilePage() {
                                         <defs>
                                             {/* <!-- Ko‘k gradient --> */}
                                             <linearGradient id="blueGrad" x1="0" y1="0" x2="1" y2="0">
-                                                <stop offset="0%" stop-color="#1e2a78" />
-                                                <stop offset="100%" stop-color="#1f6aa5" />
+                                                <stop offset="0%" stopColor="#1e2a78" />
+                                                <stop offset="100%" stopColor="#1f6aa5" />
                                             </linearGradient>
 
                                             {/* <!-- Oltin gradient --> */}
                                             <linearGradient id="goldGrad" x1="0" y1="0" x2="1" y2="0">
-                                                <stop offset="0%" stop-color="#caa23a" />
-                                                <stop offset="50%" stop-color="#f6e27a" />
-                                                <stop offset="100%" stop-color="#b8860b" />
+                                                <stop offset="0%" stopColor="#caa23a" />
+                                                <stop offset="50%" stopColor="#f6e27a" />
+                                                <stop offset="100%" stopColor="#b8860b" />
                                             </linearGradient>
 
                                             {/* <!-- Och oltin (gap uchun) --> */}
                                             <linearGradient id="lightGold" x1="0" y1="0" x2="1" y2="0">
-                                                <stop offset="0%" stop-color="#f8e9a1" />
-                                                <stop offset="100%" stop-color="#e6c65c" />
+                                                <stop offset="0%" stopColor="#f8e9a1" />
+                                                <stop offset="100%" stopColor="#e6c65c" />
                                             </linearGradient>
 
                                             {/* <!-- Shadow --> */}
                                             <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-                                                <feDropShadow dx="0" dy="10" stdDeviation="15" flood-opacity="0.2" />
+                                                <feDropShadow dx="0" dy="10" stdDeviation="15" floodOpacity="0.2" />
                                             </filter>
 
                                             {/* <!-- Rounded clip --> */}
@@ -390,7 +422,7 @@ export default function ProfilePage() {
                                         {/* <!-- Karta --> */}
                                         <rect width="420" height="280" fill="#f4f4f6" filter="url(#shadow)" />
 
-                                        <g clip-path="url(#cardClip)">
+                                        <g clipPath="url(#cardClip)">
 
                                             {/* <!-- Ko‘k qism --> */}
                                             <path d="M 0 0 L 420 0 L 420 90 C 330 80, 260 75, 200 90 C 140 105, 80 115, 0 100 Z " fill="url(#blueGrad)" />
@@ -451,28 +483,28 @@ export default function ProfilePage() {
                                     <svg width="420" height="280" viewBox="0 0 420 280" className='rounded-2xl'>
                                         <defs>
                                             <linearGradient id="blueGrad" x1="0" y1="0" x2="1" y2="0">
-                                                <stop offset="0%" stop-color="#1e2a78" />
-                                                <stop offset="100%" stop-color="#1f6aa5" />
+                                                <stop offset="0%" stopColor="#1e2a78" />
+                                                <stop offset="100%" stopColor="#1f6aa5" />
                                             </linearGradient>
 
                                             <linearGradient id="darkBlue" x1="0" y1="0" x2="1" y2="0">
-                                                <stop offset="0%" stop-color="#1b2a60" />
-                                                <stop offset="100%" stop-color="#174f7a" />
+                                                <stop offset="0%" stopColor="#1b2a60" />
+                                                <stop offset="100%" stopColor="#174f7a" />
                                             </linearGradient>
 
                                             <linearGradient id="goldGrad" x1="0" y1="0" x2="1" y2="0">
-                                                <stop offset="0%" stop-color="#caa23a" />
-                                                <stop offset="50%" stop-color="#f6e27a" />
-                                                <stop offset="100%" stop-color="#b8860b" />
+                                                <stop offset="0%" stopColor="#caa23a" />
+                                                <stop offset="50%" stopColor="#f6e27a" />
+                                                <stop offset="100%" stopColor="#b8860b" />
                                             </linearGradient>
 
                                             <linearGradient id="grad1">
-                                                <stop offset="0%" stop-color="blue" />
-                                                <stop offset="100%" stop-color="cyan" />
+                                                <stop offset="0%" stopColor="blue" />
+                                                <stop offset="100%" stopColor="cyan" />
                                             </linearGradient>
 
                                             <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-                                                <feDropShadow dx="0" dy="8" stdDeviation="12" flood-opacity="0.25" />
+                                                <feDropShadow dx="0" dy="8" stdDeviation="12" floodOpacity="0.25" />
                                             </filter>
 
                                             <clipPath id="cardClip">
@@ -484,9 +516,9 @@ export default function ProfilePage() {
                                         {/* <!-- Asosiy karta --> */}
                                         <rect width="420" height="280" fill="#f5f5f5" filter="url(#shadow)" />
 
-                                        <line x1="0" y1="220" x2="420" y2="221" stroke="url(#grad1)" stroke-width="1" />
+                                        <line x1="0" y1="220" x2="420" y2="221" stroke="url(#grad1)" strokeWidth="1" />
 
-                                        <g clip-path="url(#cardClip)">
+                                        <g clipPath="url(#cardClip)">
 
                                             {/* <!-- Yuqori ko‘k strip --> */}
                                             <rect x="0" y="25" width="420" height="45" fill="url(#blueGrad)" />

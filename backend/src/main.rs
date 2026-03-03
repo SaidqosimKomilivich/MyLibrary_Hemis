@@ -161,6 +161,8 @@ async fn main() -> std::io::Result<()> {
                     .route("/{id}", web::get().to(rental_handler::get_rental))
                     .route("/{id}/return", web::put().to(rental_handler::return_rental)),
             )
+            // Image proxy (HEMIS rasmlarini CORS muammosisiz yuklash)
+            .route("/api/proxy/image", web::get().to(sync_handler::proxy_image))
             // Upload routes
             .route("/api/upload", web::post().to(upload_handler::upload_file))
             .route("/api/upload", web::delete().to(upload_handler::delete_file))

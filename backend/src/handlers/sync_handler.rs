@@ -446,3 +446,54 @@ pub async fn update_user_status(
         "message": format!("Foydalanuvchi holati '{}' ga o'zgartirildi", status_label)
     })))
 }
+
+/// GET /api/proxy/image?url=...
+/// Tashqi (HEMIS) rasmlarni proxy orqali yuklash — CORS muammosini hal qiladi
+pub async fn proxy_image(
+    query: web::Query<std::collections::HashMap<String, String>>,
+) -> Result<HttpResponse, actix_web::Error> {
+    let url = match query.get("url") {
+        Some(u) if !u.is_empty() => u.clone(),
+        _ => {
+            return Ok(HttpResponse::BadRequest().json(serde_json::json!({
+                "error": "url parametri kerak"
+            })));
+        }
+    };
+
+    // Faqat ruxsat etilgan domenlardan rasm olish (xavfsizlik)
+    if !url.contains("hemis.") && !url.contains("jbnuu.uz") {
+        return Ok(HttpResponse::Forbidden().json(serde_json::json!({
+            "error": "Faqat HEMIS serveridan rasm olish mumkin"
+        })));
+    }
+
+    let client = reqwest::Client::builder()
+        .danger_accept_invalid_certs(true)
+        .build()
+        .map_err(|e| {
+            actix_web::error::ErrorInternalServerError(format!("HTTP client xatosi: {}", e))
+        })?;
+
+    let response =
+        client.get(&url).send().await.map_err(|e| {
+            actix_web::error::ErrorBadGateway(format!("Rasmni olishda xatolik: {}", e))
+        })?;
+
+    let content_type = response
+        .headers()
+        .get("content-type")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("image/jpeg")
+        .to_string();
+
+    let bytes = response.bytes().await.map_err(|e| {
+        actix_web::error::ErrorBadGateway(format!("Rasmni o'qishda xatolik: {}", e))
+    })?;
+
+    Ok(HttpResponse::Ok()
+        .content_type(content_type)
+        .insert_header(("Cache-Control", "public, max-age=86400"))
+        .insert_header(("Access-Control-Allow-Origin", "*"))
+        .body(bytes))
+}
