@@ -121,10 +121,10 @@ export default function PendingBooksPage() {
                 <div>
                     <h1 className="flex items-center gap-3 text-2xl font-bold text-text">
                         <Clock size={26} className="text-amber-400" />
-                        Kitoblarni ko'rib chiqish
+                        Taqdim qilingan kitoblar
                     </h1>
                     <p className="text-sm text-text-muted mt-1.5">
-                        O'qituvchilar taqdim etgan va barcha kutubxona kitoblari
+                        O'qituvchilar taqdim etgan barcha kitoblari
                     </p>
                 </div>
                 <button

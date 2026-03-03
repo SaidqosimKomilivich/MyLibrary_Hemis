@@ -123,10 +123,10 @@ export default function Login() {
                     </button>
                 </form>
 
-                {/* Footer */}
+                {/* Footer
                 <p className="text-center mt-7 text-[0.75rem] text-text-muted opacity-60">
                     © 2026 Kutubxona Axborot Tizimi
-                </p>
+                </p> */}
             </div>
         </div>
     )

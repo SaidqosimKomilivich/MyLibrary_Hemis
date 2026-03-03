@@ -13,7 +13,7 @@ interface AdminNewsModalProps {
     editingNews: any | null
 }
 
-const CATEGORIES = ["E'lon", "Yangilik", "Yangilanish", "Boshqa"]
+const CATEGORIES = ["E'lon", "Yangilik"]
 
 export default function AdminNewsModal({
     isOpen,
@@ -268,7 +268,7 @@ export default function AdminNewsModal({
                                 value={content}
                                 onChange={(e) => setContent(e.target.value)}
                                 className={`${inputClass} resize-y min-h-[120px]`}
-                                placeholder="Yangilikning to'liq matni (Markdown ham qabul qilinadi)"
+                                placeholder="Yangilik matni"
                                 required
                             />
                         </div>

@@ -31,7 +31,7 @@ export default function PublicNavbar() {
                         className="w-8 h-8 object-contain"
                     />
                     <span className="text-[0.72rem] font-bold leading-snug text-text max-w-[200px] sm:max-w-xs">
-                        Mirzo Ulug'bek nomidagi O'zbekiston Milliy universitetining Jizzax filiali «ARM»
+                        Mirzo Ulug'bek nomidagi O'zbekiston Milliy universitetining Jizzax filiali «Axborot Resurs Markazi»
                     </span>
                 </Link>
                 <div className="flex items-center gap-6">

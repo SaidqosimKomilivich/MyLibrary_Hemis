@@ -47,7 +47,7 @@ export default function MyRentals() {
         <div className="animate-page-enter">
             <div className="mb-7">
                 <h1 className="text-[1.6rem] font-bold tracking-[-0.02em] mb-1">Mening ijaralarim</h1>
-                <p className="text-[0.9rem] text-text-muted">Sizning barcha joriy va qaytarilgan ijaralaringiz ro'yxati</p>
+                {/* <p className="text-[0.9rem] text-text-muted">Sizning barcha joriy va qaytarilgan ijaralaringiz ro'yxati</p> */}
             </div>
 
             {isLoading ? (

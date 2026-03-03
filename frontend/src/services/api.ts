@@ -71,9 +71,15 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
     })
 
     // Token muddati tugagan — avtomatik logout
-    if (res.status === 401 && !url.includes('/auth/login')) {
+    // /auth/me va /auth/login uchun toast chiqmasin — faqat konsolga yozilsin
+    if (res.status === 401 && !url.includes('/auth/login') && !url.includes('/auth/me')) {
         window.dispatchEvent(new CustomEvent('auth:unauthorized'))
         throw new ApiError('Sessiya muddati tugagan. Qayta kiring.', 401)
+    }
+
+    if (res.status === 401 && url.includes('/auth/me')) {
+        console.warn('[Auth] Foydalanuvchi tizimga kirmagan (401 /auth/me)')
+        throw new ApiError('Avtorizatsiya talab qilinadi', 401)
     }
 
     let data: any

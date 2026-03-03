@@ -180,51 +180,51 @@ function UserDetailModal({ user, type, onClose }: { user: UserData; type: 'stude
 }
 
 // Haqiqiy HEMIS sinxronlash hook
-function useHemisSync(
-    syncFn: () => Promise<{ success: boolean; message: string; created: number; updated: number; total: number }>,
-    reloadFn: () => Promise<void>,
-) {
-    const [progress, setProgress] = useState(0)
-    const [syncResult, setSyncResult] = useState<{ created: number; updated: number; total: number } | null>(null)
+// function useHemisSync(
+//     syncFn: () => Promise<{ success: boolean; message: string; created: number; updated: number; total: number }>,
+//     reloadFn: () => Promise<void>,
+// ) {
+//     const [progress, setProgress] = useState(0)
+//     const [syncResult, setSyncResult] = useState<{ created: number; updated: number; total: number } | null>(null)
 
-    const handleSync = useCallback(async () => {
-        setProgress(10)
-        setSyncResult(null)
+//     const handleSync = useCallback(async () => {
+//         setProgress(10)
+//         setSyncResult(null)
 
-        const progressInterval = window.setInterval(() => {
-            setProgress(prev => {
-                if (prev >= 90) return prev
-                return prev + Math.floor(Math.random() * 5) + 1
-            })
-        }, 300)
+//         const progressInterval = window.setInterval(() => {
+//             setProgress(prev => {
+//                 if (prev >= 90) return prev
+//                 return prev + Math.floor(Math.random() * 5) + 1
+//             })
+//         }, 300)
 
-        try {
-            const resp = await syncFn()
-            clearInterval(progressInterval)
+//         try {
+//             const resp = await syncFn()
+//             clearInterval(progressInterval)
 
-            if (resp.success) {
-                setProgress(100)
-                setSyncResult({ created: resp.created, updated: resp.updated, total: resp.total })
-                toast.success(resp.message || 'Sinxronlash muvaffaqiyatli')
-                await reloadFn()
-            } else {
-                setProgress(0)
-                toast.error(resp.message || 'Sinxronlashda xatolik')
-            }
-        } catch (e) {
-            clearInterval(progressInterval)
-            setProgress(0)
-            toast.error(e instanceof Error ? e.message : 'HEMIS bilan aloqa uzildi')
-        }
-    }, [syncFn, reloadFn])
+//             if (resp.success) {
+//                 setProgress(100)
+//                 setSyncResult({ created: resp.created, updated: resp.updated, total: resp.total })
+//                 toast.success(resp.message || 'Sinxronlash muvaffaqiyatli')
+//                 await reloadFn()
+//             } else {
+//                 setProgress(0)
+//                 toast.error(resp.message || 'Sinxronlashda xatolik')
+//             }
+//         } catch (e) {
+//             clearInterval(progressInterval)
+//             setProgress(0)
+//             toast.error(e instanceof Error ? e.message : 'HEMIS bilan aloqa uzildi')
+//         }
+//     }, [syncFn, reloadFn])
 
-    const reset = useCallback(() => {
-        setProgress(0)
-        setSyncResult(null)
-    }, [])
+//     const reset = useCallback(() => {
+//         setProgress(0)
+//         setSyncResult(null)
+//     }, [])
 
-    return { progress, syncResult, handleSync, reset, streamMessage: '' }
-}
+//     return { progress, syncResult, handleSync, reset, streamMessage: '' }
+// }
 
 // SSE (Server-Sent Events) orqali haqiqiy progress oluvchi hook — universal
 type StreamFn = (onEvent: (event: { stage: string; message: string; processed: number; total: number; created: number; updated: number; current_page: number; total_pages: number }) => void) => { promise: Promise<void>; abort: () => void }
@@ -834,7 +834,7 @@ export default function UsersPage() {
                                 </div>
                                 <div>
                                     <h2 className="text-[1.1rem] font-bold text-text">HEMIS Sinxronlash</h2>
-                                    <p className="text-[0.82rem] text-text-muted mt-0.5">Foydalanuvchilarni HEMIS platformasidan yangilash</p>
+                                    {/* <p className="text-[0.82rem] text-text-muted mt-0.5">Foydalanuvchilarni HEMIS platformasidan yangilash</p> */}
                                 </div>
                             </div>
                             <button className="flex items-center justify-center w-8 h-8 rounded-lg border-none bg-transparent text-text-muted hover:bg-surface-hover hover:text-text transition-colors" onClick={() => setSyncModalOpen(false)}>

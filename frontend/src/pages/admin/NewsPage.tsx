@@ -68,8 +68,8 @@ export default function NewsPage() {
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-text">Yangiliklar boshqaruvi</h1>
-                    <p className="text-text-muted text-sm mt-1">Platformadagi barcha e'lon va yangiliklar</p>
+                    <h1 className="text-2xl font-bold text-text">Yangiliklar</h1>
+                    <p className="text-text-muted text-sm mt-1">Barcha e'lon va yangiliklar</p>
                 </div>
                 <button
                     onClick={openAddModal}

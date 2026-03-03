@@ -12,7 +12,6 @@ import PublicCatalog from './pages/PublicCatalog'
 import PublicLayout from './components/PublicLayout'
 import DashboardLayout from './components/DashboardLayout'
 import GlobalParticles from './components/GlobalParticles'
-import ComingSoon from './components/ComingSoon'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import NewsPage from './pages/admin/NewsPage'
 import NewsDetailPage from './pages/NewsDetailPage'
@@ -77,7 +76,7 @@ function AnimatedRoutes() {
         <Route path="access-control" element={<AccessControl />} />
         <Route path="lend" element={<AccessControl />} />
         <Route path="returns" element={<AccessControl />} />
-        <Route path="readers" element={<ComingSoon title="O'quvchilar" />} />
+        {/* <Route path="readers" element={<ComingSoon title="O'quvchilar" />} /> */}
         <Route path="profile" element={<ProfilePage />} />
       </Route>
 

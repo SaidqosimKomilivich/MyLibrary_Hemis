@@ -115,11 +115,11 @@ export default function AdminDashboard() {
 
     return (
         <div className="animate-page-enter">
-            <div className="flex items-center justify-between mb-7">
-                <div>
+            <div className="flex items-center justify-end mb-7">
+                {/* <div>
                     <h1 className="text-[1.6rem] font-bold tracking-[-0.02em] mb-1">Boshqaruv paneli</h1>
                     <p className="text-[0.9rem] text-text-muted">Tizim umumiy ko'rinishi</p>
-                </div>
+                </div> */}
 
                 {/* Month Selector */}
                 <div className="flex items-center gap-1 bg-surface border border-border rounded-xl p-1.5 shadow-[0_2px_12px_rgba(0,0,0,0.1)]">

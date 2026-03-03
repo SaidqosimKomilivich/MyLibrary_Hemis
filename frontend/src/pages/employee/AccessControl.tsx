@@ -404,7 +404,7 @@ export default function AccessControl() {
                                 <RefreshCw className="w-4 h-4" />
                             </button>
                         </div>
-                        <p className="text-text-muted text-sm">ID kartani kameraga tutib turing</p>
+                        {/* <p className="text-text-muted text-sm">ID kartani kameraga tutib turing</p> */}
                     </div>
 
                     {/* Kamera tanlash (agar 1 tadan ko'p bo'lsa) */}

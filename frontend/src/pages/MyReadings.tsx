@@ -107,9 +107,9 @@ export default function MyReadings() {
                         <BookMarked size={28} className="mr-2" />
                         O'qiyotgan kitoblar
                     </h1>
-                    <p className="text-[0.95rem] text-text-muted m-0">
+                    {/* <p className="text-[0.95rem] text-text-muted m-0">
                         Siz hozirda o'qiyotgan kitoblar ro'yxati
-                    </p>
+                    </p> */}
                 </div>
             </div>
 

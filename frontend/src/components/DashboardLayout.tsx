@@ -11,7 +11,6 @@ import {
     Menu,
     X,
     ClipboardList,
-    UserCheck,
     Library,
     Loader2,
     ScanLine,
@@ -61,7 +60,7 @@ const navByRole: Record<UserRole, NavItem[]> = {
         { label: 'Ijaralar', path: '/staff/rentals', icon: <Library size={20} /> },
         { label: "So'rovlar", path: '/staff/requests', icon: <ClipboardList size={20} /> },
         { label: 'Nazorat', path: '/staff/access-control', icon: <ScanLine size={20} /> },
-        { label: "O'quvchilar", path: '/staff/readers', icon: <UserCheck size={20} /> },
+        // { label: "O'quvchilar", path: '/staff/readers', icon: <UserCheck size={20} /> },
 
 
         { label: 'Profil', path: '/staff/profile', icon: <UserCircle size={20} /> },

@@ -43,18 +43,18 @@ export default function LandingPage() {
     return (
         <div className="w-full">
             {/* Hero Section */}
-            <section className="relative pt-20 pb-20 px-6 overflow-hidden">
+            <section className="relative pt-20 pb-20 px-6 h-screen overflow-hidden">
                 <div className="absolute inset-0 bg-linear-to-br from-emerald-500/5 via-canvas to-indigo-500/5 -z-10" />
                 <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[100px] -z-10 pointer-events-none" />
                 <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-indigo-500/10 rounded-full blur-[100px] -z-10 pointer-events-none" />
 
                 <div className="max-w-4xl mx-auto text-center relative z-10">
-                    <div
+                    {/* <div
                         className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface border border-border/50 text-sm font-medium mb-8 text-emerald-400 shadow-sm stagger-fade-up"
                         style={{ animationDelay: '0.1s' }}
                     >
                         <span>🚀</span> Yangi raqamli kutubxona tizimi
-                    </div>
+                    </div> */}
 
                     <h1
                         className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 leading-[1.1] stagger-fade-up"
@@ -370,7 +370,7 @@ export default function LandingPage() {
                                             <Mail size={24} />
                                         </div>
                                         <div>
-                                            <p className="font-bold text-[1.05rem] mb-0.5">support@library.uz</p>
+                                            <p className="font-bold text-[1.05rem] mb-0.5">arm@jbnuu.uz</p>
                                             <p className="text-sm text-text-muted">24/7 onlayn qabul va murojaatlar</p>
                                         </div>
                                     </div>
@@ -381,9 +381,9 @@ export default function LandingPage() {
                                         </div>
                                         <div>
                                             <p className="font-bold text-[1.05rem] mb-1 line-clamp-2 leading-tight">
-                                                Toshkent shahar, Universitetlar ko'chasi 1-A uy.
+                                                Jizzax viloyati, Jizzax shahri Sh.Rashidov shox ko'chasi, 259 uy
                                             </p>
-                                            <a href="#" className="text-sm text-emerald-500 hover:text-emerald-400 transition-colors font-medium hover:underline">Xaritada ko'rish</a>
+                                            {/* <a href="#" className="text-sm text-emerald-500 hover:text-emerald-400 transition-colors font-medium hover:underline">Xaritada ko'rish</a> */}
                                         </div>
                                     </div>
                                 </div>
@@ -400,17 +400,17 @@ export default function LandingPage() {
             <section className="py-20 px-6 bg-emerald-500/5 border-t border-emerald-500/10 text-center">
                 <div className="max-w-3xl mx-auto">
                     <h2 className="text-3xl font-bold mb-4">Kitob o'qishni bugundan boshlang</h2>
-                    <p className="text-text-muted mb-8 text-lg">Platformamizga a'zo bo'ling va minglab kitoblarga ega bo'ling.</p>
+                    {/* <p className="text-text-muted mb-8 text-lg">Platformamizga a'zo bo'ling va minglab kitoblarga ega bo'ling.</p> */}
                     <Link to="/login" className="inline-flex items-center justify-center px-8 py-3.5 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold transition-all hover:scale-105 shadow-[0_0_20px_rgba(16,185,129,0.3)]">
                         Hoziroq foydalanish
                     </Link>
                 </div>
             </section>
 
-            {/* Footer */}
+            {/* Footer
             <footer className="py-8 border-t border-border/50 bg-surface/80 text-center text-sm text-text-muted">
                 <p>© {new Date().getFullYear()} Tizim. Barcha huquqlar himoyalangan.</p>
-            </footer>
+            </footer> */}
         </div>
     )
 }

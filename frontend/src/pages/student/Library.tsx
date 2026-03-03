@@ -183,10 +183,11 @@ export default function Library() {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                 <div>
                     <h1 className="text-[1.8rem] font-bold text-text mb-1 tracking-tight">
-                        {canManageBooks ? 'Kitoblar boshqaruvi' : 'Kutubxona'}
+                        {canManageBooks ? 'Kitoblar' : 'Kutubxona'}
                     </h1>
                     <p className="text-[0.95rem] text-text-muted m-0">
-                        {canManageBooks ? "Kitoblarni qo'shish, tahrirlash va o'chirish" : 'Barcha mavjud kitoblar katalogi'}
+                        {/* {canManageBooks ? "Kitoblarni qo'shish, tahrirlash va o'chirish" : 'Barcha mavjud kitoblar katalogi'} */}
+                        {canManageBooks ? "Kitoblarni qo'shish, tahrirlash va o'chirish" : ''}
                     </p>
                 </div>
                 {canManageBooks && (

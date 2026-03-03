@@ -54,9 +54,9 @@ export default function MyRequestsPage() {
                 <h1 className="text-[1.8rem] font-bold text-text m-0 mb-2">
                     Mening so'rovlarim
                 </h1>
-                <p className="m-0 text-[0.95rem] text-text-muted">
+                {/* <p className="m-0 text-[0.95rem] text-text-muted">
                     Kutubxonaga yuborgan kitob so'rovlaringiz tarixi va holati
-                </p>
+                </p> */}
             </div>
 
             {isLoading ? (
