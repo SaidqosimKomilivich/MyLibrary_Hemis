@@ -354,15 +354,73 @@ export const api = {
         })
     },
 
-    // HEMIS sync endpoints
-    syncHemisStudents() {
-        return request<{
-            success: boolean;
-            message: string;
-            created: number;
-            updated: number;
-            total: number;
-        }>('/sync/students', { method: 'POST' })
+    // HEMIS sync endpoints — Talabalar (SSE Streaming)
+    syncHemisStudentsStream(
+        onEvent: (event: { stage: string; message: string; processed: number; total: number; created: number; updated: number; current_page: number; total_pages: number }) => void
+    ): { promise: Promise<void>; abort: () => void } {
+        const controller = new AbortController()
+        const token = localStorage.getItem('token')
+
+        const promise = (async () => {
+            const res = await fetch(`${API_BASE}/sync/students`, {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : '',
+                    'Accept': 'text/event-stream',
+                },
+                signal: controller.signal,
+            })
+
+            if (res.status === 401) {
+                window.dispatchEvent(new CustomEvent('auth:unauthorized'))
+                throw new Error('Sessiya muddati tugagan. Qayta kiring.')
+            }
+
+            if (!res.ok) {
+                let msg = 'Sinxronlashda xatolik'
+                try {
+                    const err = await res.json()
+                    msg = err.message || msg
+                } catch { /* ignore */ }
+                throw new Error(msg)
+            }
+
+            const reader = res.body?.getReader()
+            if (!reader) throw new Error('Stream mavjud emas')
+
+            const decoder = new TextDecoder()
+            let buffer = ''
+
+            while (true) {
+                const { done, value } = await reader.read()
+                if (done) break
+
+                buffer += decoder.decode(value, { stream: true })
+
+                // SSE formatini parse qilish: "event: ...\ndata: ...\n\n"
+                const parts = buffer.split('\n\n')
+                buffer = parts.pop() || '' // oxirgi to'liq bo'lmagan qismni saqlab qo'yamiz
+
+                for (const part of parts) {
+                    if (!part.trim()) continue
+                    const lines = part.split('\n')
+                    let data = ''
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            data = line.slice(6)
+                        }
+                    }
+                    if (data) {
+                        try {
+                            onEvent(JSON.parse(data))
+                        } catch { /* ignore parse errors */ }
+                    }
+                }
+            }
+        })()
+
+        return { promise, abort: () => controller.abort() }
     },
 
     getStudents(params: UserPaginationParams = {}) {
@@ -374,15 +432,72 @@ export const api = {
         return request<PaginatedUsersResponse>(`/sync/students?${query.toString()}`)
     },
 
-    // Teacher sync endpoints
-    syncHemisTeachers() {
-        return request<{
-            success: boolean;
-            message: string;
-            created: number;
-            updated: number;
-            total: number;
-        }>('/sync/teachers', { method: 'POST' })
+    // Teacher sync endpoints — O'qituvchilar (SSE Streaming)
+    syncHemisTeachersStream(
+        onEvent: (event: { stage: string; message: string; processed: number; total: number; created: number; updated: number; current_page: number; total_pages: number }) => void
+    ): { promise: Promise<void>; abort: () => void } {
+        const controller = new AbortController()
+        const token = localStorage.getItem('token')
+
+        const promise = (async () => {
+            const res = await fetch(`${API_BASE}/sync/teachers`, {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : '',
+                    'Accept': 'text/event-stream',
+                },
+                signal: controller.signal,
+            })
+
+            if (res.status === 401) {
+                window.dispatchEvent(new CustomEvent('auth:unauthorized'))
+                throw new Error('Sessiya muddati tugagan. Qayta kiring.')
+            }
+
+            if (!res.ok) {
+                let msg = 'Sinxronlashda xatolik'
+                try {
+                    const err = await res.json()
+                    msg = err.message || msg
+                } catch { /* ignore */ }
+                throw new Error(msg)
+            }
+
+            const reader = res.body?.getReader()
+            if (!reader) throw new Error('Stream mavjud emas')
+
+            const decoder = new TextDecoder()
+            let buffer = ''
+
+            while (true) {
+                const { done, value } = await reader.read()
+                if (done) break
+
+                buffer += decoder.decode(value, { stream: true })
+
+                const parts = buffer.split('\n\n')
+                buffer = parts.pop() || ''
+
+                for (const part of parts) {
+                    if (!part.trim()) continue
+                    const lines = part.split('\n')
+                    let data = ''
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            data = line.slice(6)
+                        }
+                    }
+                    if (data) {
+                        try {
+                            onEvent(JSON.parse(data))
+                        } catch { /* ignore parse errors */ }
+                    }
+                }
+            }
+        })()
+
+        return { promise, abort: () => controller.abort() }
     },
 
     getTeachers(params: UserPaginationParams = {}) {
@@ -394,15 +509,72 @@ export const api = {
         return request<PaginatedUsersResponse>(`/sync/teachers?${query.toString()}`)
     },
 
-    // Employee sync endpoints
-    syncHemisEmployees() {
-        return request<{
-            success: boolean;
-            message: string;
-            created: number;
-            updated: number;
-            total: number;
-        }>('/sync/employees', { method: 'POST' })
+    // Employee sync endpoints — Xodimlar (SSE Streaming)
+    syncHemisEmployeesStream(
+        onEvent: (event: { stage: string; message: string; processed: number; total: number; created: number; updated: number; current_page: number; total_pages: number }) => void
+    ): { promise: Promise<void>; abort: () => void } {
+        const controller = new AbortController()
+        const token = localStorage.getItem('token')
+
+        const promise = (async () => {
+            const res = await fetch(`${API_BASE}/sync/employees`, {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : '',
+                    'Accept': 'text/event-stream',
+                },
+                signal: controller.signal,
+            })
+
+            if (res.status === 401) {
+                window.dispatchEvent(new CustomEvent('auth:unauthorized'))
+                throw new Error('Sessiya muddati tugagan. Qayta kiring.')
+            }
+
+            if (!res.ok) {
+                let msg = 'Sinxronlashda xatolik'
+                try {
+                    const err = await res.json()
+                    msg = err.message || msg
+                } catch { /* ignore */ }
+                throw new Error(msg)
+            }
+
+            const reader = res.body?.getReader()
+            if (!reader) throw new Error('Stream mavjud emas')
+
+            const decoder = new TextDecoder()
+            let buffer = ''
+
+            while (true) {
+                const { done, value } = await reader.read()
+                if (done) break
+
+                buffer += decoder.decode(value, { stream: true })
+
+                const parts = buffer.split('\n\n')
+                buffer = parts.pop() || ''
+
+                for (const part of parts) {
+                    if (!part.trim()) continue
+                    const lines = part.split('\n')
+                    let data = ''
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            data = line.slice(6)
+                        }
+                    }
+                    if (data) {
+                        try {
+                            onEvent(JSON.parse(data))
+                        } catch { /* ignore parse errors */ }
+                    }
+                }
+            }
+        })()
+
+        return { promise, abort: () => controller.abort() }
     },
 
     getEmployees(params: UserPaginationParams = {}) {

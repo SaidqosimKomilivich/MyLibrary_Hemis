@@ -8,6 +8,25 @@ use crate::models::user::User;
 pub struct UserRepository;
 
 impl UserRepository {
+    /// Ommaviy raviashda user_id larni tekshirib mavjudlarini HashSet sifatida qaytaradi
+    pub async fn find_existing_user_ids(
+        pool: &PgPool,
+        user_ids: &[String],
+    ) -> Result<std::collections::HashSet<String>, AppError> {
+        if user_ids.is_empty() {
+            return Ok(std::collections::HashSet::new());
+        }
+
+        let existing_users = sqlx::query_scalar::<_, String>(
+            r#"SELECT "user_id" FROM "users" WHERE "user_id" = ANY($1)"#,
+        )
+        .bind(user_ids)
+        .fetch_all(pool)
+        .await?;
+
+        Ok(existing_users.into_iter().collect())
+    }
+
     /// user_id (login) bo'yicha foydalanuvchini topish
     pub async fn find_by_user_id(pool: &PgPool, user_id: &str) -> Result<Option<User>, AppError> {
         let user = sqlx::query_as::<_, User>(
@@ -34,12 +53,10 @@ impl UserRepository {
 
     /// UUID bo'yicha foydalanuvchini topish (faol/nofaol farqi yo'q — admin amallar uchun)
     pub async fn find_by_id_any(pool: &PgPool, id: Uuid) -> Result<Option<User>, AppError> {
-        let user = sqlx::query_as::<_, User>(
-            r#"SELECT * FROM "users" WHERE "id" = $1"#,
-        )
-        .bind(id)
-        .fetch_optional(pool)
-        .await?;
+        let user = sqlx::query_as::<_, User>(r#"SELECT * FROM "users" WHERE "id" = $1"#)
+            .bind(id)
+            .fetch_optional(pool)
+            .await?;
 
         Ok(user)
     }
@@ -79,35 +96,23 @@ impl UserRepository {
     }
 
     /// Foydalanuvchi rolini o'zgartirish (admin uchun)
-    pub async fn update_role(
-        pool: &PgPool,
-        id: Uuid,
-        new_role: &str,
-    ) -> Result<(), AppError> {
-        sqlx::query(
-            r#"UPDATE "users" SET "role" = $1 WHERE "id" = $2"#,
-        )
-        .bind(new_role)
-        .bind(id)
-        .execute(pool)
-        .await?;
+    pub async fn update_role(pool: &PgPool, id: Uuid, new_role: &str) -> Result<(), AppError> {
+        sqlx::query(r#"UPDATE "users" SET "role" = $1 WHERE "id" = $2"#)
+            .bind(new_role)
+            .bind(id)
+            .execute(pool)
+            .await?;
 
         Ok(())
     }
 
     /// Foydalanuvchi faol/nofaol holatini o'zgartirish (admin uchun)
-    pub async fn update_active(
-        pool: &PgPool,
-        id: Uuid,
-        active: bool,
-    ) -> Result<(), AppError> {
-        sqlx::query(
-            r#"UPDATE "users" SET "active" = $1 WHERE "id" = $2"#,
-        )
-        .bind(active)
-        .bind(id)
-        .execute(pool)
-        .await?;
+    pub async fn update_active(pool: &PgPool, id: Uuid, active: bool) -> Result<(), AppError> {
+        sqlx::query(r#"UPDATE "users" SET "active" = $1 WHERE "id" = $2"#)
+            .bind(active)
+            .bind(id)
+            .execute(pool)
+            .await?;
 
         Ok(())
     }
@@ -205,6 +210,179 @@ impl UserRepository {
         Ok(())
     }
 
+    /// Ommaviy tarzda talabalarni yaratish
+    pub async fn bulk_create_students<'a>(
+        pool: &PgPool,
+        students: impl Iterator<
+            Item = (
+                &'a str,           // user_id
+                &'a str,           // password_hash
+                &'a str,           // full_name
+                Option<&'a str>,   // short_name
+                Option<NaiveDate>, // birth_date
+                Option<&'a str>,   // image_url
+                Option<&'a str>,   // email
+                i64,               // id_card
+                Option<&'a str>,   // department_name
+                Option<&'a str>,   // specialty_name
+                Option<&'a str>,   // group_name
+                Option<&'a str>,   // education_form
+            ),
+        >,
+    ) -> Result<(), AppError> {
+        let mut user_ids = Vec::new();
+        let mut password_hashes = Vec::new();
+        let mut full_names = Vec::new();
+        let mut short_names = Vec::new();
+        let mut birth_dates = Vec::new();
+        let mut image_urls = Vec::new();
+        let mut emails = Vec::new();
+        let mut id_cards = Vec::new();
+        let mut department_names = Vec::new();
+        let mut specialty_names = Vec::new();
+        let mut group_names = Vec::new();
+        let mut education_forms = Vec::new();
+
+        for s in students {
+            user_ids.push(s.0);
+            password_hashes.push(s.1);
+            full_names.push(s.2);
+            short_names.push(s.3);
+            birth_dates.push(s.4);
+            image_urls.push(s.5);
+            emails.push(s.6);
+            id_cards.push(s.7);
+            department_names.push(s.8);
+            specialty_names.push(s.9);
+            group_names.push(s.10);
+            education_forms.push(s.11);
+        }
+
+        if user_ids.is_empty() {
+            return Ok(());
+        }
+
+        sqlx::query(
+            r#"
+            INSERT INTO "users" (
+                "user_id", "password", "role", "full_name", "short_name",
+                "birth_date", "image_url", "email", "id_card",
+                "department_name", "specialty_name", "group_name", "education_form"
+            )
+            SELECT * FROM UNNEST (
+                $1::text[], $2::text[], array_fill('student'::text, ARRAY[array_length($1::text[], 1)]), $3::text[], $4::text[],
+                $5::date[], $6::text[], $7::text[], $8::bigint[],
+                $9::text[], $10::text[], $11::text[], $12::text[]
+            )
+            "#,
+        )
+        .bind(&user_ids)
+        .bind(&password_hashes)
+        .bind(&full_names)
+        .bind(&short_names)
+        .bind(&birth_dates)
+        .bind(&image_urls)
+        .bind(&emails)
+        .bind(&id_cards)
+        .bind(&department_names)
+        .bind(&specialty_names)
+        .bind(&group_names)
+        .bind(&education_forms)
+        .execute(pool)
+        .await?;
+
+        Ok(())
+    }
+
+    /// Ommaviy tarzda talabalarni yangilash
+    pub async fn bulk_update_students<'a>(
+        pool: &PgPool,
+        students: impl Iterator<
+            Item = (
+                &'a str,           // user_id
+                &'a str,           // full_name
+                Option<&'a str>,   // short_name
+                Option<NaiveDate>, // birth_date
+                Option<&'a str>,   // image_url
+                Option<&'a str>,   // email
+                i64,               // id_card
+                Option<&'a str>,   // department_name
+                Option<&'a str>,   // specialty_name
+                Option<&'a str>,   // group_name
+                Option<&'a str>,   // education_form
+            ),
+        >,
+    ) -> Result<(), AppError> {
+        let mut user_ids = Vec::new();
+        let mut full_names = Vec::new();
+        let mut short_names = Vec::new();
+        let mut birth_dates = Vec::new();
+        let mut image_urls = Vec::new();
+        let mut emails = Vec::new();
+        let mut id_cards = Vec::new();
+        let mut department_names = Vec::new();
+        let mut specialty_names = Vec::new();
+        let mut group_names = Vec::new();
+        let mut education_forms = Vec::new();
+
+        for s in students {
+            user_ids.push(s.0);
+            full_names.push(s.1);
+            short_names.push(s.2);
+            birth_dates.push(s.3);
+            image_urls.push(s.4);
+            emails.push(s.5);
+            id_cards.push(s.6);
+            department_names.push(s.7);
+            specialty_names.push(s.8);
+            group_names.push(s.9);
+            education_forms.push(s.10);
+        }
+
+        if user_ids.is_empty() {
+            return Ok(());
+        }
+
+        sqlx::query(
+            r#"
+            UPDATE "users" AS u SET
+                "full_name" = c.full_name,
+                "short_name" = c.short_name,
+                "birth_date" = c.birth_date,
+                "image_url" = c.image_url,
+                "email" = c.email,
+                "id_card" = c.id_card,
+                "department_name" = c.department_name,
+                "specialty_name" = c.specialty_name,
+                "group_name" = c.group_name,
+                "education_form" = c.education_form
+            FROM (
+                SELECT * FROM UNNEST (
+                    $1::text[], $2::text[], $3::text[], $4::date[],
+                    $5::text[], $6::text[], $7::bigint[], $8::text[],
+                    $9::text[], $10::text[], $11::text[]
+                ) AS t(user_id, full_name, short_name, birth_date, image_url, email, id_card, department_name, specialty_name, group_name, education_form)
+            ) AS c
+            WHERE u."user_id" = c.user_id
+            "#,
+        )
+        .bind(&user_ids)
+        .bind(&full_names)
+        .bind(&short_names)
+        .bind(&birth_dates)
+        .bind(&image_urls)
+        .bind(&emails)
+        .bind(&id_cards)
+        .bind(&department_names)
+        .bind(&specialty_names)
+        .bind(&group_names)
+        .bind(&education_forms)
+        .execute(pool)
+        .await?;
+
+        Ok(())
+    }
+
     /// Role bo'yicha barcha foydalanuvchilarni olish
     pub async fn find_all_by_role(pool: &PgPool, role: &str) -> Result<Vec<User>, AppError> {
         let users = sqlx::query_as::<_, User>(
@@ -224,7 +402,8 @@ impl UserRepository {
         search: Option<&str>,
         status: Option<&str>,
     ) -> Result<i64, AppError> {
-        let mut query = String::from(r#"SELECT COUNT(*) as "count" FROM "users" WHERE "role" = $1"#);
+        let mut query =
+            String::from(r#"SELECT COUNT(*) as "count" FROM "users" WHERE "role" = $1"#);
         let mut param_idx = 2u32;
 
         if search.is_some() {
@@ -260,7 +439,8 @@ impl UserRepository {
         search: Option<&str>,
         status: Option<&str>,
     ) -> Result<i64, AppError> {
-        let mut query = String::from(r#"SELECT COUNT(*) as "count" FROM "users" WHERE "role" = ANY($1)"#);
+        let mut query =
+            String::from(r#"SELECT COUNT(*) as "count" FROM "users" WHERE "role" = ANY($1)"#);
         let mut param_idx = 2u32;
 
         if search.is_some() {

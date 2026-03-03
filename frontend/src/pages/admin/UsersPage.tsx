@@ -24,9 +24,10 @@ interface SyncSectionProps {
     progress: number
     onSync: () => void
     syncResult?: { created: number; updated: number; total: number } | null
+    streamMessage?: string
 }
 
-function SyncSection({ title, icon, color, count, progress, onSync, syncResult }: SyncSectionProps) {
+function SyncSection({ title, icon, color, count, progress, onSync, syncResult, streamMessage }: SyncSectionProps) {
     const isActive = progress > 0 && progress < 100
     const isDone = progress === 100
 
@@ -75,7 +76,7 @@ function SyncSection({ title, icon, color, count, progress, onSync, syncResult }
                         <span className="text-[0.8rem] font-medium text-text-muted">
                             {isDone && syncResult
                                 ? `${syncResult.created} ta yangi, ${syncResult.updated} ta yangilandi (jami: ${syncResult.total})`
-                                : getSyncLabel(progress)}
+                                : streamMessage || getSyncLabel(progress)}
                         </span>
                         <span className={`text-[0.85rem] font-bold tabular-nums ${isDone ? 'text-emerald-400' : 'text-indigo-400'}`}>
                             {progress}%
@@ -222,7 +223,60 @@ function useHemisSync(
         setSyncResult(null)
     }, [])
 
-    return { progress, syncResult, handleSync, reset }
+    return { progress, syncResult, handleSync, reset, streamMessage: '' }
+}
+
+// SSE (Server-Sent Events) orqali haqiqiy progress oluvchi hook — universal
+type StreamFn = (onEvent: (event: { stage: string; message: string; processed: number; total: number; created: number; updated: number; current_page: number; total_pages: number }) => void) => { promise: Promise<void>; abort: () => void }
+
+function useHemisStreamSync(streamFn: StreamFn, reloadFn: () => Promise<void>) {
+    const [progress, setProgress] = useState(0)
+    const [syncResult, setSyncResult] = useState<{ created: number; updated: number; total: number } | null>(null)
+    const [streamMessage, setStreamMessage] = useState('')
+
+    const handleSync = useCallback(async () => {
+        setProgress(5)
+        setSyncResult(null)
+        setStreamMessage('HEMIS platformasiga ulanilmoqda...')
+
+        try {
+            const { promise } = streamFn((event) => {
+                // Haqiqiy progress foizini hisoblash
+                if (event.stage === 'complete') {
+                    setProgress(100)
+                    setSyncResult({ created: event.created, updated: event.updated, total: event.processed })
+                    setStreamMessage(event.message)
+                    toast.success(event.message)
+                } else if (event.stage === 'error') {
+                    setProgress(0)
+                    setStreamMessage('')
+                    toast.error(event.message)
+                } else {
+                    // fetching yoki processing
+                    const pct = event.total_pages > 0
+                        ? Math.min(95, Math.round((event.current_page / event.total_pages) * 95))
+                        : 10
+                    setProgress(Math.max(5, pct))
+                    setStreamMessage(event.message)
+                }
+            })
+
+            await promise
+            await reloadFn()
+        } catch (e) {
+            setProgress(0)
+            setStreamMessage('')
+            toast.error(e instanceof Error ? e.message : 'HEMIS bilan aloqa uzildi')
+        }
+    }, [streamFn, reloadFn])
+
+    const reset = useCallback(() => {
+        setProgress(0)
+        setSyncResult(null)
+        setStreamMessage('')
+    }, [])
+
+    return { progress, syncResult, handleSync, reset, streamMessage }
 }
 
 // Per-page options
@@ -377,9 +431,9 @@ export default function UsersPage() {
     useEffect(() => { loadEmployees() }, [loadEmployees])
 
     // Sync hooks
-    const studentSync = useHemisSync(api.syncHemisStudents, loadStudents)
-    const teacherSync = useHemisSync(api.syncHemisTeachers, loadTeachers)
-    const employeeSync = useHemisSync(api.syncHemisEmployees, loadEmployees)
+    const studentSync = useHemisStreamSync(api.syncHemisStudentsStream.bind(api), loadStudents)
+    const teacherSync = useHemisStreamSync(api.syncHemisTeachersStream.bind(api), loadTeachers)
+    const employeeSync = useHemisStreamSync(api.syncHemisEmployeesStream.bind(api), loadEmployees)
 
     const handleOpenSyncModal = () => {
         studentSync.reset()
@@ -797,6 +851,7 @@ export default function UsersPage() {
                                 progress={studentSync.progress}
                                 onSync={studentSync.handleSync}
                                 syncResult={studentSync.syncResult}
+                                streamMessage={studentSync.streamMessage}
                             />
                             <SyncSection
                                 title="O'qituvchilar"
@@ -806,6 +861,7 @@ export default function UsersPage() {
                                 progress={teacherSync.progress}
                                 onSync={teacherSync.handleSync}
                                 syncResult={teacherSync.syncResult}
+                                streamMessage={teacherSync.streamMessage}
                             />
                             <SyncSection
                                 title="Xodimlar"
@@ -815,6 +871,7 @@ export default function UsersPage() {
                                 progress={employeeSync.progress}
                                 onSync={employeeSync.handleSync}
                                 syncResult={employeeSync.syncResult}
+                                streamMessage={employeeSync.streamMessage}
                             />
                         </div>
 

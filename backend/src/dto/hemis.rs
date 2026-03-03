@@ -105,6 +105,9 @@ pub struct HemisEmployeeItem {
     pub department: Option<HemisDepartment>,
     #[serde(rename = "staffPosition")]
     pub staff_position: Option<HemisCodeName>,
+    /// Xodim holati: code "11" = Ishlamoqda, "14" = Bo'shagan
+    #[serde(rename = "employeeStatus")]
+    pub employee_status: Option<HemisCodeName>,
 }
 
 // ========================

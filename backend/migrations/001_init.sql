@@ -6,7 +6,7 @@ CREATE TABLE "users" (
     "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "user_id" VARCHAR(50) NOT NULL UNIQUE,
     "password" VARCHAR(255) NOT NULL,
-    "role" VARCHAR(20) NOT NULL CHECK (role IN ('admin', 'student', 'teacher', 'staff')),
+    "role" VARCHAR(20) NOT NULL CHECK (role IN ('admin', 'student', 'teacher', 'staff', 'employee')),
     "full_name" VARCHAR(100) NOT NULL,
     "short_name" VARCHAR(50),
     "birth_date" DATE,

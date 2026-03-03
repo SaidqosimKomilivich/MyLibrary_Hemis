@@ -11,17 +11,22 @@ use crate::services::hemis_service::HemisService;
 const DEFAULT_PER_PAGE: i64 = 20;
 
 /// Super admin (tizim egasi) ekanligini tekshirish
-async fn require_super_admin(claims: &Claims, pool: &PgPool, config: &Config) -> Result<(), HttpResponse> {
-    let user_id = uuid::Uuid::parse_str(&claims.sub).map_err(|_| {
-        HttpResponse::Unauthorized().finish()
-    })?;
-    
+async fn require_super_admin(
+    claims: &Claims,
+    pool: &PgPool,
+    config: &Config,
+) -> Result<(), HttpResponse> {
+    let user_id =
+        uuid::Uuid::parse_str(&claims.sub).map_err(|_| HttpResponse::Unauthorized().finish())?;
+
     let user = UserRepository::find_by_id(pool, user_id)
         .await
         .map_err(|_| HttpResponse::InternalServerError().finish())?
         .ok_or_else(|| HttpResponse::Unauthorized().finish())?;
 
-    let is_super = user.user_id == config.admin_login || user.user_id == "admin" || user.user_id == "superadmin";
+    let is_super = user.user_id == config.admin_login
+        || user.user_id == "admin"
+        || user.user_id == "superadmin";
 
     if !is_super {
         return Err(HttpResponse::Forbidden().json(serde_json::json!({
@@ -53,9 +58,10 @@ async fn get_users_paginated(
         (total_items as f64 / per_page as f64).ceil() as i64
     };
 
-    let users = UserRepository::find_paginated_by_roles(pool, roles, page, per_page, search, status)
-        .await
-        .map_err(actix_web::error::ErrorInternalServerError)?;
+    let users =
+        UserRepository::find_paginated_by_roles(pool, roles, page, per_page, search, status)
+            .await
+            .map_err(actix_web::error::ErrorInternalServerError)?;
 
     let user_responses: Vec<crate::dto::user::UserResponse> =
         users.into_iter().map(|u| u.into()).collect();
@@ -73,7 +79,7 @@ async fn get_users_paginated(
 }
 
 /// POST /api/sync/students
-/// HEMIS API dan talabalarni sinxronlash (faqat admin uchun)
+/// HEMIS API dan talabalarni sinxronlash (faqat admin uchun) — SSE Stream
 pub async fn sync_students(
     claims: Claims,
     pool: web::Data<PgPool>,
@@ -86,19 +92,52 @@ pub async fn sync_students(
     tracing::info!(
         user = %claims.sub,
         role = %claims.role,
-        "HEMIS talabalar sinxronlashi boshlandi"
+        "HEMIS talabalar sinxronlashi boshlandi (SSE stream)"
     );
 
-    match HemisService::sync_students(pool.get_ref(), config.get_ref()).await {
-        Ok(result) => Ok(HttpResponse::Ok().json(result)),
-        Err(e) => {
-            tracing::error!("HEMIS sinxronlash xatosi: {}", e);
-            Ok(HttpResponse::InternalServerError().json(serde_json::json!({
-                "success": false,
-                "message": format!("Sinxronlash xatosi: {}", e)
-            })))
+    let (tx, mut rx) =
+        tokio::sync::mpsc::channel::<crate::services::hemis_service::SyncProgressEvent>(32);
+
+    let pool_clone = pool.get_ref().clone();
+    let config_clone = config.get_ref().clone();
+
+    // Orqa fonda sinxronlashni boshlash
+    tokio::spawn(async move {
+        let result =
+            HemisService::sync_students_stream(&pool_clone, &config_clone, tx.clone()).await;
+        if let Err(e) = result {
+            tracing::error!("HEMIS streaming sinxronlash xatosi: {}", e);
+            let _ = tx
+                .send(crate::services::hemis_service::SyncProgressEvent {
+                    stage: "error".into(),
+                    message: format!("Sinxronlash xatosi: {}", e),
+                    processed: 0,
+                    total: 0,
+                    created: 0,
+                    updated: 0,
+                    current_page: 0,
+                    total_pages: 0,
+                })
+                .await;
         }
-    }
+        // tx drop bo'lganda rx stream tugaydi
+    });
+
+    // SSE oqimini yaratish
+    let stream = async_stream::stream! {
+        while let Some(event) = rx.recv().await {
+            let json = serde_json::to_string(&event).unwrap_or_default();
+            let sse_data = format!("event: {}\ndata: {}\n\n", event.stage, json);
+            yield Ok::<_, actix_web::Error>(actix_web::web::Bytes::from(sse_data));
+        }
+    };
+
+    Ok(HttpResponse::Ok()
+        .content_type("text/event-stream")
+        .insert_header(("Cache-Control", "no-cache"))
+        .insert_header(("Connection", "keep-alive"))
+        .insert_header(("X-Accel-Buffering", "no"))
+        .streaming(stream))
 }
 
 /// GET /api/sync/students
@@ -116,7 +155,7 @@ pub async fn get_students(
 }
 
 /// POST /api/sync/teachers
-/// HEMIS API dan o'qituvchilarni sinxronlash (faqat admin uchun)
+/// HEMIS API dan o'qituvchilarni sinxronlash (faqat admin uchun) — SSE Stream
 pub async fn sync_teachers(
     claims: Claims,
     pool: web::Data<PgPool>,
@@ -128,20 +167,55 @@ pub async fn sync_teachers(
 
     tracing::info!(
         user = %claims.sub,
-        "HEMIS o'qituvchilar sinxronlashi boshlandi"
+        "HEMIS o'qituvchilar sinxronlashi boshlandi (SSE stream)"
     );
 
-    match HemisService::sync_employees(pool.get_ref(), config.get_ref(), "teacher", "teacher").await
-    {
-        Ok(result) => Ok(HttpResponse::Ok().json(result)),
-        Err(e) => {
-            tracing::error!("HEMIS o'qituvchilar sinxronlash xatosi: {}", e);
-            Ok(HttpResponse::InternalServerError().json(serde_json::json!({
-                "success": false,
-                "message": format!("Sinxronlash xatosi: {}", e)
-            })))
+    let (tx, mut rx) =
+        tokio::sync::mpsc::channel::<crate::services::hemis_service::SyncProgressEvent>(32);
+
+    let pool_clone = pool.get_ref().clone();
+    let config_clone = config.get_ref().clone();
+
+    tokio::spawn(async move {
+        let result = HemisService::sync_employees_stream(
+            &pool_clone,
+            &config_clone,
+            "teacher",
+            "teacher",
+            tx.clone(),
+        )
+        .await;
+        if let Err(e) = result {
+            tracing::error!("HEMIS o'qituvchilar streaming sinxronlash xatosi: {}", e);
+            let _ = tx
+                .send(crate::services::hemis_service::SyncProgressEvent {
+                    stage: "error".into(),
+                    message: format!("Sinxronlash xatosi: {}", e),
+                    processed: 0,
+                    total: 0,
+                    created: 0,
+                    updated: 0,
+                    current_page: 0,
+                    total_pages: 0,
+                })
+                .await;
         }
-    }
+    });
+
+    let stream = async_stream::stream! {
+        while let Some(event) = rx.recv().await {
+            let json = serde_json::to_string(&event).unwrap_or_default();
+            let sse_data = format!("event: {}\ndata: {}\n\n", event.stage, json);
+            yield Ok::<_, actix_web::Error>(actix_web::web::Bytes::from(sse_data));
+        }
+    };
+
+    Ok(HttpResponse::Ok()
+        .content_type("text/event-stream")
+        .insert_header(("Cache-Control", "no-cache"))
+        .insert_header(("Connection", "keep-alive"))
+        .insert_header(("X-Accel-Buffering", "no"))
+        .streaming(stream))
 }
 
 /// GET /api/sync/teachers
@@ -173,7 +247,7 @@ pub async fn get_staff(
 }
 
 /// POST /api/sync/employees
-/// HEMIS API dan xodimlarni sinxronlash (faqat admin uchun)
+/// HEMIS API dan xodimlarni sinxronlash (faqat admin uchun) — SSE Stream
 pub async fn sync_employees(
     claims: Claims,
     pool: web::Data<PgPool>,
@@ -185,20 +259,55 @@ pub async fn sync_employees(
 
     tracing::info!(
         user = %claims.sub,
-        "HEMIS xodimlar sinxronlashi boshlandi"
+        "HEMIS xodimlar sinxronlashi boshlandi (SSE stream)"
     );
 
-    match HemisService::sync_employees(pool.get_ref(), config.get_ref(), "employee", "staff").await
-    {
-        Ok(result) => Ok(HttpResponse::Ok().json(result)),
-        Err(e) => {
-            tracing::error!("HEMIS xodimlar sinxronlash xatosi: {}", e);
-            Ok(HttpResponse::InternalServerError().json(serde_json::json!({
-                "success": false,
-                "message": format!("Sinxronlash xatosi: {}", e)
-            })))
+    let (tx, mut rx) =
+        tokio::sync::mpsc::channel::<crate::services::hemis_service::SyncProgressEvent>(32);
+
+    let pool_clone = pool.get_ref().clone();
+    let config_clone = config.get_ref().clone();
+
+    tokio::spawn(async move {
+        let result = HemisService::sync_employees_stream(
+            &pool_clone,
+            &config_clone,
+            "employee",
+            "employee", // actual_role sync_employees_stream ichida department ga qarab aniqlanadi
+            tx.clone(),
+        )
+        .await;
+        if let Err(e) = result {
+            tracing::error!("HEMIS xodimlar streaming sinxronlash xatosi: {}", e);
+            let _ = tx
+                .send(crate::services::hemis_service::SyncProgressEvent {
+                    stage: "error".into(),
+                    message: format!("Sinxronlash xatosi: {}", e),
+                    processed: 0,
+                    total: 0,
+                    created: 0,
+                    updated: 0,
+                    current_page: 0,
+                    total_pages: 0,
+                })
+                .await;
         }
-    }
+    });
+
+    let stream = async_stream::stream! {
+        while let Some(event) = rx.recv().await {
+            let json = serde_json::to_string(&event).unwrap_or_default();
+            let sse_data = format!("event: {}\ndata: {}\n\n", event.stage, json);
+            yield Ok::<_, actix_web::Error>(actix_web::web::Bytes::from(sse_data));
+        }
+    };
+
+    Ok(HttpResponse::Ok()
+        .content_type("text/event-stream")
+        .insert_header(("Cache-Control", "no-cache"))
+        .insert_header(("Connection", "keep-alive"))
+        .insert_header(("X-Accel-Buffering", "no"))
+        .streaming(stream))
 }
 
 /// GET /api/sync/employees
@@ -240,9 +349,9 @@ pub async fn get_user_by_id(
     path: web::Path<uuid::Uuid>,
 ) -> Result<HttpResponse, AppError> {
     let user_id = path.into_inner();
-    
+
     let user = UserRepository::find_by_id_any(pool.get_ref(), user_id).await?;
-    
+
     if let Some(u) = user {
         let response: crate::dto::user::UserResponse = u.into();
         Ok(HttpResponse::Ok().json(serde_json::json!({
@@ -267,7 +376,8 @@ pub async fn update_user_role(
     }
 
     let target_id = path.into_inner();
-    let new_role = body.get("role")
+    let new_role = body
+        .get("role")
         .and_then(|v| v.as_str())
         .ok_or_else(|| actix_web::error::ErrorBadRequest("'role' maydoni talab qilinadi"))?;
 
@@ -275,7 +385,8 @@ pub async fn update_user_role(
     let allowed_roles = ["admin", "staff", "teacher", "student", "employee"];
     if !allowed_roles.contains(&new_role) {
         return Err(actix_web::error::ErrorBadRequest(format!(
-            "Noto'g'ri rol: '{}'. Ruxsat etilgan rollar: {:?}", new_role, allowed_roles
+            "Noto'g'ri rol: '{}'. Ruxsat etilgan rollar: {:?}",
+            new_role, allowed_roles
         )));
     }
 
@@ -310,9 +421,12 @@ pub async fn update_user_status(
     }
 
     let target_id = path.into_inner();
-    let active = body.get("active")
+    let active = body
+        .get("active")
         .and_then(|v| v.as_bool())
-        .ok_or_else(|| actix_web::error::ErrorBadRequest("'active' maydoni talab qilinadi (true/false)"))?;
+        .ok_or_else(|| {
+            actix_web::error::ErrorBadRequest("'active' maydoni talab qilinadi (true/false)")
+        })?;
 
     // Foydalanuvchini tekshirish
     let user = UserRepository::find_by_id_any(pool.get_ref(), target_id)
