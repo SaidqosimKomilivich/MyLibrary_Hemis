@@ -128,6 +128,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAudio() {
     const ctx = useContext(AudioContext)
     if (!ctx) throw new Error('useAudio must be used within AudioProvider')

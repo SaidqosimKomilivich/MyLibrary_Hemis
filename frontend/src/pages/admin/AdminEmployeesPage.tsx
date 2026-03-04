@@ -17,6 +17,7 @@ function getSyncLabel(progress: number): string {
     return 'Muvaffaqiyatli sinxronlandi!'
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function useHemisSync(syncFn: () => Promise<any>, reloadFn: () => Promise<void>) {
     const [progress, setProgress] = useState(0)
     const [syncResult, setSyncResult] = useState<{ created: number; updated: number; total: number } | null>(null)

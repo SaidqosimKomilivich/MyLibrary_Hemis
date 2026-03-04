@@ -86,6 +86,7 @@ export function CustomSelect({
             window.removeEventListener('scroll', handleScrollResize, true);
             window.removeEventListener('resize', handleScrollResize);
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen, dropUp]);
 
     const handleOpen = () => {

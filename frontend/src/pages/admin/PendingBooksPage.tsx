@@ -27,7 +27,9 @@ export default function PendingBooksPage() {
         try {
             const res = await api.getPendingBooks()
             setBooks(res.data || [])
-        } catch (err: any) {
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        catch (err: any) {
             toast.error(err.message || "Kutilayotgan kitoblarni yuklab bo'lmadi")
         }
     }
@@ -36,7 +38,9 @@ export default function PendingBooksPage() {
         try {
             const res = await api.getTeacherSubmissions()
             setTeacherBooks(res.data || [])
-        } catch { }
+        } catch {
+            // no-op, silent fail
+        }
     }
 
     const refresh = () => {
@@ -44,6 +48,7 @@ export default function PendingBooksPage() {
         Promise.all([loadPending(), loadTeacherBooks()]).finally(() => setLoading(false))
     }
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => { refresh() }, [])
 
     const openConfirm = (book: Book, action: ActionType) => {
@@ -70,7 +75,9 @@ export default function PendingBooksPage() {
                 toast.info(`📝 Izoh: ${comment.trim()}`, { autoClose: 6000 })
             }
             await Promise.all([loadPending(), loadTeacherBooks()])
-        } catch (err: any) {
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        catch (err: any) {
             toast.error(err.message || "Amalni bajarib bo'lmadi")
         } finally {
             setTogglingId(null)

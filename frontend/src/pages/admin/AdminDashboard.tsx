@@ -58,7 +58,9 @@ export default function AdminDashboard() {
             if (res.success) {
                 setData(res.data)
             }
-        } catch (error: any) {
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        catch (error: any) {
             toast.error(error.message || 'Ma\'lumotlarni yuklashda xatolik')
         } finally {
             setLoading(false)
@@ -75,7 +77,9 @@ export default function AdminDashboard() {
                 overdue.sort((a, b) => getOverdueDays(b.due_date) - getOverdueDays(a.due_date))
                 setOverdueRentals(overdue)
             }
-        } catch (err: any) {
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        catch (err: any) {
             toast.error(err.message || 'Muddati o\'tgan ijaralarni yuklashda xatolik')
         } finally {
             setOverdueLoading(false)

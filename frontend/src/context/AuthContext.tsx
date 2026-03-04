@@ -8,6 +8,7 @@ function mapRole(backendRole: string): string {
 }
 
 /** Frontend rolini backend roliga o'tkazish */
+// eslint-disable-next-line react-refresh/only-export-components
 export function mapRoleToBackend(frontendRole: string): string {
     return frontendRole
 }
@@ -86,6 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
     const ctx = useContext(AuthContext)
     if (!ctx) {

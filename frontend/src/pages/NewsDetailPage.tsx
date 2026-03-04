@@ -40,7 +40,9 @@ export default function NewsDetailPage() {
                 if (res.success) {
                     setNews(res.data)
                 }
-            } catch (error: any) {
+            }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            catch (error: any) {
                 toast.error(error.message || "Yangilik topilmadi")
             } finally {
                 setIsLoading(false)

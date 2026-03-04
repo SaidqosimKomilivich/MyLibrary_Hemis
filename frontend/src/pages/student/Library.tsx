@@ -66,6 +66,7 @@ export default function Library() {
 
     useEffect(() => {
         fetchBooks()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [page, search])
 
     // Admin actions
@@ -125,7 +126,9 @@ export default function Library() {
             setBulkModal(false)
             setBulkAction(null)
             fetchBooks()
-        } catch (err: any) {
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        catch (err: any) {
             toast.error(err.message || 'Xatolik yuz berdi')
         } finally {
             setIsBulking(false)
@@ -145,7 +148,9 @@ export default function Library() {
             )
             setToggleBook(null)
             fetchBooks()
-        } catch (err: any) {
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        catch (err: any) {
             toast.error(err.message || "Holatni o'zgartirib bo'lmadi")
         } finally {
             setIsToggling(false)
@@ -157,7 +162,9 @@ export default function Library() {
         try {
             await api.startReading(book.id)
             toast.success(`"${book.title}" o'qiyotganlar ro'yxatiga qo'shildi`)
-        } catch (err: any) {
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        catch (err: any) {
             toast.error(err.message || "Ro'yxatga qo'shishda xatolik")
         }
     }
@@ -171,7 +178,9 @@ export default function Library() {
             toast.success("So'rov muvaffaqiyatli yuborildi. Holatini 'Mening so'rovlarim' bo'limida kuzatishingiz mumkin.")
             setRequestModalOpen(false)
             setRequestBook(null)
-        } catch (err: any) {
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        catch (err: any) {
             toast.error(err.message || "So'rov yuborishda xatolik")
         } finally {
             setIsRequesting(false)

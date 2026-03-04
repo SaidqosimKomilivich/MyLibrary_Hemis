@@ -18,7 +18,9 @@ export default function EmployeeRentalsPage() {
             if (res.success) {
                 setRentals(res.data)
             }
-        } catch (err: any) {
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        catch (err: any) {
             toast.error(err.message || "Ijaralarni yuklashda xatolik yuz berdi")
         } finally {
             setIsLoading(false)

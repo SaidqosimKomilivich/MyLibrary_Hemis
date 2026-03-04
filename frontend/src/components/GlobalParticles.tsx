@@ -1,13 +1,12 @@
 import { useState, useEffect, useMemo } from 'react'
-// @ts-ignore
 import Particles, { initParticlesEngine } from "@tsparticles/react"
-// @ts-ignore
 import { loadSlim } from "@tsparticles/slim"
 
 export default function GlobalParticles() {
     const [init, setInit] = useState(false)
 
     useEffect(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         initParticlesEngine(async (engine: any) => {
             await loadSlim(engine)
         }).then(() => {

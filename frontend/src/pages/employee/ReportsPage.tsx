@@ -19,7 +19,9 @@ export default function ReportsPage() {
             if (res.success) {
                 setDashboardData(res.data)
             }
-        } catch (err: any) {
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        catch (err: any) {
             toast.error(err.message || "Hisobotlarni yuklashda xatolik yuz berdi")
         } finally {
             setIsLoading(false)
@@ -43,7 +45,9 @@ export default function ReportsPage() {
             window.URL.revokeObjectURL(url)
             document.body.removeChild(a)
             toast.success("Excel fayl muvaffaqiyatli yuklandi!")
-        } catch (err: any) {
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        catch (err: any) {
             // Backend sends 404 AppError strings if table is empty
             toast.warning(err.message || "Xatolik yuz berdi", {
                 icon: <AlertCircle size={24} color="#f59e0b" />

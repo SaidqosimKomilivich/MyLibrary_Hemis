@@ -28,7 +28,9 @@ export default function EmployeeRequestsPage() {
                 setRequests(res.data)
                 setTotalPages(res.pagination.total_pages)
             }
-        } catch (err: any) {
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        catch (err: any) {
             toast.error(err.message || "So'rovlarni yuklashda xatolik yuz berdi")
         } finally {
             setIsLoading(false)
@@ -37,6 +39,7 @@ export default function EmployeeRequestsPage() {
 
     useEffect(() => {
         fetchRequests()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [page, search, statusFilter])
 
     const handleActionClick = (req: BookRequest) => {
@@ -55,7 +58,9 @@ export default function EmployeeRequestsPage() {
             setModalOpen(false)
             setSelectedRequest(null)
             fetchRequests()
-        } catch (err: any) {
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        catch (err: any) {
             toast.error(err.message || "Xatolik yuz berdi")
         } finally {
             setIsUpdating(false)
@@ -102,6 +107,8 @@ export default function EmployeeRequestsPage() {
                     <Search size={22} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
                     <input
                         type="text"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
                         placeholder="Murojaat id orqali qidirish..."
                         className="w-full bg-surface-hover border border-border py-4 pr-5 pl-12 rounded-xl text-text text-[1.05rem] transition-all focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-400/15"
                     />

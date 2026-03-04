@@ -48,7 +48,9 @@ export default function ChangePassword() {
                     navigate('/');
                 }
             }
-        } catch (err: any) {
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        catch (err: any) {
             toast.error(err.message || "Parolni o'zgartirishda xatolik yuz berdi");
         } finally {
             setIsLoading(false);

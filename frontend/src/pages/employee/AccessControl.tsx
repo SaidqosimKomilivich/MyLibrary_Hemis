@@ -134,6 +134,7 @@ export default function AccessControl() {
                 console.error("Kamerani yoqishda xatolik:", err);
             });
         }, 200);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedDeviceId, permissionGranted]);
 
     // Kamerani to'xtatish (pauza)
@@ -158,6 +159,7 @@ export default function AccessControl() {
         return () => {
             stopScanner();
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedDeviceId, permissionGranted]);
 
     // ──── Foydalanuvchi ma'lumotlarini tozalash va kamerani qayta yoqish ────
@@ -231,7 +233,9 @@ export default function AccessControl() {
             }
             // QR aniqlandi — kamerani to'xtatamiz
             await stopScanner();
-        } catch (err: any) {
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        catch (err: any) {
             toast.error(err.message || "Foydalanuvchi topilmadi. ID karta raqamini tekshiring.")
         } finally {
             setIsScanning(false)
@@ -259,7 +263,9 @@ export default function AccessControl() {
             loadTodayRecords()
             // Tozalash + kamerani qayta yoqish
             clearUser()
-        } catch (err: any) {
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        catch (err: any) {
             toast.error(err.message || "Kirishni qayd etishda xatolik yuz berdi")
         }
     }
@@ -272,7 +278,9 @@ export default function AccessControl() {
             loadTodayRecords()
             // Tozalash + kamerani qayta yoqish
             clearUser()
-        } catch (err: any) {
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        catch (err: any) {
             toast.error(err.message || "Chiqishni qayd etishda xatolik yuz berdi")
         }
     }
@@ -364,6 +372,7 @@ export default function AccessControl() {
     // Dastlabki yuklanish
     useEffect(() => {
         getDevices();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     return (

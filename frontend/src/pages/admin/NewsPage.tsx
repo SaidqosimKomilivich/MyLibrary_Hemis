@@ -21,7 +21,9 @@ export default function NewsPage() {
                 setNews(res.data)
                 setTotalPages(res.pagination.total_pages || 1)
             }
-        } catch (error: any) {
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        catch (error: any) {
             toast.error(error.message || "Yangiliklarni yuklashda xatolik")
         } finally {
             setIsLoading(false)
@@ -30,6 +32,7 @@ export default function NewsPage() {
 
     useEffect(() => {
         fetchNews()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [page])
 
     const handleDelete = async (id: string) => {
@@ -39,7 +42,9 @@ export default function NewsPage() {
             await api.deleteNews(id)
             toast.success("Yangilik o'chirildi")
             fetchNews()
-        } catch (error: any) {
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        catch (error: any) {
             toast.error(error.message || "O'chirishda xatolik")
         }
     }
@@ -49,7 +54,9 @@ export default function NewsPage() {
             await api.toggleNewsPublish(id)
             toast.success("Holat o'zgartirildi")
             fetchNews()
-        } catch (error: any) {
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        catch (error: any) {
             toast.error(error.message || "Holatni o'zgartirishda xatolik")
         }
     }

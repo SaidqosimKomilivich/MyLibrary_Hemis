@@ -1,48 +1,38 @@
 // API service layer for backend communication
 
+// API service layer for backend communication
+import type {
+    LoginPayload,
+    LoginResponse,
+    MessageResponse,
+    MeResponse,
+    PaginationParams,
+    UserPaginationParams,
+    CreateBookRequest,
+    UploadResponse,
+    PaginatedBooksResponse,
+    BookRequest,
+    PaginatedRequestsResponse,
+    SingleBookResponse,
+    ReadingListResponse,
+    RentalListResponse,
+    ControlListResponse,
+    PaginatedUsersResponse,
+    AdminDashboardResponse,
+    MyDashboardResponse,
+    EmployeeDashboardResponse,
+    PublicDashboardResponse,
+    CreateNewsRequest,
+    PaginatedNewsResponse,
+    SingleNewsResponse,
+    ReportDashboardResponse,
+    Book,
+    UserData
+} from './api.types'
+
+export * from './api.types'
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api'
-
-interface LoginPayload {
-    user_id: string
-    password: string
-}
-
-export interface UserData {
-    id: string
-    user_id: string
-    role: string
-    full_name: string
-    short_name: string | null
-    birth_date: string | null
-    image_url: string | null
-    email: string | null
-    phone: string | null
-    id_card: number
-    department_name: string | null
-    specialty_name: string | null
-    group_name: string | null
-    education_form: string | null
-    staff_position: string | null
-    active: boolean
-    is_password_update: boolean
-    is_super_admin?: boolean
-}
-
-interface LoginResponse {
-    success: boolean
-    message: string
-    user: UserData
-}
-
-interface MessageResponse {
-    success: boolean
-    message: string
-}
-
-interface MeResponse {
-    success: boolean
-    user: UserData
-}
 
 class ApiError extends Error {
     status: number
@@ -59,6 +49,18 @@ export const getAuthHeader = () => {
         'Authorization': token ? `Bearer ${token}` : '',
         'Content-Type': 'application/json'
     }
+}
+
+/** Yordamchi funksiya: URL uchun query string shakllantirish */
+export const buildQueryString = (params: Record<string, string | number | boolean | undefined | null> | object) => {
+    const query = new URLSearchParams()
+    Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+            query.append(key, value.toString())
+        }
+    })
+    const qs = query.toString()
+    return qs ? `?${qs}` : ''
 }
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
@@ -82,7 +84,7 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
         throw new ApiError('Avtorizatsiya talab qilinadi', 401)
     }
 
-    let data: any
+    let data: unknown
     try {
         data = await res.json()
     } catch {
@@ -94,19 +96,19 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
     }
 
     if (!res.ok) {
-        throw new ApiError(
-            data.message || data.error || 'Serverda xatolik yuz berdi',
-            res.status
-        )
+        // xavfsiz o'qilishi uchun Record formatiga kast qilamiz
+        const errData = data as Record<string, unknown>
+        const fallbackMsg = 'Serverda xatolik yuz berdi'
+        const errorMessage = typeof errData?.message === 'string' ? errData.message
+            : (typeof errData?.error === 'string' ? errData.error : fallbackMsg)
+
+        throw new ApiError(errorMessage, res.status)
     }
 
     return data as T
 }
 
-
-
 export const api = {
-    // ... existing endpoints ...
     login(user_id: string, password: string) {
         return request<LoginResponse>('/auth/login', {
             method: 'POST',
@@ -143,27 +145,15 @@ export const api = {
         })
     },
 
-
     // Book endpoints
     getPublicBooks(params: PaginationParams = {}) {
-        const urlParams = new URLSearchParams()
-        if (params.page !== undefined) urlParams.append('page', params.page.toString())
-        if (params.limit !== undefined) urlParams.append('limit', params.limit.toString())
-        if (params.search !== undefined) urlParams.append('search', params.search)
-        if (params.category !== undefined) urlParams.append('category', params.category)
-
-        const qs = urlParams.toString()
-        return request<PaginatedBooksResponse>(`/public/books${qs ? '?' + qs : ''}`)
+        const qs = buildQueryString(params)
+        return request<PaginatedBooksResponse>(`/public/books${qs}`)
     },
 
     getBooks(params: PaginationParams = {}) {
-        const query = new URLSearchParams()
-        if (params.page) query.append('page', params.page.toString())
-        if (params.search) query.append('search', params.search)
-        if (params.category) query.append('category', params.category)
-        if (params.limit) query.append('limit', params.limit.toString()) // Added limit 
-
-        return request<PaginatedBooksResponse>(`/books?${query.toString()}`)
+        const qs = buildQueryString(params)
+        return request<PaginatedBooksResponse>(`/books${qs}`)
     },
 
     createBook(data: CreateBookRequest) {
@@ -335,11 +325,8 @@ export const api = {
 
     // Rental endpoints (kitob berish/qaytarish)
     getRentals(status?: string, user_id?: string) {
-        const params = new URLSearchParams()
-        if (status) params.set('status', status)
-        if (user_id) params.set('user_id', user_id)
-        const qs = params.toString()
-        return request<RentalListResponse>(`/rentals${qs ? '?' + qs : ''}`)
+        const qs = buildQueryString({ status, user_id })
+        return request<RentalListResponse>(`/rentals${qs}`)
     },
 
     getMyRentals() {
@@ -430,12 +417,8 @@ export const api = {
     },
 
     getStudents(params: UserPaginationParams = {}) {
-        const query = new URLSearchParams()
-        if (params.page) query.append('page', params.page.toString())
-        if (params.per_page) query.append('per_page', params.per_page.toString())
-        if (params.search) query.append('search', params.search)
-        if (params.status) query.append('status', params.status)
-        return request<PaginatedUsersResponse>(`/sync/students?${query.toString()}`)
+        const qs = buildQueryString(params)
+        return request<PaginatedUsersResponse>(`/sync/students${qs}`)
     },
 
     // Teacher sync endpoints — O'qituvchilar (SSE Streaming)
@@ -507,12 +490,12 @@ export const api = {
     },
 
     getTeachers(params: UserPaginationParams = {}) {
-        const query = new URLSearchParams()
-        if (params.page) query.append('page', params.page.toString())
-        if (params.per_page) query.append('per_page', params.per_page.toString())
-        if (params.search) query.append('search', params.search)
-        if (params.status) query.append('status', params.status)
-        return request<PaginatedUsersResponse>(`/sync/teachers?${query.toString()}`)
+        const qs = buildQueryString(params)
+        return request<PaginatedUsersResponse>(`/sync/teachers${qs}`)
+    },
+
+    syncHemisEmployees() {
+        return request<{ success: boolean; message: string; created: number; updated: number; total: number }>('/sync/employees', { method: 'POST' })
     },
 
     // Employee sync endpoints — Xodimlar (SSE Streaming)
@@ -584,32 +567,20 @@ export const api = {
     },
 
     getEmployees(params: UserPaginationParams = {}) {
-        const query = new URLSearchParams()
-        if (params.page) query.append('page', params.page.toString())
-        if (params.per_page) query.append('per_page', params.per_page.toString())
-        if (params.search) query.append('search', params.search)
-        if (params.status) query.append('status', params.status)
-        return request<PaginatedUsersResponse>(`/sync/employees?${query.toString()}`)
+        const qs = buildQueryString(params)
+        return request<PaginatedUsersResponse>(`/sync/employees${qs}`)
     },
 
     // Staff endpoints (Admin faqat stafflarni olishi uchun)
     getStaff(params: UserPaginationParams = {}) {
-        const query = new URLSearchParams()
-        if (params.page) query.append('page', params.page.toString())
-        if (params.per_page) query.append('per_page', params.per_page.toString())
-        if (params.search) query.append('search', params.search)
-        if (params.status) query.append('status', params.status)
-        return request<PaginatedUsersResponse>(`/sync/staff?${query.toString()}`)
+        const qs = buildQueryString(params)
+        return request<PaginatedUsersResponse>(`/sync/staff${qs}`)
     },
 
     // Admin endpoints (Faqat super admin olishi uchun)
     getAdmins(params: UserPaginationParams = {}) {
-        const query = new URLSearchParams()
-        if (params.page) query.append('page', params.page.toString())
-        if (params.per_page) query.append('per_page', params.per_page.toString())
-        if (params.search) query.append('search', params.search)
-        if (params.status) query.append('status', params.status)
-        return request<PaginatedUsersResponse>(`/sync/admins?${query.toString()}`)
+        const qs = buildQueryString(params)
+        return request<PaginatedUsersResponse>(`/sync/admins${qs}`)
     },
 
     // Book Requests endpoints
@@ -625,13 +596,11 @@ export const api = {
     },
 
     getAllRequests(params: UserPaginationParams = {}) {
-        const query = new URLSearchParams()
-        if (params.page) query.append('page', params.page.toString())
-        if (params.per_page) query.append('per_page', params.per_page.toString())
-        if (params.search) query.append('search', params.search)
-        if (params.status && params.status !== 'all') query.append('status', params.status)
-
-        return request<PaginatedRequestsResponse>(`/requests?${query.toString()}`)
+        const qs = buildQueryString({
+            ...params,
+            status: params.status === 'all' ? undefined : params.status
+        })
+        return request<PaginatedRequestsResponse>(`/requests${qs}`)
     },
 
     updateRequestStatus(id: string, status: string, employee_comment: string | null) {
@@ -663,12 +632,13 @@ export const api = {
     },
 
     exportReportExcel(type: 'rentals' | 'controls' | 'submissions', startDate?: string, endDate?: string) {
-        const query = new URLSearchParams()
-        query.append('report_type', type)
-        if (startDate) query.append('start_date', startDate)
-        if (endDate) query.append('end_date', endDate)
+        const qs = buildQueryString({
+            report_type: type,
+            start_date: startDate,
+            end_date: endDate
+        })
 
-        return fetch(`${API_BASE}/reports/export?${query.toString()}`, {
+        return fetch(`${API_BASE}/reports/export${qs}`, {
             headers: getAuthHeader()
         }).then(async (res) => {
             if (!res.ok) {
@@ -676,7 +646,7 @@ export const api = {
                 try {
                     const err = await res.json()
                     msg = err.message || msg
-                } catch (e) { }
+                } catch { /* ignored */ }
                 throw new Error(msg)
             }
             return res.blob()
@@ -684,25 +654,19 @@ export const api = {
     },
 
     // News endpoints (Admin CRUD)
-    getNewsList(params: PaginationParams & { published_only?: boolean } = {}) {
-        const query = new URLSearchParams()
-        if (params.page) query.append('page', params.page.toString())
-        if (params.search) query.append('search', params.search)
-        if (params.category) query.append('category', params.category)
-        if (params.limit) query.append('limit', params.limit.toString())
-        if (params.published_only) query.append('published_only', params.published_only.toString())
-
-        return request<PaginatedNewsResponse>(`/news?${query.toString()}`)
+    getNewsList(params: PaginationParams = {}) {
+        const qs = buildQueryString(params)
+        return request<PaginatedNewsResponse>(`/news${qs}`)
     },
 
     getPublicNewsList(params: PaginationParams = {}) {
-        const query = new URLSearchParams()
-        if (params.page) query.append('page', params.page.toString())
-        if (params.search) query.append('search', params.search)
-        if (params.category) query.append('category', params.category)
-        if (params.limit) query.append('limit', params.limit.toString())
-
-        return request<PaginatedNewsResponse>(`/public/news?${query.toString()}`)
+        const qs = buildQueryString({
+            page: params.page,
+            search: params.search,
+            category: params.category,
+            limit: params.limit
+        })
+        return request<PaginatedNewsResponse>(`/public/news${qs}`)
     },
 
     getNewsDetail(idOrSlug: string, isPublic = false) {
@@ -735,330 +699,4 @@ export const api = {
             method: 'PUT',
         })
     }
-}
-
-// Reports types
-export interface ReportDashboardResponse {
-    recent_rentals: Rental[]
-    recent_controls: ControlRecord[]
-}
-
-// Detailed Book Type
-export interface Book {
-    id: string
-    title: string
-    author: string
-    category: string
-    isbn: string | null
-    published_year: number | null
-    total_pages: number | null
-    total_copies: number
-    available_copies: number
-    shelf_location: string | null
-    cover_image: string | null
-    description: string | null
-    added_by: string
-    created_at: string
-    updated_at: string
-    page_count?: number | null
-    duration_seconds?: number | null
-    format?: string | null
-    cover_image_url?: string | null
-    digital_file_url?: string | null
-    total_quantity?: number | null
-    available_quantity?: number | null
-    is_active?: boolean | null
-    admin_comment?: string | null
-    subtitle?: string | null
-    translator?: string | null
-    publisher?: string | null
-    publication_date?: number | null
-    language?: string | null
-    isbn_13?: string | null
-}
-
-export interface PopularBook {
-    title: string;
-    author: string;
-    count: number;
-    cover_image?: string;
-}
-
-export interface CreateBookRequest {
-    title: string
-    author: string
-    subtitle?: string
-    translator?: string
-    edition?: string
-    genre?: string
-    isbn_10?: string
-    category?: string
-    isbn_13?: string
-    total_quantity?: number
-    available_quantity?: number
-    publisher?: string
-    publication_date?: number
-    language?: string
-    description?: string
-    page_count?: number
-    shelf_location?: string
-    format?: string
-    cover_image_url?: string
-    digital_file_url?: string
-    duration_seconds?: number
-}
-
-export interface UploadedFile {
-    original_name: string
-    filename: string
-    url: string
-    size: number
-    extension: string
-}
-
-export interface UploadResponse {
-    success: boolean
-    message: string
-    files: UploadedFile[]
-}
-
-export interface PaginationParams {
-    page?: number
-    search?: string
-    category?: string
-    limit?: number
-}
-
-export interface PaginatedBooksResponse {
-    success: boolean
-    data: Book[]
-    pagination: {
-        current_page: number
-        per_page: number
-        total_items: number
-        total_pages: number
-    }
-}
-
-// Book Request types
-export interface BookRequest {
-    id: string
-    user_id: string
-    book_id: string
-    user_name: string
-    book_title: string
-    request_type: string // 'physical', 'electronic'
-    status: string // 'pending', 'processing', 'ready', 'rejected'
-    employee_comment: string | null
-    created_at: string
-    updated_at: string
-}
-
-export interface PaginatedRequestsResponse {
-    success: boolean
-    data: BookRequest[]
-    pagination: {
-        current_page: number
-        per_page: number
-        total_items: number
-        total_pages: number
-    }
-}
-
-export interface SingleBookResponse {
-    success: boolean
-    message?: string
-    data: Book
-}
-
-// Reading types
-export interface Reading {
-    id: string
-    user_id: string
-    book_id: string
-    start: string | null
-    finish: string | null
-    book_type: string | null
-    audio: number | null
-    page: number | null
-    state: boolean | null
-    book_title: string | null
-    book_author: string | null
-    book_cover: string | null
-    book_category: string | null
-    book_page_count: number | null
-    book_format: string | null
-    book_digital_file_url: string | null
-}
-
-export interface ReadingListResponse {
-    success: boolean
-    data: Reading[]
-}
-
-// Rental types (kitob berish/qaytarish)
-export interface Rental {
-    id: string
-    user_id: string
-    book_id: string
-    loan_date: string
-    due_date: string
-    return_date: string | null
-    status: 'active' | 'returned' | 'overdue' | 'lost'
-    notes: string | null
-    book_title: string | null
-    book_author: string | null
-    book_cover: string | null
-    user_full_name: string | null
-    role?: string
-    department_name: string | null
-    group_name: string | null
-    staff_position?: string
-}
-
-export interface RentalListResponse {
-    success: boolean
-    data: Rental[]
-    total: number
-}
-
-// Control types (kirish-chiqish nazorati)
-export interface ControlRecord {
-    id: string
-    user_id: string
-    arrival: string | null
-    departure: string | null
-    full_name: string | null
-    role: string | null
-    department_name: string | null
-    group_name: string | null
-    staff_position: string | null
-}
-
-export interface ControlListResponse {
-    success: boolean
-    data: ControlRecord[]
-    total: number
-}
-
-// User pagination types
-export interface UserPaginationParams {
-    page?: number
-    per_page?: number
-    search?: string
-    status?: string
-}
-
-export interface PaginatedUsersResponse {
-    success: boolean
-    data: UserData[]
-    pagination: {
-        current_page: number
-        per_page: number
-        total_items: number
-        total_pages: number
-    }
-}
-
-// Admin Dashboard Types
-export interface AdminDashboardResponse {
-    success: boolean
-    data: {
-        total_users: number
-        total_books: number
-        active_rentals: number
-        overdue_rentals: number
-        pending_requests: number
-        chart_data: { date: string; count: number; controls_count: number }[]
-        recent_activities: { id: string; user: string; action: string; time: string }[]
-    }
-}
-
-// User Personal Dashboard Types
-export interface MyDashboardResponse {
-    success: boolean
-    data: {
-        active_rentals: number
-        overdue_rentals: number
-        total_read: number
-        pending_requests: number
-        recent_activities: { id: string; user: string; action: string; time: string }[]
-    }
-}
-
-// Employee Dashboard Types
-export interface EmployeeDashboardResponse {
-    today_rented: number
-    today_returned: number
-    pending_requests: number
-    today_visitors: number
-    pending_returns: {
-        student: string
-        book: string
-        due_date: string
-        status: string
-    }[]
-    popular_books: {
-        title: string
-        author: string
-        count: number
-        cover_image?: string
-    }[]
-}
-
-// Public Dashboard Types
-export interface PublicDashboardResponse {
-    total_books: number
-    total_users: number
-    total_rentals: number
-    popular_books: {
-        title: string
-        author: string
-        count: number
-        cover_image?: string
-    }[]
-}
-
-// News Types
-export interface News {
-    id: string
-    title: string
-    slug: string
-    summary: string | null
-    content: string
-    images: string[]
-    category: string | null
-    tags: string[]
-    author_id: string | null
-    is_published: boolean
-    published_at: string | null
-    created_at: string
-    updated_at: string
-}
-
-export interface CreateNewsRequest {
-    title: string
-    summary?: string
-    content: string
-    images?: string[]
-    category?: string
-    tags?: string[]
-    is_published?: boolean
-}
-
-export interface PaginatedNewsResponse {
-    success: boolean
-    data: News[]
-    pagination: {
-        current_page: number
-        per_page: number
-        total_items: number
-        total_pages: number
-    }
-}
-
-export interface SingleNewsResponse {
-    success: boolean
-    message?: string
-    data: News
 }

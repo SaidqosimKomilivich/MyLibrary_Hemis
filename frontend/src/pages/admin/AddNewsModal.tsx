@@ -10,6 +10,7 @@ interface AdminNewsModalProps {
     isOpen: boolean
     onClose: () => void
     onSuccess: () => void
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     editingNews: any | null
 }
 
@@ -67,7 +68,9 @@ export default function AdminNewsModal({
                 setImages(prev => [...prev, ...newImageUrls])
                 toast.success(`${newImageUrls.length} ta rasm yuklandi`)
             }
-        } catch (error: any) {
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        catch (error: any) {
             toast.error(error.message || 'Rasm yuklashda xatolik')
         } finally {
             setIsUploading(false)
@@ -105,7 +108,9 @@ export default function AdminNewsModal({
             }
             onSuccess()
             onClose()
-        } catch (error: any) {
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        catch (error: any) {
             toast.error(error.message || "Xatolik yuz berdi")
         } finally {
             setIsSubmitting(false)
@@ -299,7 +304,7 @@ export default function AdminNewsModal({
                             </div>
                         </div>
 
-                        
+
 
                     </div>
 

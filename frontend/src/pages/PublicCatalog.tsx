@@ -33,6 +33,7 @@ const PublicCatalog = () => {
     const fetchBooks = async () => {
         setIsLoading(true);
         try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const params: any = { page: pageQuery, limit: 12 };
             if (searchQuery) params.search = searchQuery;
             if (categoryQuery !== 'all') params.category = categoryQuery;
@@ -57,6 +58,7 @@ const PublicCatalog = () => {
     useEffect(() => {
         fetchBooks();
         setSearchInput(searchQuery);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [searchQuery, categoryQuery, pageQuery]);
 
     const handleSearch = (e: React.FormEvent) => {

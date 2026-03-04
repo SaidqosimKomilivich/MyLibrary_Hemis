@@ -54,7 +54,6 @@ export default function AudioPlayerModal() {
     // Ref callback: audio element DOM ga kirganda ishga tushadi
     const audioCallbackRef = (el: HTMLAudioElement | null) => {
         if (!el) return
-        // @ts-ignore — mutable ref
         audioRef.current = el
     }
 

@@ -49,7 +49,9 @@ export default function ProfilePage() {
             setOldPassword('')
             setNewPassword('')
             setConfirmPassword('')
-        } catch (err: any) {
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        catch (err: any) {
             // If backend endpoint doesn't exist yet (404), show info
             if (err.status === 404) {
                 toast.info("Parol o'zgartirish funksiyasi hali backend tomonida tayyor emas")

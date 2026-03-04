@@ -26,6 +26,7 @@ export default function TeacherDashboard() {
             if (dashRes.success) setDashboardData(dashRes.data)
             if (rentalsRes.success) {
                 // Show active and overdue rentals
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 setMyRentals(rentalsRes.data.filter((r: any) => r.status === 'active' || r.status === 'overdue'))
             }
             if (booksRes.success) {
@@ -33,10 +34,13 @@ export default function TeacherDashboard() {
             }
             if (submissionsRes.success) {
                 // Submitted books waiting for admin approval (is_active !== true)
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const pendingSubs = submissionsRes.data.filter((b: any) => !b.is_active)
                 setPendingSubmissionsCount(pendingSubs.length)
             }
-        } catch (err: any) {
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        catch (err: any) {
             toast.error(err.message || "Ma'lumotlarni yuklashda xatolik")
         } finally {
             setIsLoading(false)

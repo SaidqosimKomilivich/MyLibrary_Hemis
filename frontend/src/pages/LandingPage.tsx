@@ -31,7 +31,7 @@ export default function LandingPage() {
                 if (newsRes.success) {
                     setNews(newsRes.data)
                 }
-            } catch (err) {
+            } catch {
                 console.error("Failed to fetch public data")
             } finally {
                 setIsLoading(false)

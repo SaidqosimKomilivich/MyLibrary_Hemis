@@ -25,7 +25,9 @@ export default function PublicNewsPage() {
                         setTotalPages(res.pagination.total_pages)
                     }
                 }
-            } catch (error: any) {
+            }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            catch (error: any) {
                 toast.error(error.message || "Yangiliklarni yuklashda xatolik yuz berdi")
             } finally {
                 setIsLoading(false)

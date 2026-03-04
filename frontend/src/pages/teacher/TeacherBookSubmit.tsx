@@ -140,7 +140,9 @@ export default function TeacherBookSubmit() {
             setForm({ ...EMPTY_FORM, author: user?.full_name || '' })
             setModalOpen(false)
             loadMySubmissions()
-        } catch (err: any) {
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        catch (err: any) {
             toast.error(err.message || "Taqdim etishda xatolik")
         } finally {
             setSubmitting(false)
