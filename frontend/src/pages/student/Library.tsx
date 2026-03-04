@@ -78,26 +78,26 @@ export default function Library() {
 
     // Auto-open kitobi agar login ga katalogdan o'tilgan bo'lsa
     useEffect(() => {
-        if (!autoOpenBookId || autoOpenHandledRef.current || isLoading) return
+        if (!autoOpenBookId || autoOpenHandledRef.current) return
         autoOpenHandledRef.current = true
 
         const handleAutoOpen = async () => {
             try {
                 // O'qilayotganlar ro'yxatiga qo'shish
                 await api.startReading(autoOpenBookId)
+            } catch {
+                // Allaqachon ro'yxatda bo'lishi mumkin — davom etamiz
+            }
 
-                // Kitobni books ro'yxatida topish
-                const found = books.find(b => b.id === autoOpenBookId)
-                if (found) {
-                    setPdfBook(found)
-                    toast.success(`"${found.title}" o'qilayotgan kitoblar ro'yxatiga qo'shildi!`, { autoClose: 4000 })
-                } else {
-                    toast.success("Kitob o'qilayotganlar ro'yxatiga qo'shildi!")
+            try {
+                // Kitobni to'g'ridan-to'g'ri API dan olish (paginated listga bog'liq emas)
+                const res = await api.getBookById(autoOpenBookId)
+                if (res.success && res.data) {
+                    setPdfBook(res.data)
+                    toast.success(`"${res.data.title}" o'qilayotgan kitoblar ro'yxatiga qo'shildi!`, { autoClose: 4000 })
                 }
             } catch {
-                toast.info("Kitob allaqachon ro'yxatingizda mavjud yoki ochildi")
-                const found = books.find(b => b.id === autoOpenBookId)
-                if (found) setPdfBook(found)
+                toast.error("Kitob yuklanmadi")
             }
 
             // Router state ni tozalaymiz — sahifa yangilanganda qayta ishga tushmaydi
@@ -106,7 +106,7 @@ export default function Library() {
 
         handleAutoOpen()
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isLoading])
+    }, [])
 
     // Admin actions
     const handleAdd = () => {

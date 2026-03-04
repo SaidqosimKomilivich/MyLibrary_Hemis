@@ -5,10 +5,11 @@ use actix_web::{
 use sqlx::PgPool;
 
 use crate::config::Config;
-use crate::dto::auth::{ChangePasswordRequest, LoginRequest};
+use crate::dto::auth::{ChangePasswordRequest, LoginRequest, CaptchaResponse};
 use crate::errors::AppError;
 use crate::middleware::auth_middleware::Claims;
 use crate::services::auth_service::AuthService;
+use crate::services::captcha_service::CaptchaService;
 
 /// Clientning IP manzilini olish
 fn get_client_ip(req: &HttpRequest) -> Option<String> {
@@ -57,6 +58,16 @@ fn create_removal_cookie(name: &str, path: &str) -> Cookie<'static> {
 // Handlers
 // ================================
 
+/// GET /api/auth/captcha
+pub async fn get_captcha() -> Result<HttpResponse, AppError> {
+    let (captcha_id, text) = CaptchaService::generate_captcha();
+    Ok(HttpResponse::Ok().json(CaptchaResponse {
+        success: true,
+        captcha_id,
+        text,
+    }))
+}
+
 /// POST /api/auth/login
 pub async fn login(
     pool: web::Data<PgPool>,
@@ -64,25 +75,56 @@ pub async fn login(
     req: HttpRequest,
     body: web::Json<LoginRequest>,
 ) -> Result<HttpResponse, AppError> {
+    let user_id = body.user_id.clone();
+
+    // 1. Rate Limiting Check
+    if let Err(expires_str) = CaptchaService::check_rate_limit(&user_id) {
+        return Ok(HttpResponse::TooManyRequests().json(serde_json::json!({
+            "success": false,
+            "message": format!("Juda ko'p urinish. Iltimos {expires_str} dan so'ng urinib ko'ring."),
+            "blocked_until": expires_str
+        })));
+    }
+
+    // 2. Captcha verification
+    let captcha_id = body.captcha_id.clone().unwrap_or_default();
+    let captcha_value = body.captcha_value.unwrap_or(-1);
+    
+    if let Err(e) = CaptchaService::validate_captcha(&captcha_id, captcha_value) {
+        // Increment fail counter for missing/wrong captcha
+        CaptchaService::record_failed_attempt(&user_id);
+        return Err(e);
+    }
+
     let user_agent = get_user_agent(&req);
     let client_ip = get_client_ip(&req);
 
-    let (response, access_token, refresh_token) = AuthService::login(
+    // 3. Authenticate
+    match AuthService::login(
         pool.get_ref(),
         config.get_ref(),
         body.into_inner(),
         user_agent,
         client_ip,
-    )
-    .await?;
+    ).await {
+        Ok((response, access_token, refresh_token)) => {
+            // Success: clear failed attempts
+            CaptchaService::clear_attempts(&user_id);
 
-    let access_cookie = create_access_cookie(&access_token, config.access_token_expiry_minutes);
-    let refresh_cookie = create_refresh_cookie(&refresh_token, config.refresh_token_expiry_days);
+            let access_cookie = create_access_cookie(&access_token, config.access_token_expiry_minutes);
+            let refresh_cookie = create_refresh_cookie(&refresh_token, config.refresh_token_expiry_days);
 
-    Ok(HttpResponse::Ok()
-        .cookie(access_cookie)
-        .cookie(refresh_cookie)
-        .json(response))
+            Ok(HttpResponse::Ok()
+                .cookie(access_cookie)
+                .cookie(refresh_cookie)
+                .json(response))
+        },
+        Err(e) => {
+            // Failed auth: record attempt
+            CaptchaService::record_failed_attempt(&user_id);
+            Err(e)
+        }
+    }
 }
 
 /// POST /api/auth/logout

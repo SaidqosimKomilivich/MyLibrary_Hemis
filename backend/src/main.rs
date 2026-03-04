@@ -102,6 +102,7 @@ async fn main() -> std::io::Result<()> {
             // Auth routes
             .service(
                 web::scope("/api/auth")
+                    .route("/captcha", web::get().to(auth_handler::get_captcha))
                     .route("/login", web::post().to(auth_handler::login))
                     .route("/logout", web::post().to(auth_handler::logout))
                     .route("/refresh", web::post().to(auth_handler::refresh))

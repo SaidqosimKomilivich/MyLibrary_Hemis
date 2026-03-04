@@ -1,16 +1,25 @@
-use serde::{Deserialize, Serialize};
 use super::user::UserResponse;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize)]
 pub struct LoginRequest {
     pub user_id: String,
     pub password: String,
+    pub captcha_id: Option<String>,
+    pub captcha_value: Option<i32>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct ChangePasswordRequest {
     pub old_password: String,
     pub new_password: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct CaptchaResponse {
+    pub success: bool,
+    pub captcha_id: String,
+    pub text: String,
 }
 
 #[derive(Debug, Serialize)]

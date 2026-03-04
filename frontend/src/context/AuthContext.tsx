@@ -19,7 +19,7 @@ interface AuthContextType {
     role: string | null
     isLoading: boolean
     isAuthenticated: boolean
-    login: (userId: string, password: string) => Promise<string>
+    login: (userId: string, password: string, captchaId?: string, captchaValue?: number) => Promise<string>
     logout: () => Promise<void>
 }
 
@@ -43,8 +43,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             })
     }, [])
 
-    const login = useCallback(async (userId: string, password: string): Promise<string> => {
-        const res = await api.login(userId, password)
+    const login = useCallback(async (userId: string, password: string, captchaId?: string, captchaValue?: number): Promise<string> => {
+        const res = await api.login(userId, password, captchaId, captchaValue)
         setUser(res.user)
         return mapRole(res.user.role)
     }, [])

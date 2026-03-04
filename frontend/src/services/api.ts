@@ -36,9 +36,11 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api'
 
 class ApiError extends Error {
     status: number
-    constructor(message: string, status: number) {
+    data?: unknown
+    constructor(message: string, status: number, data?: unknown) {
         super(message)
         this.status = status
+        this.data = data
         this.name = 'ApiError'
     }
 }
@@ -102,17 +104,21 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
         const errorMessage = typeof errData?.message === 'string' ? errData.message
             : (typeof errData?.error === 'string' ? errData.error : fallbackMsg)
 
-        throw new ApiError(errorMessage, res.status)
+        throw new ApiError(errorMessage, res.status, errData)
     }
 
     return data as T
 }
 
 export const api = {
-    login(user_id: string, password: string) {
+    getCaptcha() {
+        return request<import('./api.types').CaptchaResponse>('/auth/captcha')
+    },
+
+    login(user_id: string, password: string, captcha_id?: string, captcha_value?: number) {
         return request<LoginResponse>('/auth/login', {
             method: 'POST',
-            body: JSON.stringify({ user_id, password } satisfies LoginPayload),
+            body: JSON.stringify({ user_id, password, captcha_id, captcha_value } satisfies LoginPayload),
         })
     },
 
@@ -154,6 +160,10 @@ export const api = {
     getBooks(params: PaginationParams = {}) {
         const qs = buildQueryString(params)
         return request<PaginatedBooksResponse>(`/books${qs}`)
+    },
+
+    getBookById(id: string) {
+        return request<SingleBookResponse>(`/books/${id}`)
     },
 
     createBook(data: CreateBookRequest) {

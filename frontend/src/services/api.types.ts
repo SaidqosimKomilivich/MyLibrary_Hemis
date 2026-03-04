@@ -1,6 +1,14 @@
 export interface LoginPayload {
     user_id: string
     password: string
+    captcha_id?: string
+    captcha_value?: number
+}
+
+export interface CaptchaResponse {
+    success: boolean
+    captcha_id: string
+    text: string
 }
 
 export interface UserData {

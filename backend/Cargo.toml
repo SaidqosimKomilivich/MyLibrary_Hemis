@@ -44,4 +44,5 @@ actix-web-lab = "0.25.0"
 tokio-stream = "0.1.18"
 futures = { version = "0.3.32", features = ["std"] }
 async-stream = "0.3.6"
+rand = "0.8"
 
