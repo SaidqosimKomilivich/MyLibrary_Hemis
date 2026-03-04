@@ -243,6 +243,10 @@ async fn main() -> std::io::Result<()> {
             // Users routes
             .service(
                 web::scope("/api/users")
+                    .route(
+                        "/increment-id-card",
+                        web::post().to(auth_handler::increment_id_card),
+                    )
                     .route("/{id}", web::get().to(sync_handler::get_user_by_id))
                     .route("/{id}/role", web::put().to(sync_handler::update_user_role))
                     .route(

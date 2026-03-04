@@ -1,8 +1,11 @@
-use actix_web::{cookie::{Cookie, SameSite, time::Duration as CookieDuration}, web, HttpRequest, HttpResponse};
+use actix_web::{
+    cookie::{time::Duration as CookieDuration, Cookie, SameSite},
+    web, HttpRequest, HttpResponse,
+};
 use sqlx::PgPool;
 
 use crate::config::Config;
-use crate::dto::auth::{LoginRequest, ChangePasswordRequest};
+use crate::dto::auth::{ChangePasswordRequest, LoginRequest};
 use crate::errors::AppError;
 use crate::middleware::auth_middleware::Claims;
 use crate::services::auth_service::AuthService;
@@ -64,8 +67,14 @@ pub async fn login(
     let user_agent = get_user_agent(&req);
     let client_ip = get_client_ip(&req);
 
-    let (response, access_token, refresh_token) =
-        AuthService::login(pool.get_ref(), config.get_ref(), body.into_inner(), user_agent, client_ip).await?;
+    let (response, access_token, refresh_token) = AuthService::login(
+        pool.get_ref(),
+        config.get_ref(),
+        body.into_inner(),
+        user_agent,
+        client_ip,
+    )
+    .await?;
 
     let access_cookie = create_access_cookie(&access_token, config.access_token_expiry_minutes);
     let refresh_cookie = create_refresh_cookie(&refresh_token, config.refresh_token_expiry_days);
@@ -158,7 +167,8 @@ pub async fn change_password(
         user_id,
         &body.old_password,
         &body.new_password,
-    ).await?;
+    )
+    .await?;
 
     Ok(HttpResponse::Ok().json(response))
 }
@@ -200,5 +210,24 @@ pub async fn reset_password(
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "success": true,
         "message": "Parol muvaffaqiyatli default holatga qaytarildi"
+    })))
+}
+
+/// POST /api/users/increment-id-card
+/// Foydalanuvchi ID kartasining old tomonini yuklab olganida id_card hisoblagichini oshiradi
+pub async fn increment_id_card(
+    pool: web::Data<PgPool>,
+    claims: Claims,
+) -> Result<HttpResponse, AppError> {
+    use crate::repository::user_repository::UserRepository;
+
+    let user_id = uuid::Uuid::parse_str(&claims.sub)
+        .map_err(|_| AppError::InternalError("UUID noto'g'ri".to_string()))?;
+
+    UserRepository::increment_id_card_download(pool.get_ref(), user_id).await?;
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "success": true,
+        "message": "ID karta yuklab olish soni yangilandi"
     })))
 }

@@ -76,9 +76,9 @@ const PublicCatalog = () => {
         }
     };
 
-    const handleBookClick = () => {
-        toast.info("Kitobni o'qish yoki band qilish uchun tizimga kiring");
-        navigate('/login');
+    const handleBookClick = (bookId: string) => {
+        toast.info("Kitobni o'qish uchun tizimga kiring");
+        navigate('/login', { state: { returnToBookId: bookId } });
     };
 
     return (
@@ -136,7 +136,7 @@ const PublicCatalog = () => {
                 <div className="flex-1 min-w-0">
                     <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
                         <h1 className="text-2xl font-bold">
-                            {searchQuery ? `"${searchQuery}" s'oroviga natijalar` : (categoryQuery === 'all' ? 'Barcha kitoblar' : `${categoryQuery} bo'yicha`)}
+                            {searchQuery ? `"${searchQuery}" so'roviga natijalar` : (categoryQuery === 'all' ? 'Barcha kitoblar' : `${categoryQuery} bo'yicha`)}
                         </h1>
                         {searchQuery && (
                             <button
@@ -159,7 +159,7 @@ const PublicCatalog = () => {
                                 {books.map((book) => (
                                     <div
                                         key={book.id}
-                                        onClick={handleBookClick}
+                                        onClick={() => handleBookClick(book.id)}
                                         className="group bg-surface border border-border/50 rounded-2xl overflow-hidden hover:border-emerald-500/50 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-emerald-500/10 cursor-pointer flex flex-col"
                                     >
                                         <div className="aspect-2/3 bg-surface-hover flex items-center justify-center border-b border-border/50 relative overflow-hidden shrink-0">

@@ -698,5 +698,12 @@ export const api = {
         return request<SingleNewsResponse>(`/news/${id}/publish`, {
             method: 'PUT',
         })
+    },
+
+    // ID karta yuklab olish sonini oshirish
+    incrementIdCardDownload() {
+        return request<{ success: boolean; message: string }>('/users/increment-id-card', {
+            method: 'POST',
+        })
     }
 }

@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { GraduationCap, Briefcase, BookUser, Search, RefreshCw, X, ArrowDownToLine, CheckCircle2, Eye, Mail, Phone, Calendar, MapPin, Hash, AlertCircle, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, KeyRound, ShieldAlert, UserCog, Power } from 'lucide-react'
+import { GraduationCap, Briefcase, BookUser, Search, RefreshCw, X, ArrowDownToLine, CheckCircle2, Eye, Mail, Phone, Calendar, MapPin, Hash, AlertCircle, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, KeyRound, ShieldAlert, UserCog, Power, Download } from 'lucide-react'
 import { CustomSelect } from '../../components/CustomSelect'
 import { api } from '../../services/api'
 import type { UserData } from '../../services/api'
@@ -109,6 +109,7 @@ function UserDetailModal({ user, type, onClose }: { user: UserData; type: 'stude
             { icon: <Mail size={16} />, label: 'Email', value: user.email || '-' },
             { icon: <Phone size={16} />, label: 'Telefon', value: user.phone || '-' },
             { icon: <Calendar size={16} />, label: "Tug'ilgan sana", value: user.birth_date || '-' },
+            { icon: <Download size={16} />, label: 'ID karta yuklab olingan', value: `${user.id_card ?? 0} marta` },
         )
     } else if (type === 'teacher') {
         infoRows.push(
@@ -118,6 +119,7 @@ function UserDetailModal({ user, type, onClose }: { user: UserData; type: 'stude
             { icon: <Mail size={16} />, label: 'Email', value: user.email || '-' },
             { icon: <Phone size={16} />, label: 'Telefon', value: user.phone || '-' },
             { icon: <Calendar size={16} />, label: "Tug'ilgan sana", value: user.birth_date || '-' },
+            { icon: <Download size={16} />, label: 'ID karta yuklab olingan', value: `${user.id_card ?? 0} marta` },
         )
     } else {
         infoRows.push(
@@ -127,6 +129,7 @@ function UserDetailModal({ user, type, onClose }: { user: UserData; type: 'stude
             { icon: <Mail size={16} />, label: 'Email', value: user.email || '-' },
             { icon: <Phone size={16} />, label: 'Telefon', value: user.phone || '-' },
             { icon: <Calendar size={16} />, label: "Tug'ilgan sana", value: user.birth_date || '-' },
+            { icon: <Download size={16} />, label: 'ID karta yuklab olingan', value: `${user.id_card ?? 0} marta` },
         )
     }
 
@@ -718,23 +721,86 @@ export default function UsersPage() {
                     students, loading.students, 'Talabalar', 'student',
                     [
                         { header: 'Guruh', render: u => <span className="inline-flex py-1 px-3 bg-surface-hover border border-border rounded-lg text-[0.8rem] font-medium font-mono">{u.group_name || '-'}</span> },
-                        { header: 'Fakultet', render: u => u.department_name || '-' },
+                        {
+                            header: 'Fakultet', render: u => (
+                                <span className="inline-flex py-1 px-3 bg-surface-hover border border-border rounded-lg text-[0.8rem] font-medium truncate max-w-[220px]" title={u.department_name || '-'}>
+                                    {u.department_name || '-'}
+                                </span>
+                            )
+                        },
+                        {
+                            header: 'ID karta', render: u => (
+                                <span className={`inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full text-[0.75rem] font-bold border ${(u.id_card ?? 0) > 0
+                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                    : 'bg-surface-hover text-text-muted border-border'
+                                    }`}>
+                                    <Download size={12} />
+                                    {u.id_card ?? 0} marta
+                                </span>
+                            )
+                        },
                     ],
                     studentsPag,
                 )}
                 {activeTab === 'teachers' && renderUserTable(
                     teachers, loading.teachers, "O'qituvchilar", 'teacher',
                     [
-                        { header: 'Kafedra', render: u => u.department_name || '-' },
-                        { header: 'Lavozim', render: u => u.staff_position || '-' },
+                        {
+                            header: 'Kafedra', render: u => (
+                                <span className="inline-flex py-1 px-3 bg-surface-hover border border-border rounded-lg text-[0.8rem] font-medium truncate max-w-[220px]" title={u.department_name || '-'}>
+                                    {u.department_name || '-'}
+                                </span>
+                            )
+                        },
+                        {
+                            header: 'Lavozim', render: u => (
+                                <span className="inline-flex py-1 px-2.5 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-[0.8rem] font-medium text-indigo-400">
+                                    {u.staff_position || '-'}
+                                </span>
+                            )
+                        },
+                        {
+                            header: 'ID karta', render: u => (
+                                <span className={`inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full text-[0.75rem] font-bold border ${(u.id_card ?? 0) > 0
+                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                    : 'bg-surface-hover text-text-muted border-border'
+                                    }`}>
+                                    <Download size={12} />
+                                    {u.id_card ?? 0} marta
+                                </span>
+                            )
+                        },
                     ],
                     teachersPag,
                 )}
                 {activeTab === 'employees' && renderUserTable(
                     employees, loading.employees, 'Xodimlar', 'employee',
                     [
-                        { header: "Bo'lim", render: u => u.department_name || '-' },
-                        { header: 'Lavozim', render: u => u.staff_position || '-' },
+                        {
+                            header: "Bo'lim", render: u => (
+                                <span className="inline-flex py-1 px-3 bg-surface-hover border border-border rounded-lg text-[0.8rem] font-medium truncate max-w-[220px]" title={u.department_name || '-'}>
+                                    {u.department_name || '-'}
+                                </span>
+                            )
+                        },
+                        {
+                            header: 'Lavozim', render: u => (
+                                <span className="inline-flex py-1 px-2.5 bg-blue-500/10 border border-blue-500/20 rounded-lg text-[0.8rem] font-medium text-blue-400">
+                                    {u.staff_position || '-'}
+                                </span>
+                            )
+                        },
+                        {
+                            header: 'ID karta', render: u => (
+                                <span className={`inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full text-[0.75rem] font-bold border ${(u.id_card ?? 0) > 0
+                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                    : 'bg-surface-hover text-text-muted border-border'
+                                    }`}>
+                                    <Download size={12} />
+                                    {u.id_card ?? 0} marta
+                                </span>
+                            )
+                        },
                     ],
                     employeesPag,
                 )}
@@ -914,7 +980,7 @@ export default function UsersPage() {
                                 )}
                                 <div>
                                     <div className="font-semibold text-[1rem] text-text">{resetUser.full_name}</div>
-                                    <div className="text-[0.8rem] opacity-60 text-text-muted">ID: {resetUser.user_id}</div>
+                                    {/* <div className="text-[0.8rem] opacity-60 text-text-muted">ID: {resetUser.user_id}</div> */}
                                 </div>
                             </div>
 
@@ -922,9 +988,9 @@ export default function UsersPage() {
                                 <p className="m-0">
                                     <strong className="text-amber-500">Diqqat!</strong> Bu foydalanuvchining paroli default holatga qaytariladi.
                                 </p>
-                                <p className="mt-2 mb-0 opacity-80 flex items-center gap-2">
+                                {/* <p className="mt-2 mb-0 opacity-80 flex items-center gap-2">
                                     Yangi parol: <code className="bg-white/10 px-2 py-0.5 rounded text-[0.9rem] font-semibold text-amber-400">{resetUser.user_id}</code>
-                                </p>
+                                </p> */}
                             </div>
                         </div>
 

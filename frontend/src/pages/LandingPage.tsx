@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { BookOpen, Users, Search, ChevronRight, TrendingUp, Megaphone, Calendar, Info, ShieldCheck, Clock, HelpCircle, Phone, Mail, MapPin, ChevronDown } from 'lucide-react'
+import { BookOpen, Users, Search, ChevronRight, TrendingUp, Megaphone, Calendar, Info, ShieldCheck, Clock, Phone, Mail, MapPin, ChevronDown } from 'lucide-react'
 import { api, type PublicDashboardResponse, type News } from '../services/api'
 
 export default function LandingPage() {
@@ -112,12 +112,12 @@ export default function LandingPage() {
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                 <div className="bg-canvas p-6 rounded-2xl border border-border/50 stagger-fade-up" style={{ animationDelay: '0.4s' }}>
                                     <ShieldCheck className="text-emerald-500 mb-4" size={28} />
-                                    <h4 className="font-bold text-lg mb-2">Ishonchli Manbalar</h4>
+                                    <h4 className="font-bold text-lg mb-2">Ishonchli manbalar</h4>
                                     <p className="text-sm text-text-muted">Barcha adabiyotlar ekspertlar tomonidan tasdiqlangan va saralangan.</p>
                                 </div>
                                 <div className="bg-canvas p-6 rounded-2xl border border-border/50 stagger-fade-up" style={{ animationDelay: '0.6s' }}>
                                     <Clock className="text-indigo-400 mb-4" size={28} />
-                                    <h4 className="font-bold text-lg mb-2">24/7 Raqamli Kirish</h4>
+                                    <h4 className="font-bold text-lg mb-2">24/7 raqamli kirish</h4>
                                     <p className="text-sm text-text-muted">Istalgan vaqtda va istalgan joydan elektron tizim orqali ulanish imkoniyati.</p>
                                 </div>
                             </div>
@@ -301,10 +301,10 @@ export default function LandingPage() {
             <section id="help" className="py-24 px-6 relative bg-canvas border-t border-border/30">
                 <div className="max-w-7xl mx-auto">
                     <div className="text-center mb-16 max-w-2xl mx-auto">
-                        <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-indigo-500/10 text-indigo-400 mb-4">
+                        {/* <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-indigo-500/10 text-indigo-400 mb-4">
                             <HelpCircle size={32} />
-                        </div>
-                        <h2 className="text-3xl font-bold tracking-tight mb-4">Yordam va Qo'llab-quvvatlash</h2>
+                        </div> */}
+                        <h2 className="text-3xl font-bold tracking-tight mb-4">Yordam va qo'llab-quvvatlash</h2>
                         <p className="text-lg text-text-muted">Kutubxonamizdan foydalanish bo'yicha eng ko'p beriladigan savollar va bog'lanish usullari.</p>
                     </div>
 

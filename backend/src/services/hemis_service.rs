@@ -280,7 +280,6 @@ impl HemisService {
                         }),
                         s.image.as_deref().filter(|st| !st.is_empty()),
                         s.email.as_deref().filter(|st| !st.is_empty()),
-                        s.id,
                         s.department.as_ref().and_then(|d| d.name.as_deref()),
                         s.specialty.as_ref().and_then(|sp| sp.name.as_deref()),
                         s.group.as_ref().and_then(|g| g.name.as_deref()),
@@ -330,7 +329,7 @@ impl HemisService {
                         }),
                         s.image.as_deref().filter(|st| !st.is_empty()),
                         s.email.as_deref().filter(|st| !st.is_empty()),
-                        s.id,
+                        0i64, // id_card yangi yaratilganda 0 dan boshlanadi (yuklab olish soni)
                         s.department.as_ref().and_then(|d| d.name.as_deref()),
                         s.specialty.as_ref().and_then(|sp| sp.name.as_deref()),
                         s.group.as_ref().and_then(|g| g.name.as_deref()),
@@ -676,7 +675,7 @@ impl HemisService {
                 });
 
                 let image_url = employee.image.clone().filter(|s| !s.is_empty());
-                let id_card = employee.id;
+                let _id_card = employee.id; // no longer used — id_card is now the download counter
 
                 let department_name = employee.department.as_ref().and_then(|d| d.name.clone());
                 let staff_position = employee
@@ -706,7 +705,6 @@ impl HemisService {
                         short_name.as_deref(),
                         birth_date,
                         image_url.as_deref(),
-                        id_card,
                         department_name.as_deref(),
                         staff_position.as_deref(),
                     )
@@ -724,7 +722,7 @@ impl HemisService {
                         short_name.as_deref(),
                         birth_date,
                         image_url.as_deref(),
-                        id_card,
+                        0i64, // id_card yangi yaratilganda 0 dan boshlanadi (yuklab olish soni)
                         department_name.as_deref(),
                         staff_position.as_deref(),
                     )

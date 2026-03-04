@@ -385,7 +385,7 @@ export default function AccessControl() {
                 <div>
                     <h1 className="flex items-center gap-3 text-2xl font-bold text-text">
                         <ScanLine size={28} className="text-primary-light" />
-                        Kirish-Chiqish Nazorati
+                        Kirish-chiqish nazorati
                     </h1>
                     <p className="text-sm text-text-muted mt-2">
                         ID karta skanerlash, foydalanuvchini tasdiqlash, kitob berish va qaytarish
@@ -404,7 +404,7 @@ export default function AccessControl() {
                         <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
                                 <Camera className="w-5 h-5 text-text" strokeWidth={2.5} />
-                                <h2 className="text-lg font-bold text-text">ID Karta Skaneri</h2>
+                                <h2 className="text-lg font-bold text-text">ID karta skaneri</h2>
                             </div>
                             <button
                                 onClick={getDevices}
@@ -511,7 +511,7 @@ export default function AccessControl() {
                                     <div className="flex flex-col gap-1.5">
                                         <div className="flex items-center gap-2 text-sm text-text-muted">
                                             <CreditCard size={14} />
-                                            <span className="truncate">ID: {scannedUser.id_card}</span>
+                                            <span className="truncate">ID karta yuklab olingan: {scannedUser.id_card} marta</span>
                                         </div>
                                         {scannedUser.department_name && (
                                             <div className="flex items-center gap-2 text-sm text-text-muted">

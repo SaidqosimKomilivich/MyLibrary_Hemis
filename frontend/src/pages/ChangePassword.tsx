@@ -70,7 +70,7 @@ export default function ChangePassword() {
                         <GraduationCap size={32} strokeWidth={1.8} />
                         <div className="absolute inset-0 rounded-2xl border border-white/20" />
                     </div>
-                    <h1 className="text-[1.8rem] font-extrabold text-text mb-2 tracking-tight">Parolni Yangilash</h1>
+                    <h1 className="text-[1.8rem] font-extrabold text-text mb-2 tracking-tight">Parolni yangilash</h1>
                     <p className="text-[0.95rem] text-text-muted m-0">
                         Xavfsizlik uchun parolingizni yangilashingiz shart
                     </p>

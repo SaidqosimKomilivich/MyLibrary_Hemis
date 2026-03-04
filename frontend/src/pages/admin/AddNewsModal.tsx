@@ -133,7 +133,7 @@ export default function AdminNewsModal({
                 {/* Header */}
                 <div className="flex justify-between items-center p-5 border-b border-border bg-white/5 rounded-t-2xl">
                     <h2 className="m-0 text-lg font-bold text-text">
-                        {editingNews ? "Yangilikni Tahrirlash" : "Yangi Yangilik Qo'shish"}
+                        {editingNews ? "Yangilikni Tahrirlash" : "Yangilik Qo'shish"}
                     </h2>
                     <button
                         onClick={onClose}

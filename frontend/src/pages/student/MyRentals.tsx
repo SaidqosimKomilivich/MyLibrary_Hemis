@@ -69,16 +69,40 @@ export default function MyRentals() {
                                 const daysLeft = calculateDaysLeft(r.due_date)
                                 const isOverdue = r.status === 'overdue' || (r.status === 'active' && daysLeft < 0)
                                 const isReturned = r.status === 'returned'
+                                const isWarning = !isOverdue && !isReturned && daysLeft <= 3
+
+                                // Card color theme based on status
+                                const cardCls = isOverdue
+                                    ? 'bg-red-500/5 border-red-500/25 shadow-[0_4px_24px_-8px_rgba(239,68,68,0.18)]'
+                                    : isWarning
+                                        ? 'bg-amber-500/5 border-amber-500/25 shadow-[0_4px_24px_-8px_rgba(245,158,11,0.15)]'
+                                        : isReturned
+                                            ? 'bg-emerald-500/5 border-emerald-500/20'
+                                            : 'bg-surface-hover/50 border-border hover:border-blue-400/30'
+
+                                // Accent left strip color
+                                const accentCls = isOverdue
+                                    ? 'bg-red-500'
+                                    : isWarning
+                                        ? 'bg-amber-400'
+                                        : isReturned
+                                            ? 'bg-emerald-500'
+                                            : 'bg-primary'
 
                                 return (
-                                    <div key={r.id} className={`flex flex-col p-5 rounded-2xl border transition-all ${isOverdue ? 'bg-red-500/5 border-red-500/20 shadow-[0_4px_20px_-10px_rgba(239,68,68,0.1)]' : isReturned ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-surface-hover/50 border-border hover:border-blue-500/30'}`}>
-                                        <div className="flex-1 min-w-0 mb-4">
+                                    <div key={r.id} className={`relative flex flex-col p-5 rounded-2xl border transition-all overflow-hidden ${cardCls}`}>
+                                        {/* Left accent strip */}
+                                        <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl ${accentCls}`} />
+
+                                        <div className="flex-1 min-w-0 mb-4 pl-2">
                                             <div className="flex justify-between items-start gap-3 mb-2">
                                                 <h3 className="text-[1.1rem] font-bold text-text leading-tight">{r.book_title}</h3>
                                                 {isReturned ? (
                                                     <span title="Qaytarilgan"><CheckCircle size={20} className="text-emerald-500 shrink-0" /></span>
                                                 ) : isOverdue ? (
                                                     <span title="Muddati o'tgan"><AlertTriangle size={20} className="text-red-500 shrink-0" /></span>
+                                                ) : isWarning ? (
+                                                    <span title="Muddati yaqinlashmoqda"><Clock size={20} className="text-amber-400 shrink-0" /></span>
                                                 ) : (
                                                     <span title="Joriy ijara"><BookOpen size={20} className="text-blue-400 shrink-0" /></span>
                                                 )}
@@ -86,14 +110,16 @@ export default function MyRentals() {
                                             <p className="text-[0.85rem] text-text-muted">{r.book_author}</p>
                                         </div>
 
-                                        <div className="flex flex-col gap-3 mt-auto pt-4 border-t border-border">
+                                        <div className="flex flex-col gap-3 mt-auto pt-4 border-t border-border/60 pl-2">
                                             <div className="flex justify-between items-center text-[0.85rem]">
                                                 <span className="text-text-muted flex items-center gap-1.5"><Calendar size={14} /> Berildi:</span>
                                                 <span className="font-medium text-text">{formatDate(r.loan_date)}</span>
                                             </div>
                                             <div className="flex justify-between items-center text-[0.85rem]">
                                                 <span className="text-text-muted flex items-center gap-1.5"><Clock size={14} /> Qaytarish:</span>
-                                                <span className={`font-medium ${isOverdue ? 'text-red-400' : 'text-text'}`}>{formatDate(r.due_date)}</span>
+                                                <span className={`font-medium ${isOverdue ? 'text-red-400' : isWarning ? 'text-amber-400' : 'text-text'}`}>
+                                                    {formatDate(r.due_date)}
+                                                </span>
                                             </div>
                                             {isReturned && (
                                                 <div className="flex justify-between items-center text-[0.85rem]">
@@ -103,11 +129,26 @@ export default function MyRentals() {
                                             )}
                                         </div>
 
-                                        {!isReturned && (
-                                            <div className={`mt-4 pt-3 border-t text-center text-[0.85rem] font-bold ${isOverdue ? 'border-red-500/10 text-red-400' : 'border-border text-blue-400'}`}>
-                                                {isOverdue ? `Muddati o'tgan (${Math.abs(daysLeft)} kun)` : `Qaytarishga ${daysLeft} kun qoldi`}
-                                            </div>
-                                        )}
+                                        {!isReturned && (() => {
+                                            if (isOverdue) return (
+                                                <div className="mt-4 pt-3 border-t border-red-500/20 flex items-center justify-center gap-2 py-2 px-3 bg-red-500/10 rounded-xl">
+                                                    <AlertTriangle size={15} className="text-red-400 shrink-0" />
+                                                    <span className="text-[0.85rem] font-bold text-red-400">Muddati o'tgan — {Math.abs(daysLeft)} kun</span>
+                                                </div>
+                                            )
+                                            if (isWarning) return (
+                                                <div className="mt-4 pt-3 border-t border-amber-500/20 flex items-center justify-center gap-2 py-2 px-3 bg-amber-500/10 rounded-xl">
+                                                    <Clock size={15} className="text-amber-400 shrink-0" />
+                                                    <span className="text-[0.85rem] font-bold text-amber-400">Qaytarishga {daysLeft} kun qoldi</span>
+                                                </div>
+                                            )
+                                            return (
+                                                <div className="mt-4 pt-3 border-t border-emerald-500/20 flex items-center justify-center gap-2 py-2 px-3 bg-emerald-500/10 rounded-xl">
+                                                    <CheckCircle size={15} className="text-emerald-400 shrink-0" />
+                                                    <span className="text-[0.85rem] font-bold text-emerald-400">Qaytarishga {daysLeft} kun qoldi</span>
+                                                </div>
+                                            )
+                                        })()}
                                     </div>
                                 )
                             })}

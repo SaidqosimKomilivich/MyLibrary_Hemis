@@ -171,7 +171,6 @@ impl UserRepository {
         birth_date: Option<NaiveDate>,
         image_url: Option<&str>,
         email: Option<&str>,
-        id_card: i64,
         department_name: Option<&str>,
         specialty_name: Option<&str>,
         group_name: Option<&str>,
@@ -185,12 +184,11 @@ impl UserRepository {
                 "birth_date" = $3,
                 "image_url" = $4,
                 "email" = $5,
-                "id_card" = $6,
-                "department_name" = $7,
-                "specialty_name" = $8,
-                "group_name" = $9,
-                "education_form" = $10
-            WHERE "user_id" = $11
+                "department_name" = $6,
+                "specialty_name" = $7,
+                "group_name" = $8,
+                "education_form" = $9
+            WHERE "user_id" = $10
             "#,
         )
         .bind(full_name)
@@ -198,7 +196,6 @@ impl UserRepository {
         .bind(birth_date)
         .bind(image_url)
         .bind(email)
-        .bind(id_card)
         .bind(department_name)
         .bind(specialty_name)
         .bind(group_name)
@@ -206,6 +203,16 @@ impl UserRepository {
         .bind(user_id)
         .execute(pool)
         .await?;
+
+        Ok(())
+    }
+
+    /// ID karta yuklab olinganlar sonini 1 ga oshirish
+    pub async fn increment_id_card_download(pool: &PgPool, id: Uuid) -> Result<(), AppError> {
+        sqlx::query(r#"UPDATE "users" SET "id_card" = "id_card" + 1 WHERE "id" = $1"#)
+            .bind(id)
+            .execute(pool)
+            .await?;
 
         Ok(())
     }
@@ -305,7 +312,6 @@ impl UserRepository {
                 Option<NaiveDate>, // birth_date
                 Option<&'a str>,   // image_url
                 Option<&'a str>,   // email
-                i64,               // id_card
                 Option<&'a str>,   // department_name
                 Option<&'a str>,   // specialty_name
                 Option<&'a str>,   // group_name
@@ -319,7 +325,6 @@ impl UserRepository {
         let mut birth_dates = Vec::new();
         let mut image_urls = Vec::new();
         let mut emails = Vec::new();
-        let mut id_cards = Vec::new();
         let mut department_names = Vec::new();
         let mut specialty_names = Vec::new();
         let mut group_names = Vec::new();
@@ -332,11 +337,10 @@ impl UserRepository {
             birth_dates.push(s.3);
             image_urls.push(s.4);
             emails.push(s.5);
-            id_cards.push(s.6);
-            department_names.push(s.7);
-            specialty_names.push(s.8);
-            group_names.push(s.9);
-            education_forms.push(s.10);
+            department_names.push(s.6);
+            specialty_names.push(s.7);
+            group_names.push(s.8);
+            education_forms.push(s.9);
         }
 
         if user_ids.is_empty() {
@@ -351,7 +355,6 @@ impl UserRepository {
                 "birth_date" = c.birth_date,
                 "image_url" = c.image_url,
                 "email" = c.email,
-                "id_card" = c.id_card,
                 "department_name" = c.department_name,
                 "specialty_name" = c.specialty_name,
                 "group_name" = c.group_name,
@@ -359,9 +362,9 @@ impl UserRepository {
             FROM (
                 SELECT * FROM UNNEST (
                     $1::text[], $2::text[], $3::text[], $4::date[],
-                    $5::text[], $6::text[], $7::bigint[], $8::text[],
-                    $9::text[], $10::text[], $11::text[]
-                ) AS t(user_id, full_name, short_name, birth_date, image_url, email, id_card, department_name, specialty_name, group_name, education_form)
+                    $5::text[], $6::text[], $7::text[],
+                    $8::text[], $9::text[], $10::text[]
+                ) AS t(user_id, full_name, short_name, birth_date, image_url, email, department_name, specialty_name, group_name, education_form)
             ) AS c
             WHERE u."user_id" = c.user_id
             "#,
@@ -372,7 +375,6 @@ impl UserRepository {
         .bind(&birth_dates)
         .bind(&image_urls)
         .bind(&emails)
-        .bind(&id_cards)
         .bind(&department_names)
         .bind(&specialty_names)
         .bind(&group_names)
@@ -610,7 +612,6 @@ impl UserRepository {
         short_name: Option<&str>,
         birth_date: Option<NaiveDate>,
         image_url: Option<&str>,
-        id_card: i64,
         department_name: Option<&str>,
         staff_position: Option<&str>,
     ) -> Result<(), AppError> {
@@ -621,17 +622,15 @@ impl UserRepository {
                 "short_name" = $2,
                 "birth_date" = $3,
                 "image_url" = $4,
-                "id_card" = $5,
-                "department_name" = $6,
-                "staff_position" = $7
-            WHERE "user_id" = $8
+                "department_name" = $5,
+                "staff_position" = $6
+            WHERE "user_id" = $7
             "#,
         )
         .bind(full_name)
         .bind(short_name)
         .bind(birth_date)
         .bind(image_url)
-        .bind(id_card)
         .bind(department_name)
         .bind(staff_position)
         .bind(user_id)

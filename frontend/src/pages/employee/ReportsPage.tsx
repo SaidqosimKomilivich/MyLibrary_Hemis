@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { api, type ReportDashboardResponse } from '../../services/api'
-import { Loader2, Calendar as CalendarIcon, Download, ArrowRightLeft, BookOpen, Clock, AlertCircle } from 'lucide-react'
+import { Loader2, Calendar as CalendarIcon, ArrowRightLeft, BookOpen, Clock, AlertCircle } from 'lucide-react'
 import { toast } from 'react-toastify'
 
 export default function ReportsPage() {
@@ -85,10 +85,10 @@ export default function ReportsPage() {
             </div> */}
 
             <div className="bg-surface border border-border rounded-[20px] p-6 mb-8 flex items-center gap-6 flex-wrap">
-                <div className="flex items-center gap-3 text-text font-semibold text-[1.1rem] mr-auto">
+                {/* <div className="flex items-center gap-3 text-text font-semibold text-[1.1rem] mr-auto">
                     <Download size={22} className="text-blue-400" />
                     Ma'lumotlarni qazib olish
-                </div>
+                </div> */}
 
                 <div className="flex items-center gap-3 bg-surface-hover/50 py-2 px-4 rounded-xl border border-border">
                     <CalendarIcon size={18} className="text-text-muted" />

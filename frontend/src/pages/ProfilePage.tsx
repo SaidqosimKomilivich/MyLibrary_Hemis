@@ -24,6 +24,7 @@ export default function ProfilePage() {
     const [showNew, setShowNew] = useState(false)
     const [showConfirm, setShowConfirm] = useState(false)
     const [loading, setLoading] = useState(false)
+    const [downloading, setDownloading] = useState(false)
     const [cardFlipped, setCardFlipped] = useState(false)
     const frontRef = useRef<HTMLDivElement>(null)
     const backRef = useRef<HTMLDivElement>(null)
@@ -63,97 +64,112 @@ export default function ProfilePage() {
         }
     }
 
+    // Tashqi rasmlarni backend proxy orqali data URL ga aylantirish
+    const convertExternalImages = async (el: HTMLElement) => {
+        const images = el.querySelectorAll('img') as NodeListOf<HTMLImageElement>
+        const originals: { img: HTMLImageElement; src: string }[] = []
+        for (const img of images) {
+            const src = img.src
+            if (src && src.startsWith('http') && !src.includes(window.location.hostname)) {
+                try {
+                    const res = await fetch(`/api/proxy/image?url=${encodeURIComponent(src)}`)
+                    if (res.ok) {
+                        const blob = await res.blob()
+                        const dataUrl = await new Promise<string>((resolve) => {
+                            const reader = new FileReader()
+                            reader.onloadend = () => resolve(reader.result as string)
+                            reader.readAsDataURL(blob)
+                        })
+                        originals.push({ img, src })
+                        img.src = dataUrl
+                    }
+                } catch (e) {
+                    console.warn('Rasmni proxy orqali yuklashda xatolik:', e)
+                }
+            }
+        }
+        return originals
+    }
+
+    const restoreImages = (originals: { img: HTMLImageElement; src: string }[]) => {
+        for (const { img, src } of originals) img.src = src
+    }
+
     const handleDownloadCard = async () => {
-        const targetRef = cardFlipped ? backRef : frontRef
-        if (!targetRef.current) return
+        if (!frontRef.current || !backRef.current || downloading) return
+        setDownloading(true)
 
-        const currentSideName = cardFlipped
-            ? `${user.full_name || 'id-card'}_orqa`
-            : `${user.full_name || 'id-card'}_old`
-
-        let isTransformed = false
+        // Capture options
+        const opts = { cacheBust: true, pixelRatio: 1, backgroundColor: '#ffffff', skipFonts: true }
 
         try {
-            if (cardFlipped && backRef.current) {
-                backRef.current.style.transform = 'rotateY(0deg)'
-                backRef.current.style.backfaceVisibility = 'visible'
-                isTransformed = true
-            }
+            // ── Front side ──
+            const frontOriginals = await convertExternalImages(frontRef.current)
+            await new Promise(r => setTimeout(r, 80))
+            const frontDataUrl = await toPng(frontRef.current, opts)
+            restoreImages(frontOriginals)
 
-            // Tashqi rasmlarni backend proxy orqali data URL ga aylantirish (CORS muammosini hal qiladi)
-            const externalImages = targetRef.current.querySelectorAll('img') as NodeListOf<HTMLImageElement>
-            const originalSrcs: { img: HTMLImageElement; src: string }[] = []
+            // ── Back side: temporarily make it visible (undo 3D flip) ──
+            const backEl = backRef.current
+            const prevTransform = backEl.style.transform
+            const prevBackface = backEl.style.backfaceVisibility
+            backEl.style.transform = 'rotateY(0deg)'
+            backEl.style.backfaceVisibility = 'visible'
 
-            for (const img of externalImages) {
-                const src = img.src
-                if (src && src.startsWith('http') && !src.includes(window.location.hostname)) {
-                    try {
-                        const proxyUrl = `/api/proxy/image?url=${encodeURIComponent(src)}`
-                        const res = await fetch(proxyUrl)
-                        if (res.ok) {
-                            const blob = await res.blob()
-                            const dataUrl = await new Promise<string>((resolve) => {
-                                const reader = new FileReader()
-                                reader.onloadend = () => resolve(reader.result as string)
-                                reader.readAsDataURL(blob)
-                            })
-                            originalSrcs.push({ img, src })
-                            img.src = dataUrl
-                        }
-                    } catch (e) {
-                        console.warn('Rasmni proxy orqali yuklashda xatolik:', e)
-                    }
-                }
-            }
+            const backOriginals = await convertExternalImages(backEl)
+            await new Promise(r => setTimeout(r, 80))
+            const backDataUrl = await toPng(backEl, opts)
+            restoreImages(backOriginals)
 
-            await new Promise(r => setTimeout(r, 100))
+            // Restore back side transform
+            backEl.style.transform = prevTransform
+            backEl.style.backfaceVisibility = prevBackface
 
-            const dataUrl = await toPng(targetRef.current, {
-                cacheBust: true,
-                pixelRatio: 1,
-                backgroundColor: '#ffffff',
-                skipFonts: true,
-            })
+            // ── Stitch front + back vertically on a canvas ──
+            const [frontImg, backImg] = await Promise.all([
+                new Promise<HTMLImageElement>((resolve) => {
+                    const img = new Image(); img.onload = () => resolve(img); img.src = frontDataUrl
+                }),
+                new Promise<HTMLImageElement>((resolve) => {
+                    const img = new Image(); img.onload = () => resolve(img); img.src = backDataUrl
+                }),
+            ])
 
-            // Asl src larni qaytarish
-            for (const { img, src } of originalSrcs) {
-                img.src = src
-            }
+            const gap = 20 // px between front and back
+            const canvas = document.createElement('canvas')
+            canvas.width = Math.max(frontImg.width, backImg.width)
+            canvas.height = frontImg.height + gap + backImg.height
+            const ctx = canvas.getContext('2d')!
+            ctx.fillStyle = '#f0f0f0'
+            ctx.fillRect(0, 0, canvas.width, canvas.height)
+            ctx.drawImage(frontImg, 0, 0)
+            ctx.drawImage(backImg, 0, frontImg.height + gap)
 
-            if (cardFlipped && backRef.current) {
-                backRef.current.style.transform = 'rotateY(180deg)'
-                backRef.current.style.backfaceVisibility = 'hidden'
-            }
+            const combinedDataUrl = canvas.toDataURL('image/png')
 
-            // ✅ FIX: navigator.canShare() bilan tekshiring
+            // ── Increment download counter once ──
+            api.incrementIdCardDownload().catch(() => { })
+
+            // ── Save / share ──
+            const fileName = `${user.full_name || 'id-card'}_id_karta`
             if (navigator.canShare && navigator.canShare({ files: [] })) {
                 try {
-                    const blob = await (await fetch(dataUrl)).blob()
-                    const file = new File([blob], `${currentSideName}.png`, { type: 'image/png' })
-
-                    await navigator.share({
-                        files: [file],
-                        title: currentSideName
-                    })
-
-                    URL.revokeObjectURL(dataUrl)
-                } catch (shareError) {
-                    console.log('Share cancel yoki error:', shareError)
-                    downloadImage(dataUrl, currentSideName)
+                    const blob = await (await fetch(combinedDataUrl)).blob()
+                    const file = new File([blob], `${fileName}.png`, { type: 'image/png' })
+                    await navigator.share({ files: [file], title: fileName })
+                    URL.revokeObjectURL(combinedDataUrl)
+                } catch {
+                    downloadImage(combinedDataUrl, fileName)
                 }
             } else {
-                // Browser share qo'llab qolmasa
-                downloadImage(dataUrl, currentSideName)
+                downloadImage(combinedDataUrl, fileName)
             }
 
         } catch (e) {
             console.error(e)
             toast.error("Yuklab olishda xatolik")
         } finally {
-            if (isTransformed && backRef.current) {
-                backRef.current.style.transform = 'rotateY(180deg)'
-                backRef.current.style.backfaceVisibility = 'hidden'
-            }
+            setDownloading(false)
         }
     }
 
@@ -161,14 +177,10 @@ export default function ProfilePage() {
         const link = document.createElement('a')
         link.download = `${fileName}.png`
         link.href = dataUrl
-
         document.body.appendChild(link)
         link.click()
         document.body.removeChild(link)
-
-        setTimeout(() => {
-            URL.revokeObjectURL(dataUrl)
-        }, 100)
+        setTimeout(() => { URL.revokeObjectURL(dataUrl) }, 100)
     }
     // Role-specific info items
     const commonItems = [
@@ -552,9 +564,9 @@ export default function ProfilePage() {
                                 {cardFlipped ? "Old tomon" : "Orqa tomon"}
                             </button>
 
-                            <button className='flex justify-center items-center gap-3 p-2.5 bg-green-400 hover:bg-green-300 hover:text-black transition-transform duration-150 active:scale-75 rounded-2xl' onClick={handleDownloadCard}>
-                                <Download size={18} />
-                                Yuklab olish
+                            <button className='flex justify-center items-center gap-3 p-2.5 bg-green-400 hover:bg-green-300 hover:text-black transition-transform duration-150 active:scale-75 rounded-2xl disabled:opacity-60 disabled:cursor-not-allowed' onClick={handleDownloadCard} disabled={downloading}>
+                                {downloading ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
+                                {downloading ? 'Yuklanmoqda...' : 'Yuklab olish'}
                             </button>
                         </div>
                     </div>

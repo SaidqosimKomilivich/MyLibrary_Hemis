@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { Eye, EyeOff, Lock, User } from 'lucide-react'
 import { toast } from 'react-toastify'
 import { useAuth } from '../context/AuthContext'
@@ -10,7 +10,11 @@ export default function Login() {
     const [showPassword, setShowPassword] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const navigate = useNavigate()
+    const location = useLocation()
     const { login } = useAuth()
+
+    // Book ID passed from PublicCatalog when user clicked a book while logged out
+    const returnToBookId: string | undefined = (location.state as { returnToBookId?: string } | null)?.returnToBookId
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault()
@@ -25,7 +29,9 @@ export default function Login() {
         try {
             const role = await login(hemisId.trim(), password)
             toast.success("Tizimga muvaffaqiyatli kirdingiz!")
-            setTimeout(() => navigate(`/${role}`), 500)
+            setTimeout(() => navigate(`/${role}`, {
+                state: returnToBookId ? { autoOpenBookId: returnToBookId } : undefined
+            }), 500)
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : "Tizimga kirishda xatolik yuz berdi"
             toast.error(message)

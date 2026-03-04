@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Search, Plus, X, Layers, CheckCircle, XCircle, AlertTriangle, BookOpen } from 'lucide-react'
 import { api, type Book } from '../../services/api'
 import { toast } from 'react-toastify'
@@ -9,10 +9,17 @@ import BookModal from '../../components/BookModal'
 import DeleteConfirmModal from '../../components/DeleteConfirmModal'
 import { CustomSelect } from '../../components/CustomSelect'
 import PdfViewerModal from '../../components/PdfViewerModal'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 export default function Library() {
     const { role } = useAuth()
+    const location = useLocation()
+    const navigate = useNavigate()
     const canManageBooks = role === 'admin' || role === 'staff'
+
+    // Book ID passed after login from PublicCatalog deep-link
+    const autoOpenBookId: string | undefined = (location.state as { autoOpenBookId?: string } | null)?.autoOpenBookId
+    const autoOpenHandledRef = useRef(false)
 
     const [books, setBooks] = useState<Book[]>([])
     const [isLoading, setIsLoading] = useState(true)
@@ -68,6 +75,38 @@ export default function Library() {
         fetchBooks()
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [page, search])
+
+    // Auto-open kitobi agar login ga katalogdan o'tilgan bo'lsa
+    useEffect(() => {
+        if (!autoOpenBookId || autoOpenHandledRef.current || isLoading) return
+        autoOpenHandledRef.current = true
+
+        const handleAutoOpen = async () => {
+            try {
+                // O'qilayotganlar ro'yxatiga qo'shish
+                await api.startReading(autoOpenBookId)
+
+                // Kitobni books ro'yxatida topish
+                const found = books.find(b => b.id === autoOpenBookId)
+                if (found) {
+                    setPdfBook(found)
+                    toast.success(`"${found.title}" o'qilayotgan kitoblar ro'yxatiga qo'shildi!`, { autoClose: 4000 })
+                } else {
+                    toast.success("Kitob o'qilayotganlar ro'yxatiga qo'shildi!")
+                }
+            } catch {
+                toast.info("Kitob allaqachon ro'yxatingizda mavjud yoki ochildi")
+                const found = books.find(b => b.id === autoOpenBookId)
+                if (found) setPdfBook(found)
+            }
+
+            // Router state ni tozalaymiz — sahifa yangilanganda qayta ishga tushmaydi
+            navigate(location.pathname, { replace: true, state: {} })
+        }
+
+        handleAutoOpen()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isLoading])
 
     // Admin actions
     const handleAdd = () => {
