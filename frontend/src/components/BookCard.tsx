@@ -53,6 +53,17 @@ export default function BookCard({ book, role, onEdit, onDelete, onToggleActive,
                         <Headphones size={14} /> Audio
                     </span>
                 )}
+                {/* Category and Language badges stacked at bottom left */}
+                <div className="absolute bottom-3 left-3 flex flex-col items-start gap-1.5 z-20 max-w-[calc(100%-3rem)] pointer-events-none">
+                    <span className="px-2.5 py-1.5 rounded-lg text-[0.7rem] font-semibold text-white shadow-[0_2px_8px_rgba(0,0,0,0.5)] bg-black/60 backdrop-blur-md border border-white/20 truncate max-w-full">
+                        {book.category || 'Kategoriyasiz'}
+                    </span>
+                    {book.language && (
+                        <span className="px-2.5 py-1.5 rounded-lg text-[0.65rem] font-bold tracking-wider uppercase text-white shadow-[0_2px_8px_rgba(0,0,0,0.5)] bg-black/60 backdrop-blur-md border border-white/20 truncate max-w-full">
+                            {book.language}
+                        </span>
+                    )}
+                </div>
 
                 {/* Add to reading button — faqat fayli bor kitoblar uchun */}
                 {onAddReading && hasDigitalFile && (
@@ -99,14 +110,13 @@ export default function BookCard({ book, role, onEdit, onDelete, onToggleActive,
                 <h3 className="m-0 mb-1 text-[1.1rem] font-bold text-text line-clamp-2 leading-[1.3] group-hover:text-primary transition-colors" title={book.title}>{book.title}</h3>
                 <p className="m-0 mb-3 text-[0.9rem] text-text-muted/80 font-medium truncate">{book.author}</p>
 
-                <div className="flex items-center justify-between mt-auto pt-4 border-t border-border">
-                    <span className="text-[0.75rem] px-2.5 py-1 rounded bg-white/5 text-text-muted font-medium truncate max-w-[50%]">
-                        {book.category || 'Kategoriyasiz'}
-                    </span>
-                    <span className={`text-[0.75rem] font-bold ${(book.available_quantity || 0) > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                        {(book.available_quantity || 0) > 0 ? `${book.available_quantity} ta mavjud` : 'Mavjud emas'}
-                    </span>
-                </div>
+                {canManageBooks && (
+                    <div className="flex items-center justify-end mt-auto pt-4 border-t border-border">
+                        <span className={`text-[0.75rem] font-bold shrink-0 ${(book.available_quantity || 0) > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            {(book.available_quantity || 0) > 0 ? `${book.available_quantity} ta` : 'Yo\'q'}
+                        </span>
+                    </div>
+                )}
 
                 {book.shelf_location && (
                     <div className="flex items-center gap-1.5 mt-3 text-[0.8rem] text-text-muted bg-black/20 p-2 rounded-lg border border-white/5">
