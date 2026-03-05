@@ -665,7 +665,7 @@ export default function AdminEmployeesPage() {
                                 <tr>
                                     <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-surface-hover/50 border-b border-border w-[5%]">#</th>
                                     <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-surface-hover/50 border-b border-border">Kutubxona xodimi (F.I.SH)</th>
-                                    <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-surface-hover/50 border-b border-border">Qo'shgan kitoblari soni (Nusxa)</th>
+                                    <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-surface-hover/50 border-b border-border">Qo'shgan kitoblari soni</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -673,7 +673,7 @@ export default function AdminEmployeesPage() {
                                     <tr key={item.staff_id} className="transition-colors hover:bg-surface-hover/50 group border-b border-border/50 last:border-0">
                                         <td className="py-3 px-4 text-[0.875rem] text-text-muted">{idx + 1}</td>
                                         <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] font-medium text-text">{item.full_name || '-'}</td>
-                                        <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] font-bold text-rose-400">{item.count ?? 0} ta</td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] font-boldKutubxona xodimi (F.I.SH) text-rose-400">{item.count ?? 0} ta</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -681,7 +681,7 @@ export default function AdminEmployeesPage() {
                     )}
                 </div>
             </div>
-            
+
             {/* Modals */}
             {viewUser && <UserDetailModal user={viewUser} onClose={() => setViewUser(null)} />}
 

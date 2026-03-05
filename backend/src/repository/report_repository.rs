@@ -249,9 +249,9 @@ impl ReportRepository {
             SELECT 
                 u."id" as "staff_id", 
                 u."full_name", 
-                COALESCE(SUM(b."total_quantity"), 0) as "count!"
-            FROM "users" u
-            LEFT JOIN "book" b ON b."added_by" = u."id"
+                COUNT(b."id") as "count!"
+            FROM "book" b
+            JOIN "users" u ON b."added_by" = u."id"
             WHERE u."role" = 'staff'
             GROUP BY u."id", u."full_name"
             ORDER BY "count!" DESC, u."full_name" ASC

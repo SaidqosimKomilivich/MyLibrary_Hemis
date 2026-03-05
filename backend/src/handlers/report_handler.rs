@@ -546,7 +546,7 @@ pub async fn export_excel(
 
         let _ = worksheet.write_string_with_format(0, 0, "Tr", &header_format);
         let _ = worksheet.write_string_with_format(0, 1, "Kutubxona xodimi (F.I.SH)", &header_format);
-        let _ = worksheet.write_string_with_format(0, 2, "Qo'shgan kitoblari soni (Nusxa)", &header_format);
+        let _ = worksheet.write_string_with_format(0, 2, "Qo'shgan kitoblari soni", &header_format);
 
         for (i, row) in data.iter().enumerate() {
             let row_idx = (i + 1) as u32;
