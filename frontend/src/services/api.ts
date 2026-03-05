@@ -649,7 +649,7 @@ export const api = {
         return request<{ success: boolean, data: { categories: string[], languages: string[], formats: string[], teachers: { id: string, full_name: string }[] } }>('/reports/book-filter-options')
     },
 
-    getReportPreview(type: 'rentals' | 'controls' | 'submissions' | 'users_statistics' | 'book_inventory' | 'overdue_rentals' | 'book_requests' | 'gate_control', startDate?: string, endDate?: string, userFilters?: { status?: string, department?: string, group_name?: string, role?: string }, bookFilters?: { category?: string, language?: string, format?: string, teacher_id?: string }) {
+    getReportPreview(type: 'rentals' | 'controls' | 'submissions' | 'users_statistics' | 'book_inventory' | 'overdue_rentals' | 'book_requests' | 'gate_control' | 'books_added', startDate?: string, endDate?: string, userFilters?: { status?: string, department?: string, group_name?: string, role?: string }, bookFilters?: { category?: string, language?: string, format?: string, teacher_id?: string, staff_id?: string }) {
         const qs = buildQueryString({
             report_type: type,
             start_date: startDate,
@@ -660,7 +660,7 @@ export const api = {
         return request<{ success: boolean, data: any[] }>(`/reports/preview${qs}`)
     },
 
-    exportReportExcel(type: 'rentals' | 'controls' | 'submissions' | 'users_statistics' | 'book_inventory' | 'overdue_rentals' | 'book_requests' | 'gate_control', startDate?: string, endDate?: string, userFilters?: { status?: string, department?: string, group_name?: string, role?: string }, bookFilters?: { category?: string, language?: string, format?: string, teacher_id?: string }) {
+    exportReportExcel(type: 'rentals' | 'controls' | 'submissions' | 'users_statistics' | 'book_inventory' | 'overdue_rentals' | 'book_requests' | 'gate_control' | 'books_added', startDate?: string, endDate?: string, userFilters?: { status?: string, department?: string, group_name?: string, role?: string }, bookFilters?: { category?: string, language?: string, format?: string, teacher_id?: string, staff_id?: string }) {
         const qs = buildQueryString({
             report_type: type,
             start_date: startDate,

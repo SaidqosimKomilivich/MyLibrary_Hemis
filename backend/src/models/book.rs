@@ -30,6 +30,7 @@ pub struct Book {
     pub is_active: Option<bool>,
     pub submitted_by: Option<String>,
     pub admin_comment: Option<String>,
+    pub added_by: Option<Uuid>,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }

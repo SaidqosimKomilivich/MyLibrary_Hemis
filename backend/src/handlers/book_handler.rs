@@ -58,7 +58,10 @@ pub async fn create_book(
         return Ok(resp);
     }
 
-    let book = BookService::create_book(pool.get_ref(), body.into_inner()).await?;
+    let added_by = Uuid::parse_str(&claims.sub)
+        .map_err(|_| AppError::BadRequest("Noto'g'ri foydalanuvchi ID".into()))?;
+
+    let book = BookService::create_book(pool.get_ref(), body.into_inner(), added_by).await?;
     Ok(HttpResponse::Created().json(serde_json::json!({
         "success": true,
         "message": "Kitob muvaffaqiyatli yaratildi",

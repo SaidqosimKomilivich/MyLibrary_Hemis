@@ -32,6 +32,33 @@ pub struct ReportExportParams {
     pub language: Option<String>,   // language filtri
     pub format: Option<String>,     // format filtri
     pub teacher_id: Option<String>, // submitted_by filtri
+    pub staff_id: Option<String>,   // books_added filtri (added_by)
+}
+
+#[derive(Debug, Serialize, sqlx::FromRow)]
+pub struct BookAddedRow {
+    pub title: String,
+    pub author: String,
+    pub language: Option<String>,
+    pub category: Option<String>,
+    pub format: Option<String>,
+    pub total_quantity: Option<i32>,
+    pub added_by_name: Option<String>,
+    pub created_at: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct CategoryCount {
+    pub category: String,
+    pub count: i64,
+    pub total_copies: i64,
+}
+
+#[derive(Debug, Serialize)]
+pub struct LanguageCount {
+    pub language: String,
+    pub count: i64,
+    pub total_copies: i64,
 }
 
 #[derive(Debug, Serialize)]
@@ -43,6 +70,8 @@ pub struct AdminDashboardResponse {
     pub pending_requests: i64,
     pub chart_data: Vec<DailyActivity>,
     pub recent_activities: Vec<ActivityLog>,
+    pub books_by_category: Vec<CategoryCount>,
+    pub books_by_language: Vec<LanguageCount>,
 }
 
 #[derive(Debug, Serialize)]

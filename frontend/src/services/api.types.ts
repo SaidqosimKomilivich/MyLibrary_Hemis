@@ -270,6 +270,8 @@ export interface AdminDashboardResponse {
         pending_requests: number
         chart_data: { date: string; count: number; controls_count: number }[]
         recent_activities: { id: string; user: string; action: string; time: string }[]
+        books_by_category: { category: string; count: number; total_copies: number }[]
+        books_by_language: { language: string; count: number; total_copies: number }[]
     }
 }
 

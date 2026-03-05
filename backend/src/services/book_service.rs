@@ -53,8 +53,9 @@ impl BookService {
     pub async fn create_book(
         pool: &PgPool,
         req: CreateBookRequest,
+        added_by: Uuid,
     ) -> Result<BookResponse, AppError> {
-        let book = BookRepository::create(pool, &req).await?;
+        let book = BookRepository::create(pool, &req, added_by).await?;
         tracing::info!(book_id = %book.id, title = %book.title, "Yangi kitob yaratildi");
         Ok(BookResponse::from(book))
     }

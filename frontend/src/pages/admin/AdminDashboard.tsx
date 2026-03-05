@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Users, BookOpen, UserCog, BarChart3, TrendingUp, ChevronLeft, ChevronRight, RefreshCcw, AlertTriangle, Calendar, Clock, ArrowRight } from 'lucide-react'
+import { Users, BookOpen, UserCog, BarChart3, TrendingUp, ChevronLeft, ChevronRight, RefreshCcw, AlertTriangle, Calendar, Clock, ArrowRight, Library, Globe } from 'lucide-react'
 import { api } from '../../services/api'
 import type { AdminDashboardResponse, Rental } from '../../services/api'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
@@ -289,6 +289,111 @@ export default function AdminDashboard() {
 
             </div>
 
+            {/* Book Stats By Category and Language */}
+            <div className="grid grid-cols-[1fr_1fr] gap-5 max-lg:grid-cols-1 mb-5">
+                {/* Categories */}
+                <div className="bg-surface border border-border rounded-xl p-5">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="flex items-center gap-2 text-[0.95rem] font-semibold text-text">
+                            <Library size={18} className="text-indigo-400" />
+                            Kategoriyalar bo'yicha kitoblar
+                        </h2>
+                        {data?.total_books ? (
+                            <span className="text-[0.8rem] font-bold px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                                Jami: {data.total_books} ta
+                            </span>
+                        ) : null}
+                    </div>
+                    {loading ? (
+                        <div className="animate-pulse space-y-3">
+                            {[1, 2, 3].map(i => <div key={i} className="h-6 bg-surface-hover rounded" />)}
+                        </div>
+                    ) : (data?.books_by_category?.length ? (
+                        <div className="space-y-3">
+                            {data.books_by_category.slice(0, 10).map((cat, idx) => {
+                                const percentage = data.total_books > 0 ? (cat.count / data.total_books) * 100 : 0;
+                                return (
+                                    <div key={idx} className="flex flex-col gap-1">
+                                        <div className="flex items-center justify-between text-[0.85rem]">
+                                            <span className="font-medium text-text truncate pr-2">{cat.category}</span>
+                                            <span className="flex items-center gap-2">
+                                                <span className="text-text-muted text-[0.8rem]">{cat.count} nomi</span>
+                                                <span className="text-indigo-400 font-bold">{cat.total_copies} nusxa</span>
+                                            </span>
+                                        </div>
+                                        <div className="w-full h-1.5 bg-surface-hover rounded-full overflow-hidden">
+                                            <div
+                                                className="h-full bg-indigo-500 rounded-full"
+                                                style={{ width: `${percentage}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                            <div className="flex items-center justify-between pt-2 mt-1 border-t border-border">
+                                <span className="text-[0.85rem] text-text-muted font-medium">Jami nusxalar</span>
+                                <span className="text-[0.95rem] font-bold text-indigo-400">
+                                    {data.books_by_category.reduce((s, c) => s + (c.total_copies ?? 0), 0)} ta
+                                </span>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="text-center text-text-muted py-4 text-[0.85rem]">Ma'lumot topilmadi.</div>
+                    ))}
+                </div>
+
+                {/* Languages */}
+                <div className="bg-surface border border-border rounded-xl p-5">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="flex items-center gap-2 text-[0.95rem] font-semibold text-text">
+                            <Globe size={18} className="text-emerald-400" />
+                            Tillar bo'yicha kitoblar
+                        </h2>
+                        {data?.total_books ? (
+                            <span className="text-[0.8rem] font-bold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                Jami: {data.total_books} ta
+                            </span>
+                        ) : null}
+                    </div>
+                    {loading ? (
+                        <div className="animate-pulse space-y-3">
+                            {[1, 2, 3].map(i => <div key={i} className="h-6 bg-surface-hover rounded" />)}
+                        </div>
+                    ) : (data?.books_by_language?.length ? (
+                        <div className="space-y-3">
+                            {data.books_by_language.map((lang, idx) => {
+                                const percentage = data.total_books > 0 ? (lang.count / data.total_books) * 100 : 0;
+                                return (
+                                    <div key={idx} className="flex flex-col gap-1">
+                                        <div className="flex items-center justify-between text-[0.85rem]">
+                                            <span className="font-medium text-text truncate pr-2">{lang.language}</span>
+                                            <span className="flex items-center gap-2">
+                                                <span className="text-text-muted text-[0.8rem]">{lang.count} nomi</span>
+                                                <span className="text-emerald-400 font-bold">{lang.total_copies} nusxa</span>
+                                            </span>
+                                        </div>
+                                        <div className="w-full h-1.5 bg-surface-hover rounded-full overflow-hidden">
+                                            <div
+                                                className="h-full bg-emerald-500 rounded-full"
+                                                style={{ width: `${percentage}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                            <div className="flex items-center justify-between pt-2 mt-1 border-t border-border">
+                                <span className="text-[0.85rem] text-text-muted font-medium">Jami nusxalar</span>
+                                <span className="text-[0.95rem] font-bold text-emerald-400">
+                                    {data.books_by_language.reduce((s, l) => s + (l.total_copies ?? 0), 0)} ta
+                                </span>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="text-center text-text-muted py-4 text-[0.85rem]">Ma'lumot topilmadi.</div>
+                    ))}
+                </div>
+            </div>
+
             {/* Overdue Rentals Panel */}
             <div className="bg-surface border border-border rounded-xl overflow-hidden">
                 {/* Header */}
@@ -377,10 +482,10 @@ export default function AdminDashboard() {
                                             {/* Days overdue */}
                                             <td className="p-4 text-center">
                                                 <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border ${urgency === 'high'
-                                                        ? 'bg-red-500/15 text-red-400 border-red-500/25'
-                                                        : urgency === 'med'
-                                                            ? 'bg-orange-500/15 text-orange-400 border-orange-500/25'
-                                                            : 'bg-amber-500/15 text-amber-400 border-amber-500/25'
+                                                    ? 'bg-red-500/15 text-red-400 border-red-500/25'
+                                                    : urgency === 'med'
+                                                        ? 'bg-orange-500/15 text-orange-400 border-orange-500/25'
+                                                        : 'bg-amber-500/15 text-amber-400 border-amber-500/25'
                                                     }`}>
                                                     <AlertTriangle size={11} />
                                                     {days} kun

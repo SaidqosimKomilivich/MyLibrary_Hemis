@@ -63,6 +63,8 @@ pub async fn get_admin_dashboard(
     let chart_data = ReportRepository::get_dashboard_chart(p, year, month).await?;
     let recent_activities = ReportRepository::get_dashboard_activities(p, year, month, 10).await?;
 
+    let (books_by_category, books_by_language) = ReportRepository::get_dashboard_book_stats(p).await?;
+
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "success": true,
         "data": AdminDashboardResponse {
@@ -73,6 +75,8 @@ pub async fn get_admin_dashboard(
             pending_requests,
             chart_data,
             recent_activities,
+            books_by_category,
+            books_by_language,
         }
     })))
 }
@@ -481,6 +485,35 @@ pub async fn export_excel(
         }
         let _ = worksheet.autofit();
 
+    } else if params.report_type == "books_added" {
+        // Xodimlar qo'shgan kitoblar hisoboti
+        let data = ReportRepository::get_books_added_by_staff(p, params.staff_id.as_deref()).await?;
+        if data.is_empty() { return Err(AppError::NotFound("Ushbu xodim tomonidan qo'shilgan kitoblar topilmadi".into())); }
+
+        let _ = worksheet.write_string_with_format(0, 0, "Tr", &header_format);
+        let _ = worksheet.write_string_with_format(0, 1, "Kitob nomi", &header_format);
+        let _ = worksheet.write_string_with_format(0, 2, "Muallif", &header_format);
+        let _ = worksheet.write_string_with_format(0, 3, "Kategoriya", &header_format);
+        let _ = worksheet.write_string_with_format(0, 4, "Til", &header_format);
+        let _ = worksheet.write_string_with_format(0, 5, "Format", &header_format);
+        let _ = worksheet.write_string_with_format(0, 6, "Nusxa", &header_format);
+        let _ = worksheet.write_string_with_format(0, 7, "Xodim", &header_format);
+        let _ = worksheet.write_string_with_format(0, 8, "Qo'shilgan vaqti", &header_format);
+
+        for (i, row) in data.iter().enumerate() {
+            let row_idx = (i + 1) as u32;
+            let _ = worksheet.write_number(row_idx, 0, (i + 1) as f64);
+            let _ = worksheet.write_string(row_idx, 1, &row.title);
+            let _ = worksheet.write_string(row_idx, 2, &row.author);
+            let _ = worksheet.write_string(row_idx, 3, row.category.as_deref().unwrap_or("-"));
+            let _ = worksheet.write_string(row_idx, 4, row.language.as_deref().unwrap_or("-"));
+            let _ = worksheet.write_string(row_idx, 5, row.format.as_deref().unwrap_or("-"));
+            let _ = worksheet.write_number(row_idx, 6, row.total_quantity.unwrap_or(0) as f64);
+            let _ = worksheet.write_string(row_idx, 7, row.added_by_name.as_deref().unwrap_or("-"));
+            let _ = worksheet.write_string(row_idx, 8, &row.created_at);
+        }
+        let _ = worksheet.autofit();
+
     } else {
         return Err(AppError::BadRequest("Noto'g'ri hisobot turi".into()));
     }
@@ -504,6 +537,7 @@ pub async fn export_excel(
                 else if is_overdue { "overdue" }
                 else if is_requests { "requests" }
                 else if is_gate { "gate" }
+                else if params.report_type == "books_added" { "books_added" }
                 else { "other" },
                 start_date.format("%Y%m%d"),
                 end_date.format("%Y%m%d")
@@ -544,6 +578,7 @@ pub async fn preview_report(
     let is_overdue = params.report_type == "overdue_rentals";
     let is_requests = params.report_type == "book_requests";
     let is_gate = params.report_type == "gate_control";
+    let is_books_added = params.report_type == "books_added";
 
     let result_json = if is_rentals {
         let mut data = ReportRepository::get_rentals_by_date(p, start_date, end_date).await?;
@@ -583,6 +618,10 @@ pub async fn preview_report(
         serde_json::to_value(data).unwrap()
     } else if is_requests {
         let mut data = ReportRepository::get_book_requests_by_date(p, start_date, end_date).await?;
+        data.truncate(15);
+        serde_json::to_value(data).unwrap()
+    } else if is_books_added {
+        let mut data = ReportRepository::get_books_added_by_staff(p, params.staff_id.as_deref()).await?;
         data.truncate(15);
         serde_json::to_value(data).unwrap()
     } else {

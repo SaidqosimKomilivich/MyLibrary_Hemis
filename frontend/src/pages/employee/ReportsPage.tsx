@@ -4,7 +4,7 @@ import { CustomSelect, type SelectOption } from '../../components/CustomSelect'
 import { Loader2, Calendar as CalendarIcon, ArrowRightLeft, BookOpen, Clock, AlertCircle, Users, Download } from 'lucide-react'
 import { toast } from 'react-toastify'
 
-type ReportType = 'rentals' | 'controls' | 'submissions' | 'users_statistics' | 'book_inventory' | 'overdue_rentals' | 'gate_control' | 'book_requests'
+type ReportType = 'rentals' | 'controls' | 'submissions' | 'users_statistics' | 'book_inventory' | 'overdue_rentals' | 'gate_control' | 'book_requests' | 'books_added'
 
 interface ReportConfig {
     type: ReportType
@@ -12,7 +12,7 @@ interface ReportConfig {
     icon: React.ReactNode
     colorClass: string
     buttonClass: string
-    filterMode: 'date' | 'users' | 'books' | 'teacher'
+    filterMode: 'date' | 'users' | 'books' | 'teacher' | 'staff'
     columns: string[]
     renderRow: (item: any, idx: number) => React.ReactNode
 }
@@ -163,6 +163,27 @@ const REPORT_CONFIGS: ReportConfig[] = [
                 <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.submitted_at || '-'}</td>
             </>
         )
+    },
+    {
+        type: 'books_added' as const,
+        title: "Xodimlar qo'shgan kitoblar",
+        icon: <BookOpen size={20} />,
+        colorClass: "text-cyan-400",
+        buttonClass: "bg-linear-to-br from-cyan-500 to-cyan-600",
+        filterMode: 'staff' as const,
+        columns: ["Kitob nomi", "Muallif", "Kategoriya", "Til", "Format", "Nusxa", "Xodim", "Qo'shilgan"],
+        renderRow: (item: any) => (
+            <>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] font-medium text-text">{item.title || '-'}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.author || '-'}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.category || '-'}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.language || '-'}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.format || '-'}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-emerald-400 font-medium">{item.total_quantity ?? 0}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-indigo-300 font-medium">{item.added_by_name || '-'}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.created_at || '-'}</td>
+            </>
+        )
     }
 ]
 
@@ -183,6 +204,9 @@ function ReportSection({ config }: { config: ReportConfig }) {
     const [bookLanguage, setBookLanguage] = useState('')
     const [bookFormat, setBookFormat] = useState('')
     const [bookTeacher, setBookTeacher] = useState('')
+    // Staff filter (books_added)
+    const [staffId, setStaffId] = useState('')
+    const [staffOptions, setStaffOptions] = useState<SelectOption[]>([])
 
     // Fetched options for users filter
     const [deptOptions, setDeptOptions] = useState<SelectOption[]>([])
@@ -219,6 +243,11 @@ function ReportSection({ config }: { config: ReportConfig }) {
                 teacher_id: bookTeacher || undefined,
             }
         }
+        if (config.filterMode === 'staff') {
+            return {
+                staff_id: staffId || undefined,
+            }
+        }
         return undefined
     }
 
@@ -229,7 +258,9 @@ function ReportSection({ config }: { config: ReportConfig }) {
             ? [config.type, bookCategory, bookLanguage, bookFormat, bookTeacher]
             : config.filterMode === 'teacher'
                 ? [config.type, bookTeacher]
-                : [config.type, startDate, endDate]
+                : config.filterMode === 'staff'
+                    ? [config.type, staffId]
+                    : [config.type, startDate, endDate]
 
     // Fetch dynamic filter options once on mount if this is the users report
     useEffect(() => {
@@ -277,6 +308,19 @@ function ReportSection({ config }: { config: ReportConfig }) {
                     }
                 })
                 .catch(() => { /* skip */ })
+        } else if (config.filterMode === 'staff') {
+            // Load staff (kutubxona xodimlari)
+            api.getStaff({ per_page: 200 })
+                .then(res => {
+                    if (res.success && res.data) {
+                        const opts: SelectOption[] = [
+                            { label: "Xodim (barchasi)", value: '' },
+                            ...res.data.map((u: any) => ({ label: u.full_name || u.user_id, value: u.id }))
+                        ]
+                        setStaffOptions(opts)
+                    }
+                })
+                .catch(() => { /* skip */ })
         }
     }, [config.filterMode])
 
@@ -309,7 +353,8 @@ function ReportSection({ config }: { config: ReportConfig }) {
                 config.type,
                 config.filterMode === 'date' ? startDate : undefined,
                 config.filterMode === 'date' ? endDate : undefined,
-                getUserFilters()
+                getUserFilters(),
+                getBookFilters()
             )
             const url = window.URL.createObjectURL(blob)
             const a = document.createElement('a')
@@ -328,6 +373,7 @@ function ReportSection({ config }: { config: ReportConfig }) {
             setExporting(false)
         }
     }
+    // Export note: book filters also passed via getBookFilters():
 
     return (
         <div className="bg-surface border border-border rounded-[20px] overflow-hidden flex flex-col mb-8">
@@ -363,6 +409,19 @@ function ReportSection({ config }: { config: ReportConfig }) {
                                     max={today}
                                     onChange={e => setEndDate(e.target.value)}
                                     className="bg-transparent border-none text-text outline-none text-[0.85rem] [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-60 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                                />
+                            </div>
+                        </>
+                    ) : config.filterMode === 'staff' ? (
+                        <>
+                            <div className="flex-1 min-w-[200px] max-w-[280px]">
+                                <CustomSelect
+                                    value={staffId}
+                                    onChange={setStaffId}
+                                    options={staffOptions}
+                                    placeholder="Xodim..."
+                                    buttonClassName="h-10 text-[0.85rem] px-3 bg-background border border-border rounded-lg"
+                                    fitContent={false}
                                 />
                             </div>
                         </>

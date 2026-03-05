@@ -178,6 +178,69 @@ impl ReportRepository {
             .collect())
     }
 
+    /// Xodimlar qo'shgan kitoblar — staff_id bo'yicha filtrland
+    pub async fn get_books_added_by_staff(
+        pool: &PgPool,
+        staff_id: Option<&str>,
+    ) -> Result<Vec<crate::dto::report::BookAddedRow>, AppError> {
+        #[derive(sqlx::FromRow)]
+        struct BookAddedRowInner {
+            title: String,
+            author: String,
+            language: Option<String>,
+            category: Option<String>,
+            format: Option<String>,
+            total_quantity: Option<i32>,
+            added_by_name: Option<String>,
+            created_at: chrono::DateTime<chrono::Utc>,
+        }
+
+        let mut query = sqlx::QueryBuilder::new(
+            r#"SELECT
+                b."title",
+                b."author",
+                b."language",
+                b."category",
+                b."format",
+                b."total_quantity",
+                u."full_name" as "added_by_name",
+                b."created_at"
+            FROM "book" b
+            LEFT JOIN "users" u ON u."id" = b."added_by"
+            WHERE b."added_by" IS NOT NULL"#
+        );
+
+        if let Some(sid) = staff_id {
+            if !sid.is_empty() {
+                if let Ok(staff_uuid) = uuid::Uuid::parse_str(sid) {
+                    query.push(" AND b.\"added_by\" = ");
+                    query.push_bind(staff_uuid);
+                }
+            }
+        }
+
+        query.push(" ORDER BY b.\"created_at\" DESC");
+
+        let records: Vec<BookAddedRowInner> = query
+            .build_query_as()
+            .fetch_all(pool)
+            .await?;
+
+        Ok(records
+            .into_iter()
+            .map(|r| crate::dto::report::BookAddedRow {
+                title: r.title,
+                author: r.author,
+                language: r.language,
+                category: r.category,
+                format: r.format,
+                total_quantity: r.total_quantity,
+                added_by_name: r.added_by_name,
+                created_at: r.created_at.format("%Y-%m-%d %H:%M").to_string(),
+            })
+            .collect())
+    }
+
     /// Belgilangan sanalar oralig'idagi keldi-ketdilarni olish Excel uchun
     pub async fn get_controls_by_date(
         pool: &PgPool,
@@ -283,6 +346,55 @@ impl ReportRepository {
         .unwrap_or(0);
 
         Ok((total_users, total_books, active_rentals, overdue_rentals, pending_requests))
+    }
+
+    /// Admin Dashboard uchun Category va Language bo'yicha kitob statistikasini olish
+    pub async fn get_dashboard_book_stats(
+        pool: &PgPool,
+    ) -> Result<(Vec<crate::dto::report::CategoryCount>, Vec<crate::dto::report::LanguageCount>), AppError> {
+        let categories = sqlx::query!(
+            r#"SELECT COALESCE(category, 'Boshqa') as "category!",
+                      COUNT(*) as "count!",
+                      COALESCE(SUM(COALESCE(total_quantity, 0)), 0) as "total_copies!"
+               FROM "book"
+               WHERE "is_active" = true
+               GROUP BY category
+               ORDER BY "count!" DESC"#
+        )
+        .fetch_all(pool)
+        .await?;
+
+        let languages = sqlx::query!(
+            r#"SELECT COALESCE(language, 'Boshqa') as "language!",
+                      COUNT(*) as "count!",
+                      COALESCE(SUM(COALESCE(total_quantity, 0)), 0) as "total_copies!"
+               FROM "book"
+               WHERE "is_active" = true
+               GROUP BY language
+               ORDER BY "count!" DESC"#
+        )
+        .fetch_all(pool)
+        .await?;
+
+        let cat_stats = categories
+            .into_iter()
+            .map(|r| crate::dto::report::CategoryCount {
+                category: r.category,
+                count: r.count,
+                total_copies: r.total_copies,
+            })
+            .collect();
+
+        let lang_stats = languages
+            .into_iter()
+            .map(|r| crate::dto::report::LanguageCount {
+                language: r.language,
+                count: r.count,
+                total_copies: r.total_copies,
+            })
+            .collect();
+
+        Ok((cat_stats, lang_stats))
     }
 
     /// Admin Dashboard Chart ma'lumotlari (kunlik ijaralar soni) belgilangan oy uchun

@@ -188,7 +188,7 @@ impl BookRepository {
     }
 
     /// Yangi kitob yaratish
-    pub async fn create(pool: &PgPool, req: &CreateBookRequest) -> Result<Book, AppError> {
+    pub async fn create(pool: &PgPool, req: &CreateBookRequest, added_by: Uuid) -> Result<Book, AppError> {
         let book = sqlx::query_as::<_, Book>(
             r#"
             INSERT INTO "book" (
@@ -197,10 +197,10 @@ impl BookRepository {
                 "edition", "language", "category", "genre",
                 "description", "page_count", "duration_seconds", "format",
                 "cover_image_url", "digital_file_url", "shelf_location",
-                "total_quantity", "available_quantity"
+                "total_quantity", "available_quantity", "added_by"
             ) VALUES (
                 $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-                $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21
+                $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22
             ) RETURNING *
             "#,
         )
@@ -225,6 +225,7 @@ impl BookRepository {
         .bind(&req.shelf_location)
         .bind(req.total_quantity)
         .bind(req.available_quantity)
+        .bind(added_by)
         .fetch_one(pool)
         .await?;
 
