@@ -22,6 +22,16 @@ pub struct ReportExportParams {
     pub report_type: String,        // "rentals" yki "controls" yoki "submissions"
     pub start_date: Option<String>, // yyyy-mm-dd
     pub end_date: Option<String>,   // yyyy-mm-dd
+    // Foydalanuvchilar hisoboti uchun qo'shimcha filtrlar
+    pub status: Option<String>,     // "active" | "inactive" | nil
+    pub department: Option<String>, // department_name / specialty_name filtri
+    pub group_name: Option<String>, // group_name filtri
+    pub role: Option<String>,       // role filtri
+    // Kitob fondi holati hisoboti uchun filtrlar
+    pub category: Option<String>,   // category filtri
+    pub language: Option<String>,   // language filtri
+    pub format: Option<String>,     // format filtri
+    pub teacher_id: Option<String>, // submitted_by filtri
 }
 
 #[derive(Debug, Serialize)]
@@ -91,4 +101,57 @@ pub struct PublicDashboardResponse {
     pub total_users: i64,
     pub total_rentals: i64,
     pub popular_books: Vec<PopularBook>,
+}
+
+// ──── Yangi hisobot turlari uchun DTO lar ────
+
+#[derive(Debug, Serialize, sqlx::FromRow)]
+pub struct UserStatRow {
+    pub full_name: String,
+    pub user_id: String,
+    pub role: String,
+    pub department_name: Option<String>,
+    pub specialty_name: Option<String>,
+    pub group_name: Option<String>,
+    pub education_form: Option<String>,
+    pub staff_position: Option<String>,
+    pub created_at: Option<String>,
+}
+
+#[derive(Debug, Serialize, sqlx::FromRow)]
+pub struct BookInventoryRow {
+    pub title: String,
+    pub author: String,
+    pub category: Option<String>,
+    pub language: Option<String>,
+    pub total_quantity: i32,
+    pub available_quantity: i32,
+    pub rented_count: i64,
+    pub lost_count: i64,
+    pub shelf_location: Option<String>,
+}
+
+#[derive(Debug, Serialize, sqlx::FromRow)]
+pub struct OverdueRentalRow {
+    pub user_full_name: Option<String>,
+    pub user_id_str: String,
+    pub role: Option<String>,
+    pub department_name: Option<String>,
+    pub group_name: Option<String>,
+    pub staff_position: Option<String>,
+    pub book_title: Option<String>,
+    pub loan_date: String,
+    pub due_date: String,
+    pub overdue_days: i32,
+}
+
+#[derive(Debug, Serialize, sqlx::FromRow)]
+pub struct BookRequestRow {
+    pub user_full_name: Option<String>,
+    pub user_role: Option<String>,
+    pub book_title: Option<String>,
+    pub request_type: String,
+    pub status: String,
+    pub employee_comment: Option<String>,
+    pub created_at: Option<String>,
 }

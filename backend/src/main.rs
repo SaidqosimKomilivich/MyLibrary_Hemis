@@ -201,6 +201,9 @@ async fn main() -> std::io::Result<()> {
                         "/employee-dashboard",
                         web::get().to(report_handler::get_employee_dashboard),
                     )
+                    .route("/user-filter-options", web::get().to(report_handler::get_user_filter_options))
+                    .route("/book-filter-options", web::get().to(report_handler::get_book_filter_options))
+                    .route("/preview", web::get().to(report_handler::preview_report))
                     .route("/export", web::get().to(report_handler::export_excel)),
             )
             // News routes (admin: full CRUD)

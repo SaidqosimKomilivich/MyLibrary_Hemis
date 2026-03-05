@@ -1,5 +1,5 @@
 use chrono::NaiveDate;
-use sqlx::PgPool;
+use sqlx::{PgPool, Arguments};
 
 use crate::dto::control::ControlResponse;
 use crate::dto::rental::RentalResponse;
@@ -120,13 +120,23 @@ impl ReportRepository {
         Ok(records.into_iter().map(|r| r.into_response()).collect())
     }
 
-    /// Belgilangan sanalar oralig'idagi o'qituvchilar taqdim qilgan kitoblarni olish
-    pub async fn get_submissions_by_date(
+    /// Belgilangan o'qituvchilar taqdim qilgan kitoblarni olish
+    pub async fn get_submissions_by_teacher(
         pool: &PgPool,
-        start_date: NaiveDate,
-        end_date: NaiveDate,
+        teacher_id: Option<&str>,
     ) -> Result<Vec<crate::dto::report::SubmittedBookReportResponse>, AppError> {
-        let records = sqlx::query!(
+        #[derive(sqlx::FromRow)]
+        struct SubmissionRow {
+            id: uuid::Uuid,
+            title: String,
+            author: String,
+            is_active: Option<bool>,
+            admin_comment: Option<String>,
+            created_at: chrono::NaiveDateTime,
+            teacher_name: Option<String>,
+        }
+
+        let mut query = sqlx::QueryBuilder::new(
             r#"SELECT 
                 b."id", 
                 b."title", 
@@ -134,18 +144,25 @@ impl ReportRepository {
                 b."is_active", 
                 b."admin_comment", 
                 b."created_at",
-                u."full_name" as "teacher_name?"
+                u."full_name" as "teacher_name"
             FROM "book" b
             LEFT JOIN "users" u ON u."id"::text = b."submitted_by"
-            WHERE b."submitted_by" IS NOT NULL
-              AND DATE(b."created_at") >= $1 
-              AND DATE(b."created_at") <= $2
-            ORDER BY b."created_at" DESC"#,
-            start_date,
-            end_date
-        )
-        .fetch_all(pool)
-        .await?;
+            WHERE b."submitted_by" IS NOT NULL"#
+        );
+
+        if let Some(t_id) = teacher_id {
+            if !t_id.is_empty() {
+                query.push(" AND b.\"submitted_by\" = ");
+                query.push_bind(t_id.to_string());
+            }
+        }
+
+        query.push(" ORDER BY b.\"created_at\" DESC");
+
+        let records: Vec<SubmissionRow> = query
+            .build_query_as()
+            .fetch_all(pool)
+            .await?;
 
         Ok(records
             .into_iter()
@@ -679,5 +696,267 @@ impl ReportRepository {
             total_rentals,
             popular_books,
         })
+    }
+
+    // ──── Yangi hisobot eksport funksiyalari ────
+
+    /// Foydalanuvchilar statistikasi (filtrlar bo'yicha)
+    pub async fn get_users_statistics(
+        pool: &PgPool,
+        status: Option<&str>,
+        department: Option<&str>,
+        group_name: Option<&str>,
+        role: Option<&str>,
+    ) -> Result<Vec<crate::dto::report::UserStatRow>, AppError> {
+        let mut conditions: Vec<String> = Vec::new();
+        let mut param_idx = 1usize;
+
+        // Status filtri
+        if let Some(s) = status {
+            if s == "active" {
+                conditions.push(format!("\"active\" = TRUE"));
+            } else if s == "inactive" {
+                conditions.push(format!("\"active\" = FALSE"));
+            }
+        }
+
+        // Department / Faculty / Kafedra filtri
+        let dept_sql = if department.is_some() && !department.unwrap_or("").is_empty() {
+            let cond = format!(
+                "(LOWER(\"department_name\") LIKE LOWER(${}::text) OR LOWER(\"specialty_name\") LIKE LOWER(${}::text))",
+                param_idx, param_idx + 1
+            );
+            param_idx += 2;
+            conditions.push(cond);
+            true
+        } else {
+            false
+        };
+
+        // Group filtri
+        let group_sql = if group_name.is_some() && !group_name.unwrap_or("").is_empty() {
+            let cond = format!("LOWER(\"group_name\") LIKE LOWER(${}::text)", param_idx);
+            param_idx += 1;
+            conditions.push(cond);
+            true
+        } else {
+            false
+        };
+
+        // Role filtri
+        let role_sql = if role.is_some() && !role.unwrap_or("").is_empty() {
+            let cond = format!("\"role\" = ${}::text", param_idx);
+            param_idx += 1;
+            conditions.push(cond);
+            true
+        } else {
+            false
+        };
+
+        let where_clause = if conditions.is_empty() {
+            String::new()
+        } else {
+            format!("WHERE {}", conditions.join(" AND "))
+        };
+
+        let sql = format!(
+            r#"SELECT 
+                "full_name",
+                "user_id",
+                "role",
+                "department_name",
+                "specialty_name",
+                "group_name",
+                "education_form",
+                "staff_position",
+                TO_CHAR("created_at", 'YYYY-MM-DD HH24:MI') as "created_at"
+            FROM "users"
+            {}
+            ORDER BY "role", "department_name", "full_name""#,
+            where_clause
+        );
+
+        // Build query dinamik bind qilish orqali
+        let dept_like = department.map(|d| format!("%{}%", d));
+        let group_like = group_name.map(|g| format!("%{}%", g));
+
+        let rows = sqlx::query_as::<_, crate::dto::report::UserStatRow>(&sql);
+
+        // Bind department x2, group x1, role x1 — tartibda
+        let rows = if dept_sql {
+            let d = dept_like.as_deref().unwrap_or("");
+            let rows = rows.bind(d).bind(d);
+            let rows = if group_sql {
+                let g = group_like.as_deref().unwrap_or("");
+                let rows = rows.bind(g);
+                if role_sql {
+                    rows.bind(role.unwrap_or("")).fetch_all(pool).await?
+                } else {
+                    rows.fetch_all(pool).await?
+                }
+            } else if role_sql {
+                rows.bind(role.unwrap_or("")).fetch_all(pool).await?
+            } else {
+                rows.fetch_all(pool).await?
+            };
+            rows
+        } else if group_sql {
+            let g = group_like.as_deref().unwrap_or("");
+            let rows = rows.bind(g);
+            if role_sql {
+                rows.bind(role.unwrap_or("")).fetch_all(pool).await?
+            } else {
+                rows.fetch_all(pool).await?
+            }
+        } else if role_sql {
+            rows.bind(role.unwrap_or("")).fetch_all(pool).await?
+        } else {
+            rows.fetch_all(pool).await?
+        };
+
+        Ok(rows)
+    }
+
+
+    /// Kitob fondi holati (umumiy, mavjud, ijaradagi, yo'qotilgan)
+    pub async fn get_book_inventory(
+        pool: &PgPool,
+        category: Option<String>,
+        language: Option<String>,
+        format: Option<String>,
+        teacher_id: Option<String>,
+    ) -> Result<Vec<crate::dto::report::BookInventoryRow>, AppError> {
+        let mut query_str = String::from(
+            r#"SELECT 
+                b."title",
+                b."author",
+                b."category",
+                b."language",
+                COALESCE(b."total_quantity", 0) as "total_quantity",
+                COALESCE(b."available_quantity", 0) as "available_quantity",
+                COALESCE(rented.cnt, 0)::bigint as "rented_count",
+                COALESCE(lost.cnt, 0)::bigint as "lost_count",
+                b."shelf_location"
+            FROM "book" b
+            LEFT JOIN (
+                SELECT "book_id", COUNT(*) as cnt 
+                FROM "book_rentals" 
+                WHERE "status" IN ('active', 'overdue')
+                GROUP BY "book_id"
+            ) rented ON rented."book_id" = b."id"::text
+            LEFT JOIN (
+                SELECT "book_id", COUNT(*) as cnt 
+                FROM "book_rentals" 
+                WHERE "status" = 'lost'
+                GROUP BY "book_id"
+            ) lost ON lost."book_id" = b."id"::text
+            WHERE b."is_active" = true "#,
+        );
+
+        let mut args = sqlx::postgres::PgArguments::default();
+        let mut arg_idx = 1;
+
+        if let Some(c) = category {
+            if !c.is_empty() {
+                query_str.push_str(&format!(" AND b.\"category\" = ${}", arg_idx));
+                args.add(c);
+                arg_idx += 1;
+            }
+        }
+
+        if let Some(l) = language {
+            if !l.is_empty() {
+                query_str.push_str(&format!(" AND b.\"language\" = ${}", arg_idx));
+                args.add(l);
+                arg_idx += 1;
+            }
+        }
+
+        if let Some(f) = format {
+            if !f.is_empty() {
+                query_str.push_str(&format!(" AND b.\"format\" = ${}", arg_idx));
+                args.add(f);
+                arg_idx += 1;
+            }
+        }
+
+        if let Some(t) = teacher_id {
+            if !t.is_empty() {
+                query_str.push_str(&format!(" AND b.\"submitted_by\" = ${}", arg_idx));
+                args.add(t);
+                // arg_idx += 1; // Last arg
+            }
+        }
+
+        query_str.push_str(" ORDER BY b.\"title\"");
+
+        let rows = sqlx::query_as_with::<_, crate::dto::report::BookInventoryRow, _>(&query_str, args)
+            .fetch_all(pool)
+            .await?;
+
+        Ok(rows)
+    }
+
+    /// Muddati o'tgan ijaralar (qarzdorlar ro'yxati)
+    pub async fn get_overdue_rentals(
+        pool: &PgPool,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<Vec<crate::dto::report::OverdueRentalRow>, AppError> {
+        let rows = sqlx::query_as::<_, crate::dto::report::OverdueRentalRow>(
+            r#"SELECT 
+                u."full_name" as "user_full_name",
+                r."user_id" as "user_id_str",
+                u."role",
+                u."department_name",
+                u."group_name",
+                u."staff_position",
+                b."title" as "book_title",
+                r."loan_date"::text as "loan_date",
+                r."due_date"::text as "due_date",
+                (CURRENT_DATE - r."due_date")::integer as "overdue_days"
+            FROM "book_rentals" r
+            LEFT JOIN "users" u ON u."user_id" = r."user_id"
+            LEFT JOIN "book" b ON b."id"::text = r."book_id"
+            WHERE r."status" IN ('active', 'overdue')
+              AND r."due_date" < CURRENT_DATE
+              AND r."loan_date" >= $1 AND r."loan_date" <= $2
+            ORDER BY "overdue_days" DESC"#,
+        )
+        .bind(start_date)
+        .bind(end_date)
+        .fetch_all(pool)
+        .await?;
+
+        Ok(rows)
+    }
+
+    /// Kitob so'rovlari (sana oralig'ida)
+    pub async fn get_book_requests_by_date(
+        pool: &PgPool,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<Vec<crate::dto::report::BookRequestRow>, AppError> {
+        let rows = sqlx::query_as::<_, crate::dto::report::BookRequestRow>(
+            r#"SELECT 
+                u."full_name" as "user_full_name",
+                u."role" as "user_role",
+                b."title" as "book_title",
+                br."request_type",
+                br."status",
+                br."employee_comment",
+                TO_CHAR(br."created_at", 'YYYY-MM-DD HH24:MI') as "created_at"
+            FROM "book_requests" br
+            LEFT JOIN "users" u ON u."id" = br."user_id"
+            LEFT JOIN "book" b ON b."id" = br."book_id"
+            WHERE DATE(br."created_at") >= $1 AND DATE(br."created_at") <= $2
+            ORDER BY br."created_at" DESC"#,
+        )
+        .bind(start_date)
+        .bind(end_date)
+        .fetch_all(pool)
+        .await?;
+
+        Ok(rows)
     }
 }

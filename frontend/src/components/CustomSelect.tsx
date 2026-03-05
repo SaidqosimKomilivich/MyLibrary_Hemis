@@ -18,6 +18,7 @@ interface CustomSelectProps {
     buttonClassName?: string;
     disabled?: boolean;
     dropUp?: boolean;
+    fitContent?: boolean;
 }
 
 export function CustomSelect({
@@ -28,7 +29,8 @@ export function CustomSelect({
     className = '',
     buttonClassName = '',
     disabled = false,
-    dropUp = false
+    dropUp = false,
+    fitContent = true
 }: CustomSelectProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
@@ -49,6 +51,7 @@ export function CustomSelect({
                 left: rect.left,
                 bottom: window.innerHeight - rect.top + 6,
                 minWidth: rect.width,
+                maxWidth: '50vw',
                 zIndex: 99999,
             });
         } else {
@@ -57,6 +60,7 @@ export function CustomSelect({
                 left: rect.left,
                 top: rect.bottom + 6,
                 minWidth: rect.width,
+                maxWidth: '50vw',
                 zIndex: 99999,
             });
         }
@@ -110,18 +114,20 @@ export function CustomSelect({
                 style={{ backgroundImage: 'none' }}
             >
                 <div className="grid text-left truncate pr-2">
-                    {/* Hidden sizer: forces width to match widest option */}
-                    <div className="col-start-1 row-start-1 grid invisible pointer-events-none" aria-hidden="true">
-                        {options.map((opt) => (
-                            <div key={opt.value} className="col-start-1 row-start-1 flex items-center gap-2 whitespace-nowrap px-0.5">
-                                {opt.icon}
-                                <span>{opt.label}</span>
+                    {/* Hidden sizer: forces width to match widest option (if fitContent is true) */}
+                    {fitContent && (
+                        <div className="col-start-1 row-start-1 grid invisible pointer-events-none" aria-hidden="true">
+                            {options.map((opt) => (
+                                <div key={opt.value} className="col-start-1 row-start-1 flex items-center gap-2 whitespace-nowrap px-0.5">
+                                    {opt.icon}
+                                    <span>{opt.label}</span>
+                                </div>
+                            ))}
+                            <div className="col-start-1 row-start-1 flex items-center gap-2 whitespace-nowrap px-0.5">
+                                <span>{placeholder}</span>
                             </div>
-                        ))}
-                        <div className="col-start-1 row-start-1 flex items-center gap-2 whitespace-nowrap px-0.5">
-                            <span>{placeholder}</span>
                         </div>
-                    </div>
+                    )}
                     {/* Visible selected value */}
                     <div className="col-start-1 row-start-1 flex items-center gap-2 truncate px-0.5">
                         {selectedOption?.icon}

@@ -641,14 +641,36 @@ export const api = {
         return request<MyDashboardResponse>('/reports/my-dashboard')
     },
 
-    exportReportExcel(type: 'rentals' | 'controls' | 'submissions', startDate?: string, endDate?: string) {
+    getReportFilterOptions() {
+        return request<{ success: boolean, data: { departments: string[], specialties: string[], groups: string[] } }>('/reports/user-filter-options')
+    },
+
+    getBookFilterOptions() {
+        return request<{ success: boolean, data: { categories: string[], languages: string[], formats: string[], teachers: { id: string, full_name: string }[] } }>('/reports/book-filter-options')
+    },
+
+    getReportPreview(type: 'rentals' | 'controls' | 'submissions' | 'users_statistics' | 'book_inventory' | 'overdue_rentals' | 'book_requests' | 'gate_control', startDate?: string, endDate?: string, userFilters?: { status?: string, department?: string, group_name?: string, role?: string }, bookFilters?: { category?: string, language?: string, format?: string, teacher_id?: string }) {
         const qs = buildQueryString({
             report_type: type,
             start_date: startDate,
-            end_date: endDate
+            end_date: endDate,
+            ...(userFilters || {}),
+            ...(bookFilters || {})
+        })
+        return request<{ success: boolean, data: any[] }>(`/reports/preview${qs}`)
+    },
+
+    exportReportExcel(type: 'rentals' | 'controls' | 'submissions' | 'users_statistics' | 'book_inventory' | 'overdue_rentals' | 'book_requests' | 'gate_control', startDate?: string, endDate?: string, userFilters?: { status?: string, department?: string, group_name?: string, role?: string }, bookFilters?: { category?: string, language?: string, format?: string, teacher_id?: string }) {
+        const qs = buildQueryString({
+            report_type: type,
+            start_date: startDate,
+            end_date: endDate,
+            ...(userFilters || {}),
+            ...(bookFilters || {})
         })
 
         return fetch(`${API_BASE}/reports/export${qs}`, {
+
             headers: getAuthHeader()
         }).then(async (res) => {
             if (!res.ok) {

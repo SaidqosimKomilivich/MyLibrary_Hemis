@@ -1,234 +1,541 @@
 import { useState, useEffect } from 'react'
-import { api, type ReportDashboardResponse } from '../../services/api'
-import { Loader2, Calendar as CalendarIcon, ArrowRightLeft, BookOpen, Clock, AlertCircle } from 'lucide-react'
+import { api } from '../../services/api'
+import { CustomSelect, type SelectOption } from '../../components/CustomSelect'
+import { Loader2, Calendar as CalendarIcon, ArrowRightLeft, BookOpen, Clock, AlertCircle, Users, Download } from 'lucide-react'
 import { toast } from 'react-toastify'
 
-export default function ReportsPage() {
-    const [dashboardData, setDashboardData] = useState<ReportDashboardResponse | null>(null)
-    const [isLoading, setIsLoading] = useState(true)
-    const [exporting, setExporting] = useState<'rentals' | 'controls' | 'submissions' | null>(null)
+type ReportType = 'rentals' | 'controls' | 'submissions' | 'users_statistics' | 'book_inventory' | 'overdue_rentals' | 'gate_control' | 'book_requests'
 
-    // Export filters
-    const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0])
-    const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0])
+interface ReportConfig {
+    type: ReportType
+    title: string
+    icon: React.ReactNode
+    colorClass: string
+    buttonClass: string
+    filterMode: 'date' | 'users' | 'books' | 'teacher'
+    columns: string[]
+    renderRow: (item: any, idx: number) => React.ReactNode
+}
 
-    const fetchDashboard = async () => {
-        setIsLoading(true)
-        try {
-            const res = await api.getReportDashboard()
-            if (res.success) {
-                setDashboardData(res.data)
+const REPORT_CONFIGS: ReportConfig[] = [
+    {
+        type: 'users_statistics',
+        title: "Foydalanuvchilar",
+        icon: <Users size={20} />,
+        colorClass: "text-indigo-400",
+        buttonClass: "bg-linear-to-br from-indigo-500 to-indigo-600",
+        filterMode: 'users',
+        columns: ["F.I.SH", "ID", "Rol", "Fakultet / Bo'lim", "Mutaxassislik", "Guruh", "Lavozim", "Ro'yxatdan o'tgan"],
+        renderRow: (item) => (
+            <>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] font-medium text-text">{item.full_name || '-'}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.user_id || '-'}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">
+                    {item.role === 'student' ? 'Talaba' : item.role === 'employee' ? 'Xodim' : item.role === 'teacher' ? "O'qituvchi" : item.role === 'staff' ? 'Kutubxonachi' : item.role === 'admin' ? 'Admin' : item.role}
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.department_name || '-'}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.specialty_name || '-'}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.group_name || '-'}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.staff_position || '-'}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.created_at || '-'}</td>
+            </>
+        )
+    },
+    {
+        type: 'book_inventory',
+        title: "Kitob fondi holati",
+        icon: <BookOpen size={20} />,
+        colorClass: "text-slate-400",
+        buttonClass: "bg-linear-to-br from-slate-500 to-slate-600",
+        filterMode: 'books',
+        columns: ["Kitob nomi", "Muallif", "Soni", "Ijara", "Javon"],
+        renderRow: (item) => (
+            <>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] font-medium text-text">{item.title || '-'}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.author || '-'}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-emerald-400 font-medium">{item.total_quantity || 0}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-orange-400 font-medium">{item.rented_count || 0}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.shelf_location || '-'}</td>
+            </>
+        )
+    },
+    {
+        type: 'overdue_rentals',
+        title: "Qarzdorlar (Muddati o'tgan)",
+        icon: <AlertCircle size={20} />,
+        colorClass: "text-red-400",
+        buttonClass: "bg-linear-to-br from-red-500 to-red-600",
+        filterMode: 'date',
+        columns: ["Foydalanuvchi", "Kitob", "Berilgan", "Muddati", "Kechikish (kun)"],
+        renderRow: (item) => (
+            <>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] font-medium text-text">{item.user_full_name || '-'}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.book_title || '-'}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.loan_date || '-'}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.due_date || '-'}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-red-400 font-bold">{item.overdue_days || 0} kun</td>
+            </>
+        )
+    },
+    {
+        type: 'rentals',
+        title: "Ijaralar",
+        icon: <BookOpen size={20} />,
+        colorClass: "text-blue-400",
+        buttonClass: "bg-linear-to-br from-blue-500 to-blue-600",
+        filterMode: 'date',
+        columns: ["Kitob", "Foydalanuvchi", "Holat", "Berildi", "Qaytardi"],
+        renderRow: (item) => (
+            <>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] font-medium text-text">{item.book_title || '-'}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.user_full_name || '-'}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] font-medium">
+                    <span className={`px-2.5 py-1 rounded-full text-[0.75rem] ${item.status === 'returned' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'}`}>
+                        {item.status}
+                    </span>
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.loan_date || '-'}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.return_date || '-'}</td>
+            </>
+        )
+    },
+    {
+        type: 'gate_control',
+        title: "Kirish-chiqish nazorati",
+        icon: <ArrowRightLeft size={20} />,
+        colorClass: "text-teal-400",
+        buttonClass: "bg-linear-to-br from-teal-500 to-teal-600",
+        filterMode: 'date',
+        columns: ["To'liq ism", "Lavozim/Guruh", "Kelgan", "Ketgan"],
+        renderRow: (item) => {
+            const pos = item.role === 'student'
+                ? `${item.department_name || ''} ${item.group_name || ''}`.trim()
+                : item.staff_position || '-'
+            return (
+                <>
+                    <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] font-medium text-text">{item.full_name || '-'}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{pos || '-'}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-emerald-400">{item.arrival ? new Date(item.arrival).toLocaleString('uz-UZ') : '-'}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-red-400">{item.departure ? new Date(item.departure).toLocaleString('uz-UZ') : '-'}</td>
+                </>
+            )
+        }
+    },
+    {
+        type: 'book_requests',
+        title: "Kitob so'rovlari",
+        icon: <Clock size={20} />,
+        colorClass: "text-orange-400",
+        buttonClass: "bg-linear-to-br from-orange-500 to-orange-600",
+        filterMode: 'date',
+        columns: ["So'rovchi", "Kitob", "Turi", "Holati", "Sana"],
+        renderRow: (item) => (
+            <>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] font-medium text-text">{item.user_full_name || '-'}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.book_title || '-'}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.request_type === 'physical' ? "Kitob/qog'oz" : 'Elektron/Audio'}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem]">
+                    <span className={`px-2.5 py-1 rounded-full text-[0.75rem] font-medium border ${item.status === 'pending' ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' :
+                        item.status === 'processing' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                            item.status === 'ready' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                'bg-red-500/10 text-red-400 border-red-500/20'
+                        }`}>
+                        {item.status === 'pending' ? 'Kutilmoqda' : item.status === 'processing' ? "Ko'rilmoqda" : item.status === 'ready' ? 'Tayyor' : 'Rad etildi'}
+                    </span>
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.created_at || '-'}</td>
+            </>
+        )
+    },
+    {
+        type: 'submissions',
+        title: "O'qituvchilar taqdim etgan",
+        icon: <BookOpen size={20} />,
+        colorClass: "text-purple-400",
+        buttonClass: "bg-linear-to-br from-purple-500 to-purple-600",
+        filterMode: 'teacher',
+        columns: ["Kitob", "Muallif", "Holat", "Sana"],
+        renderRow: (item) => (
+            <>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] font-medium text-text">{item.title || '-'}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.author || '-'}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.status || '-'}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.submitted_at || '-'}</td>
+            </>
+        )
+    }
+]
+
+function ReportSection({ config }: { config: ReportConfig }) {
+    const today = new Date().toISOString().split('T')[0]
+
+    // Date filters (for non-users reports)
+    const [startDate, setStartDate] = useState(today)
+    const [endDate, setEndDate] = useState(today)
+
+    // User-specific filters
+    const [userStatus, setUserStatus] = useState('')
+    const [userDepartment, setUserDepartment] = useState('')
+    const [userGroup, setUserGroup] = useState('')
+
+    // Book-specific filters
+    const [bookCategory, setBookCategory] = useState('')
+    const [bookLanguage, setBookLanguage] = useState('')
+    const [bookFormat, setBookFormat] = useState('')
+    const [bookTeacher, setBookTeacher] = useState('')
+
+    // Fetched options for users filter
+    const [deptOptions, setDeptOptions] = useState<SelectOption[]>([])
+    const [groupOptions, setGroupOptions] = useState<SelectOption[]>([])
+
+    // Fetched options for books filter
+    const [categoryOptions, setCategoryOptions] = useState<SelectOption[]>([])
+    const [languageOptions, setLanguageOptions] = useState<SelectOption[]>([])
+    const [formatOptions, setFormatOptions] = useState<SelectOption[]>([])
+    const [teacherOptions, setTeacherOptions] = useState<SelectOption[]>([])
+
+    const [previewData, setPreviewData] = useState<any[]>([])
+    const [loading, setLoading] = useState(false)
+    const [exporting, setExporting] = useState(false)
+
+    const getUserFilters = () =>
+        config.filterMode === 'users' ? {
+            status: userStatus || undefined,
+            department: userDepartment || undefined,
+            group_name: userGroup || undefined,
+        } : undefined
+
+    const getBookFilters = () => {
+        if (config.filterMode === 'books') {
+            return {
+                category: bookCategory || undefined,
+                language: bookLanguage || undefined,
+                format: bookFormat || undefined,
+                teacher_id: bookTeacher || undefined,
             }
         }
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        catch (err: any) {
-            toast.error(err.message || "Hisobotlarni yuklashda xatolik yuz berdi")
-        } finally {
-            setIsLoading(false)
+        if (config.filterMode === 'teacher') {
+            return {
+                teacher_id: bookTeacher || undefined,
+            }
         }
+        return undefined
     }
 
-    useEffect(() => {
-        fetchDashboard()
-    }, [])
+    // Re-fetch on filter changes
+    const deps = config.filterMode === 'users'
+        ? [config.type, userStatus, userDepartment, userGroup]
+        : config.filterMode === 'books'
+            ? [config.type, bookCategory, bookLanguage, bookFormat, bookTeacher]
+            : config.filterMode === 'teacher'
+                ? [config.type, bookTeacher]
+                : [config.type, startDate, endDate]
 
-    const handleExport = async (type: 'rentals' | 'controls' | 'submissions') => {
-        setExporting(type)
+    // Fetch dynamic filter options once on mount if this is the users report
+    useEffect(() => {
+        if (config.filterMode === 'users') {
+            api.getReportFilterOptions()
+                .then(res => {
+                    if (res.success && res.data) {
+                        const depts: SelectOption[] = [
+                            { label: "Fakultet / Bo'lim (barchasi)", value: '' },
+                            ...[...new Set([...res.data.departments, ...res.data.specialties])].map(d => ({ label: d, value: d }))
+                        ]
+                        const groups: SelectOption[] = [
+                            { label: "Guruh (barchasi)", value: '' },
+                            ...res.data.groups.map(g => ({ label: g, value: g }))
+                        ]
+                        setDeptOptions(depts)
+                        setGroupOptions(groups)
+                    }
+                })
+                .catch(() => { /* skip */ })
+        } else if (config.filterMode === 'books' || config.filterMode === 'teacher') {
+            api.getBookFilterOptions()
+                .then(res => {
+                    if (res.success && res.data) {
+                        const cats: SelectOption[] = [
+                            { label: "Kategoriya (barchasi)", value: '' },
+                            ...res.data.categories.map(c => ({ label: c, value: c }))
+                        ]
+                        const langs: SelectOption[] = [
+                            { label: "Til (barchasi)", value: '' },
+                            ...res.data.languages.map(l => ({ label: l, value: l }))
+                        ]
+                        const forms: SelectOption[] = [
+                            { label: "Format (barchasi)", value: '' },
+                            ...res.data.formats.map(f => ({ label: f, value: f }))
+                        ]
+                        const teachs: SelectOption[] = [
+                            { label: "O'qituvchi (barchasi)", value: '' },
+                            ...res.data.teachers.map(t => ({ label: t.full_name, value: t.id }))
+                        ]
+                        setCategoryOptions(cats)
+                        setLanguageOptions(langs)
+                        setFormatOptions(forms)
+                        setTeacherOptions(teachs)
+                    }
+                })
+                .catch(() => { /* skip */ })
+        }
+    }, [config.filterMode])
+
+    useEffect(() => {
+        const fetchPreview = async () => {
+            setLoading(true)
+            try {
+                const res = await api.getReportPreview(
+                    config.type,
+                    config.filterMode === 'date' ? startDate : undefined,
+                    config.filterMode === 'date' ? endDate : undefined,
+                    getUserFilters(),
+                    getBookFilters()
+                )
+                setPreviewData(res.success && res.data ? res.data : [])
+            } catch {
+                setPreviewData([])
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchPreview()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, deps)
+
+    const handleExport = async () => {
+        setExporting(true)
         try {
-            const blob = await api.exportReportExcel(type, startDate, endDate)
+            const blob = await api.exportReportExcel(
+                config.type,
+                config.filterMode === 'date' ? startDate : undefined,
+                config.filterMode === 'date' ? endDate : undefined,
+                getUserFilters()
+            )
             const url = window.URL.createObjectURL(blob)
             const a = document.createElement('a')
             a.href = url
-            a.download = `report_${type}_${startDate}_to_${endDate}.xlsx`
+            a.download = `report_${config.type}_${today}.xlsx`
             document.body.appendChild(a)
             a.click()
             window.URL.revokeObjectURL(url)
             document.body.removeChild(a)
             toast.success("Excel fayl muvaffaqiyatli yuklandi!")
-        }
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        catch (err: any) {
-            // Backend sends 404 AppError strings if table is empty
+        } catch (err: any) {
             toast.warning(err.message || "Xatolik yuz berdi", {
                 icon: <AlertCircle size={24} color="#f59e0b" />
             })
         } finally {
-            setExporting(null)
+            setExporting(false)
         }
     }
 
-    const formatDate = (dateStr?: string | null) => {
-        if (!dateStr) return '-'
-        const d = new Date(dateStr)
-        const day = d.getDate().toString().padStart(2, '0')
-        const month = (d.getMonth() + 1).toString().padStart(2, '0')
-        const year = d.getFullYear()
-        const time = d.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })
-        return `${day}.${month}.${year} ${time}`
-    }
-
     return (
-        <div className="p-8 md:p-10 max-w-[1600px] mx-auto min-h-screen">
-            {/* <div className="flex justify-between items-center mb-10 bg-linear-to-br from-emerald-500/15 to-blue-500/15 p-8 md:p-10 rounded-3xl border border-white/10 relative overflow-hidden shadow-[0_20px_40px_-20px_rgba(0,0,0,0.3)] flex-wrap gap-6">
-                <div className="absolute top-1/2 left-1/2 w-[200%] h-[200%] bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_0%,transparent_50%)] -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
-                <div className="relative z-10">
-                    <h1 className="text-[2.2rem] font-extrabold m-0 mb-2 bg-linear-to-r from-emerald-400 to-blue-400 bg-clip-text text-transparent tracking-tight">Umumiy Hisobotlar</h1>
-                    <p className="text-text-muted m-0 text-[1.1rem] font-medium">Tizimdagi keldi-ketdi va ijaralarni Excel formatida yuklash</p>
-                </div>
-                <div className="relative z-10 py-4 px-5 bg-white/5 rounded-2xl flex items-center gap-3 border border-white/10">
-                    <FileSpreadsheet size={28} className="text-emerald-400" />
-                    <div>
-                        <div className="text-[0.85rem] text-text-muted font-medium">Admin Eksport</div>
-                        <div className="text-white font-bold">.XLSX Generator</div>
+        <div className="bg-surface border border-border rounded-[20px] overflow-hidden flex flex-col mb-8">
+            {/* Header row */}
+            <div className="px-6 py-4 border-b border-border flex flex-col md:flex-row md:items-center justify-between gap-4 bg-surface-hover/30">
+                <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-xl bg-surface-hover border border-border flex items-center justify-center shrink-0 ${config.colorClass}`}>
+                        {config.icon}
                     </div>
-                </div>
-            </div> */}
-
-            <div className="bg-surface border border-border rounded-[20px] p-6 mb-8 flex items-center gap-6 flex-wrap">
-                {/* <div className="flex items-center gap-3 text-text font-semibold text-[1.1rem] mr-auto">
-                    <Download size={22} className="text-blue-400" />
-                    Ma'lumotlarni qazib olish
-                </div> */}
-
-                <div className="flex items-center gap-3 bg-surface-hover/50 py-2 px-4 rounded-xl border border-border">
-                    <CalendarIcon size={18} className="text-text-muted" />
-                    <span className="text-text-muted text-[0.95rem]">dan:</span>
-                    <input
-                        type="date"
-                        value={startDate}
-                        onChange={e => setStartDate(e.target.value)}
-                        className="bg-transparent border-none text-text outline-none text-[0.95rem] [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-60 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                    />
+                    <h3 className="m-0 text-text text-[1.15rem] font-semibold">{config.title}</h3>
                 </div>
 
-                <div className="flex items-center gap-3 bg-surface-hover/50 py-2 px-4 rounded-xl border border-border">
-                    <CalendarIcon size={18} className="text-text-muted" />
-                    <span className="text-text-muted text-[0.95rem]">gacha:</span>
-                    <input
-                        type="date"
-                        value={endDate}
-                        onChange={e => setEndDate(e.target.value)}
-                        className="bg-transparent border-none text-text outline-none text-[0.95rem] [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-60 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                    />
-                </div>
+                <div className="flex items-center gap-3 flex-wrap">
+                    {config.filterMode === 'date' ? (
+                        <>
+                            <div className="flex items-center gap-2 bg-background py-1.5 px-3 rounded-lg border border-border h-10">
+                                <CalendarIcon size={16} className="text-text-muted" />
+                                <span className="text-text-muted text-[0.85rem]">dan:</span>
+                                <input
+                                    type="date"
+                                    value={startDate}
+                                    max={today}
+                                    onChange={e => setStartDate(e.target.value)}
+                                    className="bg-transparent border-none text-text outline-none text-[0.85rem] [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-60 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                                />
+                            </div>
+                            <div className="flex items-center gap-2 bg-background py-1.5 px-3 rounded-lg border border-border h-10">
+                                <CalendarIcon size={16} className="text-text-muted" />
+                                <span className="text-text-muted text-[0.85rem]">gacha:</span>
+                                <input
+                                    type="date"
+                                    value={endDate}
+                                    max={today}
+                                    onChange={e => setEndDate(e.target.value)}
+                                    className="bg-transparent border-none text-text outline-none text-[0.85rem] [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-60 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                                />
+                            </div>
+                        </>
+                    ) : config.filterMode === 'teacher' ? (
+                        <>
+                            {/* O'qituvchilar */}
+                            <div className="flex-1 min-w-[180px] max-w-[240px]">
+                                <CustomSelect
+                                    value={bookTeacher}
+                                    onChange={setBookTeacher}
+                                    options={teacherOptions}
+                                    placeholder="O'qituvchi..."
+                                    buttonClassName="h-10 text-[0.85rem] px-3 bg-background border border-border rounded-lg"
+                                    fitContent={false}
+                                />
+                            </div>
+                        </>
+                    ) : config.filterMode === 'books' ? (
+                        <>
+                            {/* Kitob Kategoriyasi */}
+                            <div className="flex-1 min-w-[140px] max-w-[200px]">
+                                <CustomSelect
+                                    value={bookCategory}
+                                    onChange={setBookCategory}
+                                    options={categoryOptions}
+                                    placeholder="Kategoriya..."
+                                    buttonClassName="h-10 text-[0.85rem] px-3 bg-background border border-border rounded-lg"
+                                    fitContent={false}
+                                />
+                            </div>
 
-                <div className="flex gap-3 flex-wrap">
-                    <button
-                        className="flex items-center gap-2 py-2.5 px-5 rounded-xl border-none font-semibold cursor-pointer transition-all text-white bg-linear-to-br from-blue-500 to-blue-600 hover:-translate-y-0.5 hover:shadow-[0_8px_16px_-4px_rgba(0,0,0,0.3)] disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
-                        onClick={() => handleExport('rentals')}
-                        disabled={exporting !== null}
-                    >
-                        {exporting === 'rentals' ? <Loader2 size={18} className="animate-spin" /> : <BookOpen size={18} />}
-                        Ijaralarni yuklash
-                    </button>
+                            {/* Kitob Tili */}
+                            <div className="w-[140px]">
+                                <CustomSelect
+                                    value={bookLanguage}
+                                    onChange={setBookLanguage}
+                                    options={languageOptions}
+                                    placeholder="Til..."
+                                    buttonClassName="h-10 text-[0.85rem] px-3 bg-background border border-border rounded-lg"
+                                    fitContent={false}
+                                />
+                            </div>
+
+                            {/* Kitob Formati */}
+                            <div className="w-[140px]">
+                                <CustomSelect
+                                    value={bookFormat}
+                                    onChange={setBookFormat}
+                                    options={formatOptions}
+                                    placeholder="Format..."
+                                    buttonClassName="h-10 text-[0.85rem] px-3 bg-background border border-border rounded-lg"
+                                    fitContent={false}
+                                />
+                            </div>
+
+                            {/* O'qituvchilar */}
+                            <div className="flex-1 min-w-[180px] max-w-[240px]">
+                                <CustomSelect
+                                    value={bookTeacher}
+                                    onChange={setBookTeacher}
+                                    options={teacherOptions}
+                                    placeholder="O'qituvchi..."
+                                    buttonClassName="h-10 text-[0.85rem] px-3 bg-background border border-border rounded-lg"
+                                    fitContent={false}
+                                />
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            {/* Faol / Nofaol */}
+                            <div className="w-[160px]">
+                                <CustomSelect
+                                    value={userStatus}
+                                    onChange={setUserStatus}
+                                    options={[
+                                        { label: "Holat (barchasi)", value: "" },
+                                        { label: "Faol", value: "active" },
+                                        { label: "Nofaol", value: "inactive" },
+                                    ]}
+                                    placeholder="Holat (barchasi)"
+                                    buttonClassName="h-10 text-[0.85rem] px-3 bg-background border border-border rounded-lg"
+                                    fitContent={false}
+                                />
+                            </div>
+
+                            {/* Fakultet / Bo'lim / Kafedra */}
+                            <div className="flex-1 min-w-[180px] max-w-[280px]">
+                                <CustomSelect
+                                    value={userDepartment}
+                                    onChange={setUserDepartment}
+                                    options={deptOptions}
+                                    placeholder="Fakultet / Bo'lim yozish..."
+                                    buttonClassName="h-10 text-[0.85rem] px-3 bg-background border border-border rounded-lg"
+                                    fitContent={false}
+                                />
+                            </div>
+
+                            {/* Guruh */}
+                            <div className="w-[160px]">
+                                <CustomSelect
+                                    value={userGroup}
+                                    onChange={setUserGroup}
+                                    options={groupOptions}
+                                    placeholder="Guruh..."
+                                    buttonClassName="h-10 text-[0.85rem] px-3 bg-background border border-border rounded-lg"
+                                    fitContent={false}
+                                />
+                            </div>
+                        </>
+                    )}
 
                     <button
-                        className="flex items-center gap-2 py-2.5 px-5 rounded-xl border-none font-semibold cursor-pointer transition-all text-white bg-linear-to-br from-emerald-500 to-emerald-600 hover:-translate-y-0.5 hover:shadow-[0_8px_16px_-4px_rgba(0,0,0,0.3)] disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
-                        onClick={() => handleExport('controls')}
-                        disabled={exporting !== null}
+                        className={`flex items-center justify-center gap-2 px-4 h-10 rounded-lg border-none font-semibold text-[0.9rem] cursor-pointer transition-all text-white ${config.buttonClass} hover:-translate-y-0.5 hover:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.3)] disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none`}
+                        onClick={handleExport}
+                        disabled={exporting}
                     >
-                        {exporting === 'controls' ? <Loader2 size={18} className="animate-spin" /> : <ArrowRightLeft size={18} />}
-                        Keldi-ketdini yuklash
-                    </button>
-
-                    <button
-                        className="flex items-center gap-2 py-2.5 px-5 rounded-xl border-none font-semibold cursor-pointer transition-all text-white bg-linear-to-br from-purple-500 to-purple-600 hover:-translate-y-0.5 hover:shadow-[0_8px_16px_-4px_rgba(0,0,0,0.3)] disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
-                        onClick={() => handleExport('submissions')}
-                        disabled={exporting !== null}
-                    >
-                        {exporting === 'submissions' ? <Loader2 size={18} className="animate-spin" /> : <BookOpen size={18} />}
-                        Taqdim etilganlarni yuklash
+                        {exporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+                        Yuklab olish
                     </button>
                 </div>
             </div>
 
-            {isLoading ? (
-                <div className="flex justify-center py-24">
-                    <Loader2 size={48} className="text-emerald-400 opacity-80 animate-spin" />
-                </div>
-            ) : dashboardData && (
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                    {/* Keldi Ketdi */}
-                    <div className="bg-surface border border-border rounded-[20px] overflow-hidden">
-                        <div className="px-6 py-5 border-b border-border flex items-center gap-3 bg-surface-hover/50">
-                            <ArrowRightLeft size={20} className="text-emerald-400" />
-                            <h3 className="m-0 text-text text-[1.15rem] font-semibold">Oxirgi 10 ta Keldi-Ketdi</h3>
-                        </div>
-                        <div>
-                            {dashboardData.recent_controls.length === 0 ? (
-                                <div className="p-10 text-center text-text-muted">Ma'lumot yo'q</div>
-                            ) : dashboardData.recent_controls.map(item => (
-                                <div key={item.id} className="px-6 py-4 border-b border-dashed border-border flex items-center gap-4 last:border-b-0">
-                                    <div className="w-10 h-10 rounded-xl bg-surface-hover border border-border flex items-center justify-center text-emerald-500 shrink-0">
-                                        <ArrowRightLeft size={20} />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="m-0 mb-1 text-text font-semibold text-[0.95rem] truncate">
-                                            {item.full_name || 'Noma\'lum'}
-                                            <span className="font-normal text-text-muted ml-2">
-                                                ({item.role === 'student' ? 'Talaba' : item.role === 'staff' ? 'Xodim (Kutubxonachi)' : item.role === 'employee' ? 'Xodim' : item.role === 'teacher' ? 'O\'qituvchi' : item.role})
-                                            </span>
-                                        </p>
-                                        <p className="m-0 text-text-muted text-[0.85rem] flex items-center gap-1.5 flex-wrap">
-                                            <span className="text-emerald-400">Kirdi: {formatDate(item.arrival)}</span>
-                                            {item.departure && (
-                                                <>
-                                                    <span className="mx-1 text-slate-600">|</span>
-                                                    <span className="text-red-400">Ketdi: {formatDate(item.departure)}</span>
-                                                </>
-                                            )}
-                                        </p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+            {/* Table */}
+            <div className="overflow-x-auto relative min-h-[100px]">
+                {loading && (
+                    <div className="absolute inset-0 bg-surface/50 backdrop-blur-[2px] z-10 flex items-center justify-center">
+                        <Loader2 size={32} className={`${config.colorClass} animate-spin`} />
                     </div>
+                )}
+                <table className="w-full min-w-[800px] border-collapse">
+                    <thead>
+                        <tr className="border-b border-border bg-surface-hover/20">
+                            <th className="px-4 py-3 text-left text-[0.8rem] font-semibold text-text-muted uppercase tracking-wider w-12">#</th>
+                            {config.columns.map((col, i) => (
+                                <th key={i} className="px-4 py-3 text-left text-[0.8rem] font-semibold text-text-muted uppercase tracking-wider">{col}</th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {previewData.length === 0 ? (
+                            <tr>
+                                <td colSpan={config.columns.length + 1} className="px-4 py-12 text-center text-text-muted text-[0.95rem]">
+                                    Filtrlarga mos ma'lumot topilmadi
+                                </td>
+                            </tr>
+                        ) : (
+                            previewData.map((item, idx) => (
+                                <tr key={idx} className="border-b border-border/50 hover:bg-surface-hover/30 transition-colors last:border-b-0">
+                                    <td className="px-4 py-3 whitespace-nowrap text-[0.85rem] text-text-muted font-mono">{idx + 1}</td>
+                                    {config.renderRow(item, idx)}
+                                </tr>
+                            ))
+                        )}
+                    </tbody>
+                </table>
+                {/* {previewData.length > 0 && (
+                    <div className="px-4 py-2 text-center text-[0.85rem] text-text-muted border-t border-border bg-surface-hover/10 font-medium">
+                        Namuna sifatida dastlabki 15 ta ma'lumot ko'rsatilmoqda
+                    </div>
+                )} */}
+            </div>
+        </div>
+    )
+}
 
-                    {/* Ijaralar */}
-                    <div className="bg-surface border border-border rounded-[20px] overflow-hidden">
-                        <div className="px-6 py-5 border-b border-border flex items-center gap-3 bg-surface-hover/50">
-                            <BookOpen size={20} className="text-blue-400" />
-                            <h3 className="m-0 text-text text-[1.15rem] font-semibold">Oxirgi 10 ta Ijara</h3>
-                        </div>
-                        <div>
-                            {dashboardData.recent_rentals.length === 0 ? (
-                                <div className="p-10 text-center text-text-muted">Ma'lumot yo'q</div>
-                            ) : dashboardData.recent_rentals.map(item => (
-                                <div key={item.id} className="px-6 py-4 border-b border-dashed border-border flex items-center gap-4 last:border-b-0">
-                                    <div className="w-10 h-10 rounded-xl bg-surface-hover border border-border flex items-center justify-center text-blue-500 shrink-0">
-                                        <BookOpen size={20} />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="m-0 mb-1 text-text font-semibold text-[0.95rem] truncate">{item.book_title}</p>
-                                        <p className="m-0 mb-1 text-text-muted text-[0.85rem] truncate">
-                                            {item.user_full_name || 'Noma\'lum'}
-                                            <span className="font-normal text-text-muted ml-1.5">
-                                                ({item.role === 'student' ? 'Talaba' : item.role === 'staff' ? 'Xodim (Kutubxonachi)' : item.role === 'employee' ? 'Xodim' : item.role === 'teacher' ? 'O\'qituvchi' : item.role})
-                                            </span>
-                                        </p>
-                                        <p className="m-0 text-text-muted text-[0.85rem] flex items-center gap-1.5 flex-wrap">
-                                            <span className="inline-flex items-center gap-1">
-                                                <Clock size={12} />
-                                                Berildi: {item.loan_date} / Gacha: {item.due_date}
-                                            </span>
-                                            {item.return_date && item.status === 'returned' && (
-                                                <span className="inline-flex items-center gap-1 ml-2 text-emerald-400">
-                                                    | Qaytardi: {item.return_date}
-                                                </span>
-                                            )}
-                                        </p>
-                                    </div>
-                                    <div className="shrink-0 flex items-center">
-                                        <span className={`px-2.5 py-1 rounded-full text-[0.75rem] font-semibold tracking-wide border ${item.status === 'returned' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20'}`}>
-                                            {item.status}
-                                        </span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            )}
+export default function ReportsPage() {
+    return (
+        <div className="p-8 md:p-10 max-w-[1600px] mx-auto min-h-screen">
+            <div className="flex flex-col">
+                {REPORT_CONFIGS.map(config => (
+                    <ReportSection key={config.type} config={config} />
+                ))}
+            </div>
         </div>
     )
 }
