@@ -182,6 +182,7 @@ pub async fn export_excel(
     let is_overdue = params.report_type == "overdue_rentals";
     let is_requests = params.report_type == "book_requests";
     let is_gate = params.report_type == "gate_control";
+    let is_staff_book_counts = params.report_type == "staff_book_counts";
 
     // 1. Data fetching and checking
     let mut workbook = Workbook::new();
@@ -332,30 +333,23 @@ pub async fn export_excel(
         
         let _ = worksheet.write_string_with_format(0, 0, "Tr", &header_format);
         let _ = worksheet.write_string_with_format(0, 1, "F.I.SH", &header_format);
-        let _ = worksheet.write_string_with_format(0, 2, "ID", &header_format);
-        let _ = worksheet.write_string_with_format(0, 3, "Rol", &header_format);
-        let _ = worksheet.write_string_with_format(0, 4, "Fakultet / Bo'lim", &header_format);
-        let _ = worksheet.write_string_with_format(0, 5, "Yo'nalish / Mutaxassislik", &header_format);
-        let _ = worksheet.write_string_with_format(0, 6, "Guruh", &header_format);
-        let _ = worksheet.write_string_with_format(0, 7, "Ta'lim shakli", &header_format);
-        let _ = worksheet.write_string_with_format(0, 8, "Lavozim", &header_format);
-        let _ = worksheet.write_string_with_format(0, 9, "Ro'yxatdan o'tgan sana", &header_format);
+        let _ = worksheet.write_string_with_format(0, 2, "Fakultet / Bo'lim", &header_format);
+        let _ = worksheet.write_string_with_format(0, 3, "Yo'nalish / Mutaxassislik", &header_format);
+        let _ = worksheet.write_string_with_format(0, 4, "Guruh", &header_format);
+        let _ = worksheet.write_string_with_format(0, 5, "Ta'lim shakli", &header_format);
+        let _ = worksheet.write_string_with_format(0, 6, "Lavozim", &header_format);
+        let _ = worksheet.write_string_with_format(0, 7, "Ro'yxatdan o'tgan sana", &header_format);
 
         for (i, row) in data.iter().enumerate() {
             let row_idx = (i + 1) as u32;
-            let role_display = match row.role.as_str() {
-                "student" => "Talaba", "employee" => "Xodim", "teacher" => "O'qituvchi", "staff" => "Kutubxonachi", "admin" => "Administrator", _ => &row.role,
-            };
             let _ = worksheet.write_number(row_idx, 0, (i + 1) as f64);
             let _ = worksheet.write_string(row_idx, 1, &row.full_name);
-            let _ = worksheet.write_string(row_idx, 2, &row.user_id);
-            let _ = worksheet.write_string(row_idx, 3, role_display);
-            let _ = worksheet.write_string(row_idx, 4, row.department_name.as_deref().unwrap_or("-"));
-            let _ = worksheet.write_string(row_idx, 5, row.specialty_name.as_deref().unwrap_or("-"));
-            let _ = worksheet.write_string(row_idx, 6, row.group_name.as_deref().unwrap_or("-"));
-            let _ = worksheet.write_string(row_idx, 7, row.education_form.as_deref().unwrap_or("-"));
-            let _ = worksheet.write_string(row_idx, 8, row.staff_position.as_deref().unwrap_or("-"));
-            let _ = worksheet.write_string(row_idx, 9, row.created_at.as_deref().unwrap_or("-"));
+            let _ = worksheet.write_string(row_idx, 2, row.department_name.as_deref().unwrap_or("-"));
+            let _ = worksheet.write_string(row_idx, 3, row.specialty_name.as_deref().unwrap_or("-"));
+            let _ = worksheet.write_string(row_idx, 4, row.group_name.as_deref().unwrap_or("-"));
+            let _ = worksheet.write_string(row_idx, 5, row.education_form.as_deref().unwrap_or("-"));
+            let _ = worksheet.write_string(row_idx, 6, row.staff_position.as_deref().unwrap_or("-"));
+            let _ = worksheet.write_string(row_idx, 7, row.created_at.as_deref().unwrap_or("-"));
         }
         let _ = worksheet.autofit();
 
@@ -514,6 +508,54 @@ pub async fn export_excel(
         }
         let _ = worksheet.autofit();
 
+    } else if params.report_type == "books_added" {
+        let data = ReportRepository::get_books_added_by_staff(p, params.staff_id.as_deref()).await?;
+        if data.is_empty() {
+            return Err(AppError::NotFound("Ushbu xodim bo'yicha kitoblar topilmadi".into()));
+        }
+
+        let _ = worksheet.write_string_with_format(0, 0, "Tr", &header_format);
+        let _ = worksheet.write_string_with_format(0, 1, "Kitob nomi", &header_format);
+        let _ = worksheet.write_string_with_format(0, 2, "Muallif", &header_format);
+        let _ = worksheet.write_string_with_format(0, 3, "Kategoriya", &header_format);
+        let _ = worksheet.write_string_with_format(0, 4, "Til", &header_format);
+        let _ = worksheet.write_string_with_format(0, 5, "Format", &header_format);
+        let _ = worksheet.write_string_with_format(0, 6, "Nusxa", &header_format);
+        let _ = worksheet.write_string_with_format(0, 7, "Xodim", &header_format);
+        let _ = worksheet.write_string_with_format(0, 8, "Qo'shilgan vaqti", &header_format);
+
+        for (i, row) in data.iter().enumerate() {
+            let row_idx = (i + 1) as u32;
+            let _ = worksheet.write_number(row_idx, 0, (i + 1) as f64);
+            let _ = worksheet.write_string(row_idx, 1, &row.title);
+            let _ = worksheet.write_string(row_idx, 2, &row.author);
+            let _ = worksheet.write_string(row_idx, 3, row.category.as_deref().unwrap_or("-"));
+            let _ = worksheet.write_string(row_idx, 4, row.language.as_deref().unwrap_or("-"));
+            let _ = worksheet.write_string(row_idx, 5, row.format.as_deref().unwrap_or("-"));
+            let _ = worksheet.write_number(row_idx, 6, row.total_quantity.unwrap_or(0) as f64);
+            let _ = worksheet.write_string(row_idx, 7, row.added_by_name.as_deref().unwrap_or("-"));
+            let _ = worksheet.write_string(row_idx, 8, &row.created_at);
+        }
+        let _ = worksheet.autofit();
+
+    } else if is_staff_book_counts {
+        let data = ReportRepository::get_staff_book_counts(p).await?;
+        if data.is_empty() {
+            return Err(AppError::NotFound("Xodimlar statistikasi mavjud emas".into()));
+        }
+
+        let _ = worksheet.write_string_with_format(0, 0, "Tr", &header_format);
+        let _ = worksheet.write_string_with_format(0, 1, "Kutubxona xodimi (F.I.SH)", &header_format);
+        let _ = worksheet.write_string_with_format(0, 2, "Qo'shgan kitoblari soni (Nusxa)", &header_format);
+
+        for (i, row) in data.iter().enumerate() {
+            let row_idx = (i + 1) as u32;
+            let _ = worksheet.write_number(row_idx, 0, (i + 1) as f64);
+            let _ = worksheet.write_string(row_idx, 1, &row.full_name);
+            let _ = worksheet.write_number(row_idx, 2, row.count as f64);
+        }
+        let _ = worksheet.autofit();
+
     } else {
         return Err(AppError::BadRequest("Noto'g'ri hisobot turi".into()));
     }
@@ -538,6 +580,7 @@ pub async fn export_excel(
                 else if is_requests { "requests" }
                 else if is_gate { "gate" }
                 else if params.report_type == "books_added" { "books_added" }
+                else if is_staff_book_counts { "staff_book_counts" }
                 else { "other" },
                 start_date.format("%Y%m%d"),
                 end_date.format("%Y%m%d")
@@ -579,6 +622,7 @@ pub async fn preview_report(
     let is_requests = params.report_type == "book_requests";
     let is_gate = params.report_type == "gate_control";
     let is_books_added = params.report_type == "books_added";
+    let is_staff_book_counts = params.report_type == "staff_book_counts";
 
     let result_json = if is_rentals {
         let mut data = ReportRepository::get_rentals_by_date(p, start_date, end_date).await?;
@@ -622,6 +666,10 @@ pub async fn preview_report(
         serde_json::to_value(data).unwrap()
     } else if is_books_added {
         let mut data = ReportRepository::get_books_added_by_staff(p, params.staff_id.as_deref()).await?;
+        data.truncate(15);
+        serde_json::to_value(data).unwrap()
+    } else if is_staff_book_counts {
+        let mut data = ReportRepository::get_staff_book_counts(p).await?;
         data.truncate(15);
         serde_json::to_value(data).unwrap()
     } else {
@@ -751,3 +799,21 @@ pub async fn get_book_filter_options(
     })))
 }
 
+/// GET /api/reports/staff-book-counts
+/// Admin Xodimlar sahifasi uchun har bir xodim nechta kitob qo'shganligini olish
+pub async fn get_staff_book_counts(
+    pool: web::Data<PgPool>,
+    claims: Claims,
+) -> Result<HttpResponse, AppError> {
+    if let Err(resp) = auth_middleware::require_role(&claims, &["admin"]) {
+        return Ok(resp);
+    }
+
+    let p = pool.get_ref();
+    let stats_data = ReportRepository::get_staff_book_counts(p).await?;
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "success": true,
+        "data": stats_data
+    })))
+}

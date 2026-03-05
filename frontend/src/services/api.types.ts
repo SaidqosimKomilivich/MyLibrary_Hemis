@@ -275,6 +275,17 @@ export interface AdminDashboardResponse {
     }
 }
 
+export interface StaffBookCount {
+    staff_id: string
+    full_name: string
+    count: number
+}
+
+export interface StaffBookCountsResponse {
+    success: boolean
+    data: StaffBookCount[]
+}
+
 export interface MyDashboardResponse {
     success: boolean
     data: {

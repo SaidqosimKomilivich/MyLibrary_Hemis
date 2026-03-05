@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { Briefcase, Search, RefreshCw, X, ArrowDownToLine, CheckCircle2, Eye, KeyRound, Power, AlertCircle, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, ShieldAlert, UserCog, Hash, BookUser, Mail, Phone, Calendar } from 'lucide-react'
+import { Briefcase, Search, RefreshCw, X, ArrowDownToLine, CheckCircle2, Eye, KeyRound, Power, AlertCircle, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, ShieldAlert, UserCog, Hash, BookUser, Mail, Phone, Calendar, Download } from 'lucide-react'
 import { CustomSelect } from '../../components/CustomSelect'
 import { api } from '../../services/api'
 import type { UserData } from '../../services/api'
@@ -150,6 +150,10 @@ export default function AdminEmployeesPage() {
     const [staff, setStaff] = useState<UserData[]>([])
     const [loading, setLoading] = useState(false)
 
+    const [staffCounts, setStaffCounts] = useState<{ staff_id: string; full_name: string; count: number }[]>([])
+    const [loadingCounts, setLoadingCounts] = useState(false)
+    const [exportingCounts, setExportingCounts] = useState(false)
+
     const [admins, setAdmins] = useState<UserData[]>([])
     const [loadingAdmins, setLoadingAdmins] = useState(false)
 
@@ -203,6 +207,42 @@ export default function AdminEmployeesPage() {
     }, [pag.currentPage, pag.perPage, debouncedSearch, statusFilter])
 
     useEffect(() => { loadStaff() }, [loadStaff])
+
+    const fetchCounts = useCallback(async () => {
+        setLoadingCounts(true)
+        try {
+            const res = await api.getStaffBookCounts()
+            if (res.success) setStaffCounts(res.data)
+            else setStaffCounts([])
+        } catch (e) {
+            console.error('Kitob statistikasi xato:', e)
+            setStaffCounts([])
+        } finally {
+            setLoadingCounts(false)
+        }
+    }, [])
+
+    useEffect(() => { fetchCounts() }, [fetchCounts])
+
+    const handleExportCounts = async () => {
+        setExportingCounts(true)
+        try {
+            const blob = await api.exportReportExcel('staff_book_counts')
+            const url = window.URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `kutubxona_xodimlari_kitob_statistikasi_${new Date().toISOString().split('T')[0]}.xlsx`
+            document.body.appendChild(a)
+            a.click()
+            window.URL.revokeObjectURL(url)
+            document.body.removeChild(a)
+            toast.success("Excel fayl muvaffaqiyatli yuklandi!")
+        } catch (err: any) {
+            toast.warning(err.message || "Yuklashda xatolik yuz berdi")
+        } finally {
+            setExportingCounts(false)
+        }
+    }
 
     const loadAdmins = useCallback(async () => {
         if (!isSuperAdmin) return
@@ -368,6 +408,7 @@ export default function AdminEmployeesPage() {
                     </div>
                 </div>
             </div>
+
 
             {/* Tabs */}
             {isSuperAdmin && (
@@ -586,6 +627,61 @@ export default function AdminEmployeesPage() {
                 </div>
             )}
 
+            {/* Xodimlar Kitob Statistikasi Report */}
+            <div className="mt-5 bg-surface border border-border rounded-[20px] overflow-hidden flex flex-col mb-8">
+                <div className="px-6 py-4 border-b border-border flex flex-col md:flex-row md:items-center justify-between gap-4 bg-surface-hover/30">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-surface-hover border border-border flex items-center justify-center shrink-0 text-rose-400">
+                            <BookUser size={20} />
+                        </div>
+                        <h3 className="m-0 text-text text-[1.15rem] font-semibold">Kutubxona xodimlari kitob statistikasi</h3>
+                    </div>
+
+                    <button
+                        onClick={handleExportCounts}
+                        disabled={exportingCounts || loadingCounts || staffCounts.length === 0}
+                        className="flex items-center justify-center gap-2 py-2.5 px-5 bg-linear-to-br from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-semibold text-[0.9rem] shadow-sm transition-all whitespace-nowrap"
+                    >
+                        {exportingCounts ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+                        Yuklab olish
+                    </button>
+                </div>
+
+                <div className="overflow-x-auto min-h-[150px] relative">
+                    {loadingCounts ? (
+                        <div className="absolute inset-0 z-10 bg-surface/50 backdrop-blur-sm flex items-center justify-center">
+                            <Loader2 size={32} className="animate-spin text-rose-400" />
+                        </div>
+                    ) : null}
+
+                    {staffCounts.length === 0 && !loadingCounts ? (
+                        <div className="flex flex-col items-center justify-center py-12 gap-3 text-text-muted">
+                            <AlertCircle size={32} />
+                            <p className="text-[0.875rem]">Ma'lumot topilmadi</p>
+                        </div>
+                    ) : (
+                        <table className="w-full border-collapse">
+                            <thead>
+                                <tr>
+                                    <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-surface-hover/50 border-b border-border w-[5%]">#</th>
+                                    <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-surface-hover/50 border-b border-border">Kutubxona xodimi (F.I.SH)</th>
+                                    <th className="py-3 px-4 text-left text-[0.75rem] font-semibold text-text-muted uppercase tracking-[0.05em] bg-surface-hover/50 border-b border-border">Qo'shgan kitoblari soni (Nusxa)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {staffCounts.map((item, idx) => (
+                                    <tr key={item.staff_id} className="transition-colors hover:bg-surface-hover/50 group border-b border-border/50 last:border-0">
+                                        <td className="py-3 px-4 text-[0.875rem] text-text-muted">{idx + 1}</td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] font-medium text-text">{item.full_name || '-'}</td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] font-bold text-rose-400">{item.count ?? 0} ta</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
+                </div>
+            </div>
+            
             {/* Modals */}
             {viewUser && <UserDetailModal user={viewUser} onClose={() => setViewUser(null)} />}
 

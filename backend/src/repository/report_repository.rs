@@ -241,6 +241,27 @@ impl ReportRepository {
             .collect())
     }
 
+    /// Admin Xodimlar sahifasi uchun har bir xodim nechta kitob qo'shganligi
+    pub async fn get_staff_book_counts(pool: &PgPool) -> Result<Vec<crate::dto::report::StaffBookCount>, AppError> {
+        let query = sqlx::query_as!(
+            crate::dto::report::StaffBookCount,
+            r#"
+            SELECT 
+                u."id" as "staff_id", 
+                u."full_name", 
+                COALESCE(SUM(b."total_quantity"), 0) as "count!"
+            FROM "users" u
+            LEFT JOIN "book" b ON b."added_by" = u."id"
+            WHERE u."role" = 'staff'
+            GROUP BY u."id", u."full_name"
+            ORDER BY "count!" DESC, u."full_name" ASC
+            "#
+        );
+
+        let results = query.fetch_all(pool).await?;
+        Ok(results)
+    }
+
     /// Belgilangan sanalar oralig'idagi keldi-ketdilarni olish Excel uchun
     pub async fn get_controls_by_date(
         pool: &PgPool,
@@ -855,15 +876,16 @@ impl ReportRepository {
             false
         };
 
-        // Role filtri
-        let role_sql = if role.is_some() && !role.unwrap_or("").is_empty() {
+        // Role filtri (yoki umuman adminlarni chiqarib tashlash qoidasi)
+        if role.is_some() && !role.unwrap_or("").is_empty() {
             let cond = format!("\"role\" = ${}::text", param_idx);
             param_idx += 1;
             conditions.push(cond);
-            true
         } else {
-            false
-        };
+            // Default: 'admin' rolini chiqarmaymiz
+            let cond = format!("\"role\" != 'admin'");
+            conditions.push(cond);
+        }
 
         let where_clause = if conditions.is_empty() {
             String::new()
@@ -874,8 +896,6 @@ impl ReportRepository {
         let sql = format!(
             r#"SELECT 
                 "full_name",
-                "user_id",
-                "role",
                 "department_name",
                 "specialty_name",
                 "group_name",
@@ -893,6 +913,8 @@ impl ReportRepository {
         let group_like = group_name.map(|g| format!("%{}%", g));
 
         let rows = sqlx::query_as::<_, crate::dto::report::UserStatRow>(&sql);
+
+        let role_sql = role.is_some() && !role.unwrap_or("").is_empty();
 
         // Bind department x2, group x1, role x1 — tartibda
         let rows = if dept_sql {

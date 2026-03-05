@@ -4,7 +4,7 @@ import { CustomSelect, type SelectOption } from '../../components/CustomSelect'
 import { Loader2, Calendar as CalendarIcon, ArrowRightLeft, BookOpen, Clock, AlertCircle, Users, Download } from 'lucide-react'
 import { toast } from 'react-toastify'
 
-type ReportType = 'rentals' | 'controls' | 'submissions' | 'users_statistics' | 'book_inventory' | 'overdue_rentals' | 'gate_control' | 'book_requests' | 'books_added'
+type ReportType = 'rentals' | 'controls' | 'submissions' | 'users_statistics' | 'book_inventory' | 'overdue_rentals' | 'gate_control' | 'book_requests' | 'books_added' | 'staff_book_counts'
 
 interface ReportConfig {
     type: ReportType
@@ -12,7 +12,7 @@ interface ReportConfig {
     icon: React.ReactNode
     colorClass: string
     buttonClass: string
-    filterMode: 'date' | 'users' | 'books' | 'teacher' | 'staff'
+    filterMode: 'date' | 'users' | 'books' | 'teacher' | 'staff' | 'staffBookCounts'
     columns: string[]
     renderRow: (item: any, idx: number) => React.ReactNode
 }
@@ -25,14 +25,10 @@ const REPORT_CONFIGS: ReportConfig[] = [
         colorClass: "text-indigo-400",
         buttonClass: "bg-linear-to-br from-indigo-500 to-indigo-600",
         filterMode: 'users',
-        columns: ["F.I.SH", "ID", "Rol", "Fakultet / Bo'lim", "Mutaxassislik", "Guruh", "Lavozim", "Ro'yxatdan o'tgan"],
+        columns: ["F.I.SH", "Fakultet / Bo'lim", "Mutaxassislik", "Guruh", "Lavozim", "Ro'yxatdan o'tgan"],
         renderRow: (item) => (
             <>
                 <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] font-medium text-text">{item.full_name || '-'}</td>
-                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.user_id || '-'}</td>
-                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">
-                    {item.role === 'student' ? 'Talaba' : item.role === 'employee' ? 'Xodim' : item.role === 'teacher' ? "O'qituvchi" : item.role === 'staff' ? 'Kutubxonachi' : item.role === 'admin' ? 'Admin' : item.role}
-                </td>
                 <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.department_name || '-'}</td>
                 <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.specialty_name || '-'}</td>
                 <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.group_name || '-'}</td>
@@ -347,6 +343,10 @@ function ReportSection({ config }: { config: ReportConfig }) {
     }, deps)
 
     const handleExport = async () => {
+        if (config.filterMode === 'staffBookCounts') {
+            toast.info("Bu hisobot uchun hali Excel eksport qilinmagan.")
+            return
+        }
         setExporting(true)
         try {
             const blob = await api.exportReportExcel(

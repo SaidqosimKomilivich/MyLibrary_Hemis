@@ -61,6 +61,13 @@ pub struct LanguageCount {
     pub total_copies: i64,
 }
 
+#[derive(Debug, Serialize, sqlx::FromRow)]
+pub struct StaffBookCount {
+    pub staff_id: uuid::Uuid,
+    pub full_name: String,
+    pub count: i64,
+}
+
 #[derive(Debug, Serialize)]
 pub struct AdminDashboardResponse {
     pub total_users: i64,
@@ -137,8 +144,6 @@ pub struct PublicDashboardResponse {
 #[derive(Debug, Serialize, sqlx::FromRow)]
 pub struct UserStatRow {
     pub full_name: String,
-    pub user_id: String,
-    pub role: String,
     pub department_name: Option<String>,
     pub specialty_name: Option<String>,
     pub group_name: Option<String>,
