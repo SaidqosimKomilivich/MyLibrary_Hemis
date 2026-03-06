@@ -78,6 +78,42 @@ impl UserRepository {
         Ok(())
     }
 
+    /// Parolni va aloqa ma'lumotlarni (agar ular bo'sh bo'lsa) yangilash
+    pub async fn update_password_and_contacts(
+        pool: &PgPool,
+        id: Uuid,
+        new_password_hash: &str,
+        email: Option<&str>,
+        phone: Option<&str>,
+    ) -> Result<(), AppError> {
+        let mut query = String::from(r#"UPDATE "users" SET "password" = $1, "is_password_update" = true"#);
+        let mut bind_idx = 3;
+
+        if email.is_some() {
+            query.push_str(&format!(r#", "email" = COALESCE("email", ${})"#, bind_idx));
+            bind_idx += 1;
+        }
+        if phone.is_some() {
+            query.push_str(&format!(r#", "phone" = COALESCE("phone", ${})"#, bind_idx));
+            bind_idx += 1;
+        }
+
+        query.push_str(" WHERE \"id\" = $2");
+
+        let mut q = sqlx::query(&query).bind(new_password_hash).bind(id);
+
+        if let Some(e) = email {
+            q = q.bind(e);
+        }
+        if let Some(p) = phone {
+            q = q.bind(p);
+        }
+
+        q.execute(pool).await?;
+
+        Ok(())
+    }
+
     /// Parolni default holatga qaytarish (admin uchun)
     pub async fn reset_password(
         pool: &PgPool,

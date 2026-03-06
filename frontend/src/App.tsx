@@ -32,6 +32,7 @@ import EmployeeRentalsPage from './pages/employee/EmployeeRentalsPage'
 import ReportsPage from './pages/employee/ReportsPage'
 import PendingBooksPage from './pages/admin/PendingBooksPage'
 import MyRentals from './pages/student/MyRentals'
+import MessagesPage from './pages/shared/MessagesPage'
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -62,6 +63,7 @@ function AnimatedRoutes() {
         <Route path="requests" element={<EmployeeRequestsPage />} />
         <Route path="employees" element={<AdminEmployeesPage />} />
         <Route path="stats" element={<ReportsPage />} />
+        <Route path="messages" element={<MessagesPage />} />
         <Route path="profile" element={<ProfilePage />} />
       </Route>
 
@@ -76,6 +78,7 @@ function AnimatedRoutes() {
         <Route path="access-control" element={<AccessControl />} />
         <Route path="lend" element={<AccessControl />} />
         <Route path="returns" element={<AccessControl />} />
+        <Route path="messages" element={<MessagesPage />} />
         {/* <Route path="readers" element={<ComingSoon title="O'quvchilar" />} /> */}
         <Route path="profile" element={<ProfilePage />} />
       </Route>
@@ -87,6 +90,7 @@ function AnimatedRoutes() {
         <Route path="my-books" element={<MyReadings />} />
         <Route path="rentals" element={<MyRentals />} />
         <Route path="requests" element={<MyRequestsPage />} />
+        <Route path="messages" element={<MessagesPage />} />
         <Route path="profile" element={<ProfilePage />} />
       </Route>
 
@@ -98,6 +102,7 @@ function AnimatedRoutes() {
         <Route path="rentals" element={<MyRentals />} />
         <Route path="requests" element={<MyRequestsPage />} />
         <Route path="submit-book" element={<TeacherBookSubmit />} />
+        <Route path="messages" element={<MessagesPage />} />
         <Route path="profile" element={<ProfilePage />} />
       </Route>
 
@@ -108,7 +113,7 @@ function AnimatedRoutes() {
         <Route path="my-books" element={<MyReadings />} />
         <Route path="rentals" element={<MyRentals />} />
         <Route path="requests" element={<MyRequestsPage />} />
-
+        <Route path="messages" element={<MessagesPage />} />
         <Route path="profile" element={<ProfilePage />} />
 
       </Route>

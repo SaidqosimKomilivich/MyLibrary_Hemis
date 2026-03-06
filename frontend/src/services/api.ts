@@ -27,7 +27,10 @@ import type {
     SingleNewsResponse,
     ReportDashboardResponse,
     Book,
-    UserData
+    UserData,
+    MessageDataItem,
+    UnreadCountResponse,
+    SendMessagePayload
 } from './api.types'
 
 export * from './api.types'
@@ -138,10 +141,10 @@ export const api = {
         })
     },
 
-    changePassword(old_password: string, new_password: string) {
+    changePassword(old_password: string, new_password: string, email?: string, phone?: string) {
         return request<MessageResponse>('/auth/change-password', {
             method: 'POST',
-            body: JSON.stringify({ old_password, new_password }),
+            body: JSON.stringify({ old_password, new_password, email, phone }),
         })
     },
 
@@ -741,5 +744,102 @@ export const api = {
         return request<{ success: boolean; message: string }>('/users/increment-id-card', {
             method: 'POST',
         })
+    },
+
+    // User qidirish: xabar yuborish uchun 
+    searchUsers(query: string) {
+        return request<{ success: boolean; data: { id: string; full_name: string; role: string }[] }>(
+            `/users/search?q=${encodeURIComponent(query)}&limit=30`
+        )
+    },
+
+    // Message endpoints
+    getMyMessages() {
+        return request<{ success: boolean; data: MessageDataItem[] }>('/messages')
+    },
+
+    getUnreadMessageCount() {
+        return request<UnreadCountResponse>('/messages/unread')
+    },
+
+    sendMessage(payload: SendMessagePayload) {
+        return request<{ success: boolean; data: MessageDataItem; message: string }>('/messages', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        })
+    },
+
+    markMessageAsRead(id: string) {
+        return request<MessageResponse>(`/messages/${id}/read`, {
+            method: 'PATCH',
+        })
+    },
+
+    // Server-Sent Events for Messages
+    subscribeToMessages(
+        onMessage: (msg: MessageDataItem) => void
+    ): { abort: () => void } {
+        const controller = new AbortController()
+        const token = localStorage.getItem('token')
+
+            ; (async () => {
+                try {
+                    const res = await fetch(`${API_BASE}/messages/stream`, {
+                        method: 'GET',
+                        credentials: 'include',
+                        headers: {
+                            'Authorization': token ? `Bearer ${token}` : '',
+                            'Accept': 'text/event-stream',
+                        },
+                        signal: controller.signal,
+                    })
+
+                    if (res.status === 401) {
+                        window.dispatchEvent(new CustomEvent('auth:unauthorized'))
+                        return
+                    }
+
+                    if (!res.ok) return
+
+                    const reader = res.body?.getReader()
+                    if (!reader) return
+
+                    const decoder = new TextDecoder()
+                    let buffer = ''
+
+                    while (true) {
+                        const { done, value } = await reader.read()
+                        if (done) break
+
+                        buffer += decoder.decode(value, { stream: true })
+                        const parts = buffer.split('\n\n')
+                        buffer = parts.pop() || ''
+
+                        for (const part of parts) {
+                            if (!part.trim()) continue
+                            const lines = part.split('\n')
+                            let data = ''
+                            for (const line of lines) {
+                                if (line.startsWith('data: ')) {
+                                    data = line.slice(6)
+                                }
+                            }
+                            if (data) {
+                                try {
+                                    const parsed = JSON.parse(data)
+                                    onMessage(parsed as MessageDataItem)
+                                } catch { /* ignore parsing errors */ }
+                            }
+                        }
+                    }
+                } catch (err) {
+                    // Ignore AbortError on unmount
+                    if ((err as Error).name !== 'AbortError') {
+                        console.error('SSE Message stream error:', err)
+                    }
+                }
+            })()
+
+        return { abort: () => controller.abort() }
     }
 }

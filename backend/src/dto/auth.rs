@@ -13,6 +13,8 @@ pub struct LoginRequest {
 pub struct ChangePasswordRequest {
     pub old_password: String,
     pub new_password: String,
+    pub email: Option<String>,
+    pub phone: Option<String>,
 }
 
 #[derive(Debug, Serialize)]

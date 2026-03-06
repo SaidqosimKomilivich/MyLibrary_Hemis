@@ -275,12 +275,13 @@ impl AuthService {
         Ok(user_response)
     }
 
-    /// Parolni o'zgartirish
     pub async fn change_password(
         pool: &PgPool,
         user_id: Uuid,
         old_password: &str,
         new_password: &str,
+        email: Option<&str>,
+        phone: Option<&str>,
     ) -> Result<MessageResponse, AppError> {
         // 1. Foydalanuvchini topish
         let user = UserRepository::find_by_id(pool, user_id)
@@ -293,9 +294,13 @@ impl AuthService {
             return Err(AppError::BadRequest("Joriy parol noto'g'ri".to_string()));
         }
 
-        // 3. Yangi parolni heshlash va saqlash
+        // 3. Yangi parolni heshlash va saqlash (va agar ixtiyoriy kontaklar e/p berilgan bo'lsa)
         let new_hash = Self::hash_password(new_password)?;
-        UserRepository::update_password(pool, user_id, &new_hash).await?;
+        if email.is_some() || phone.is_some() {
+            UserRepository::update_password_and_contacts(pool, user_id, &new_hash, email, phone).await?;
+        } else {
+            UserRepository::update_password(pool, user_id, &new_hash).await?;
+        }
 
         tracing::info!(user_id = %user.user_id, "Parol o'zgartirildi");
 

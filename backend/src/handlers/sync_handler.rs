@@ -497,3 +497,46 @@ pub async fn proxy_image(
         .insert_header(("Access-Control-Allow-Origin", "*"))
         .body(bytes))
 }
+
+/// GET /api/users/search?q=text&limit=30
+/// Xabar yuborish uchun foydalanuvchilarni ism bo'yicha qidirish
+pub async fn search_users(
+    claims: Claims,
+    pool: web::Data<PgPool>,
+    query: web::Query<std::collections::HashMap<String, String>>,
+) -> Result<HttpResponse, actix_web::Error> {
+    let _ = claims; // auth verified via middleware
+    let q = query.get("q").map(|s| s.as_str()).unwrap_or("");
+    let limit: i64 = query.get("limit").and_then(|v| v.parse().ok()).unwrap_or(30).min(100);
+
+    // Admin bo'lmagan barcha faol foydalanuvchilarni qidirish
+    let users = sqlx::query!(
+        r#"
+        SELECT id, full_name, role
+        FROM users
+        WHERE active = true
+          AND role != 'admin'
+          AND (LOWER(full_name) LIKE LOWER($1))
+        ORDER BY full_name ASC
+        LIMIT $2
+        "#,
+        format!("%{}%", q),
+        limit,
+    )
+    .fetch_all(pool.get_ref())
+    .await
+    .map_err(actix_web::error::ErrorInternalServerError)?;
+
+    let result: Vec<serde_json::Value> = users.iter().map(|u| {
+        serde_json::json!({
+            "id": u.id,
+            "full_name": u.full_name,
+            "role": u.role,
+        })
+    }).collect();
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "success": true,
+        "data": result,
+    })))
+}

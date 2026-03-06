@@ -209,6 +209,8 @@ pub async fn change_password(
         user_id,
         &body.old_password,
         &body.new_password,
+        body.email.as_deref(),
+        body.phone.as_deref(),
     )
     .await?;
 

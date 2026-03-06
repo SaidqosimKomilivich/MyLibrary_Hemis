@@ -1,6 +1,7 @@
 pub mod auth_handler;
 pub mod book_handler;
 pub mod control_handler;
+pub mod message_handler;
 pub mod news_handler;
 pub mod reading_handler;
 pub mod rental_handler;

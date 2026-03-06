@@ -1,5 +1,6 @@
 pub mod book_repository;
 pub mod control_repository;
+pub mod message_repository;
 pub mod news_repository;
 pub mod reading_repository;
 pub mod rental_repository;

@@ -28,7 +28,7 @@ import { useAuth } from '../context/AuthContext'
 import { useAudio } from '../context/AudioContext'
 import { useTheme } from '../context/ThemeContext'
 import { Sun, Moon } from 'lucide-react'
-
+import NotificationBell from './NotificationBell'
 
 export type UserRole = 'admin' | 'staff' | 'teacher' | 'student' | 'employee'
 interface NavItem {
@@ -261,6 +261,10 @@ export default function DashboardLayout({ role }: DashboardLayoutProps) {
                                 </button>
                             </div>
                         )}
+
+                        {/* Qong'iroqcha - Messages/Notifications */}
+                        <NotificationBell />
+
                         {/* Theme Toggle Button */}
                         <button
                             onClick={toggleTheme}

@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, GraduationCap, Lock, Save } from 'lucide-react';
+import { Eye, EyeOff, GraduationCap, Lock, Save, Mail, Phone } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -12,7 +12,13 @@ export default function ChangePassword() {
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
-    const { logout, role } = useAuth();
+    const { logout, role, user } = useAuth();
+
+    const needsEmail = !user?.email;
+    const needsPhone = !user?.phone;
+
+    const [email, setEmail] = useState('');
+    const [phone, setPhone] = useState('');
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
@@ -32,10 +38,25 @@ export default function ChangePassword() {
             return;
         }
 
+        if (needsEmail && !email.trim()) {
+            toast.error("Iltimos, email manzilini kiriting");
+            return;
+        }
+
+        if (needsPhone && !phone.trim()) {
+            toast.error("Iltimos, telefon raqamini kiriting");
+            return;
+        }
+
         setIsLoading(true);
 
         try {
-            const res = await api.changePassword(oldPassword, newPassword);
+            const res = await api.changePassword(
+                oldPassword,
+                newPassword,
+                needsEmail ? email.trim() : undefined,
+                needsPhone ? phone.trim() : undefined
+            );
             if (res.success) {
                 toast.success("Parol muvaffaqiyatli o'zgartirildi!");
 
@@ -56,6 +77,13 @@ export default function ChangePassword() {
             setIsLoading(false);
         }
     };
+
+    const isFormValid =
+        oldPassword.trim().length > 0 &&
+        newPassword.trim().length >= 6 &&
+        confirmPassword.trim() === newPassword.trim() &&
+        (!needsEmail || email.trim().length > 0) &&
+        (!needsPhone || phone.trim().length > 0);
 
     return (
         <div className="min-h-screen flex items-center justify-center p-5 bg-background relative overflow-hidden isolate">
@@ -129,9 +157,44 @@ export default function ChangePassword() {
                         </div>
                     </div>
 
+                    {/* Email Input (Conditional) */}
+                    {needsEmail && (
+                        <div className="flex flex-col gap-2">
+                            <label className="text-[0.85rem] font-semibold text-text-muted ml-1 uppercase tracking-wider">Email Manzili</label>
+                            <div className="relative flex items-center group">
+                                <Mail size={18} className="absolute left-4 text-text-muted pointer-events-none transition-colors group-focus-within:text-primary-light" />
+                                <input
+                                    type="email"
+                                    placeholder="namunaviy@email.com"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    className="w-full bg-surface-hover border border-border text-text px-4 py-3.5 pl-11 rounded-xl text-[1rem] outline-none transition-all focus:border-primary-light focus:bg-canvas/50 placeholder:text-text-muted/50"
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Phone Input (Conditional) */}
+                    {needsPhone && (
+                        <div className="flex flex-col gap-2">
+                            <label className="text-[0.85rem] font-semibold text-text-muted ml-1 uppercase tracking-wider">Telefon Raqam</label>
+                            <div className="relative flex items-center group">
+                                <Phone size={18} className="absolute left-4 text-text-muted pointer-events-none transition-colors group-focus-within:text-primary-light" />
+                                <input
+                                    type="tel"
+                                    placeholder="+998 90 123 45 67"
+                                    value={phone}
+                                    onChange={(e) => setPhone(e.target.value)}
+                                    className="w-full bg-surface-hover border border-border text-text px-4 py-3.5 pl-11 rounded-xl text-[1rem] outline-none transition-all focus:border-primary-light focus:bg-canvas/50 placeholder:text-text-muted/50"
+                                />
+                            </div>
+                        </div>
+                    )}
+
+
                     <button
                         type="submit"
-                        disabled={isLoading}
+                        disabled={isLoading || !isFormValid}
                         className="w-full mt-2 py-3.5 px-4 bg-linear-to-r from-primary to-primary-light text-white font-semibold text-[1rem] rounded-xl border-none cursor-pointer transition-all shadow-[0_8px_20px_rgba(79,70,229,0.3)] hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(79,70,229,0.4)] disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
                         style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
                     >

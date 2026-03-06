@@ -375,3 +375,30 @@ export interface ReportDashboardResponse {
     recent_rentals: Rental[]
     recent_controls: ControlRecord[]
 }
+
+export interface MessageDataItem {
+    id: string
+    sender_id: string | null
+    receiver_id: string | null
+    sender_name: string | null
+    sender_role: string | null
+    receiver_name: string | null
+    receiver_role: string | null
+    title: string
+    message: string
+    is_read: boolean
+    created_at: string
+}
+
+export interface UnreadCountResponse {
+    success: boolean
+    data: {
+        unread_count: number
+    }
+}
+
+export interface SendMessagePayload {
+    receiver_id: string
+    title: string
+    message: string
+}

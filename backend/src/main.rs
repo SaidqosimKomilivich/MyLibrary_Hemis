@@ -25,6 +25,8 @@ use crate::handlers::report_handler;
 use crate::handlers::request_handler;
 use crate::handlers::sync_handler;
 use crate::handlers::upload_handler;
+use crate::handlers::message_handler;
+use crate::services::message_service::MessageService;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -80,7 +82,17 @@ async fn main() -> std::io::Result<()> {
 
     // 6. HTTP Serverni ishga tushirish
     let config_data = web::Data::new(config);
-    let pool_data = web::Data::new(pool);
+    let pool_data = web::Data::new(pool.clone());
+    let message_service_instance = std::sync::Arc::new(MessageService::new());
+    let message_service = web::Data::new(message_service_instance.clone());
+
+    // RENTAL REMINDER SCHEDULER: fonda ishga tushirish (har kuni 6:00 da)
+    let reminder_pool = pool.clone();
+    tokio::spawn(scheduler::start_rental_reminder_scheduler(
+        reminder_pool,
+        message_service_instance,
+    ));
+    tracing::info!("Rental-reminder scheduleri fonda ishga tushirildi");
 
     HttpServer::new(move || {
         App::new()
@@ -89,6 +101,7 @@ async fn main() -> std::io::Result<()> {
             // App data (barcha handler'larga shared state)
             .app_data(config_data.clone())
             .app_data(pool_data.clone())
+            .app_data(message_service.clone())
             // Health check
             .route(
                 "/health",
@@ -252,6 +265,7 @@ async fn main() -> std::io::Result<()> {
                         "/increment-id-card",
                         web::post().to(auth_handler::increment_id_card),
                     )
+                    .route("/search", web::get().to(sync_handler::search_users))
                     .route("/{id}", web::get().to(sync_handler::get_user_by_id))
                     .route("/{id}/role", web::put().to(sync_handler::update_user_role))
                     .route(
@@ -259,6 +273,7 @@ async fn main() -> std::io::Result<()> {
                         web::put().to(sync_handler::update_user_status),
                     ),
             )
+            .configure(message_handler::config)
             // Static files (uploads papkasini brauzerdan ko'rish uchun explicit streaming NamedFile route)
             .route(
                 "/uploads/{subdir}/{filename}",

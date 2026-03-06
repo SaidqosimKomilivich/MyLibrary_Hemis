@@ -2,6 +2,7 @@ pub mod auth;
 pub mod book;
 pub mod control;
 pub mod hemis;
+pub mod message;
 pub mod news;
 pub mod reading;
 pub mod rental;
