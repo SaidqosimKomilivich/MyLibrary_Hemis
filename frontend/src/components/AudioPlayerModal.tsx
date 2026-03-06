@@ -104,7 +104,7 @@ export default function AudioPlayerModal() {
             {audioEl}
             {/* Backdrop — bosish fon rejimiga o'tadi */}
             <div
-                className="fixed inset-0 z-200 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
+                className="fixed inset-0 z-[999] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
                 onClick={minimizePlayer}
             >
                 {/* Modal */}

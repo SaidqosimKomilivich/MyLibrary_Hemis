@@ -122,8 +122,7 @@ export default function AdminNewsModal({
 
     return createPortal(
         <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-100 flex items-center justify-center p-4 animate-in fade-in duration-200"
-            onClick={onClose}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-999 flex items-center justify-center p-4 animate-in fade-in duration-200"
             style={{ pointerEvents: isSubmitting || isUploading ? 'none' : 'auto' }}
         >
             <div
@@ -133,7 +132,7 @@ export default function AdminNewsModal({
                 {/* Header */}
                 <div className="flex justify-between items-center p-5 border-b border-border bg-white/5 rounded-t-2xl">
                     <h2 className="m-0 text-lg font-bold text-text">
-                        {editingNews ? "Yangilikni Tahrirlash" : "Yangilik Qo'shish"}
+                        {editingNews ? "Yangilikni tahrirlash" : "Yangilik qo'shish"}
                     </h2>
                     <button
                         onClick={onClose}

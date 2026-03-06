@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { api, type Rental } from '../../services/api'
-import { Search, Loader2, BookOpen, Calendar, Clock, AlertTriangle, CheckCircle, XCircle } from 'lucide-react'
+import { Search, Loader2, BookOpen, Calendar, Clock, AlertTriangle, CheckCircle, XCircle, Phone, Mail } from 'lucide-react'
 import { toast } from 'react-toastify'
 
 type FilterType = 'all' | 'returned' | 'active' | 'due_soon' | 'overdue'
@@ -174,6 +174,16 @@ export default function EmployeeRentalsPage() {
                                             </span>
                                         </h3>
                                         <p className="m-0 mt-1.5 text-[0.9rem] text-text-muted font-mono">Ijara raqami: #{r.id.split('-')[0]}</p>
+                                        {r.phone && (
+                                            <p className="m-0 mt-1.5 text-[0.85rem] text-text-muted flex items-center gap-1.5">
+                                                <Phone size={14} className="opacity-70" /> {r.phone}
+                                            </p>
+                                        )}
+                                        {r.email && (
+                                            <p className="m-0 mt-1 text-[0.85rem] text-text-muted flex items-center gap-1.5">
+                                                <Mail size={14} className="opacity-70" /> {r.email}
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
 

@@ -703,7 +703,7 @@ export default function AccessControl() {
                ═══════════════════════════════════════ */}
             {
                 assignModalOpen && (
-                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setAssignModalOpen(false)}>
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setAssignModalOpen(false)}>
                         <div className="bg-surface border border-border rounded-2xl w-full max-w-md shadow-xl overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
                             <div className="flex items-center justify-between p-5 border-b border-border">
                                 <h3 className="flex items-center gap-2 text-lg font-bold text-text m-0"><BookPlus size={20} className="text-primary-light" /> Kitob biriktirish</h3>
@@ -819,7 +819,7 @@ export default function AccessControl() {
                ═══════════════════════════════════════ */}
             {
                 returnModalOpen && (
-                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => { setReturnModalOpen(false); setReturningRental(null); setReturnNotes('') }}>
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => { setReturnModalOpen(false); setReturningRental(null); setReturnNotes('') }}>
                         <div className="bg-surface border border-border rounded-2xl w-full max-w-sm shadow-xl overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
                             <div className="flex items-center justify-between p-5 border-b border-border">
                                 <h3 className="flex items-center gap-2 text-lg font-bold text-text m-0"><RotateCcw size={20} className="text-primary-light" /> Kitobni qaytarish</h3>

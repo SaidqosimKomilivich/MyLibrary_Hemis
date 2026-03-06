@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react"
+import { createPortal } from "react-dom"
 import { api } from "../../services/api"
 import type { News } from "../../services/api"
 import { toast } from "react-toastify"
 import AddNewsModal from "./AddNewsModal"
+import { Trash2, X } from "lucide-react"
 
 export default function NewsPage() {
     const [news, setNews] = useState<News[]>([])
@@ -12,6 +14,10 @@ export default function NewsPage() {
 
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [editingNews, setEditingNews] = useState<News | null>(null)
+
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+    const [newsToDelete, setNewsToDelete] = useState<News | null>(null)
+    const [isDeleting, setIsDeleting] = useState(false)
 
     const fetchNews = async () => {
         setIsLoading(true)
@@ -35,17 +41,27 @@ export default function NewsPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [page])
 
-    const handleDelete = async (id: string) => {
-        if (!window.confirm("Rostdan ham bu yangilikni o'chirmoqchimisiz?")) return
+    const handleDeleteClick = (item: News) => {
+        setNewsToDelete(item)
+        setDeleteModalOpen(true)
+    }
 
+    const confirmDelete = async () => {
+        if (!newsToDelete) return
+
+        setIsDeleting(true)
         try {
-            await api.deleteNews(id)
-            toast.success("Yangilik o'chirildi")
+            await api.deleteNews(newsToDelete.id)
+            toast.success("Yangilik muvaffaqiyatli o'chirildi")
             fetchNews()
+            setDeleteModalOpen(false)
+            setNewsToDelete(null)
         }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         catch (error: any) {
             toast.error(error.message || "O'chirishda xatolik")
+        } finally {
+            setIsDeleting(false)
         }
     }
 
@@ -166,7 +182,7 @@ export default function NewsPage() {
                                                     </svg>
                                                 </button>
                                                 <button
-                                                    onClick={() => handleDelete(item.id)}
+                                                    onClick={() => handleDeleteClick(item)}
                                                     className="p-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
                                                     title="O'chirish"
                                                 >
@@ -216,6 +232,72 @@ export default function NewsPage() {
                     onSuccess={fetchNews}
                     editingNews={editingNews}
                 />
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {deleteModalOpen && newsToDelete && createPortal(
+                <div
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-999 flex items-center justify-center p-4 animate-in fade-in duration-200"
+                    onClick={() => !isDeleting && setDeleteModalOpen(false)}
+                >
+                    <div
+                        className="bg-surface border border-border rounded-2xl w-full max-w-sm flex flex-col shadow-2xl animate-in zoom-in-95 duration-200"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="flex justify-between items-center p-5 border-b border-border bg-white/5 rounded-t-2xl">
+                            <h2 className="m-0 text-lg font-bold text-text flex items-center gap-2">
+                                <span className="w-7 h-7 rounded-lg bg-red-500/15 text-red-400 flex items-center justify-center">
+                                    <Trash2 size={15} />
+                                </span>
+                                Yangilikni o'chirish
+                            </h2>
+                            <button
+                                onClick={() => setDeleteModalOpen(false)}
+                                disabled={isDeleting}
+                                className="flex p-1.5 rounded-lg border-none bg-transparent cursor-pointer text-text-muted transition-colors hover:bg-white/10 hover:text-rose-400 disabled:opacity-50"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Body */}
+                        <div className="p-5">
+                            <div className="flex items-start gap-4 mb-5">
+                                <div className="w-11 h-11 shrink-0 rounded-xl bg-red-500/10 text-red-400 flex items-center justify-center">
+                                    <Trash2 size={20} />
+                                </div>
+                                <div>
+                                    <p className="text-text font-semibold text-[0.95rem] m-0 mb-1">Bu amalni ortga qaytarib bo'lmaydi</p>
+                                    <p className="text-text-muted text-[0.88rem] m-0 leading-relaxed">
+                                        <span className="text-text font-medium">"{newsToDelete.title}"</span> yangiligi butunlay o'chirib tashlanadi.
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setDeleteModalOpen(false)}
+                                    disabled={isDeleting}
+                                    className="flex-1 px-5 py-2.5 rounded-xl border border-white/10 bg-transparent text-text font-semibold cursor-pointer transition-colors hover:bg-white/5 disabled:opacity-50"
+                                >
+                                    Bekor qilish
+                                </button>
+                                <button
+                                    onClick={confirmDelete}
+                                    disabled={isDeleting}
+                                    className="flex items-center justify-center gap-2 flex-1 px-6 py-2.5 rounded-xl border-none font-semibold cursor-pointer transition-all bg-red-600 text-white hover:bg-red-500 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(239,68,68,0.35)] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
+                                >
+                                    {isDeleting
+                                        ? <span className="w-[18px] h-[18px] border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        : <><Trash2 size={16} /> O'chirish</>}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>,
+                document.body
             )}
         </div>
     )

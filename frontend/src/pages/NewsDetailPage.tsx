@@ -21,6 +21,21 @@ export default function NewsDetailPage() {
         return () => clearInterval(interval);
     }, [news]);
 
+    useEffect(() => {
+    if (isModalOpen) {
+      // Skrollni to'xtatish
+      document.body.style.overflow = 'hidden';
+    } else {
+      // Skrollni qaytarish
+      document.body.style.overflow = 'auto';
+    }
+
+    // Komponent unmount bo'lganda (yopilganda) skrollni har doim tiklash
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, [isModalOpen]);
+
     const handlePrevImage = () => {
         if (!news?.images) return;
         setCurrentImageIndex(prev => (prev - 1 + news.images.length) % news.images.length);
@@ -196,7 +211,7 @@ export default function NewsDetailPage() {
             {/* Image Modal */}
             {isModalOpen && news.images && (
                 <div
-                    className="fixed inset-0 z-100 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4"
+                    className="fixed inset-0 z-9999 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 h-screen w-screen overflow-hidden"
                     onClick={() => setIsModalOpen(false)}
                 >
                     <button

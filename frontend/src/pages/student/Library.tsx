@@ -349,7 +349,7 @@ export default function Library() {
 
             {/* Per-book toggle modal */}
             {toggleBook && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => !isToggling && setToggleBook(null)}>
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4" onClick={() => !isToggling && setToggleBook(null)}>
                     <div className="bg-surface border border-border rounded-2xl w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
                         {/* Header */}
                         <div className={`flex items-center gap-3 p-5 rounded-t-2xl border-b ${toggleBook.is_active
@@ -423,7 +423,7 @@ export default function Library() {
                 Bulk Toggle Modal — Barcha kitoblarni boshqarish
             ═══════════════════════════════════════════════════════ */}
             {bulkModal && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => !isBulking && setBulkModal(false)}>
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4" onClick={() => !isBulking && setBulkModal(false)}>
                     <div className="bg-surface border border-border rounded-2xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
 
                         {/* Header */}
@@ -535,7 +535,7 @@ export default function Library() {
 
             {/* Request Book Modal */}
             {requestModalOpen && requestBook && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => !isRequesting && setRequestModalOpen(false)}>
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => !isRequesting && setRequestModalOpen(false)}>
                     <div className="w-full max-w-[450px] bg-surface rounded-2xl p-6 shadow-2xl border border-white/10 animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
                         <div className="flex justify-between items-center pb-4 mb-5 border-b border-white/10">
                             <h3 className="m-0 text-[1.2rem] font-bold">Kitob so'rash</h3>

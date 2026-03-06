@@ -72,7 +72,7 @@ function UserDetailModal({ user, onClose }: { user: UserData; onClose: () => voi
     ]
 
     return createPortal(
-        <div className="fixed inset-0 z-300 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={onClose}>
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={onClose}>
             <div className="relative w-full max-w-[480px] bg-surface border border-border rounded-2xl overflow-hidden animate-modal-scale shadow-2xl" onClick={(e) => e.stopPropagation()}>
                 <button className="absolute top-3.5 right-3.5 flex items-center justify-center w-8 h-8 rounded-lg border-none bg-transparent text-text-muted hover:bg-surface-hover hover:text-text transition-colors z-10" onClick={onClose}>
                     <X size={18} />
@@ -687,7 +687,7 @@ export default function AdminEmployeesPage() {
 
             {/* Sync Modal */}
             {syncModalOpen && createPortal(
-                <div className="fixed inset-0 z-300 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={() => setSyncModalOpen(false)}>
+                <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={() => setSyncModalOpen(false)}>
                     <div className="relative w-full max-w-[500px] bg-surface border border-border rounded-2xl overflow-hidden animate-modal-scale shadow-2xl" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-between p-6 pb-5 border-b border-border">
                             <div className="flex items-center gap-3.5">
@@ -762,7 +762,7 @@ export default function AdminEmployeesPage() {
 
             {/* Same reset, role, status modals as UsersPage */}
             {resetUser && createPortal(
-                <div className="fixed inset-0 z-300 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={() => !resetLoading && setResetUser(null)}>
+                <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={() => !resetLoading && setResetUser(null)}>
                     <div className="relative w-full max-w-[440px] bg-surface border border-border rounded-2xl overflow-hidden animate-modal-scale shadow-2xl" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-between p-6 pb-5 border-b border-border">
                             <div className="flex items-center gap-3.5">
@@ -786,7 +786,7 @@ export default function AdminEmployeesPage() {
             )}
 
             {roleUser && createPortal(
-                <div className="fixed inset-0 z-300 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={() => !roleLoading && setRoleUser(null)}>
+                <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={() => !roleLoading && setRoleUser(null)}>
                     <div className="relative w-full max-w-[440px] bg-surface border border-border rounded-2xl overflow-hidden animate-modal-scale shadow-2xl" onClick={(e) => e.stopPropagation()}>
                         <div className="p-6 pb-5 border-b border-border">
                             <h2 className="text-[1.1rem] font-bold text-text mb-2">Rolni o'zgartirish</h2>
@@ -810,7 +810,7 @@ export default function AdminEmployeesPage() {
             )}
 
             {statusUser && createPortal(
-                <div className="fixed inset-0 z-300 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={() => !statusLoading && setStatusUser(null)}>
+                <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={() => !statusLoading && setStatusUser(null)}>
                     <div className="relative w-full max-w-[440px] bg-surface border border-border rounded-2xl overflow-hidden animate-modal-scale shadow-2xl" onClick={(e) => e.stopPropagation()}>
                         <div className="p-6 pb-5 border-b border-border">
                             <h2 className="text-[1.1rem] font-bold text-text mb-2 animate-pulse">{statusUser.active ? "Foydalanuvchini Nofaol qilish" : "Foydalanuvchini Faol qilish"}</h2>

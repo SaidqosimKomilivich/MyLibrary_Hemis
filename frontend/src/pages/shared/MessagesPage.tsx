@@ -334,7 +334,7 @@ export default function MessagesPage() {
 
                 {/* Modal View for the Message */}
                 {selectedMessage && (
-                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setSelectedMessage(null)}>
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-999 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setSelectedMessage(null)}>
                         <div className="bg-surface border border-border rounded-2xl max-w-md w-full shadow-2xl overflow-hidden transform transition-all animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
                             <div className="flex items-center justify-between p-4 border-b border-border bg-surface-hover/30">
                                 <h3 className="font-bold text-lg text-text truncate pr-4">
@@ -371,7 +371,7 @@ export default function MessagesPage() {
     }
 
     return (
-        <div className="flex h-[calc(100vh-80px)] rounded-2xl overflow-hidden border border-border bg-surface shadow-xl">
+        <div className="-m-6 max-md:-m-4 flex h-[calc(100dvh-64px)] overflow-hidden border-t border-border bg-surface shadow-xl">
 
             {/* ─── LEFT PANEL: Conversations ─────────────────── */}
             <div className={`flex flex-col w-full md:w-[320px] shrink-0 border-r border-border bg-surface ${selectedId ? 'hidden md:flex' : 'flex'}`}>

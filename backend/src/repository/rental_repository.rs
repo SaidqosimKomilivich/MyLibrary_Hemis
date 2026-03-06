@@ -23,6 +23,8 @@ pub struct RentalWithDetails {
     // Foydalanuvchi ma'lumotlari
     pub user_full_name: Option<String>,
     pub role: Option<String>,
+    pub email: Option<String>,
+    pub phone: Option<String>,
     pub department_name: Option<String>,
     pub group_name: Option<String>,
     pub staff_position: Option<String>,
@@ -44,6 +46,8 @@ impl RentalWithDetails {
             book_cover: self.book_cover,
             user_full_name: self.user_full_name,
             role: self.role,
+            email: self.email,
+            phone: self.phone,
             department_name: self.department_name,
             group_name: self.group_name,
             staff_position: self.staff_position,
@@ -131,6 +135,8 @@ impl RentalRepository {
                 b."cover_image_url" as book_cover,
                 u."full_name" as user_full_name,
                 u."role" as role,
+                u."email" as email,
+                u."phone" as phone,
                 u."department_name" as department_name,
                 u."group_name" as group_name,
                 u."staff_position" as staff_position
@@ -162,6 +168,8 @@ impl RentalRepository {
                 b."cover_image_url" as book_cover,
                 u."full_name" as user_full_name,
                 u."role" as role,
+                u."email" as email,
+                u."phone" as phone,
                 u."department_name" as department_name,
                 u."group_name" as group_name,
                 u."staff_position" as staff_position

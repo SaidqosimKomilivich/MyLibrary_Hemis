@@ -219,6 +219,8 @@ export interface Rental {
     book_author: string | null
     book_cover: string | null
     user_full_name: string | null
+    email?: string | null
+    phone?: string | null
     role?: string
     department_name: string | null
     group_name: string | null

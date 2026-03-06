@@ -244,7 +244,7 @@ export default function TeacherBookSubmit() {
             {/* ══════════════════════════ SUBMIT MODAL ══════════════════════════ */}
             {modalOpen && createPortal(
                 <div
-                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-100 flex items-center justify-center p-4 animate-in fade-in duration-200"
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200"
                     onClick={handleCloseModal}
                     style={{ pointerEvents: submitting || coverUploading || fileUploading ? 'none' : 'auto' }}
                 >
@@ -494,7 +494,7 @@ export default function TeacherBookSubmit() {
 
             {/* ══════════════════════════ DETAIL MODAL ══════════════════════════ */}
             {selectedBook && createPortal(
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-100 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setSelectedBook(null)}>
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setSelectedBook(null)}>
                     <div className="bg-surface border border-border rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
                         <div className="flex justify-between items-center p-5 border-b border-border bg-white/5 rounded-t-2xl shrink-0">
                             <h3 className="flex items-center gap-2 m-0 text-lg font-bold text-text">

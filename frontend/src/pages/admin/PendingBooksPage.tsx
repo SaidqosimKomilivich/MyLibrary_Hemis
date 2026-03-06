@@ -316,7 +316,7 @@ export default function PendingBooksPage() {
                 Detail Modal — kitob ma'lumotlari
             ═══════════════════════════════════════════ */}
             {detailBook && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setDetailBook(null)}>
+                <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setDetailBook(null)}>
                     <div className="bg-surface border border-border rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-between p-5 border-b border-border">
                             <h3 className="font-bold text-text flex items-center gap-2">
@@ -404,7 +404,7 @@ export default function PendingBooksPage() {
             {confirm && (() => {
                 const cfg = ACTION_CONFIG[confirm.action]
                 return (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => setConfirm(null)}>
+                    <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => setConfirm(null)}>
                         <div className="bg-surface border border-border rounded-2xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
 
                             {/* Header */}

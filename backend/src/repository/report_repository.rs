@@ -34,6 +34,8 @@ impl ReportRepository {
                 b."cover_image_url" as "book_cover?",
                 u."full_name" as "user_full_name?",
                 u."role" as "role?",
+                u."email" as "email?",
+                u."phone" as "phone?",
                 u."department_name" as "department_name?",
                 u."group_name" as "group_name?",
                 u."staff_position" as "staff_position?"
@@ -103,6 +105,8 @@ impl ReportRepository {
                 b."cover_image_url" as "book_cover?",
                 u."full_name" as "user_full_name?",
                 u."role" as "role?",
+                u."email" as "email?",
+                u."phone" as "phone?",
                 u."department_name" as "department_name?",
                 u."group_name" as "group_name?",
                 u."staff_position" as "staff_position?"

@@ -203,7 +203,7 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
     const modalTitle = mode === 'edit' ? "Kitobni tahrirlash" : "Yangi kitob qo'shish"
 
     return createPortal(
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-100 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={onClose} style={{ pointerEvents: isLoading || isUploadingCover || isUploadingFile ? 'none' : 'auto' }}>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-999 flex items-center justify-center p-4 animate-in fade-in duration-200"  style={{ pointerEvents: isLoading || isUploadingCover || isUploadingFile ? 'none' : 'auto' }}>
             <div className="bg-surface border border-border rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
                 {/* Header */}
                 <div className="flex justify-between items-center p-5 border-b border-border bg-white/5 rounded-t-2xl">

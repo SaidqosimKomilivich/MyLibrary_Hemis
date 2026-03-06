@@ -41,6 +41,8 @@ pub struct RentalResponse {
     // Foydalanuvchi ma'lumotlari
     pub user_full_name: Option<String>,
     pub role: Option<String>,
+    pub email: Option<String>,
+    pub phone: Option<String>,
     pub department_name: Option<String>,
     pub group_name: Option<String>,
     pub staff_position: Option<String>,
