@@ -54,9 +54,20 @@ export default function AdminNewsModal({
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || [])
         if (!files.length) return
+
+        const validFiles = files.filter(file => file.size <= 5 * 1024 * 1024);
+        if (validFiles.length < files.length) {
+            toast.error("Ba'zi rasmlar hajmi 5 MB dan oshganligi uchun yuklanmadi");
+        }
+
+        if (!validFiles.length) {
+            if (fileInputRef.current) fileInputRef.current.value = '';
+            return;
+        }
+
         setIsUploading(true)
         try {
-            const uploadPromises = files.map(file => {
+            const uploadPromises = validFiles.map(file => {
                 const { promise } = api.uploadFile(file, () => { })
                 return promise
             })

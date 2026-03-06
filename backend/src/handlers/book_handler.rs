@@ -7,18 +7,15 @@ use crate::errors::AppError;
 use crate::middleware::auth_middleware::{self, Claims};
 use crate::services::book_service::BookService;
 
-/// GET /api/books — Barcha foydalanuvchilar uchun (paginatsiya, 20 tadan)
+/// GET /api/books — Login qilgan foydalanuvchilar uchun (paginatsiya, 20 tadan)
 /// Admin va xodim uchun: is_active filtr yo'q (hammasi ko'rinadi)
-/// Oddiy foydalanuvchilar uchun: faqat is_active = true
+/// Boshqa rollar uchun: faqat is_active = true
 pub async fn get_books(
     pool: web::Data<PgPool>,
-    claims: Option<Claims>,
+    claims: Claims,
     query: web::Query<PaginationParams>,
 ) -> Result<HttpResponse, AppError> {
-    let is_staff = claims
-        .as_ref()
-        .map(|c| c.role == "admin" || c.role == "staff")
-        .unwrap_or(false);
+    let is_staff = claims.role == "admin" || claims.role == "staff";
     let response = BookService::get_books(pool.get_ref(), query.into_inner(), is_staff).await?;
     Ok(HttpResponse::Ok().json(response))
 }
@@ -34,8 +31,9 @@ pub async fn get_public_books(
     Ok(HttpResponse::Ok().json(response))
 }
 
-/// GET /api/books/{id} — Barcha foydalanuvchilar uchun
+/// GET /api/books/{id} — Login qilgan foydalanuvchilar uchun
 pub async fn get_book(
+    _claims: Claims,
     pool: web::Data<PgPool>,
     path: web::Path<Uuid>,
 ) -> Result<HttpResponse, AppError> {

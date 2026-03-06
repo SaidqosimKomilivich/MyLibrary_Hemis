@@ -18,10 +18,10 @@ use crate::repository::user_repository::UserRepository;
 /// JWT token ichidagi ma'lumotlar
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Claims {
-    pub sub: String,   // user UUID
-    pub role: String,  // user role
-    pub exp: usize,    // expiry timestamp
-    pub iat: usize,    // issued at
+    pub sub: String,        // user UUID
+    pub role: String,       // user role
+    pub exp: usize,         // expiry timestamp
+    pub iat: usize,         // issued at
     pub token_type: String, // "access" yoki "refresh"
 }
 
@@ -40,6 +40,27 @@ impl AuthService {
             .hash_password(password.as_bytes(), &salt)
             .map_err(|e| AppError::InternalError(format!("Parol heshlashda xatolik: {}", e)))?;
         Ok(password_hash.to_string())
+    }
+
+    /// Parolni kamida 8 ta belgi, katta-kichik harf, raqam va maxsus belgi ekanligini tekshirish
+    pub fn validate_password_complexity(password: &str) -> Result<(), AppError> {
+        if password.len() < 8 {
+            return Err(AppError::BadRequest(
+                "Parol kamida 8 ta belgidan iborat bo'lishi kerak".to_string(),
+            ));
+        }
+        let has_upper = password.chars().any(|c| c.is_uppercase());
+        let has_lower = password.chars().any(|c| c.is_lowercase());
+        let has_digit = password.chars().any(|c| c.is_numeric());
+        let has_special = password.chars().any(|c| !c.is_alphanumeric());
+
+        if !has_upper || !has_lower || !has_digit || !has_special {
+            return Err(AppError::BadRequest(
+                "Parolda kamida bitta katta harf, bitta kichik harf, bitta raqam va bitta maxsus belgi bo'lishi kerak".to_string()
+            ));
+        }
+
+        Ok(())
     }
 
     /// Parolni tekshirish
@@ -223,12 +244,16 @@ impl AuthService {
         // 2. Bazadan tokenni topish
         let old_token = TokenRepository::find_by_token(pool, old_refresh_token)
             .await?
-            .ok_or_else(|| AppError::Unauthorized("Refresh token topilmadi yoki bekor qilingan".to_string()))?;
+            .ok_or_else(|| {
+                AppError::Unauthorized("Refresh token topilmadi yoki bekor qilingan".to_string())
+            })?;
 
         // 3. Muddati o'tganligini tekshirish
         if old_token.expires_at < Utc::now() {
             TokenRepository::revoke(pool, old_token.id).await?;
-            return Err(AppError::Unauthorized("Refresh token muddati o'tgan".to_string()));
+            return Err(AppError::Unauthorized(
+                "Refresh token muddati o'tgan".to_string(),
+            ));
         }
 
         let user_id = Uuid::parse_str(&claims.sub)
@@ -283,6 +308,8 @@ impl AuthService {
         email: Option<&str>,
         phone: Option<&str>,
     ) -> Result<MessageResponse, AppError> {
+        Self::validate_password_complexity(new_password)?;
+
         // 1. Foydalanuvchini topish
         let user = UserRepository::find_by_id(pool, user_id)
             .await?
@@ -297,7 +324,8 @@ impl AuthService {
         // 3. Yangi parolni heshlash va saqlash (va agar ixtiyoriy kontaklar e/p berilgan bo'lsa)
         let new_hash = Self::hash_password(new_password)?;
         if email.is_some() || phone.is_some() {
-            UserRepository::update_password_and_contacts(pool, user_id, &new_hash, email, phone).await?;
+            UserRepository::update_password_and_contacts(pool, user_id, &new_hash, email, phone)
+                .await?;
         } else {
             UserRepository::update_password(pool, user_id, &new_hash).await?;
         }

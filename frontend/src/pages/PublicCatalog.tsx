@@ -1,18 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { Search, Loader2, BookOpen, Layers, Star, ArrowLeft } from 'lucide-react';
+import { Search, Loader2, BookOpen, Layers, ArrowLeft } from 'lucide-react';
 import { api, type Book } from '../services/api';
 
-const categories = [
+const DEFAULT_CATEGORIES = [
     { id: 'all', name: 'Barchasi', icon: Layers },
-    { id: 'Qo\'llanma', name: 'Qo\'llanma', icon: BookOpen },
-    { id: 'Badiiy adabiyot', name: 'Badiiy', icon: Star },
-    { id: 'Darslik', name: 'Darslik', icon: Layers },
-    { id: 'Ensiklopediya', name: 'Ensiklopediya', icon: BookOpen },
-    { id: 'Huquq', name: 'Huquq', icon: BookOpen },
-    { id: 'Falsafa', name: 'Falsafa', icon: BookOpen },
-    { id: 'Siyosiy', name: 'Siyosiy', icon: BookOpen },
 ];
 
 const PublicCatalog = () => {
@@ -21,6 +14,7 @@ const PublicCatalog = () => {
 
     const [books, setBooks] = useState<Book[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [categories, setCategories] = useState<{ id: string, name: string, icon: any }[]>(DEFAULT_CATEGORIES);
 
     // Pagination and Filters from URL
     const searchQuery = searchParams.get('q') || '';
@@ -55,11 +49,31 @@ const PublicCatalog = () => {
         }
     };
 
+    const fetchCategories = async () => {
+        try {
+            const res = await api.getBookFilterOptions();
+            if (res.success && res.data && res.data.categories) {
+                const dynamicCategories = res.data.categories.map(catName => ({
+                    id: catName,
+                    name: catName,
+                    icon: BookOpen
+                }));
+                setCategories([...DEFAULT_CATEGORIES, ...dynamicCategories]);
+            }
+        } catch (error) {
+            console.error("Kategoriyalarni yuklashda xatolik:", error);
+        }
+    };
+
     useEffect(() => {
         fetchBooks();
         setSearchInput(searchQuery);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [searchQuery, categoryQuery, pageQuery]);
+
+    useEffect(() => {
+        fetchCategories();
+    }, []);
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -188,9 +202,7 @@ const PublicCatalog = () => {
                                             <div className="mt-auto pt-3 border-t border-border/50 flex items-center justify-between text-[0.75rem] font-medium text-text-muted">
                                                 <span className="flex items-center gap-1.5">
                                                     <Layers size={14} />
-                                                    {(book.available_quantity ?? book.available_copies ?? 0) > 0
-                                                        ? <span className="text-emerald-500">{book.available_quantity ?? book.available_copies} ta mavjud</span>
-                                                        : <span className="text-rose-500">Mavjud emas</span>}
+                                                    <span>Kutubxonada mavjud</span>
                                                 </span>
                                             </div>
                                         </div>

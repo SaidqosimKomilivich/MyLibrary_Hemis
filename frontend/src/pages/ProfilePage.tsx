@@ -39,9 +39,20 @@ export default function ProfilePage() {
             toast.error("Yangi parollar mos kelmaydi")
             return
         }
-        if (newPassword.length < 6) {
-            toast.error("Parol kamida 6 belgidan iborat bo'lishi kerak")
+        // XAVFSIZLIK: minimal 8 belgi, kamida 1 raqam va 1 harf
+        if (newPassword.length < 8) {
+            toast.error("Parol kamida 8 belgidan iborat bo'lishi kerak")
             return
+        }
+
+        const hasUpper = /[A-Z]/.test(newPassword);
+        const hasLower = /[a-z]/.test(newPassword);
+        const hasDigit = /[0-9]/.test(newPassword);
+        const hasSpecial = /[^A-Za-z0-9]/.test(newPassword);
+
+        if (!hasUpper || !hasLower || !hasDigit || !hasSpecial) {
+            toast.error("Parolda kamida bitta katta harf, bitta kichik harf, bitta raqam va bitta maxsus belgi bo'lishi kerak");
+            return;
         }
         setLoading(true)
         try {
@@ -63,6 +74,7 @@ export default function ProfilePage() {
             setLoading(false)
         }
     }
+
 
     // Tashqi rasmlarni backend proxy orqali data URL ga aylantirish
     const convertExternalImages = async (el: HTMLElement) => {
@@ -483,11 +495,8 @@ export default function ProfilePage() {
                                         )}
                                     </div>
                                     <div className='absolute top-30 right-3 bg-white border-2 rounded-xl w-30 h-30 flex justify-center items-center overflow-hidden'>
-                                        {user.user_id ? (
-                                            <QRCodeSVG value={user.id} size={105} level='H' />
-                                        ) : (
-                                            <QRCodeSVG value={user.user_id} size={105} level='H' />
-                                        )}
+                                        {/* XAVFSIZLIK: QR kodda ichki UUID ishlatilmaydi — faqat HEMIS user_id */}
+                                        <QRCodeSVG value={user.user_id || user.id} size={105} level='H' />
                                     </div>
 
                                 </div>

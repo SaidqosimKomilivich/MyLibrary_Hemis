@@ -37,6 +37,7 @@ pub struct UpdateNewsRequest {
 #[derive(Debug, Deserialize)]
 pub struct NewsListParams {
     pub page: Option<i64>,
+    pub limit: Option<i64>,
     pub search: Option<String>,
     pub category: Option<String>,
     /// Faqat nashr qilinganlarni qaytarish (public endpoint uchun)
@@ -47,7 +48,7 @@ pub struct NewsListParams {
 // Response DTOs
 // ─────────────────────────────────────────────────────────────
 
-/// Bitta yangilik javobi
+/// Admin uchun yangilik javobi (author_id bilan — faqat autentifikatsiya qilinganlar)
 #[derive(Debug, Serialize)]
 pub struct NewsResponse {
     pub id: Uuid,
@@ -85,11 +86,57 @@ impl From<crate::models::news::News> for NewsResponse {
     }
 }
 
-/// Paginatsiyali ro'yxat javobi
+/// Public yangilik javobi — author_id YO'Q (xavfsizlik)
+/// Bu public endpoint'lar uchun ishlatiladi (/api/public/news)
+#[derive(Debug, Serialize)]
+pub struct PublicNewsResponse {
+    pub id: Uuid,
+    pub title: String,
+    pub slug: String,
+    pub summary: Option<String>,
+    pub content: String,
+    pub images: Vec<String>,
+    pub category: Option<String>,
+    pub tags: Vec<String>,
+    // author_id intentionally omitted for security
+    pub is_published: bool,
+    pub published_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+impl From<crate::models::news::News> for PublicNewsResponse {
+    fn from(n: crate::models::news::News) -> Self {
+        PublicNewsResponse {
+            id: n.id,
+            title: n.title,
+            slug: n.slug,
+            summary: n.summary,
+            content: n.content,
+            images: n.images,
+            category: n.category,
+            tags: n.tags,
+            is_published: n.is_published,
+            published_at: n.published_at,
+            created_at: n.created_at,
+            updated_at: n.updated_at,
+        }
+    }
+}
+
+/// Paginatsiyali ro'yxat javobi (admin uchun)
 #[derive(Debug, Serialize)]
 pub struct PaginatedNewsResponse {
     pub success: bool,
     pub data: Vec<NewsResponse>,
+    pub pagination: NewsPagination,
+}
+
+/// Paginatsiyali ro'yxat javobi (public uchun — author_id yo'q)
+#[derive(Debug, Serialize)]
+pub struct PaginatedPublicNewsResponse {
+    pub success: bool,
+    pub data: Vec<PublicNewsResponse>,
     pub pagination: NewsPagination,
 }
 

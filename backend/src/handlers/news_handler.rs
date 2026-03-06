@@ -1,7 +1,10 @@
 use actix_web::{web, HttpResponse};
 use sqlx::PgPool;
 
-use crate::dto::news::{CreateNewsRequest, NewsListParams, UpdateNewsRequest};
+use crate::dto::news::{
+    CreateNewsRequest, NewsListParams, PaginatedPublicNewsResponse, PublicNewsResponse,
+    UpdateNewsRequest,
+};
 use crate::errors::AppError;
 use crate::middleware::auth_middleware::{self, Claims};
 use crate::services::news_service::NewsService;
@@ -11,6 +14,7 @@ use crate::services::news_service::NewsService;
 // ─────────────────────────────────────────────────────────────
 
 /// GET /api/public/news  — nashr qilingan yangiliklar (paginatsiyali)
+/// Xavfsizlik: author_id oshkor qilinmaydi (PublicNewsResponse)
 pub async fn list_public_news(
     pool: web::Data<PgPool>,
     query: web::Query<NewsListParams>,
@@ -19,10 +23,36 @@ pub async fn list_public_news(
     params.published_only = Some(true); // Public endpoint — faqat published
 
     let response = NewsService::list(pool.get_ref(), params).await?;
-    Ok(HttpResponse::Ok().json(response))
+
+    // PublicNewsResponse ishlatamiz — author_id yo'q
+    let public_data: Vec<PublicNewsResponse> = response
+        .data
+        .into_iter()
+        .map(|n| PublicNewsResponse {
+            id: n.id,
+            title: n.title,
+            slug: n.slug,
+            summary: n.summary,
+            content: n.content,
+            images: n.images,
+            category: n.category,
+            tags: n.tags,
+            is_published: n.is_published,
+            published_at: n.published_at,
+            created_at: n.created_at,
+            updated_at: n.updated_at,
+        })
+        .collect();
+
+    Ok(HttpResponse::Ok().json(PaginatedPublicNewsResponse {
+        success: true,
+        data: public_data,
+        pagination: response.pagination,
+    }))
 }
 
 /// GET /api/public/news/{id_or_slug}  — bitta yangilik (slug yoki UUID)
+/// Xavfsizlik: author_id oshkor qilinmaydi
 pub async fn get_public_news(
     pool: web::Data<PgPool>,
     path: web::Path<String>,
@@ -35,9 +65,10 @@ pub async fn get_public_news(
         return Err(AppError::NotFound("Yangilik topilmadi".to_string()));
     }
 
+    // author_id ni oshkor qilmaymiz
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "success": true,
-        "data": crate::dto::news::NewsResponse::from(news)
+        "data": PublicNewsResponse::from(news)
     })))
 }
 

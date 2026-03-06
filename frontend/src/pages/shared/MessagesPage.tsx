@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import type { MessageDataItem } from '../../services/api'
 import { api } from '../../services/api'
 import { Send, Plus, Search, X, MessageSquare, Check, CheckCheck } from 'lucide-react'
@@ -284,87 +285,90 @@ export default function MessagesPage() {
     // For non-admin/staff users, show a simplified list + modal
     if (!canSendMessage) {
         return (
-            <div className="p-4 md:p-6 max-w-4xl mx-auto h-[calc(100vh-80px)] overflow-y-auto">
-                <h2 className="text-2xl font-bold text-text mb-6">Bildirishnomalar</h2>
-                {loading ? (
-                    <div className="flex flex-col gap-3">
-                        {[...Array(5)].map((_, i) => (
-                            <div key={i} className="h-20 bg-surface rounded-xl border border-border animate-pulse" />
-                        ))}
-                    </div>
-                ) : allMessages.length === 0 ? (
-                    <div className="text-center py-16 text-text-muted bg-surface rounded-2xl border border-border shadow-sm">
-                        <MessageSquare className="w-16 h-16 mx-auto mb-4 opacity-20" />
-                        <p className="text-lg">Hozircha tizimdan yoki adminlardan xabarlar yo'q.</p>
-                    </div>
-                ) : (
-                    <div className="space-y-3">
-                        {allMessages.slice().sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map(msg => (
-                            <button
-                                key={msg.id}
-                                onClick={() => {
-                                    setSelectedMessage(msg)
-                                    if (!msg.is_read && msg.receiver_id === me?.id) {
-                                        api.markMessageAsRead(msg.id).catch(() => { })
-                                        setAllMessages(prev => prev.map(m => m.id === msg.id ? { ...m, is_read: true } : m))
-                                    }
-                                }}
-                                className={`w-full flex items-center gap-4 p-4 rounded-xl border transition-all text-left shadow-sm ${msg.is_read ? 'bg-surface border-border hover:border-primary/30' : 'bg-primary/5 border-primary/20 hover:bg-primary/10'}`}
-                            >
-                                <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${msg.is_read ? 'bg-surface-hover text-text-muted' : 'bg-primary text-white shadow-sm'}`}>
-                                    <MessageSquare className="w-5 h-5" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex justify-between items-baseline mb-1">
-                                        <h3 className={`font-semibold text-sm truncate pr-2 ${msg.is_read ? 'text-text' : 'text-primary'}`}>
-                                            {msg.title || (msg.sender_name ? `${msg.sender_name} dan xabar` : 'Tizim bildirishnomasi')}
-                                        </h3>
-                                        <span className="text-[11px] text-text-muted shrink-0">
-                                            {formatDate(msg.created_at)} {formatTime(msg.created_at)}
-                                        </span>
+            <div className="-m-6 max-md:-m-4 p-4 md:p-6 h-[calc(100dvh-64px)] bg-surface shadow-xl flex flex-col">
+                <h2 className="text-2xl font-bold text-text mb-6 px-2">Bildirishnomalar</h2>
+                <div className="flex-1 overflow-y-auto custom-scrollbar px-2 pb-4">
+                    {loading ? (
+                        <div className="flex flex-col gap-3">
+                            {[...Array(5)].map((_, i) => (
+                                <div key={i} className="h-20 bg-surface rounded-xl border border-border animate-pulse" />
+                            ))}
+                        </div>
+                    ) : allMessages.length === 0 ? (
+                        <div className="text-center py-16 text-text-muted bg-surface rounded-2xl border border-border shadow-sm">
+                            <MessageSquare className="w-16 h-16 mx-auto mb-4 opacity-20" />
+                            <p className="text-lg">Hozircha tizimdan yoki adminlardan xabarlar yo'q.</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            {allMessages.slice().sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map(msg => (
+                                <button
+                                    key={msg.id}
+                                    onClick={() => {
+                                        setSelectedMessage(msg)
+                                        if (!msg.is_read && msg.receiver_id === me?.id) {
+                                            api.markMessageAsRead(msg.id).catch(() => { })
+                                            setAllMessages(prev => prev.map(m => m.id === msg.id ? { ...m, is_read: true } : m))
+                                        }
+                                    }}
+                                    className={`w-full flex items-center gap-4 p-4 rounded-xl border transition-all text-left shadow-sm ${msg.is_read ? 'bg-surface border-border hover:border-primary/30' : 'bg-primary/5 border-primary/20 hover:bg-primary/10'}`}
+                                >
+                                    <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${msg.is_read ? 'bg-surface-hover text-text-muted' : 'bg-primary text-white shadow-sm'}`}>
+                                        <MessageSquare className="w-5 h-5" />
                                     </div>
-                                    <p className={`text-sm truncate ${msg.is_read ? 'text-text-muted' : 'text-text font-medium'}`}>
-                                        {msg.message}
-                                    </p>
-                                </div>
-                            </button>
-                        ))}
-                    </div>
-                )}
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex justify-between items-baseline mb-1">
+                                            <h3 className={`font-semibold text-sm truncate pr-2 ${msg.is_read ? 'text-text' : 'text-primary'}`}>
+                                                {msg.title || (msg.sender_name ? `${msg.sender_name} dan xabar` : 'Tizim bildirishnomasi')}
+                                            </h3>
+                                            <span className="text-[11px] text-text-muted shrink-0">
+                                                {formatDate(msg.created_at)} {formatTime(msg.created_at)}
+                                            </span>
+                                        </div>
+                                        <p className={`text-sm truncate ${msg.is_read ? 'text-text-muted' : 'text-text font-medium'}`}>
+                                            {msg.message}
+                                        </p>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
 
                 {/* Modal View for the Message */}
-                {selectedMessage && (
-                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-999 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setSelectedMessage(null)}>
-                        <div className="bg-surface border border-border rounded-2xl max-w-md w-full shadow-2xl overflow-hidden transform transition-all animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
-                            <div className="flex items-center justify-between p-4 border-b border-border bg-surface-hover/30">
-                                <h3 className="font-bold text-lg text-text truncate pr-4">
+                {selectedMessage && createPortal(
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-999 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setSelectedMessage(null)}>
+                        <div className="bg-surface border border-border rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                            <div className="flex justify-between items-center p-5 border-b border-border bg-white/5 rounded-t-2xl">
+                                <h2 className="m-0 text-lg font-bold text-text truncate pr-4">
                                     {selectedMessage.title || 'Bildirishnoma'}
-                                </h3>
-                                <button onClick={() => setSelectedMessage(null)} className="p-2 text-text-muted hover:text-text hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-colors shrink-0">
-                                    <X className="w-5 h-5" />
+                                </h2>
+                                <button onClick={() => setSelectedMessage(null)} className="flex p-1.5 rounded-lg border-none bg-transparent cursor-pointer text-text-muted transition-colors hover:bg-white/10 hover:text-rose-400">
+                                    <X size={20} />
                                 </button>
                             </div>
-                            <div className="p-6">
-                                <div className="flex items-center gap-2 mb-4 text-xs text-text-muted bg-surface-hover/50 p-3 rounded-lg border border-border/50">
-                                    <div className={`w-8 h-8 rounded-full bg-linear-to-br ${avatarColor(selectedMessage.sender_name || 'Tizim')} flex items-center justify-center text-white font-bold shrink-0 shadow-sm`}>
+                            <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+                                <div className="flex items-center gap-3 mb-6 p-4 rounded-xl bg-surface-hover/50 border border-border/50">
+                                    <div className={`w-12 h-12 rounded-full bg-linear-to-br ${avatarColor(selectedMessage.sender_name || 'Tizim')} flex items-center justify-center text-white font-bold shrink-0 shadow-sm text-lg`}>
                                         {getInitials(selectedMessage.sender_name || 'Tizim')}
                                     </div>
                                     <div className="flex flex-col">
-                                        <span className="font-medium text-text">{selectedMessage.sender_name || 'Tizim'}</span>
-                                        <span>{formatDate(selectedMessage.created_at)} {formatTime(selectedMessage.created_at)}</span>
+                                        <span className="font-semibold text-text text-base">{selectedMessage.sender_name || 'Tizim'}</span>
+                                        <span className="text-sm text-text-muted mt-0.5">{formatDate(selectedMessage.created_at)} {formatTime(selectedMessage.created_at)}</span>
                                     </div>
                                 </div>
-                                <div className="text-[15px] text-text leading-relaxed whitespace-pre-wrap">
+                                <div className="text-base text-text leading-relaxed whitespace-pre-wrap bg-surface/30 p-4 rounded-xl">
                                     {selectedMessage.message}
                                 </div>
                             </div>
-                            <div className="p-4 border-t border-border bg-surface-hover/30 flex justify-end">
-                                <button onClick={() => setSelectedMessage(null)} className="px-6 py-2.5 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors tracking-wide font-medium shadow-sm active:scale-95">
+                            <div className="flex justify-end gap-3 p-5 border-t border-border bg-surface-hover rounded-b-2xl mt-auto shrink-0">
+                                <button onClick={() => setSelectedMessage(null)} className="px-5 py-2.5 rounded-xl border border-white/10 bg-transparent text-text font-semibold cursor-pointer transition-colors hover:bg-white/5">
                                     Yopish
                                 </button>
                             </div>
                         </div>
-                    </div>
+                    </div>,
+                    document.body
                 )}
             </div>
         )

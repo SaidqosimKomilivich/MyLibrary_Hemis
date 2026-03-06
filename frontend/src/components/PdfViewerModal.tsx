@@ -10,11 +10,11 @@ interface PdfViewerModalProps {
 export default function PdfViewerModal({ title, fileUrl, onClose }: PdfViewerModalProps) {
     return createPortal(
         <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-999 flex items-center justify-center p-4 animate-in fade-in duration-200"
-            
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-9999 flex items-center justify-center px-10 py-5 animate-in fade-in duration-200"
+            onClick={onClose}
         >
             <div
-                className="bg-surface border border-border rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200"
+                className="bg-surface border border-border rounded-2xl w-full h-full flex flex-col shadow-2xl animate-in zoom-in-95 duration-200"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header — identical to BookModal */}
@@ -28,11 +28,11 @@ export default function PdfViewerModal({ title, fileUrl, onClose }: PdfViewerMod
                     </button>
                 </div>
 
-                {/* PDF iframe — fixed height so it fills the modal */}
-                <div className="relative overflow-hidden rounded-b-2xl" style={{ height: 'calc(90vh - 74px)' }}>
+                {/* PDF iframe */}
+                <div className="relative overflow-hidden rounded-b-2xl flex-1 flex flex-col">
                     <iframe
                         src={fileUrl}
-                        className="absolute inset-0 w-full h-full border-none"
+                        className="absolute inset-0 w-full h-full border-none bg-surface"
                         title={title}
                     />
                 </div>

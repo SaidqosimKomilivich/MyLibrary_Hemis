@@ -33,8 +33,18 @@ export default function ChangePassword() {
             return;
         }
 
-        if (newPassword.length < 6) {
-            toast.error("Parol kamida 6 ta belgidan iborat bo'lishi kerak");
+        if (newPassword.length < 8) {
+            toast.error("Parol kamida 8 ta belgidan iborat bo'lishi kerak");
+            return;
+        }
+
+        const hasUpper = /[A-Z]/.test(newPassword);
+        const hasLower = /[a-z]/.test(newPassword);
+        const hasDigit = /[0-9]/.test(newPassword);
+        const hasSpecial = /[^A-Za-z0-9]/.test(newPassword);
+
+        if (!hasUpper || !hasLower || !hasDigit || !hasSpecial) {
+            toast.error("Parolda kamida bitta katta harf, bitta kichik harf, bitta raqam va bitta maxsus belgi bo'lishi kerak");
             return;
         }
 
@@ -80,7 +90,11 @@ export default function ChangePassword() {
 
     const isFormValid =
         oldPassword.trim().length > 0 &&
-        newPassword.trim().length >= 6 &&
+        newPassword.trim().length >= 8 &&
+        /[A-Z]/.test(newPassword) &&
+        /[a-z]/.test(newPassword) &&
+        /[0-9]/.test(newPassword) &&
+        /[^A-Za-z0-9]/.test(newPassword) &&
         confirmPassword.trim() === newPassword.trim() &&
         (!needsEmail || email.trim().length > 0) &&
         (!needsPhone || phone.trim().length > 0);

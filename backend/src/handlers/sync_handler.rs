@@ -342,12 +342,18 @@ pub async fn get_admins(
     get_users_paginated(pool.get_ref(), &["admin"], query.into_inner()).await
 }
 
-/// GET /api/users/{id} - ID orqali foydalanuvchini olish (Kamera skaneri uchun)
+/// GET /api/users/{id} - ID orqali foydalanuvchini olish
+/// Faqat admin yoki staff uchun (xavfsizlik: autentifikatsiyasiz ruxsat yo'q)
 pub async fn get_user_by_id(
-    // require_role ishlatish ixtiyoriy, agar auth middleware bo'lsa
+    claims: Claims,
     pool: web::Data<PgPool>,
     path: web::Path<uuid::Uuid>,
 ) -> Result<HttpResponse, AppError> {
+    // Faqat admin yoki staff ko'ra oladi
+    if let Err(resp) = require_role(&claims, &["admin", "staff"]) {
+        return Ok(resp);
+    }
+
     let user_id = path.into_inner();
 
     let user = UserRepository::find_by_id_any(pool.get_ref(), user_id).await?;

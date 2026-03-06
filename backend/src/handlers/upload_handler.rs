@@ -10,7 +10,9 @@ use crate::errors::AppError;
 use crate::middleware::auth_middleware::Claims;
 
 /// Ruxsat berilgan fayl turlari
-const ALLOWED_EXTENSIONS: &[&str] = &["jpg", "jpeg", "png", "gif", "webp", "pdf", "svg", "mp3", "ogg", "wav", "m4a"];
+const ALLOWED_EXTENSIONS: &[&str] = &[
+    "jpg", "jpeg", "png", "gif", "webp", "pdf", "svg", "mp3", "ogg", "wav", "m4a",
+];
 
 /// Rasm kengaytmalari
 const IMAGE_EXTENSIONS: &[&str] = &["jpg", "jpeg", "png", "gif", "webp", "svg"];
@@ -18,8 +20,11 @@ const IMAGE_EXTENSIONS: &[&str] = &["jpg", "jpeg", "png", "gif", "webp", "svg"];
 /// Audio kengaytmalari
 const AUDIO_EXTENSIONS: &[&str] = &["mp3", "ogg", "wav", "m4a"];
 
-/// Maksimal fayl hajmi (10 MB)
-const MAX_FILE_SIZE: usize = 10 * 1024 * 1024;
+/// Rasmlar uchun maksimal fayl hajmi (5 MB)
+const MAX_IMAGE_SIZE: usize = 5 * 1024 * 1024;
+
+/// PDF va Audio uchun maksimal fayl hajmi (100 MB)
+const MAX_DOC_AUDIO_SIZE: usize = 100 * 1024 * 1024;
 
 /// Fayl kengaytmasini olish
 fn get_extension(filename: &str) -> Option<String> {
@@ -85,16 +90,22 @@ pub async fn upload_file(
             AppError::InternalError("Fayl saqlashda xatolik".to_string())
         })?;
 
+        let max_file_size = if subdir == "images" {
+            MAX_IMAGE_SIZE
+        } else {
+            MAX_DOC_AUDIO_SIZE
+        };
+
         let mut total_size: usize = 0;
 
         while let Ok(Some(chunk)) = field.try_next().await {
             total_size += chunk.len();
 
-            if total_size > MAX_FILE_SIZE {
+            if total_size > max_file_size {
                 let _ = std::fs::remove_file(&filepath);
                 return Err(AppError::BadRequest(format!(
                     "Fayl hajmi {} MB dan oshmasligi kerak",
-                    MAX_FILE_SIZE / (1024 * 1024)
+                    max_file_size / (1024 * 1024)
                 )));
             }
 
@@ -148,7 +159,8 @@ pub async fn delete_file(
         .ok_or_else(|| AppError::BadRequest("'url' maydoni talab qilinadi".to_string()))?;
 
     // URL dan fayl yo'lini olish: /uploads/images/uuid.jpg -> ./uploads/images/uuid.jpg
-    let relative_path = url.strip_prefix("/uploads/")
+    let relative_path = url
+        .strip_prefix("/uploads/")
         .ok_or_else(|| AppError::BadRequest("Noto'g'ri fayl URL".to_string()))?;
 
     // Path traversal xavfsizlik tekshiruvi
@@ -175,12 +187,14 @@ pub async fn delete_file(
 }
 
 /// GET /uploads/{subdir}/{filename} — Faylni o'qish (NamedFile yordamida streaming)
+/// Faqat autentifikatsiya qilingan foydalanuvchilar uchun (xavfsizlik)
 pub async fn serve_file(
+    _claims: Claims,
     path: web::Path<(String, String)>,
     config: web::Data<Config>,
 ) -> Result<actix_files::NamedFile, AppError> {
     let (subdir, filename) = path.into_inner();
-    
+
     // Xavfsizlik tekshiruvi (Path traversal oldini olish)
     if subdir.contains("..") || filename.contains("..") {
         return Err(AppError::BadRequest("Noto'g'ri fayl yo'li".to_string()));
@@ -199,7 +213,11 @@ pub async fn serve_file(
     })?;
 
     // Fayl kengaytmasini aniqlash va Content-Type ni explicitly (aniq) qilib o'rnatish
-    let ext = file_path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
+    let ext = file_path
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_lowercase();
     if ext == "pdf" {
         if let Ok(m) = "application/pdf".parse() {
             file = file.set_content_type(m);
@@ -217,9 +235,9 @@ pub async fn serve_file(
     // PDF fayllarni brauzer yuklab olib ketmasligi va to'g'ridan to'g'ri o'qishi uchun inline disposition
     file = file.set_content_disposition(actix_web::http::header::ContentDisposition {
         disposition: actix_web::http::header::DispositionType::Inline,
-        parameters: vec![
-            actix_web::http::header::DispositionParam::Filename(filename.clone())
-        ],
+        parameters: vec![actix_web::http::header::DispositionParam::Filename(
+            filename.clone(),
+        )],
     });
 
     // Oldin xato keshlanib qolgan "attachment" larni tozalash va har safar tekshirish uchun:
@@ -229,4 +247,3 @@ pub async fn serve_file(
     // va `Range` so'rovlariga `206 Partial Content` bilan javob qaytaradi.
     Ok(file)
 }
-

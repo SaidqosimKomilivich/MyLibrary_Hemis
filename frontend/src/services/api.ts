@@ -48,13 +48,13 @@ class ApiError extends Error {
     }
 }
 
-export const getAuthHeader = () => {
-    const token = localStorage.getItem('token')
-    return {
-        'Authorization': token ? `Bearer ${token}` : '',
-        'Content-Type': 'application/json'
-    }
-}
+// getAuthHeader — faqat Content-Type headerini qaytaradi.
+// Autentifikatsiya HttpOnly cookie orqali amalga oshiriladi (credentials: 'include').
+// localStorage TOKEN ISHLATILMAYDI — bu XSS hujumlaridan himoya qiladi.
+export const getAuthHeader = () => ({
+    'Content-Type': 'application/json'
+})
+
 
 /** Yordamchi funksiya: URL uchun query string shakllantirish */
 export const buildQueryString = (params: Record<string, string | number | boolean | undefined | null> | object) => {
@@ -365,14 +365,13 @@ export const api = {
         onEvent: (event: { stage: string; message: string; processed: number; total: number; created: number; updated: number; current_page: number; total_pages: number }) => void
     ): { promise: Promise<void>; abort: () => void } {
         const controller = new AbortController()
-        const token = localStorage.getItem('token')
+        // XAVFSIZLIK: localStorage token ishlatilmaydi — faqat cookie (credentials: 'include')
 
         const promise = (async () => {
             const res = await fetch(`${API_BASE}/sync/students`, {
                 method: 'POST',
                 credentials: 'include',
                 headers: {
-                    'Authorization': token ? `Bearer ${token}` : '',
                     'Accept': 'text/event-stream',
                 },
                 signal: controller.signal,
@@ -429,6 +428,7 @@ export const api = {
         return { promise, abort: () => controller.abort() }
     },
 
+
     getStudents(params: UserPaginationParams = {}) {
         const qs = buildQueryString(params)
         return request<PaginatedUsersResponse>(`/sync/students${qs}`)
@@ -439,14 +439,13 @@ export const api = {
         onEvent: (event: { stage: string; message: string; processed: number; total: number; created: number; updated: number; current_page: number; total_pages: number }) => void
     ): { promise: Promise<void>; abort: () => void } {
         const controller = new AbortController()
-        const token = localStorage.getItem('token')
+        // XAVFSIZLIK: localStorage token ishlatilmaydi — faqat cookie
 
         const promise = (async () => {
             const res = await fetch(`${API_BASE}/sync/teachers`, {
                 method: 'POST',
                 credentials: 'include',
                 headers: {
-                    'Authorization': token ? `Bearer ${token}` : '',
                     'Accept': 'text/event-stream',
                 },
                 signal: controller.signal,
@@ -501,6 +500,7 @@ export const api = {
 
         return { promise, abort: () => controller.abort() }
     },
+
 
     getTeachers(params: UserPaginationParams = {}) {
         const qs = buildQueryString(params)
@@ -516,14 +516,13 @@ export const api = {
         onEvent: (event: { stage: string; message: string; processed: number; total: number; created: number; updated: number; current_page: number; total_pages: number }) => void
     ): { promise: Promise<void>; abort: () => void } {
         const controller = new AbortController()
-        const token = localStorage.getItem('token')
+        // XAVFSIZLIK: localStorage token ishlatilmaydi — faqat cookie
 
         const promise = (async () => {
             const res = await fetch(`${API_BASE}/sync/employees`, {
                 method: 'POST',
                 credentials: 'include',
                 headers: {
-                    'Authorization': token ? `Bearer ${token}` : '',
                     'Accept': 'text/event-stream',
                 },
                 signal: controller.signal,
@@ -578,6 +577,7 @@ export const api = {
 
         return { promise, abort: () => controller.abort() }
     },
+
 
     getEmployees(params: UserPaginationParams = {}) {
         const qs = buildQueryString(params)
@@ -675,10 +675,12 @@ export const api = {
             ...(userFilters || {}),
             ...(bookFilters || {})
         })
-
+        // XAVFSIZLIK: localStorage token ishlatilmaydi — faqat cookie (credentials: 'include')
         return fetch(`${API_BASE}/reports/export${qs}`, {
-
-            headers: getAuthHeader()
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            }
         }).then(async (res) => {
             if (!res.ok) {
                 let msg = 'Yuklashda xatolik yuz berdi'
@@ -691,6 +693,7 @@ export const api = {
             return res.blob()
         })
     },
+
 
     // News endpoints (Admin CRUD)
     getNewsList(params: PaginationParams = {}) {
@@ -780,7 +783,7 @@ export const api = {
         onMessage: (msg: MessageDataItem) => void
     ): { abort: () => void } {
         const controller = new AbortController()
-        const token = localStorage.getItem('token')
+            // XAVFSIZLIK: localStorage token ishlatilmaydi — faqat cookie (credentials: 'include')
 
             ; (async () => {
                 try {
@@ -788,7 +791,6 @@ export const api = {
                         method: 'GET',
                         credentials: 'include',
                         headers: {
-                            'Authorization': token ? `Bearer ${token}` : '',
                             'Accept': 'text/event-stream',
                         },
                         signal: controller.signal,
