@@ -8,6 +8,8 @@ use crate::dto::news::{
 use crate::errors::AppError;
 use crate::middleware::auth_middleware::{self, Claims};
 use crate::services::news_service::NewsService;
+use crate::services::message_service::MessageService;
+use crate::repository::message_repository::MessageRepository;
 
 // ─────────────────────────────────────────────────────────────
 // PUBLIC endpoints (no auth required)
@@ -114,6 +116,7 @@ pub async fn create_news(
     pool: web::Data<PgPool>,
     claims: Claims,
     body: web::Json<CreateNewsRequest>,
+    message_service: web::Data<std::sync::Arc<MessageService>>,
 ) -> Result<HttpResponse, AppError> {
     if let Err(resp) = auth_middleware::require_role(&claims, &["admin", "staff"]) {
         return Ok(resp);
@@ -121,6 +124,20 @@ pub async fn create_news(
 
     let author_id = uuid::Uuid::parse_str(&claims.sub).ok();
     let news = NewsService::create(pool.get_ref(), body.into_inner(), author_id).await?;
+
+    // Yangilik darhol nashr qilingan bo'lsa — barcha foydalanuvchilarga bildirishnoma
+    if news.is_published {
+        let notif_title = format!("📰 Yangi e'lon: {}", news.title);
+        let notif_body = news.content.clone();
+        if let Ok(msgs) = MessageRepository::create_broadcast(
+            pool.get_ref(),
+            author_id,
+            &notif_title,
+            &notif_body,
+        ).await {
+            message_service.broadcast_messages(msgs);
+        }
+    }
 
     tracing::info!(news_id = %news.id, slug = %news.slug, "Yangilik yaratildi");
 
@@ -157,6 +174,7 @@ pub async fn toggle_publish(
     pool: web::Data<PgPool>,
     claims: Claims,
     path: web::Path<uuid::Uuid>,
+    message_service: web::Data<std::sync::Arc<MessageService>>,
 ) -> Result<HttpResponse, AppError> {
     if let Err(resp) = auth_middleware::require_role(&claims, &["admin", "staff"]) {
         return Ok(resp);
@@ -165,6 +183,21 @@ pub async fn toggle_publish(
     let id = path.into_inner();
     let news = NewsService::toggle_publish(pool.get_ref(), id).await?;
     let status = if news.is_published { "nashr qilindi" } else { "qoralama qilindi" };
+
+    // Agar hozir nashr qilingan bo'lsa — barcha foydalanuvchilarga bildirishnoma
+    if news.is_published {
+        let author_id = uuid::Uuid::parse_str(&claims.sub).ok();
+        let notif_title = format!("📰 Yangi e'lon: {}", news.title);
+        let notif_body = news.content.clone();
+        if let Ok(msgs) = MessageRepository::create_broadcast(
+            pool.get_ref(),
+            author_id,
+            &notif_title,
+            &notif_body,
+        ).await {
+            message_service.broadcast_messages(msgs);
+        }
+    }
 
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "success": true,
