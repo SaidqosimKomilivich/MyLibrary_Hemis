@@ -118,7 +118,7 @@ export default function BookCard({ book, role, onEdit, onDelete, onToggleActive,
                     </div>
                 )}
 
-                {book.shelf_location && (
+                {book.shelf_location && (role === 'admin' || role === 'staff') && (
                     <div className="flex items-center gap-1.5 mt-3 text-[0.8rem] text-text-muted bg-black/20 p-2 rounded-lg border border-white/5">
                         <MapPin size={14} className="text-primary/70 shrink-0" />
                         <span className="truncate">{book.shelf_location}</span>

@@ -1,5 +1,5 @@
 use chrono::NaiveDate;
-use sqlx::{PgPool, Arguments};
+use sqlx::{Arguments, PgPool};
 
 use crate::dto::control::ControlResponse;
 use crate::dto::rental::RentalResponse;
@@ -22,7 +22,10 @@ pub struct ControlWithDetails {
 
 impl ReportRepository {
     /// Oxirgi N ta ijara ma'lumotlarini olish usuli
-    pub async fn get_recent_rentals(pool: &PgPool, limit: i64) -> Result<Vec<RentalResponse>, AppError> {
+    pub async fn get_recent_rentals(
+        pool: &PgPool,
+        limit: i64,
+    ) -> Result<Vec<RentalResponse>, AppError> {
         let records = sqlx::query_as!(
             crate::repository::rental_repository::RentalWithDetails,
             r#"SELECT
@@ -53,7 +56,10 @@ impl ReportRepository {
     }
 
     /// Oxirgi N ta keldi-ketdi ma'lumotlarini olish usuli
-    pub async fn get_recent_controls(pool: &PgPool, limit: i64) -> Result<Vec<ControlResponse>, AppError> {
+    pub async fn get_recent_controls(
+        pool: &PgPool,
+        limit: i64,
+    ) -> Result<Vec<ControlResponse>, AppError> {
         let records = sqlx::query_as!(
             ControlWithDetails,
             r#"SELECT 
@@ -136,7 +142,7 @@ impl ReportRepository {
             author: String,
             is_active: Option<bool>,
             admin_comment: Option<String>,
-            created_at: chrono::NaiveDateTime,
+            created_at: chrono::DateTime<chrono::Utc>,
             teacher_name: Option<String>,
         }
 
@@ -151,7 +157,7 @@ impl ReportRepository {
                 u."full_name" as "teacher_name"
             FROM "book" b
             LEFT JOIN "users" u ON u."id"::text = b."submitted_by"
-            WHERE b."submitted_by" IS NOT NULL"#
+            WHERE b."submitted_by" IS NOT NULL"#,
         );
 
         if let Some(t_id) = teacher_id {
@@ -163,10 +169,7 @@ impl ReportRepository {
 
         query.push(" ORDER BY b.\"created_at\" DESC");
 
-        let records: Vec<SubmissionRow> = query
-            .build_query_as()
-            .fetch_all(pool)
-            .await?;
+        let records: Vec<SubmissionRow> = query.build_query_as().fetch_all(pool).await?;
 
         Ok(records
             .into_iter()
@@ -174,7 +177,11 @@ impl ReportRepository {
                 id: r.id,
                 title: r.title,
                 author: r.author,
-                status: if r.is_active.unwrap_or(false) { "Faol".to_string() } else { "Kutilmoqda".to_string() },
+                status: if r.is_active.unwrap_or(false) {
+                    "Faol".to_string()
+                } else {
+                    "Kutilmoqda".to_string()
+                },
                 admin_comment: r.admin_comment,
                 submitted_at: r.created_at.format("%Y-%m-%d %H:%M:%S").to_string(),
                 teacher_full_name: r.teacher_name,
@@ -211,7 +218,7 @@ impl ReportRepository {
                 b."created_at"
             FROM "book" b
             LEFT JOIN "users" u ON u."id" = b."added_by"
-            WHERE b."added_by" IS NOT NULL"#
+            WHERE b."added_by" IS NOT NULL"#,
         );
 
         if let Some(sid) = staff_id {
@@ -225,10 +232,7 @@ impl ReportRepository {
 
         query.push(" ORDER BY b.\"created_at\" DESC");
 
-        let records: Vec<BookAddedRowInner> = query
-            .build_query_as()
-            .fetch_all(pool)
-            .await?;
+        let records: Vec<BookAddedRowInner> = query.build_query_as().fetch_all(pool).await?;
 
         Ok(records
             .into_iter()
@@ -246,7 +250,9 @@ impl ReportRepository {
     }
 
     /// Admin Xodimlar sahifasi uchun har bir xodim nechta kitob qo'shganligi
-    pub async fn get_staff_book_counts(pool: &PgPool) -> Result<Vec<crate::dto::report::StaffBookCount>, AppError> {
+    pub async fn get_staff_book_counts(
+        pool: &PgPool,
+    ) -> Result<Vec<crate::dto::report::StaffBookCount>, AppError> {
         let query = sqlx::query_as!(
             crate::dto::report::StaffBookCount,
             r#"
@@ -317,7 +323,7 @@ impl ReportRepository {
             .ok_or_else(|| AppError::BadRequest("Noto'g'ri sana".into()))?
             .and_hms_opt(0, 0, 0)
             .unwrap();
-            
+
         let mut next_month = month + 1;
         let mut next_year = year;
         if next_month > 12 {
@@ -334,18 +340,20 @@ impl ReportRepository {
             .fetch_one(pool)
             .await?
             .unwrap_or(0);
-            
+
         // Jami aktiv kitoblar (filtrlanmaydi)
-        let total_books: i64 = sqlx::query_scalar!(r#"SELECT COUNT(*) FROM "book" WHERE "is_active" = true"#)
-            .fetch_one(pool)
-            .await?
-            .unwrap_or(0);
+        let total_books: i64 =
+            sqlx::query_scalar!(r#"SELECT COUNT(*) FROM "book" WHERE "is_active" = true"#)
+                .fetch_one(pool)
+                .await?
+                .unwrap_or(0);
 
         // O'sha oydagi aktiv ijaralar (shu oy ichida berilgan jami ijaralar)
         let active_rentals: i64 = sqlx::query_scalar!(
             r#"SELECT COUNT(*) FROM "book_rentals" 
                WHERE ("loan_date" >= $1::date AND "loan_date" < $2::date)"#,
-            start_date.date(), end_date.date()
+            start_date.date(),
+            end_date.date()
         )
         .fetch_one(pool)
         .await?
@@ -370,13 +378,25 @@ impl ReportRepository {
         .await?
         .unwrap_or(0);
 
-        Ok((total_users, total_books, active_rentals, overdue_rentals, pending_requests))
+        Ok((
+            total_users,
+            total_books,
+            active_rentals,
+            overdue_rentals,
+            pending_requests,
+        ))
     }
 
     /// Admin Dashboard uchun Category va Language bo'yicha kitob statistikasini olish
     pub async fn get_dashboard_book_stats(
         pool: &PgPool,
-    ) -> Result<(Vec<crate::dto::report::CategoryCount>, Vec<crate::dto::report::LanguageCount>), AppError> {
+    ) -> Result<
+        (
+            Vec<crate::dto::report::CategoryCount>,
+            Vec<crate::dto::report::LanguageCount>,
+        ),
+        AppError,
+    > {
         let categories = sqlx::query!(
             r#"SELECT COALESCE(category, 'Boshqa') as "category!",
                       COUNT(*) as "count!",
@@ -430,14 +450,14 @@ impl ReportRepository {
     ) -> Result<Vec<crate::dto::report::DailyActivity>, AppError> {
         let start_date = chrono::NaiveDate::from_ymd_opt(year, month, 1)
             .ok_or_else(|| AppError::BadRequest("Noto'g'ri sana".into()))?;
-        
+
         let mut next_month = month + 1;
         let mut next_year = year;
         if next_month > 12 {
             next_month = 1;
             next_year += 1;
         }
-        
+
         let end_date = chrono::NaiveDate::from_ymd_opt(next_year, next_month, 1).unwrap();
 
         // 1 oylik taqvim yasaymiz va har bir kun uchun ijaralar va tashriflarni sanaymiz.
@@ -530,8 +550,13 @@ impl ReportRepository {
             .into_iter()
             .map(|r| {
                 let action_text = match r.action_type.as_str() {
-                    "rented" => format!("\"{}\" kitobini ijaraga oldi", r.book_title.unwrap_or_default()),
-                    "returned" => format!("\"{}\" kitobini qaytardi", r.book_title.unwrap_or_default()),
+                    "rented" => format!(
+                        "\"{}\" kitobini ijaraga oldi",
+                        r.book_title.unwrap_or_default()
+                    ),
+                    "returned" => {
+                        format!("\"{}\" kitobini qaytardi", r.book_title.unwrap_or_default())
+                    }
                     "visited" => "Kutubxonaga tashrif buyurdi".to_string(),
                     _ => "Noma'lum harakat".to_string(),
                 };
@@ -590,7 +615,12 @@ impl ReportRepository {
         .await?
         .unwrap_or(0);
 
-        Ok((active_rentals, overdue_rentals, total_read, pending_requests))
+        Ok((
+            active_rentals,
+            overdue_rentals,
+            total_read,
+            pending_requests,
+        ))
     }
 
     /// Personal Dashboard Oxirgi Faoliyatlar (Timeline)
@@ -648,8 +678,14 @@ impl ReportRepository {
             .into_iter()
             .map(|r| {
                 let action_text = match r.action_type.as_str() {
-                    "rented" => format!("\"{}\" kitobini ijaraga oldingiz", r.book_title.unwrap_or_default()),
-                    "returned" => format!("\"{}\" kitobini qaytardingiz", r.book_title.unwrap_or_default()),
+                    "rented" => format!(
+                        "\"{}\" kitobini ijaraga oldingiz",
+                        r.book_title.unwrap_or_default()
+                    ),
+                    "returned" => format!(
+                        "\"{}\" kitobini qaytardingiz",
+                        r.book_title.unwrap_or_default()
+                    ),
                     "visited" => "Kutubxonaga tashrif buyurdingiz".to_string(),
                     _ => "Noma'lum harakat".to_string(),
                 };
@@ -671,7 +707,7 @@ impl ReportRepository {
         pool: &PgPool,
     ) -> Result<crate::dto::report::EmployeeDashboardResponse, AppError> {
         let today = chrono::Local::now().date_naive();
-        
+
         // 1. Bugun berilgan jami kitoblar
         let today_rented: i64 = sqlx::query_scalar!(
             r#"SELECT COUNT(*) FROM "book_rentals" WHERE "loan_date" = $1"#,
@@ -726,14 +762,19 @@ impl ReportRepository {
         .fetch_all(pool)
         .await?;
 
-        let pending_returns = pending_returns_records.into_iter().map(|rec| {
-            crate::dto::report::PendingReturn {
+        let pending_returns = pending_returns_records
+            .into_iter()
+            .map(|rec| crate::dto::report::PendingReturn {
                 student: rec.student_name,
                 book: rec.book_title,
                 due_date: rec.due_date.format("%Y-%m-%d").to_string(),
-                status: if rec.status == "overdue" { "overdue".to_string() } else { "normal".to_string() }
-            }
-        }).collect();
+                status: if rec.status == "overdue" {
+                    "overdue".to_string()
+                } else {
+                    "normal".to_string()
+                },
+            })
+            .collect();
 
         // 6. Mashhur kitoblar (Eng ko'p ijaraga olingan 4 ta kitob)
         let popular_books_records = sqlx::query!(
@@ -753,14 +794,15 @@ impl ReportRepository {
         .fetch_all(pool)
         .await?;
 
-        let popular_books = popular_books_records.into_iter().map(|rec| {
-            crate::dto::report::PopularBook {
+        let popular_books = popular_books_records
+            .into_iter()
+            .map(|rec| crate::dto::report::PopularBook {
                 title: rec.title,
                 author: rec.author,
                 count: rec.rent_count.unwrap_or(0),
                 cover_image: rec.cover_image,
-            }
-        }).collect();
+            })
+            .collect();
 
         Ok(crate::dto::report::EmployeeDashboardResponse {
             today_rented,
@@ -777,28 +819,23 @@ impl ReportRepository {
         pool: &PgPool,
     ) -> Result<crate::dto::report::PublicDashboardResponse, AppError> {
         // 1. Jami kitoblar soni (Barcha tillar, barcha nusxalar)
-        let total_books: i64 = sqlx::query_scalar!(
-            r#"SELECT COUNT(*)::bigint FROM "book""#
-        )
-        .fetch_one(pool)
-        .await?
-        .unwrap_or(0);
+        let total_books: i64 = sqlx::query_scalar!(r#"SELECT COUNT(*)::bigint FROM "book""#)
+            .fetch_one(pool)
+            .await?
+            .unwrap_or(0);
 
         // 2. Jami foydalanuvchilar (O'quvchilar va O'qituvchilar/Xodimlar)
-        let total_users: i64 = sqlx::query_scalar!(
-            r#"SELECT COUNT(*)::bigint FROM "users""#
-        )
-        .fetch_one(pool)
-        .await?
-        .unwrap_or(0);
+        let total_users: i64 = sqlx::query_scalar!(r#"SELECT COUNT(*)::bigint FROM "users""#)
+            .fetch_one(pool)
+            .await?
+            .unwrap_or(0);
 
         // 3. Jami qilingan ijaralar (O'qib bo'lingan yoki faol kutubxona jarayonlari)
-        let total_rentals: i64 = sqlx::query_scalar!(
-            r#"SELECT COUNT(*)::bigint FROM "book_rentals""#
-        )
-        .fetch_one(pool)
-        .await?
-        .unwrap_or(0);
+        let total_rentals: i64 =
+            sqlx::query_scalar!(r#"SELECT COUNT(*)::bigint FROM "book_rentals""#)
+                .fetch_one(pool)
+                .await?
+                .unwrap_or(0);
 
         // 4. Eng mashhur 8 ta kitob
         let popular_books_records = sqlx::query!(
@@ -818,14 +855,15 @@ impl ReportRepository {
         .fetch_all(pool)
         .await?;
 
-        let popular_books = popular_books_records.into_iter().map(|rec| {
-            crate::dto::report::PopularBook {
+        let popular_books = popular_books_records
+            .into_iter()
+            .map(|rec| crate::dto::report::PopularBook {
                 title: rec.title,
                 author: rec.author,
                 count: rec.rent_count.unwrap_or(0),
                 cover_image: rec.cover_image,
-            }
-        }).collect();
+            })
+            .collect();
 
         Ok(crate::dto::report::PublicDashboardResponse {
             total_books,
@@ -955,7 +993,6 @@ impl ReportRepository {
         Ok(rows)
     }
 
-
     /// Kitob fondi holati (umumiy, mavjud, ijaradagi, yo'qotilgan)
     pub async fn get_book_inventory(
         pool: &PgPool,
@@ -1028,9 +1065,10 @@ impl ReportRepository {
 
         query_str.push_str(" ORDER BY b.\"title\"");
 
-        let rows = sqlx::query_as_with::<_, crate::dto::report::BookInventoryRow, _>(&query_str, args)
-            .fetch_all(pool)
-            .await?;
+        let rows =
+            sqlx::query_as_with::<_, crate::dto::report::BookInventoryRow, _>(&query_str, args)
+                .fetch_all(pool)
+                .await?;
 
         Ok(rows)
     }

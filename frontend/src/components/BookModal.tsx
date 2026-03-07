@@ -265,7 +265,7 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
                                 value={formData.format || ''}
                                 onChange={(val) => setFormData({ ...formData, format: val })}
                                 options={[
-                                    { value: '', label: 'Oddiy kitob' },
+                                    // { value: '', label: 'Oddiy kitob' },
                                     { value: 'pdf', label: 'PDF' },
                                     { value: 'audio', label: 'Audio' }
                                 ]}
