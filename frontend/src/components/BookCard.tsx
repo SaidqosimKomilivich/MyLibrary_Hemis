@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { BookOpen, Edit, Trash2, FileText, Headphones, Eye, MapPin, PlusCircle, MinusCircle, ToggleLeft, ToggleRight, Clock } from 'lucide-react'
 import type { Book } from '../services/api'
+import { highlightText } from '../utils/highlightText'
 
 interface BookCardProps {
     book: Book
@@ -13,9 +14,10 @@ interface BookCardProps {
     onAddReading?: (book: Book) => void
     onRemoveReading?: (book: Book) => void
     onRequestBook?: (book: Book) => void
+    highlightQuery?: string
 }
 
-export default function BookCard({ book, role, onEdit, onDelete, onToggleActive, onViewPdf, onListenAudio, onAddReading, onRemoveReading, onRequestBook }: BookCardProps) {
+export default function BookCard({ book, role, onEdit, onDelete, onToggleActive, onViewPdf, onListenAudio, onAddReading, onRemoveReading, onRequestBook, highlightQuery }: BookCardProps) {
     const [showOverlay, setShowOverlay] = useState(false)
     const canManageBooks = role === 'admin' || role === 'staff'
     // Fayl mavjud bo'lsa, format='pdf'/'audio'/'elektron'/'ikkalasi' dan qat'i nazar ko'rsat
@@ -107,8 +109,8 @@ export default function BookCard({ book, role, onEdit, onDelete, onToggleActive,
 
             {/* Content */}
             <div className="p-4 flex flex-col flex-1">
-                <h3 className="m-0 mb-1 text-[1.1rem] font-bold text-text line-clamp-2 leading-[1.3] group-hover:text-primary transition-colors" title={book.title}>{book.title}</h3>
-                <p className="m-0 mb-3 text-[0.9rem] text-text-muted/80 font-medium truncate">{book.author}</p>
+                <h3 className="m-0 mb-1 text-[1.1rem] font-bold text-text line-clamp-2 leading-[1.3] group-hover:text-primary transition-colors" title={book.title}>{highlightText(book.title, highlightQuery || '')}</h3>
+                <p className="m-0 mb-3 text-[0.9rem] text-text-muted/80 font-medium truncate">{highlightText(book.author, highlightQuery || '')}</p>
 
                 {canManageBooks && (
                     <div className="flex items-center justify-end mt-auto pt-4 border-t border-border">

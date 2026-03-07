@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { BookOpen, Users, Search, ChevronRight, TrendingUp, Megaphone, Calendar, Info, ShieldCheck, Clock, Phone, Mail, MapPin, ChevronDown } from 'lucide-react'
-import { api, type PublicDashboardResponse, type News } from '../services/api'
+import { api, type PublicDashboardResponse, type News, type Book } from '../services/api'
 
 export default function LandingPage() {
     const [stats, setStats] = useState<PublicDashboardResponse | null>(null)
     const [news, setNews] = useState<News[]>([])
+    const [latestBooks, setLatestBooks] = useState<Book[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState('')
     const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null)
@@ -21,15 +22,19 @@ export default function LandingPage() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [statsRes, newsRes] = await Promise.all([
+                const [statsRes, newsRes, booksRes] = await Promise.all([
                     api.getPublicStats(),
-                    api.getPublicNewsList({ limit: 4 })
+                    api.getPublicNewsList({ limit: 4 }),
+                    api.getPublicBooks({ limit: 10, page: 1 })
                 ]);
                 if (statsRes.success) {
                     setStats(statsRes.data)
                 }
                 if (newsRes.success) {
                     setNews(newsRes.data)
+                }
+                if (booksRes.success) {
+                    setLatestBooks(booksRes.data)
                 }
             } catch {
                 console.error("Failed to fetch public data")
@@ -43,12 +48,15 @@ export default function LandingPage() {
     return (
         <div className="w-full">
             {/* Hero Section */}
-            <section className="relative pt-20 pb-20 px-6 h-screen overflow-hidden">
-                <div className="absolute inset-0 bg-linear-to-br from-emerald-500/5 via-canvas to-indigo-500/5 -z-10" />
-                <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[100px] -z-10 pointer-events-none" />
-                <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-indigo-500/10 rounded-full blur-[100px] -z-10 pointer-events-none" />
+            <section
+                className="relative pt-20 pb-20 px-6 h-screen overflow-hidden bg-cover bg-center bg-no-repeat w-full"
+                style={{ backgroundImage: "url('/library-hero.jpg')" }}
+            >
+                <div className="absolute inset-0 bg-black/70 z-0" />
+                <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-emerald-500/20 rounded-full blur-[100px] z-0 pointer-events-none" />
+                <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-indigo-500/20 rounded-full blur-[100px] z-0 pointer-events-none" />
 
-                <div className="max-w-4xl mx-auto text-center relative z-10">
+                <div className="max-w-4xl mx-auto text-center relative z-10 flex flex-col justify-center h-full pt-10">
                     {/* <div
                         className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface border border-border/50 text-sm font-medium mb-8 text-emerald-400 shadow-sm stagger-fade-up"
                         style={{ animationDelay: '0.1s' }}
@@ -57,7 +65,7 @@ export default function LandingPage() {
                     </div> */}
 
                     <h1
-                        className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 leading-[1.1] stagger-fade-up"
+                        className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 leading-[1.1] stagger-fade-up text-white"
                         style={{ animationDelay: '0.25s' }}
                     >
                         Bilimlar olamiga <br className="hidden md:block" />
@@ -65,7 +73,7 @@ export default function LandingPage() {
                     </h1>
 
                     <p
-                        className="text-lg md:text-xl text-text-muted mb-10 max-w-2xl mx-auto leading-relaxed stagger-fade-up pointer-events-auto"
+                        className="text-lg md:text-xl text-slate-200 mb-10 max-w-2xl mx-auto leading-relaxed stagger-fade-up pointer-events-auto"
                         style={{ animationDelay: '0.4s' }}
                     >
                         Minglab kitoblar, raqamli resurslar va o'quv zallari endi bitta platformada.
@@ -91,6 +99,70 @@ export default function LandingPage() {
                             Izlash
                         </button>
                     </form>
+
+                    {/* Latest Books Carousel */}
+                    {latestBooks.length > 0 && (
+                        <div className="mt-12 w-full max-w-5xl mx-auto overflow-hidden relative fade-in group pointer-events-auto">
+                            {/* Gradient Masks */}
+                            <div className="absolute left-0 top-0 bottom-0 w-24 bg-linear-to-r from-[#f8fafc] dark:from-[#0f172a] to-transparent z-10 pointer-events-none" />
+                            <div className="absolute right-0 top-0 bottom-0 w-24 bg-linear-to-l from-[#f8fafc] dark:from-[#0f172a] to-transparent z-10 pointer-events-none" />
+
+                            <div className="flex w-max overflow-hidden group/marquee">
+                                {/* First set of items */}
+                                <div className="flex w-max animate-marquee group-hover/marquee:animation-paused items-center gap-6 pr-6">
+                                    {latestBooks.map((book, i) => (
+                                        <Link
+                                            key={`first-${book.id}-${i}`}
+                                            to={`/search?q=${encodeURIComponent(book.title)}`}
+                                            className="flex flex-col items-center bg-surface border border-border/50 p-3 rounded-2xl hover:bg-surface-hover hover:border-emerald-500/30 transition-all shadow-sm shrink-0 w-[140px] group/card"
+                                        >
+                                            <div className="w-[100px] h-[140px] bg-canvas rounded-xl overflow-hidden shadow-sm border border-border/30 mb-3 relative group-hover/card:shadow-md transition-shadow">
+                                                {book.cover_image_url ? (
+                                                    <img src={book.cover_image_url} alt={book.title} className="w-full h-full object-cover group-hover/card:scale-105 transition-transform duration-500" />
+                                                ) : (
+                                                    <div className="w-full h-full flex flex-col items-center justify-center bg-emerald-500/5 text-emerald-500">
+                                                        <BookOpen size={24} className="opacity-50 mb-1" />
+                                                    </div>
+                                                )}
+                                                {/* Overlays */}
+                                                <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity"></div>
+                                            </div>
+                                            <div className="w-full text-center">
+                                                <span className="block text-sm font-bold text-text truncate mb-0.5" title={book.title}>{book.title}</span>
+                                                <span className="block text-[11px] text-text-muted truncate" title={book.author}>{book.author}</span>
+                                            </div>
+                                        </Link>
+                                    ))}
+                                </div>
+                                {/* Second identical set of items for seamless looping */}
+                                <div className="flex w-max animate-marquee group-hover/marquee:animation-paused items-center gap-6 pr-6 aria-hidden">
+                                    {latestBooks.map((book, i) => (
+                                        <Link
+                                            key={`second-${book.id}-${i}`}
+                                            to={`/search?q=${encodeURIComponent(book.title)}`}
+                                            tabIndex={-1}
+                                            className="flex flex-col items-center bg-surface border border-border/50 p-3 rounded-2xl hover:bg-surface-hover hover:border-emerald-500/30 transition-all shadow-sm shrink-0 w-[140px] group/card"
+                                        >
+                                            <div className="w-[100px] h-[140px] bg-canvas rounded-xl overflow-hidden shadow-sm border border-border/30 mb-3 relative group-hover/card:shadow-md transition-shadow">
+                                                {book.cover_image_url ? (
+                                                    <img src={book.cover_image_url} alt={book.title} className="w-full h-full object-cover group-hover/card:scale-105 transition-transform duration-500" />
+                                                ) : (
+                                                    <div className="w-full h-full flex flex-col items-center justify-center bg-emerald-500/5 text-emerald-500">
+                                                        <BookOpen size={24} className="opacity-50 mb-1" />
+                                                    </div>
+                                                )}
+                                                <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity"></div>
+                                            </div>
+                                            <div className="w-full text-center">
+                                                <span className="block text-sm font-bold text-text truncate mb-0.5" title={book.title}>{book.title}</span>
+                                                <span className="block text-[11px] text-text-muted truncate" title={book.author}>{book.author}</span>
+                                            </div>
+                                        </Link>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </section>
 

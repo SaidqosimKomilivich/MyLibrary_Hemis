@@ -6,6 +6,7 @@ import { api } from '../../services/api'
 import type { UserData } from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 import { toast } from 'react-toastify'
+import { highlightText } from '../../utils/highlightText'
 
 // Sync progress helper
 function getSyncLabel(progress: number): string {
@@ -473,11 +474,11 @@ export default function AdminEmployeesPage() {
                                                 ) : (
                                                     <div className="w-8 h-8 rounded-full bg-linear-to-br from-indigo-500 to-indigo-600 text-white flex items-center justify-center font-bold text-[0.85rem] shrink-0 shadow-sm">{u.full_name.charAt(0)}</div>
                                                 )}
-                                                <span className="truncate max-w-[200px]">{u.full_name}</span>
+                                                <span className="truncate max-w-[200px]">{highlightText(u.full_name, debouncedSearch)}</span>
                                             </div>
                                         </td>
-                                        <td className="py-3 px-4 text-[0.875rem] text-text-muted">{u.department_name || '-'}</td>
-                                        <td className="py-3 px-4 text-[0.875rem] text-text-muted">{u.staff_position || '-'}</td>
+                                        <td className="py-3 px-4 text-[0.875rem] text-text-muted">{highlightText(u.department_name || '-', debouncedSearch)}</td>
+                                        <td className="py-3 px-4 text-[0.875rem] text-text-muted">{highlightText(u.staff_position || '-', debouncedSearch)}</td>
                                         <td className="py-3 px-4">
                                             <span className={`inline-flex items-center py-1 px-2.5 rounded-full text-[0.75rem] font-bold tracking-wide whitespace-nowrap ${u.active ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' : 'bg-surface-hover/50 text-slate-400 border border-slate-500/20'}`}>
                                                 {u.active ? 'Faol' : 'Nofaol'}
@@ -539,13 +540,13 @@ export default function AdminEmployeesPage() {
                                                 ) : (
                                                     <div className="w-8 h-8 rounded-full bg-linear-to-br from-indigo-500 to-indigo-600 text-white flex items-center justify-center font-bold text-[0.85rem] shrink-0 shadow-sm">{u.full_name.charAt(0)}</div>
                                                 )}
-                                                <span className="truncate max-w-[200px]">{u.full_name}</span>
+                                                <span className="truncate max-w-[200px]">{highlightText(u.full_name, debouncedSearch)}</span>
                                             </div>
                                         </td>
                                         <td className="py-3 px-4 text-[0.875rem] text-text-muted">
-                                            <span className="inline-flex py-1 px-3 bg-surface-hover border border-border rounded-lg font-mono font-medium">{u.user_id}</span>
+                                            <span className="inline-flex py-1 px-3 bg-surface-hover border border-border rounded-lg font-mono font-medium">{highlightText(u.user_id, debouncedSearch)}</span>
                                         </td>
-                                        <td className="py-3 px-4 text-[0.875rem] text-text-muted">{u.staff_position || 'Administrator'}</td>
+                                        <td className="py-3 px-4 text-[0.875rem] text-text-muted">{highlightText(u.staff_position || 'Administrator', debouncedSearch)}</td>
                                         <td className="py-3 px-4">
                                             <span className={`inline-flex items-center py-1 px-2.5 rounded-full text-[0.75rem] font-bold tracking-wide whitespace-nowrap ${u.active ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' : 'bg-surface-hover/50 text-slate-400 border border-slate-500/20'}`}>
                                                 {u.active ? 'Faol' : 'Nofaol'}

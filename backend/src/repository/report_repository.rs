@@ -361,7 +361,7 @@ impl ReportRepository {
 
         // O'sha oydagi qarzdorliklar (Muddatidan o'tgan qarzlar global miqdori)
         let overdue_rentals: i64 = sqlx::query_scalar!(
-            r#"SELECT COUNT(*) FROM "book_rentals" WHERE "status" = 'overdue'"#
+            r#"SELECT COUNT(*) FROM "book_rentals" WHERE "status" = 'overdue' OR ("status" = 'active' AND "due_date" < CURRENT_DATE)"#
         )
         .fetch_one(pool)
         .await?
@@ -590,7 +590,7 @@ impl ReportRepository {
 
         let overdue_rentals: i64 = sqlx::query_scalar!(
             r#"SELECT COUNT(*) FROM "book_rentals" 
-               WHERE "user_id" = $1 AND "status" = 'overdue'"#,
+               WHERE "user_id" = $1 AND ("status" = 'overdue' OR ("status" = 'active' AND "due_date" < CURRENT_DATE))"#,
             user_id_str
         )
         .fetch_one(pool)
@@ -768,7 +768,7 @@ impl ReportRepository {
                 student: rec.student_name,
                 book: rec.book_title,
                 due_date: rec.due_date.format("%Y-%m-%d").to_string(),
-                status: if rec.status == "overdue" {
+                status: if rec.status == "overdue" || (rec.status == "active" && rec.due_date < chrono::Local::now().naive_local().date()) {
                     "overdue".to_string()
                 } else {
                     "normal".to_string()

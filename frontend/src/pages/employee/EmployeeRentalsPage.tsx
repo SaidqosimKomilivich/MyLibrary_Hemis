@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { api, type Rental } from '../../services/api'
 import { Search, Loader2, BookOpen, Calendar, Clock, AlertTriangle, CheckCircle, XCircle, Phone, Mail } from 'lucide-react'
 import { toast } from 'react-toastify'
+import { highlightText } from '../../utils/highlightText'
 
 type FilterType = 'all' | 'returned' | 'active' | 'due_soon' | 'overdue'
 
@@ -168,7 +169,7 @@ export default function EmployeeRentalsPage() {
                                     </div>
                                     <div className="flex flex-col">
                                         <h3 className="m-0 text-[1.2rem] text-text font-bold tracking-tight flex items-center gap-2">
-                                            {r.user_full_name}
+                                            {highlightText(r.user_full_name, search)}
                                             <span className="text-[0.75rem] font-normal text-text-muted bg-surface-hover/50 border border-border px-2 py-0.5 rounded-full">
                                                 {r.role === 'student' ? 'Talaba' : r.role === 'staff' ? 'Xodim (Kutubxonachi)' : r.role === 'employee' ? 'Xodim' : r.role === 'teacher' ? 'O\'qituvchi' : r.role}
                                             </span>
@@ -176,20 +177,20 @@ export default function EmployeeRentalsPage() {
                                         <p className="m-0 mt-1.5 text-[0.9rem] text-text-muted font-mono">Ijara raqami: #{r.id.split('-')[0]}</p>
                                         {r.phone && (
                                             <p className="m-0 mt-1.5 text-[0.85rem] text-text-muted flex items-center gap-1.5">
-                                                <Phone size={14} className="opacity-70" /> {r.phone}
+                                                <Phone size={14} className="opacity-70" /> {highlightText(r.phone, search)}
                                             </p>
                                         )}
                                         {r.email && (
                                             <p className="m-0 mt-1 text-[0.85rem] text-text-muted flex items-center gap-1.5">
-                                                <Mail size={14} className="opacity-70" /> {r.email}
+                                                <Mail size={14} className="opacity-70" /> {highlightText(r.email, search)}
                                             </p>
                                         )}
                                     </div>
                                 </div>
 
                                 <div className="bg-surface-hover/50 border border-border rounded-2xl p-5 mb-6 flex-1">
-                                    <h4 className="text-[1.15rem] font-bold text-text m-0 mb-2 leading-snug">{r.book_title}</h4>
-                                    <p className="text-[0.9rem] text-text-muted m-0">{r.book_author}</p>
+                                    <h4 className="text-[1.15rem] font-bold text-text m-0 mb-2 leading-snug">{highlightText(r.book_title, search)}</h4>
+                                    <p className="text-[0.9rem] text-text-muted m-0">{highlightText(r.book_author, search)}</p>
                                 </div>
 
                                 <div className="flex gap-3 mb-6">

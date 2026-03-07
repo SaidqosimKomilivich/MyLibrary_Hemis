@@ -5,6 +5,7 @@ import { api } from '../../services/api'
 import { Send, Plus, Search, X, MessageSquare, Check, CheckCheck } from 'lucide-react'
 import { toast } from 'react-toastify'
 import { useAuth } from '../../context/AuthContext'
+import { highlightText } from '../../utils/highlightText'
 
 // --- Types ---
 interface Conversation {
@@ -437,7 +438,7 @@ export default function MessagesPage() {
                                             {getInitials(u.label)}
                                         </div>
                                         <div>
-                                            <p className="font-medium text-text text-sm">{u.label}</p>
+                                            <p className="font-medium text-text text-sm">{highlightText(u.label, userSearch)}</p>
                                             <p className="text-xs text-text-muted capitalize">{u.role}</p>
                                         </div>
                                     </button>
@@ -479,7 +480,7 @@ export default function MessagesPage() {
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center justify-between gap-2">
-                                            <p className="font-semibold text-text text-sm truncate">{conv.contactName}</p>
+                                            <p className="font-semibold text-text text-sm truncate">{highlightText(conv.contactName, searchQuery)}</p>
                                             <span className="text-[10px] text-text-muted shrink-0">{formatTime(conv.lastTime)}</span>
                                         </div>
                                         <div className="flex items-center justify-between gap-2 mt-0.5">

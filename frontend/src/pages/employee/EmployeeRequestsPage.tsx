@@ -4,6 +4,7 @@ import { Search, Loader2, X, CheckCircle, XCircle, Clock, AlertCircle, BookOpen,
 import { toast } from 'react-toastify'
 import { createPortal } from 'react-dom'
 import { CustomSelect } from '../../components/CustomSelect'
+import { highlightText } from '../../utils/highlightText'
 
 export default function EmployeeRequestsPage() {
     const [requests, setRequests] = useState<BookRequest[]>([])
@@ -149,7 +150,7 @@ export default function EmployeeRequestsPage() {
                                             {getInitials(req.user_name)}
                                         </div>
                                         <div className="flex flex-col min-w-0">
-                                            <h3 className="m-0 text-[1.1rem] text-text font-bold tracking-tight truncate" title={req.user_name}>{req.user_name}</h3>
+                                            <h3 className="m-0 text-[1.1rem] text-text font-bold tracking-tight truncate" title={req.user_name}>{highlightText(req.user_name, search)}</h3>
                                             <p className="m-0 mt-1 text-[0.85rem] text-text-muted flex items-center gap-1.5"><Calendar size={14} /> {formatDate(req.created_at)}</p>
                                         </div>
                                     </div>
@@ -165,7 +166,7 @@ export default function EmployeeRequestsPage() {
                                 <div className="bg-surface-hover/50 border border-border rounded-2xl p-5 mb-6 flex-1">
                                     <h4 className="text-[1.2rem] font-bold text-text m-0 mb-3 flex items-start gap-2.5 leading-snug">
                                         <BookOpen size={20} className="text-blue-400 shrink-0 mt-0.5" />
-                                        {req.book_title}
+                                        {highlightText(req.book_title, search)}
                                     </h4>
                                     <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold ${req.request_type === 'physical' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-pink-500/10 text-pink-400'}`}>
                                         {req.request_type === 'physical' ? '📚 Asl nusxa (Kitob)' : '💻 Elektron variant (PDF/Audio)'}

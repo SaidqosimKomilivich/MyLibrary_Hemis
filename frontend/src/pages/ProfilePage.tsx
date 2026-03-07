@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { User, Mail, Phone, Building2, GraduationCap, BookOpen, Calendar, Shield, Lock, Eye, EyeOff, Check, Loader2, Download, IdCard, RotateCw, MapPin } from 'lucide-react'
+import { User, Mail, Phone, Building2, GraduationCap, BookOpen, Calendar, Shield, Lock, Eye, EyeOff, Check, X, Loader2, Download, IdCard, RotateCw, MapPin } from 'lucide-react'
 import { toast } from 'react-toastify'
 import { useAuth } from '../context/AuthContext'
 import { api } from '../services/api'
@@ -30,6 +30,13 @@ export default function ProfilePage() {
     const backRef = useRef<HTMLDivElement>(null)
 
     if (!user) return null
+
+    const hasMinLen = newPassword.length >= 8;
+    const hasUpper = /[A-Z]/.test(newPassword);
+    const hasLower = /[a-z]/.test(newPassword);
+    const hasDigit = /[0-9]/.test(newPassword);
+    const hasSpecial = /[^A-Za-z0-9]/.test(newPassword);
+    const allCriteriaMet = hasMinLen && hasUpper && hasLower && hasDigit && hasSpecial;
 
     const displayRole = roleLabels[role || user.role] || user.role
 
@@ -364,6 +371,26 @@ export default function ProfilePage() {
                                         {showNew ? <EyeOff size={18} /> : <Eye size={18} />}
                                     </button>
                                 </div>
+                                {!allCriteriaMet && (
+                                    <div className="mt-1 flex flex-col gap-1.5 p-3 rounded-lg bg-surface-hover/50 border border-border">
+                                        <span className="text-[0.75rem] font-bold text-text-muted uppercase tracking-wider mb-1">Parol talablari:</span>
+                                        <div className={`flex items-center gap-2 text-[0.8rem] font-semibold transition-colors ${hasMinLen ? 'text-emerald-500' : 'text-red-400'}`}>
+                                            {hasMinLen ? <Check size={14} strokeWidth={3} /> : <X size={14} strokeWidth={3} />} Kamida 8 ta belgi
+                                        </div>
+                                        <div className={`flex items-center gap-2 text-[0.8rem] font-semibold transition-colors ${hasUpper ? 'text-emerald-500' : 'text-red-400'}`}>
+                                            {hasUpper ? <Check size={14} strokeWidth={3} /> : <X size={14} strokeWidth={3} />} Katta harf
+                                        </div>
+                                        <div className={`flex items-center gap-2 text-[0.8rem] font-semibold transition-colors ${hasLower ? 'text-emerald-500' : 'text-red-400'}`}>
+                                            {hasLower ? <Check size={14} strokeWidth={3} /> : <X size={14} strokeWidth={3} />} Kichik harf
+                                        </div>
+                                        <div className={`flex items-center gap-2 text-[0.8rem] font-semibold transition-colors ${hasDigit ? 'text-emerald-500' : 'text-red-400'}`}>
+                                            {hasDigit ? <Check size={14} strokeWidth={3} /> : <X size={14} strokeWidth={3} />} Raqam
+                                        </div>
+                                        <div className={`flex items-center gap-2 text-[0.8rem] font-semibold transition-colors ${hasSpecial ? 'text-emerald-500' : 'text-red-400'}`}>
+                                            {hasSpecial ? <Check size={14} strokeWidth={3} /> : <X size={14} strokeWidth={3} />} Qo'shimcha belgi
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                             {/* Confirm password */}
                             <div className="flex flex-col gap-1.5">

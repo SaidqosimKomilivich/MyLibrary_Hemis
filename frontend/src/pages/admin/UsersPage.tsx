@@ -5,6 +5,7 @@ import { CustomSelect } from '../../components/CustomSelect'
 import { api } from '../../services/api'
 import type { UserData } from '../../services/api'
 import { toast } from 'react-toastify'
+import { highlightText } from '../../utils/highlightText'
 
 // Sync progress helper
 function getSyncLabel(progress: number): string {
@@ -570,6 +571,7 @@ export default function UsersPage() {
         type: 'student' | 'teacher' | 'employee',
         columns: { header: string; render: (u: UserData) => React.ReactNode }[],
         pagState: PaginationState,
+        activeSearch: string,
     ) => {
         if (isLoading) {
             return (
@@ -610,7 +612,7 @@ export default function UsersPage() {
                                     ) : (
                                         <div className="w-8 h-8 rounded-full bg-linear-to-br from-indigo-500 to-indigo-600 text-white flex items-center justify-center font-bold text-[0.85rem] shrink-0 shadow-sm">{u.full_name.charAt(0)}</div>
                                     )}
-                                    <span className="truncate max-w-[200px]">{u.full_name}</span>
+                                    <span className="truncate max-w-[200px]">{highlightText(u.full_name, activeSearch)}</span>
                                 </div>
                             </td>
                             {columns.map((col, ci) => <td key={ci} className="py-3 px-4 text-[0.875rem] text-text-muted">{col.render(u)}</td>)}
@@ -720,11 +722,11 @@ export default function UsersPage() {
                 {activeTab === 'students' && renderUserTable(
                     students, loading.students, 'Talabalar', 'student',
                     [
-                        { header: 'Guruh', render: u => <span className="inline-flex py-1 px-3 bg-surface-hover border border-border rounded-lg text-[0.8rem] font-medium font-mono">{u.group_name || '-'}</span> },
+                        { header: 'Guruh', render: u => <span className="inline-flex py-1 px-3 bg-surface-hover border border-border rounded-lg text-[0.8rem] font-medium font-mono">{highlightText(u.group_name || '-', debouncedSearch.students)}</span> },
                         {
                             header: 'Fakultet', render: u => (
                                 <span className="inline-flex py-1 px-3 bg-surface-hover border border-border rounded-lg text-[0.8rem] font-medium truncate max-w-[220px]" title={u.department_name || '-'}>
-                                    {u.department_name || '-'}
+                                    {highlightText(u.department_name || '-', debouncedSearch.students)}
                                 </span>
                             )
                         },
@@ -741,6 +743,7 @@ export default function UsersPage() {
                         },
                     ],
                     studentsPag,
+                    debouncedSearch.students,
                 )}
                 {activeTab === 'teachers' && renderUserTable(
                     teachers, loading.teachers, "O'qituvchilar", 'teacher',
@@ -748,14 +751,14 @@ export default function UsersPage() {
                         {
                             header: 'Kafedra', render: u => (
                                 <span className="inline-flex py-1 px-3 bg-surface-hover border border-border rounded-lg text-[0.8rem] font-medium truncate max-w-[220px]" title={u.department_name || '-'}>
-                                    {u.department_name || '-'}
+                                    {highlightText(u.department_name || '-', debouncedSearch.teachers)}
                                 </span>
                             )
                         },
                         {
                             header: 'Lavozim', render: u => (
                                 <span className="inline-flex py-1 px-2.5 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-[0.8rem] font-medium text-indigo-400">
-                                    {u.staff_position || '-'}
+                                    {highlightText(u.staff_position || '-', debouncedSearch.teachers)}
                                 </span>
                             )
                         },
@@ -772,6 +775,7 @@ export default function UsersPage() {
                         },
                     ],
                     teachersPag,
+                    debouncedSearch.teachers,
                 )}
                 {activeTab === 'employees' && renderUserTable(
                     employees, loading.employees, 'Xodimlar', 'employee',
@@ -779,14 +783,14 @@ export default function UsersPage() {
                         {
                             header: "Bo'lim", render: u => (
                                 <span className="inline-flex py-1 px-3 bg-surface-hover border border-border rounded-lg text-[0.8rem] font-medium truncate max-w-[220px]" title={u.department_name || '-'}>
-                                    {u.department_name || '-'}
+                                    {highlightText(u.department_name || '-', debouncedSearch.employees)}
                                 </span>
                             )
                         },
                         {
                             header: 'Lavozim', render: u => (
                                 <span className="inline-flex py-1 px-2.5 bg-blue-500/10 border border-blue-500/20 rounded-lg text-[0.8rem] font-medium text-blue-400">
-                                    {u.staff_position || '-'}
+                                    {highlightText(u.staff_position || '-', debouncedSearch.employees)}
                                 </span>
                             )
                         },
@@ -803,6 +807,7 @@ export default function UsersPage() {
                         },
                     ],
                     employeesPag,
+                    debouncedSearch.employees,
                 )}
             </div>
 

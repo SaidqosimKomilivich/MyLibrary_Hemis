@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { Search, Loader2, BookOpen, Layers, ArrowLeft } from 'lucide-react';
 import { api, type Book } from '../services/api';
-
+import { highlightText } from '../utils/highlightText';
 const DEFAULT_CATEGORIES = [
     { id: 'all', name: 'Barchasi', icon: Layers },
 ];
@@ -195,9 +195,9 @@ const PublicCatalog = () => {
                                                 {book.category || 'Kitob'}
                                             </span>
                                             <h3 className="font-semibold text-[0.95rem] leading-tight mb-1 group-hover:text-emerald-400 transition-colors line-clamp-2">
-                                                {book.title}
+                                                {highlightText(book.title, searchQuery)}
                                             </h3>
-                                            <p className="text-text-muted text-[0.8rem] mb-3 line-clamp-1">{book.author}</p>
+                                            <p className="text-text-muted text-[0.8rem] mb-3 line-clamp-1">{highlightText(book.author, searchQuery)}</p>
 
                                             <div className="mt-auto pt-3 border-t border-border/50 flex items-center justify-between text-[0.75rem] font-medium text-text-muted">
                                                 <span className="flex items-center gap-1.5">

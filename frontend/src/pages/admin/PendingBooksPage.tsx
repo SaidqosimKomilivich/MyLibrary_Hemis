@@ -3,6 +3,7 @@ import { BookOpen, CheckCircle, XCircle, Clock, RefreshCw, Eye, MessageSquare, A
 import { api, type Book } from '../../services/api'
 import { toast } from 'react-toastify'
 import PdfViewerModal from '../../components/PdfViewerModal'
+import { highlightText } from '../../utils/highlightText'
 
 type ActionType = 'approve' | 'reject' | 'deactivate'
 
@@ -240,10 +241,10 @@ export default function PendingBooksPage() {
                                                         <BookOpen size={14} className="text-text-muted" />
                                                     </div>
                                                 )}
-                                                <span className="font-semibold text-text line-clamp-2 max-w-[200px]">{book.title}</span>
+                                                <span className="font-semibold text-text line-clamp-2 max-w-[200px]">{highlightText(book.title, searchTerm)}</span>
                                             </div>
                                         </td>
-                                        <td className="p-4 text-text-muted">{book.author}</td>
+                                        <td className="p-4 text-text-muted">{highlightText(book.author, searchTerm)}</td>
                                         <td className="p-4 text-text-muted hidden md:table-cell">{book.category || '—'}</td>
                                         <td className="p-4 text-text-muted hidden lg:table-cell">{book.total_quantity ?? 1}</td>
                                         <td className="p-4 text-center">
@@ -316,7 +317,7 @@ export default function PendingBooksPage() {
                 Detail Modal — kitob ma'lumotlari
             ═══════════════════════════════════════════ */}
             {detailBook && (
-                <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setDetailBook(null)}>
+                <div className="fixed inset-0 z-999 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setDetailBook(null)}>
                     <div className="bg-surface border border-border rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-between p-5 border-b border-border">
                             <h3 className="font-bold text-text flex items-center gap-2">
@@ -404,7 +405,7 @@ export default function PendingBooksPage() {
             {confirm && (() => {
                 const cfg = ACTION_CONFIG[confirm.action]
                 return (
-                    <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => setConfirm(null)}>
+                    <div className="fixed inset-0 z-999 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => setConfirm(null)}>
                         <div className="bg-surface border border-border rounded-2xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
 
                             {/* Header */}

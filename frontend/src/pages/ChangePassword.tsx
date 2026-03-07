@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, GraduationCap, Lock, Save, Mail, Phone } from 'lucide-react';
+import { Eye, EyeOff, GraduationCap, Lock, Save, Mail, Phone, Check, X } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -95,9 +95,17 @@ export default function ChangePassword() {
         /[a-z]/.test(newPassword) &&
         /[0-9]/.test(newPassword) &&
         /[^A-Za-z0-9]/.test(newPassword) &&
+        confirmPassword.length > 0 &&
         confirmPassword.trim() === newPassword.trim() &&
         (!needsEmail || email.trim().length > 0) &&
         (!needsPhone || phone.trim().length > 0);
+
+    const hasMinLen = newPassword.length >= 8;
+    const hasUpper = /[A-Z]/.test(newPassword);
+    const hasLower = /[a-z]/.test(newPassword);
+    const hasDigit = /[0-9]/.test(newPassword);
+    const hasSpecial = /[^A-Za-z0-9]/.test(newPassword);
+    const allCriteriaMet = hasMinLen && hasUpper && hasLower && hasDigit && hasSpecial;
 
     return (
         <div className="min-h-screen flex items-center justify-center p-5 bg-background relative overflow-hidden isolate">
@@ -147,6 +155,26 @@ export default function ChangePassword() {
                                 className="w-full bg-surface-hover border border-border text-text px-4 py-3.5 pl-11 rounded-xl text-[1rem] outline-none transition-all focus:border-primary-light focus:bg-canvas/50 placeholder:text-text-muted/50"
                             />
                         </div>
+                        {!allCriteriaMet && (
+                            <div className="mt-2 flex flex-col gap-1.5 p-3 rounded-lg bg-surface-hover/50 border border-border">
+                                <span className="text-[0.75rem] font-bold text-text-muted uppercase tracking-wider mb-1">Parol talablari:</span>
+                                <div className={`flex items-center gap-2 text-[0.8rem] font-semibold transition-colors ${hasMinLen ? 'text-emerald-500' : 'text-red-400'}`}>
+                                    {hasMinLen ? <Check size={14} strokeWidth={3} /> : <X size={14} strokeWidth={3} />} Kamida 8 ta belgi
+                                </div>
+                                <div className={`flex items-center gap-2 text-[0.8rem] font-semibold transition-colors ${hasUpper ? 'text-emerald-500' : 'text-red-400'}`}>
+                                    {hasUpper ? <Check size={14} strokeWidth={3} /> : <X size={14} strokeWidth={3} />} Katta harf
+                                </div>
+                                <div className={`flex items-center gap-2 text-[0.8rem] font-semibold transition-colors ${hasLower ? 'text-emerald-500' : 'text-red-400'}`}>
+                                    {hasLower ? <Check size={14} strokeWidth={3} /> : <X size={14} strokeWidth={3} />} Kichik harf
+                                </div>
+                                <div className={`flex items-center gap-2 text-[0.8rem] font-semibold transition-colors ${hasDigit ? 'text-emerald-500' : 'text-red-400'}`}>
+                                    {hasDigit ? <Check size={14} strokeWidth={3} /> : <X size={14} strokeWidth={3} />} Raqam
+                                </div>
+                                <div className={`flex items-center gap-2 text-[0.8rem] font-semibold transition-colors ${hasSpecial ? 'text-emerald-500' : 'text-red-400'}`}>
+                                    {hasSpecial ? <Check size={14} strokeWidth={3} /> : <X size={14} strokeWidth={3} />} Qo'shimcha belgi
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Confirm Password */}
@@ -169,6 +197,9 @@ export default function ChangePassword() {
                                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                             </button>
                         </div>
+                        {confirmPassword.length > 0 && confirmPassword !== newPassword && (
+                            <span className="text-red-400 text-[0.85rem] font-semibold ml-1 mt-1">Moslik topilmadi</span>
+                        )}
                     </div>
 
                     {/* Email Input (Conditional) */}

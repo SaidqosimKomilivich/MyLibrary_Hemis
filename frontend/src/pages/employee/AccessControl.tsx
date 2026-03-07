@@ -8,6 +8,7 @@ import {
     Settings2
 } from 'lucide-react'
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode'
+import { highlightText } from '../../utils/highlightText'
 import { api, type Rental, type Book, type ControlRecord, type UserData } from '../../services/api'
 import { toast } from 'react-toastify'
 import { CustomSelect } from '../../components/CustomSelect'
@@ -703,7 +704,7 @@ export default function AccessControl() {
                ═══════════════════════════════════════ */}
             {
                 assignModalOpen && (
-                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setAssignModalOpen(false)}>
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-999 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setAssignModalOpen(false)}>
                         <div className="bg-surface border border-border rounded-2xl w-full max-w-md shadow-xl overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
                             <div className="flex items-center justify-between p-5 border-b border-border">
                                 <h3 className="flex items-center gap-2 text-lg font-bold text-text m-0"><BookPlus size={20} className="text-primary-light" /> Kitob biriktirish</h3>
@@ -749,8 +750,8 @@ export default function AccessControl() {
                                                 onClick={() => setSelectedBook(book)}
                                             >
                                                 <div className="flex flex-col min-w-0 pr-3">
-                                                    <strong className="text-sm text-text truncate">{book.title}</strong>
-                                                    <span className="text-xs text-text-muted truncate">{book.author}</span>
+                                                    <strong className="text-sm text-text truncate">{highlightText(book.title, bookSearch)}</strong>
+                                                    <span className="text-xs text-text-muted truncate">{highlightText(book.author, bookSearch)}</span>
                                                 </div>
                                                 <span className={`shrink-0 text-xs font-semibold px-2 py-1 rounded-full ${(book.available_quantity || 0) > 0 ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-500'}`}>
                                                     {(book.available_quantity || 0) > 0 ? `${book.available_quantity} ta` : 'Yo\'q'}
@@ -819,7 +820,7 @@ export default function AccessControl() {
                ═══════════════════════════════════════ */}
             {
                 returnModalOpen && (
-                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => { setReturnModalOpen(false); setReturningRental(null); setReturnNotes('') }}>
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-999 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => { setReturnModalOpen(false); setReturningRental(null); setReturnNotes('') }}>
                         <div className="bg-surface border border-border rounded-2xl w-full max-w-sm shadow-xl overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
                             <div className="flex items-center justify-between p-5 border-b border-border">
                                 <h3 className="flex items-center gap-2 text-lg font-bold text-text m-0"><RotateCcw size={20} className="text-primary-light" /> Kitobni qaytarish</h3>
