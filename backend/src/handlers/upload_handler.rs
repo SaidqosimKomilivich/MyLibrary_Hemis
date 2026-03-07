@@ -187,13 +187,19 @@ pub async fn delete_file(
 }
 
 /// GET /uploads/{subdir}/{filename} — Faylni o'qish (NamedFile yordamida streaming)
-/// Faqat autentifikatsiya qilingan foydalanuvchilar uchun (xavfsizlik)
+/// Rasmlar hamma uchun ochiq, PDF fayllar esa faqat autentifikatsiya qilinganlarga
 pub async fn serve_file(
-    _claims: Claims,
+    claims: Option<Claims>,
     path: web::Path<(String, String)>,
     config: web::Data<Config>,
 ) -> Result<actix_files::NamedFile, AppError> {
     let (subdir, filename) = path.into_inner();
+
+    if subdir == "pdf" && claims.is_none() {
+        return Err(AppError::Unauthorized(
+            "PDF fayllarini o'qish uchun tizimga kirish talab qilinadi".to_string(),
+        ));
+    }
 
     // Xavfsizlik tekshiruvi (Path traversal oldini olish)
     if subdir.contains("..") || filename.contains("..") {

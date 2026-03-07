@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT u.id as user_uuid, b.title as book_title,\n                      (r.due_date - CURRENT_DATE) as \"days_left!\"\n               FROM book_rentals r\n               JOIN book b ON b.id::text = r.book_id\n               JOIN users u ON u.user_id = r.user_id\n               WHERE r.status = 'active' \n                 AND (r.due_date - CURRENT_DATE) <= 3\n                 AND (r.due_date - CURRENT_DATE) != 2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_uuid",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "book_title",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "days_left!",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "1b90fc8a0eb4c577b9006513f173be4fa641ef4e900802b3e19cd55a1683fdaf"
+}

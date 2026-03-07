@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            WITH calendar AS (\n                SELECT generate_series($1::date, $2::date - interval '1 day', '1 day')::date AS d\n            )\n            SELECT \n                calendar.d::text as \"date_str\",\n                (SELECT COUNT(*) FROM \"book_rentals\" r WHERE r.\"loan_date\" = calendar.d) as \"rentals_count!\",\n                (SELECT COUNT(*) FROM \"control\" c WHERE c.\"arrival\"::date = calendar.d) as \"controls_count!\"\n            FROM calendar\n            WHERE EXTRACT(ISODOW FROM calendar.d) != 7\n            ORDER BY calendar.d ASC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "date_str",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "rentals_count!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "controls_count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Date",
+        "Date"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "4423d56563d2924aa47267301be4f882b95745a93b2381d5c00628f7d0f08714"
+}

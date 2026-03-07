@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COUNT(*) FROM \"book_rentals\" \n               WHERE \"user_id\" = $1 AND \"status\" = 'overdue'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "75ece65d860475de0aa3ca08fc58eb85d1d3fa792efe8ca31c3b5536a77b7f2f"
+}

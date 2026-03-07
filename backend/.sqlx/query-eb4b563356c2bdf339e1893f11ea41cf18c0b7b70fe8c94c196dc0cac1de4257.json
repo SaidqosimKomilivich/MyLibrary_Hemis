@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                u.\"full_name\" as \"student_name\",\n                b.\"title\" as \"book_title\",\n                r.\"due_date\",\n                r.\"status\"::text as \"status!\"\n            FROM \"book_rentals\" r\n            JOIN \"users\" u ON u.\"user_id\" = r.\"user_id\"\n            JOIN \"book\" b ON b.\"id\"::text = r.\"book_id\"\n            WHERE r.\"status\" IN ('active', 'overdue')\n            ORDER BY r.\"due_date\" ASC\n            LIMIT 5\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "student_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "book_title",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "due_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 3,
+        "name": "status!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "eb4b563356c2bdf339e1893f11ea41cf18c0b7b70fe8c94c196dc0cac1de4257"
+}

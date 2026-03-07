@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COUNT(*) FROM \"book_rentals\" \n               WHERE \"user_id\" = $1 AND \"status\" = 'returned'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "22b7603517f0d3c96e3c18c4fb4a9d3376845619706cb9ddbaf857046f4dadd9"
+}

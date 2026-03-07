@@ -1,0 +1,82 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                m.id, m.sender_id, m.receiver_id, m.title, m.message, m.is_read, m.created_at,\n                s.full_name as \"sender_name?\",\n                s.role as \"sender_role?\",\n                r.full_name as \"receiver_name?\",\n                r.role as \"receiver_role?\"\n            FROM messages m\n            LEFT JOIN users s ON m.sender_id = s.id\n            LEFT JOIN users r ON m.receiver_id = r.id\n            WHERE m.receiver_id = $1 OR m.sender_id = $1\n            ORDER BY m.created_at ASC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "sender_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "receiver_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "title",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "message",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "is_read",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "sender_name?",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 8,
+        "name": "sender_role?",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "receiver_name?",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 10,
+        "name": "receiver_role?",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "e7dc66002dc411a825f15ea1eccc7560f10a4c889fc0d6def369423c81ff6e83"
+}

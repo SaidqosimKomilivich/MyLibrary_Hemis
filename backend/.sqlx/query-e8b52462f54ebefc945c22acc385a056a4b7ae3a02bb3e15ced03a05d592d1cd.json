@@ -1,0 +1,71 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT \n                c.\"id\", c.\"user_id\", c.\"arrival\", c.\"departure\",\n                u.\"full_name\" as \"full_name?\",\n                u.\"role\" as \"role?\",\n                u.\"department_name\" as \"department_name?\",\n                u.\"group_name\" as \"group_name?\",\n                u.\"staff_position\" as \"staff_position?\"\n            FROM \"control\" c\n            LEFT JOIN \"users\" u ON u.\"user_id\" = c.\"user_id\"\n            WHERE DATE(c.\"arrival\") >= $1 AND DATE(c.\"arrival\") <= $2\n            ORDER BY c.\"arrival\" DESC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "arrival",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 3,
+        "name": "departure",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 4,
+        "name": "full_name?",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "role?",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "department_name?",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "group_name?",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 8,
+        "name": "staff_position?",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Date",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "e8b52462f54ebefc945c22acc385a056a4b7ae3a02bb3e15ced03a05d592d1cd"
+}

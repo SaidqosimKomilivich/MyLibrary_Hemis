@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                b.\"title\",\n                b.\"author\",\n                b.\"cover_image_url\" as cover_image,\n                COUNT(r.\"id\") as \"rent_count\"\n            FROM \"book_rentals\" r\n            JOIN \"book\" b ON b.\"id\"::text = r.\"book_id\"\n            GROUP BY b.\"id\", b.\"title\", b.\"author\", b.\"cover_image_url\"\n            ORDER BY \"rent_count\" DESC\n            LIMIT 4\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "title",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "author",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "cover_image",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "rent_count",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      null
+    ]
+  },
+  "hash": "a4f4dafc14f70d2dca922e6f83403d7617817e2a8ea8baf4c52d41f563754c4f"
+}

@@ -231,7 +231,7 @@ export default function ProfilePage() {
     const infoItems = [...commonItems, ...roleSpecificItems].filter(item => item.value)
 
     return (
-        <div className="p-5 md:p-8 max-w-[1400px] mx-auto min-h-[calc(100vh-80px)]">
+        <div className="p-5 md:p-8 max-w-350 mx-auto min-h-[calc(100vh-80px)]">
             {/* <div className="mb-8">
                 <h1 className="text-[1.8rem] font-bold text-text mb-1 tracking-tight">Profil</h1>
                 <p className="text-[0.95rem] text-text-muted m-0">Shaxsiy ma'lumotlar va sozlamalar</p>

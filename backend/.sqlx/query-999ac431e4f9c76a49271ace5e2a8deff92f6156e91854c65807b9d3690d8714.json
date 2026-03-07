@@ -1,0 +1,137 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                r.\"id\", r.\"user_id\", r.\"book_id\",\n                r.\"loan_date\", r.\"due_date\", r.\"return_date\",\n                r.\"status\" as \"status: crate::models::rental::RentalStatus\", r.\"notes\",\n                b.\"title\" as \"book_title?\",\n                b.\"author\" as \"book_author?\",\n                b.\"cover_image_url\" as \"book_cover?\",\n                u.\"full_name\" as \"user_full_name?\",\n                u.\"role\" as \"role?\",\n                u.\"email\" as \"email?\",\n                u.\"phone\" as \"phone?\",\n                u.\"department_name\" as \"department_name?\",\n                u.\"group_name\" as \"group_name?\",\n                u.\"staff_position\" as \"staff_position?\"\n            FROM \"book_rentals\" r\n            LEFT JOIN \"book\" b ON b.\"id\"::text = r.\"book_id\"\n            LEFT JOIN \"users\" u ON u.\"user_id\" = r.\"user_id\"\n            WHERE r.\"loan_date\" >= $1 AND r.\"loan_date\" <= $2\n            ORDER BY r.\"loan_date\" DESC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "book_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "loan_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 4,
+        "name": "due_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 5,
+        "name": "return_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 6,
+        "name": "status: crate::models::rental::RentalStatus",
+        "type_info": {
+          "Custom": {
+            "name": "rental_status_type",
+            "kind": {
+              "Enum": [
+                "active",
+                "returned",
+                "overdue",
+                "lost"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "notes",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "book_title?",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "book_author?",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 10,
+        "name": "book_cover?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "user_full_name?",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 12,
+        "name": "role?",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 13,
+        "name": "email?",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 14,
+        "name": "phone?",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 15,
+        "name": "department_name?",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 16,
+        "name": "group_name?",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 17,
+        "name": "staff_position?",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Date",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "999ac431e4f9c76a49271ace5e2a8deff92f6156e91854c65807b9d3690d8714"
+}

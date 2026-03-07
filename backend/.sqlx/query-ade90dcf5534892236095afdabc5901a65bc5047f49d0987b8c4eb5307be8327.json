@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COUNT(*) FROM \"book\" \n               WHERE (\"created_at\" >= $1 AND \"created_at\" < $2) AND \"submitted_by\" IS NOT NULL AND \"is_active\" = false",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "ade90dcf5534892236095afdabc5901a65bc5047f49d0987b8c4eb5307be8327"
+}

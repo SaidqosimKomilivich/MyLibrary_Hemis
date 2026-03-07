@@ -18,6 +18,7 @@ use crate::config::Config;
 use crate::handlers::auth_handler;
 use crate::handlers::book_handler;
 use crate::handlers::control_handler;
+use crate::handlers::message_handler;
 use crate::handlers::news_handler;
 use crate::handlers::reading_handler;
 use crate::handlers::rental_handler;
@@ -25,7 +26,6 @@ use crate::handlers::report_handler;
 use crate::handlers::request_handler;
 use crate::handlers::sync_handler;
 use crate::handlers::upload_handler;
-use crate::handlers::message_handler;
 use crate::services::message_service::MessageService;
 
 #[actix_web::main]
@@ -214,11 +214,20 @@ async fn main() -> std::io::Result<()> {
                         "/employee-dashboard",
                         web::get().to(report_handler::get_employee_dashboard),
                     )
-                    .route("/user-filter-options", web::get().to(report_handler::get_user_filter_options))
-                    .route("/book-filter-options", web::get().to(report_handler::get_book_filter_options))
+                    .route(
+                        "/user-filter-options",
+                        web::get().to(report_handler::get_user_filter_options),
+                    )
+                    .route(
+                        "/book-filter-options",
+                        web::get().to(report_handler::get_book_filter_options),
+                    )
                     .route("/preview", web::get().to(report_handler::preview_report))
                     .route("/export", web::get().to(report_handler::export_excel))
-                    .route("/staff-book-counts", web::get().to(report_handler::get_staff_book_counts)),
+                    .route(
+                        "/staff-book-counts",
+                        web::get().to(report_handler::get_staff_book_counts),
+                    ),
             )
             // News routes (admin: full CRUD)
             .service(
@@ -239,6 +248,10 @@ async fn main() -> std::io::Result<()> {
                     .route(
                         "/news/{id_or_slug}",
                         web::get().to(news_handler::get_public_news),
+                    )
+                    .route(
+                        "/book-filter-options",
+                        web::get().to(report_handler::get_public_book_filter_options),
                     ),
             )
             // Sync routes (HEMIS sinxronlash)

@@ -51,7 +51,7 @@ const PublicCatalog = () => {
 
     const fetchCategories = async () => {
         try {
-            const res = await api.getBookFilterOptions();
+            const res = await api.getPublicBookFilterOptions();
             if (res.success && res.data && res.data.categories) {
                 const dynamicCategories = res.data.categories.map(catName => ({
                     id: catName,

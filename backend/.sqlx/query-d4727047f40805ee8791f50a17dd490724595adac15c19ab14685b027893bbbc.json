@@ -1,0 +1,42 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                \"id\" as \"id!\", \"book_title\", \"action_type\" as \"action_type!\", \"action_date\" as \"action_date!\"\n            FROM (\n                SELECT \n                    r.\"id\"::text as \"id\",\n                    b.\"title\" as \"book_title\",\n                    'rented' as \"action_type\",\n                    r.\"loan_date\"::timestamp as \"action_date\"\n                FROM \"book_rentals\" r\n                JOIN \"book\" b ON b.\"id\"::text = r.\"book_id\"\n                WHERE r.\"user_id\" = $1\n\n                UNION ALL\n\n                SELECT \n                    r.\"id\"::text as \"id\",\n                    b.\"title\" as \"book_title\",\n                    'returned' as \"action_type\",\n                    r.\"return_date\"::timestamp as \"action_date\"\n                FROM \"book_rentals\" r\n                JOIN \"book\" b ON b.\"id\"::text = r.\"book_id\"\n                WHERE r.\"return_date\" IS NOT NULL AND r.\"user_id\" = $1\n\n                UNION ALL\n\n                SELECT \n                    c.\"id\"::text as \"id\",\n                    NULL as \"book_title\",\n                    'visited' as \"action_type\",\n                    c.\"arrival\" as \"action_date\"\n                FROM \"control\" c\n                WHERE c.\"arrival\" IS NOT NULL AND c.\"user_id\" = $2\n            ) AS combined_activities\n            ORDER BY \"action_date\" DESC\n            LIMIT $3\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "book_title",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "action_type!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "action_date!",
+        "type_info": "Timestamp"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "d4727047f40805ee8791f50a17dd490724595adac15c19ab14685b027893bbbc"
+}
