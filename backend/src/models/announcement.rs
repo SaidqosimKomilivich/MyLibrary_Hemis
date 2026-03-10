@@ -14,12 +14,12 @@ pub struct Announcement {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
-pub struct AnnouncementRead {
-    pub user_id: Uuid,
-    pub announcement_id: Uuid,
-    pub read_at: DateTime<Utc>,
-}
+// #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+// pub struct AnnouncementRead {
+//     pub user_id: Uuid,
+//     pub announcement_id: Uuid,
+//     pub read_at: DateTime<Utc>,
+// }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AnnouncementWithStatus {

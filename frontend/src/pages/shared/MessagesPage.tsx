@@ -84,77 +84,76 @@ export default function MessagesPage() {
     // New chat search
     const [allUsers, setAllUsers] = useState<{ value: string; label: string; role: string }[]>([])
     const [userSearch, setUserSearch] = useState('')
+    const [userSearchPage, setUserSearchPage] = useState(1)
+    const [userSearchHasMore, setUserSearchHasMore] = useState(true)
+    const [loadingUserSearch, setLoadingUserSearch] = useState(false)
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const readStatusListRef = useRef<HTMLDivElement>(null)
 
-    const buildConversations = useCallback((msgs: MessageDataItem[]) => {
+    const buildConversations = useCallback((msgs: MessageDataItem[], clear = false) => {
         if (!me) return
-        const map = new Map<string, Conversation>()
+        
+        setConversations(prev => {
+            const map = new Map<string, Conversation>()
+            if (!clear) {
+                prev.forEach(c => map.set(c.contactId, c))
+            }
 
-        msgs.forEach(msg => {
-            const isSentByMe = msg.sender_id === me.id;
-            const isReceivedByMe = msg.receiver_id === me.id;
+            msgs.forEach(msg => {
+                const isSentByMe = msg.sender_id === me.id;
+                const isReceivedByMe = msg.receiver_id === me.id;
 
-            let contactId = '';
-            let contactName = '';
-            let contactRole = '';
+                let contactId = '';
+                let contactName = '';
+                let contactRole = '';
 
-            if (isSentByMe) {
-                contactId = msg.receiver_id || '';
-                contactName = msg.receiver_name || 'Foydalanuvchi';
-                contactRole = msg.receiver_role || '';
-            } else if (isReceivedByMe) {
-                // If sender_id is null, it's a system message
-                contactId = msg.sender_id || 'system';
-                contactName = msg.sender_name || (msg.sender_id ? 'Foydalanuvchi' : 'Tizim');
-                contactRole = msg.sender_role || (msg.sender_id ? '' : 'System');
-            } else {
-                // Admin/Staff view of all messages
-                const sid = msg.sender_id;
-                const rid = msg.receiver_id;
-
-                if (!sid || sid === 'system') {
-                    contactId = 'system';
-                    contactName = 'Tizim';
-                    contactRole = 'System';
-                } else if (rid === me.id || sid === me.id) {
-                    // This case is already handled by isSentByMe/isReceivedByMe but added for safety
-                    contactId = isSentByMe ? rid! : sid;
-                    contactName = isSentByMe ? (msg.receiver_name || 'Foydalanuvchi') : (msg.sender_name || 'Foydalanuvchi');
+                if (isSentByMe) {
+                    contactId = msg.receiver_id || '';
+                    contactName = msg.receiver_name || 'Foydalanuvchi';
+                    contactRole = msg.receiver_role || '';
+                } else if (isReceivedByMe) {
+                    contactId = msg.sender_id || 'system';
+                    contactName = msg.sender_name || (msg.sender_id ? 'Foydalanuvchi' : 'Tizim');
+                    contactRole = msg.sender_role || (msg.sender_id ? '' : 'System');
                 } else {
-                    contactId = sid;
-                    contactName = msg.sender_name || 'Foydalanuvchi';
-                    contactRole = msg.sender_role || '';
+                    const sid = msg.sender_id;
+                    if (!sid || sid === 'system') {
+                        contactId = 'system';
+                        contactName = 'Tizim';
+                        contactRole = 'System';
+                    } else {
+                        contactId = sid;
+                        contactName = msg.sender_name || 'Foydalanuvchi';
+                        contactRole = msg.sender_role || '';
+                    }
                 }
-            }
 
-            if (!contactId) return
+                if (!contactId) return
 
-            if (!map.has(contactId)) {
-                map.set(contactId, {
-                    contactId,
-                    contactName,
-                    contactRole,
-                    lastMessage: msg.message,
-                    lastTime: msg.created_at,
-                    unreadCount: (!isSentByMe && !msg.is_read) ? 1 : 0,
-                    messages: [msg],
-                })
-            } else {
-                const conv = map.get(contactId)!
-                conv.messages.push(msg)
-                if (new Date(msg.created_at) > new Date(conv.lastTime)) {
-                    conv.lastMessage = msg.message
-                    conv.lastTime = msg.created_at
+                if (!map.has(contactId)) {
+                    map.set(contactId, {
+                        contactId,
+                        contactName,
+                        contactRole,
+                        lastMessage: msg.message,
+                        lastTime: msg.created_at,
+                        unreadCount: (!isSentByMe && !msg.is_read) ? 1 : 0,
+                        messages: [msg],
+                    })
+                } else {
+                    const conv = map.get(contactId)!
+                    if (new Date(msg.created_at) >= new Date(conv.lastTime)) {
+                        conv.lastMessage = msg.message
+                        conv.lastTime = msg.created_at
+                    }
+                    if (!isSentByMe && !msg.is_read) conv.unreadCount++
                 }
-                if (!isSentByMe && !msg.is_read) conv.unreadCount++
-            }
+            })
+
+            return Array.from(map.values()).sort(
+                (a, b) => new Date(b.lastTime).getTime() - new Date(a.lastTime).getTime()
+            )
         })
-
-        const list = Array.from(map.values()).sort(
-            (a, b) => new Date(b.lastTime).getTime() - new Date(a.lastTime).getTime()
-        )
-        setConversations(list)
     }, [me])
 
     const fetchMessages = useCallback(async (isInitial = true) => {
@@ -172,13 +171,10 @@ export default function MessagesPage() {
             if (res.success) {
                 if (isInitial) {
                     setAllMessages(res.data)
-                    buildConversations(res.data)
+                    buildConversations(res.data, true)
                 } else {
-                    setAllMessages(prev => {
-                        const updated = [...prev, ...res.data]
-                        buildConversations(updated)
-                        return updated
-                    })
+                    setAllMessages(prev => [...prev, ...res.data])
+                    buildConversations(res.data, false)
                     setPage(currentPage)
                 }
                 setHasMore(res.pagination.current_page < res.pagination.total_pages)
@@ -202,33 +198,59 @@ export default function MessagesPage() {
         }
     }, [])
 
+    const fetchChatHistory = useCallback(async (contactId: string) => {
+        try {
+            const res = await api.getChatHistory(contactId)
+            if (res.success) {
+                setConversations(prev => prev.map(c => {
+                    if (c.contactId === contactId) {
+                        return { ...c, messages: res.data }
+                    }
+                    return c
+                }))
+            }
+        } catch (err: any) {
+            console.error("Chat tarixini yuklashda xatolik:", err)
+        }
+    }, [])
+
     useEffect(() => {
         fetchMessages(true)
         fetchAnnouncements()
 
         const sub = api.subscribeToMessages((msg: any) => {
             const isAnnouncement = !msg.receiver_id;
-            const isSystemMessage = !msg.sender_id || msg.sender_role === 'system';
             
             if (isAnnouncement) {
                 fetchAnnouncements()
                 toast.info(`${msg.title || 'Yangilik'}`, { theme: 'colored' })
             } else {
-                // Direct message (either from system or another user)
-                setAllMessages(prev => {
-                    const updated = [msg, ...prev]
-                    buildConversations(updated)
-                    return updated
-                })
+                // Direct message - update sidebar
+                fetchMessages(true) // Re-fetch sidebar to show latest preview
+                
+                // If it's for the current chat, update history too
+                const otherPartyId = msg.sender_id === me?.id ? msg.receiver_id : msg.sender_id;
+                if (selectedId === otherPartyId) {
+                    fetchChatHistory(otherPartyId)
+                }
 
+                const isSystemMessage = !msg.sender_id || msg.sender_role === 'system';
                 const senderName = msg.sender_name || (isSystemMessage ? 'Tizim' : 'Foydalanuvchi');
                 const titleText = msg.title ? `: ${msg.title}` : '';
-                toast.info(`${senderName}${titleText}`, { theme: 'colored' })
+                if (msg.sender_id !== me?.id) {
+                    toast.info(`${senderName}${titleText}`, { theme: 'colored' })
+                }
             }
         })
 
         return () => sub.abort()
-    }, [fetchMessages, fetchAnnouncements, buildConversations])
+    }, [fetchMessages, fetchAnnouncements, fetchChatHistory, me?.id, selectedId])
+
+    useEffect(() => {
+        if (selectedId && selectedId !== 'channel') {
+            fetchChatHistory(selectedId)
+        }
+    }, [selectedId, fetchChatHistory])
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -239,20 +261,61 @@ export default function MessagesPage() {
 
         const delayDebounceFn = setTimeout(async () => {
             try {
-                const res = await api.searchUsers(userSearch)
+                setLoadingUserSearch(true)
+                const res = await api.searchUsers(userSearch, 1, 10)
                 if (res.success && res.data) {
                     const mapped = res.data
                         .filter(u => u.id !== me?.id)
                         .map(u => ({ value: u.id, label: u.full_name, role: u.role }))
                     setAllUsers(mapped)
+                    setUserSearchPage(1)
+                    if (res.pagination) {
+                        setUserSearchHasMore(res.pagination.current_page < res.pagination.total_pages)
+                    } else {
+                        setUserSearchHasMore(false)
+                    }
                 }
             } catch (err) {
                 console.error("Foydalanuvchilarni qidirishda xatolik:", err)
+            } finally {
+                setLoadingUserSearch(false)
             }
         }, 300)
 
         return () => clearTimeout(delayDebounceFn)
     }, [userSearch, showNewChat, me?.id])
+
+    const fetchMoreUsers = async () => {
+        if (loadingUserSearch || !userSearchHasMore) return;
+        
+        try {
+            setLoadingUserSearch(true)
+            const nextPage = userSearchPage + 1
+            const res = await api.searchUsers(userSearch, nextPage, 10)
+            if (res.success && res.data) {
+                const mapped = res.data
+                    .filter(u => u.id !== me?.id)
+                    .map(u => ({ value: u.id, label: u.full_name, role: u.role }))
+                
+                setAllUsers(prev => {
+                    const existingIds = new Set(prev.map(u => u.value))
+                    const newUsers = mapped.filter(u => !existingIds.has(u.value))
+                    return [...prev, ...newUsers]
+                })
+                
+                setUserSearchPage(nextPage)
+                if (res.pagination) {
+                    setUserSearchHasMore(res.pagination.current_page < res.pagination.total_pages)
+                } else {
+                    setUserSearchHasMore(false)
+                }
+            }
+        } catch (err) {
+            console.error("Yana foydalanuvchilarni yuklashda xatolik:", err)
+        } finally {
+            setLoadingUserSearch(false)
+        }
+    }
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -339,6 +402,24 @@ export default function MessagesPage() {
         }
     }
 
+    const handleSidebarScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        const { scrollTop, scrollHeight, clientHeight } = e.currentTarget
+        
+        // Use Math.ceil to handle fractional scrolling positions and a smaller threshold
+        const isNearBottom = Math.ceil(scrollTop) + clientHeight >= scrollHeight - 20
+        
+        if (showNewChat) {
+            if (isNearBottom && userSearchHasMore && !loadingUserSearch) {
+                fetchMoreUsers()
+            }
+            return
+        }
+        
+        if (isNearBottom && hasMore && !loadingMore && !loading) {
+            fetchMessages(false)
+        }
+    }
+
     const handleSend = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!inputText.trim() || !selectedId || sending) return
@@ -351,16 +432,40 @@ export default function MessagesPage() {
                 message: inputText.trim(),
             })
             if (res.success) {
-                const newMsg = res.data
-                setAllMessages(prev => {
-                    const updated = [...prev, newMsg]
-                    buildConversations(updated)
-                    return updated
-                })
                 setInputText('')
+                // Update local chat history immediately
+                if (selectedId) fetchChatHistory(selectedId)
+                // Refresh sidebar to show latest message preview
+                fetchMessages(true)
             }
         } catch (err: any) {
             toast.error(err.message || 'Xabar yuborishda xatolik')
+        } finally {
+            setSending(false)
+        }
+    }
+
+    const handleSendAnnouncement = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!inputText.trim() || sending) return
+
+        try {
+            setSending(true)
+            // Title is required by backend, we'll use a portion of the message or a default
+            const lines = inputText.trim().split('\n')
+            const title = lines[0].length > 50 ? lines[0].substring(0, 50) + '...' : lines[0]
+            
+            const res = await api.createAnnouncement({
+                title: title,
+                message: inputText.trim(),
+                category: 'Umumiy',
+            })
+            if (res.success) {
+                setInputText('')
+                fetchAnnouncements()
+            }
+        } catch (err: any) {
+            toast.error(err.message || 'E\'lon yuborishda xatolik')
         } finally {
             setSending(false)
         }
@@ -391,12 +496,7 @@ export default function MessagesPage() {
     }
 
     const selectedConv = conversations.find(c => c.contactId === selectedId)
-    const chatMessages = allMessages.filter(m => {
-        if (selectedId === 'system') {
-            return !m.sender_id || m.sender_id === 'system';
-        }
-        return m.sender_id === selectedId || m.receiver_id === selectedId;
-    }).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+    const chatMessages = selectedConv?.messages || []
 
     const unreadAnnouncementsCount = announcements.filter(a => !a.is_read).length
 
@@ -417,7 +517,7 @@ export default function MessagesPage() {
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto custom-scrollbar">
+                <div className="flex-1 overflow-y-auto custom-scrollbar" onScroll={handleSidebarScroll}>
                     {showNewChat ? (
                         <div className="flex flex-col">
                             <div className="flex items-center gap-2 p-2 border-b border-border">
@@ -430,6 +530,11 @@ export default function MessagesPage() {
                                     <div><p className="font-medium text-text text-sm">{u.label}</p><p className="text-[10px] text-text-muted capitalize">{u.role}</p></div>
                                 </button>
                             ))}
+                            {loadingUserSearch && (
+                                <div className="p-4 flex justify-center">
+                                    <Loader2 className="w-5 h-5 animate-spin text-primary opacity-50" />
+                                </div>
+                            )}
                         </div>
                     ) : (
                         <>
@@ -467,6 +572,12 @@ export default function MessagesPage() {
                                     </div>
                                 </button>
                             ))}
+                            
+                            {loadingMore && (
+                                <div className="p-4 flex justify-center">
+                                    <Loader2 className="w-5 h-5 animate-spin text-primary opacity-50" />
+                                </div>
+                            )}
                         </>
                     )}
                 </div>
@@ -487,6 +598,11 @@ export default function MessagesPage() {
                             {chatMessages.map(msg => (
                                 <div key={msg.id} className={`flex ${msg.sender_id === me?.id ? 'justify-end' : 'justify-start'}`}>
                                     <div className={`max-w-[75%] px-4 py-2 rounded-2xl text-sm shadow-xs ${msg.sender_id === me?.id ? 'bg-primary text-white rounded-br-none' : 'bg-canvas border border-border text-text rounded-bl-none'}`}>
+                                        {canSendMessage && msg.sender_id !== me?.id && (
+                                            <p className={`text-[10px] font-bold mb-1 opacity-70 ${msg.sender_id === 'system' || !msg.sender_id ? 'text-rose-500' : 'text-primary'}`}>
+                                                {msg.sender_name || (msg.sender_id === 'system' || !msg.sender_id ? 'Tizim' : 'Foydalanuvchi')}
+                                            </p>
+                                        )}
                                         <p className="whitespace-pre-wrap">{msg.message}</p>
                                         <div className={`flex items-center justify-end gap-1 mt-1 text-[9px] ${msg.sender_id === me?.id ? 'text-white/70' : 'text-text-muted'}`}>
                                             <span>{formatTime(msg.created_at)}</span>
@@ -526,9 +642,16 @@ export default function MessagesPage() {
                         </div>
 
                         <div className="flex-1 overflow-y-auto px-4 py-6 md:px-10 custom-scrollbar space-y-12">
-                            {announcements.length === 0 ? (
+                            {loading && (
+                                <div className="flex flex-col items-center justify-center py-12 gap-3 opacity-40">
+                                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                                    <p className="text-xs font-medium">Yuklanmoqda...</p>
+                                </div>
+                            )}
+                            {!loading && announcements.length === 0 && (
                                 <div className="h-full flex flex-col items-center justify-center opacity-20"><Megaphone className="w-24 h-24 mb-4" /><p className="text-xl font-bold">E'lonlar yo'q</p></div>
-                            ) : (
+                            )}
+                            {!loading && announcements.length > 0 && (
                                 [...announcements].reverse().map((ann) => (
                                     <div key={ann.id} className="max-w-2xl mx-auto bg-canvas rounded-3xl overflow-hidden shadow-card border border-border relative group animate-in slide-in-from-bottom-4 duration-500">
                                          {/* Visual Decoration */}
@@ -577,6 +700,26 @@ export default function MessagesPage() {
                             )}
                             <div ref={messagesEndRef} />
                         </div>
+
+                        {/* CHANNEL COMPOSE AREA (Admin/Staff only) */}
+                        {(me?.role === 'admin' || me?.role === 'staff') && (
+                            <form onSubmit={handleSendAnnouncement} className="p-4 border-t border-border flex items-end gap-2 bg-surface">
+                                <textarea 
+                                    value={inputText} 
+                                    onChange={e => setInputText(e.target.value)} 
+                                    placeholder="Kanalga xabar yozing..." 
+                                    rows={1} 
+                                    className="flex-1 resize-none bg-primary/5 rounded-xl px-4 py-3 text-sm focus:ring-1 focus:ring-primary/30 outline-none max-h-32 border border-primary/10" 
+                                />
+                                <button 
+                                    type="submit" 
+                                    disabled={!inputText.trim() || sending} 
+                                    className="w-11 h-11 flex items-center justify-center rounded-full bg-primary text-white disabled:opacity-50 shadow-lg shadow-primary/20 transition-transform active:scale-95"
+                                >
+                                    <Send className="w-5 h-5" />
+                                </button>
+                            </form>
+                        )}
 
                         {/* INLINE READ STATUS SLIDE-OVER (Global within the feed view) */}
                         <div ref={readStatusListRef} className={`absolute top-0 right-0 h-full w-full md:w-80 bg-canvas border-l border-border shadow-card transition-transform duration-300 z-30 ${showReadStatusId ? 'translate-x-0' : 'translate-x-full'}`} >

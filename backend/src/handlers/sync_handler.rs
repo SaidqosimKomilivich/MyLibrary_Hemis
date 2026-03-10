@@ -519,7 +519,35 @@ pub async fn search_users(
     }
 
     let q = query.get("q").map(|s| s.as_str()).unwrap_or("");
-    let limit: i64 = query.get("limit").and_then(|v| v.parse().ok()).unwrap_or(30).min(100);
+    let limit: i64 = query.get("limit").and_then(|v| v.parse().ok()).unwrap_or(10).min(100);
+    let page: i64 = query.get("page").and_then(|v| v.parse().ok()).unwrap_or(1).max(1);
+
+    let offset = (page - 1) * limit;
+
+    // Jami mos keluvchilar soni
+    let total_count = sqlx::query!(
+        r#"
+        SELECT COUNT(*)
+        FROM users
+        WHERE active = true
+          AND role IN ('admin', 'staff', 'teacher')
+          AND id != $2
+          AND (LOWER(full_name) LIKE LOWER($1))
+        "#,
+        format!("%{}%", q),
+        Uuid::from_str(&claims.sub).unwrap_or(Uuid::nil()),
+    )
+    .fetch_one(pool.get_ref())
+    .await
+    .map_err(actix_web::error::ErrorInternalServerError)?
+    .count
+    .unwrap_or(0);
+
+    let total_pages = if total_count == 0 {
+        1
+    } else {
+        (total_count as f64 / limit as f64).ceil() as i64
+    };
 
     // Faqat admin, staff va teacher bo'lgan faol foydalanuvchilarni qidirish
     let users = sqlx::query!(
@@ -531,11 +559,12 @@ pub async fn search_users(
           AND id != $3
           AND (LOWER(full_name) LIKE LOWER($1))
         ORDER BY full_name ASC
-        LIMIT $2
+        LIMIT $2 OFFSET $4
         "#,
         format!("%{}%", q),
         limit,
         Uuid::from_str(&claims.sub).unwrap_or(Uuid::nil()),
+        offset
     )
     .fetch_all(pool.get_ref())
     .await
@@ -552,5 +581,11 @@ pub async fn search_users(
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "success": true,
         "data": result,
+        "pagination": {
+            "current_page": page,
+            "total_pages": total_pages,
+            "total_items": total_count,
+            "per_page": limit
+        }
     })))
 }

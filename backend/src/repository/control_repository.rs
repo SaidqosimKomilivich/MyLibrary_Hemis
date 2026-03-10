@@ -117,15 +117,15 @@ impl ControlRepository {
         Ok(records)
     }
 
-    /// Yozuvni o'chirish
-    pub async fn delete(pool: &PgPool, id: Uuid) -> Result<bool, AppError> {
-        let result = sqlx::query(r#"DELETE FROM "control" WHERE "id" = $1"#)
-            .bind(id)
-            .execute(pool)
-            .await?;
+    // /// Yozuvni o'chirish
+    // pub async fn delete(pool: &PgPool, id: Uuid) -> Result<bool, AppError> {
+    //     let result = sqlx::query(r#"DELETE FROM "control" WHERE "id" = $1"#)
+    //         .bind(id)
+    //         .execute(pool)
+    //         .await?;
 
-        Ok(result.rows_affected() > 0)
-    }
+    //     Ok(result.rows_affected() > 0)
+    // }
 
     /// Bugungi barcha aktiv sessiyalarni avtomatik yopish (20:00:00 ga o'rnatish)
     /// Chiqmay ketib qolgan foydalanuvchilar uchun scheduler tomonidan chaqiriladi

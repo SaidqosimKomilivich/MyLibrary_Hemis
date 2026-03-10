@@ -34,7 +34,7 @@ import type {
     PaginatedMessageResponse,
     AnnouncementWithStatus,
     AnnouncementReadStatusResponse,
-    AnnouncementReadStatus
+    
 } from './api.types'
 
 export * from './api.types'
@@ -758,9 +758,9 @@ export const api = {
     },
 
     // User qidirish: xabar yuborish uchun 
-    searchUsers(query: string) {
-        return request<{ success: boolean; data: { id: string; full_name: string; role: string }[] }>(
-            `/users/search?q=${encodeURIComponent(query)}&limit=30`
+    searchUsers(query: string, page: number = 1, limit: number = 30) {
+        return request<{ success: boolean; data: { id: string; full_name: string; role: string }[]; pagination?: { current_page: number; total_pages: number; total_items: number; per_page: number } }>(
+            `/users/search?q=${encodeURIComponent(query)}&page=${page}&limit=${limit}`
         )
     },
 
@@ -768,6 +768,17 @@ export const api = {
     getMyMessages(params: PaginationParams = {}) {
         const qs = buildQueryString(params)
         return request<PaginatedMessageResponse>(`/messages${qs}`)
+    },
+
+    getChatHistory(contactId: string) {
+        return request<{ success: boolean; data: MessageDataItem[] }>(`/messages/history/${contactId}`)
+    },
+
+    createAnnouncement(data: { title: string, message: string, category?: string, images?: string[] }) {
+        return request<{ success: boolean; message: string; data: any }>('/announcements', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        })
     },
 
     getUnreadMessageCount() {

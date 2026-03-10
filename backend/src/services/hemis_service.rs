@@ -3,7 +3,7 @@ use tokio::sync::mpsc;
 
 use crate::config::Config;
 use crate::dto::hemis::{
-    HemisApiResponse, HemisEmployeeApiResponse, HemisEmployeeItem, HemisStudentItem, SyncResponse,
+    HemisApiResponse, HemisEmployeeApiResponse, HemisStudentItem, SyncResponse,
 };
 use crate::errors::AppError;
 use crate::repository::user_repository::UserRepository;
@@ -33,90 +33,6 @@ pub struct SyncProgressEvent {
 pub struct HemisService;
 
 impl HemisService {
-    /// HEMIS API dan talabalar ro'yxatini olish (barcha sahifalar) — eski usul
-    pub async fn fetch_all_students(config: &Config) -> Result<Vec<HemisStudentItem>, AppError> {
-        let client = reqwest::Client::builder()
-            .danger_accept_invalid_certs(config.hemis_skip_ssl)
-            .build()
-            .map_err(|e| {
-                AppError::InternalError(format!("HTTP client yaratishda xatolik: {}", e))
-            })?;
-
-        let mut all_students: Vec<HemisStudentItem> = Vec::new();
-        let mut page = 1;
-        let page_size = 200;
-
-        loop {
-            let url = format!(
-                "{}/rest/v1/data/student-list?page={}&limit={}",
-                config.hemis_base_url, page, page_size
-            );
-
-            tracing::info!(page = page, "HEMIS API dan talabalar olinmoqda...");
-
-            let response = client
-                .get(&url)
-                .header("Authorization", format!("Bearer {}", config.hemis_token))
-                .send()
-                .await
-                .map_err(|e| {
-                    AppError::InternalError(format!(
-                        "HEMIS API ga so'rov yuborishda xatolik: {}",
-                        e
-                    ))
-                })?;
-
-            if !response.status().is_success() {
-                let status = response.status();
-                let body = response.text().await.unwrap_or_default();
-                return Err(AppError::InternalError(format!(
-                    "HEMIS API xatosi: {} - {}",
-                    status, body
-                )));
-            }
-
-            let hemis_response: HemisApiResponse = response.json().await.map_err(|e| {
-                AppError::InternalError(format!("HEMIS javobini parse qilishda xatolik: {}", e))
-            })?;
-
-            if !hemis_response.success {
-                return Err(AppError::InternalError(
-                    "HEMIS API success: false qaytardi".to_string(),
-                ));
-            }
-
-            let items_count = hemis_response.data.items.len();
-            let total_pages = hemis_response.data.pagination.page_count;
-
-            all_students.extend(hemis_response.data.items);
-
-            tracing::info!(
-                page = page,
-                total_pages = total_pages,
-                items_in_page = items_count,
-                total_fetched = all_students.len(),
-                "Talabalar sahifasi olindi"
-            );
-
-            if page >= total_pages {
-                break;
-            }
-            page += 1;
-        }
-
-        tracing::info!(
-            total = all_students.len(),
-            "HEMIS API dan barcha talabalar olindi"
-        );
-        Ok(all_students)
-    }
-
-    /// HEMIS talabalarini bazaga sinxronlash (eski — bir yo'la)
-    pub async fn sync_students(pool: &PgPool, config: &Config) -> Result<SyncResponse, AppError> {
-        let (tx, _rx) = mpsc::channel::<SyncProgressEvent>(16);
-        Self::sync_students_stream(pool, config, tx).await
-    }
-
     /// ═══════════════════════════════════════════════════════════════
     /// YANGI: Oqimli (Streaming Pipeline) talabalar sinxronlashi
     /// Har bir HEMIS sahifasi yuklanishi bilan darhol qayta ishlanadi,
@@ -411,113 +327,6 @@ impl HemisService {
             updated: global_updated,
             total: global_processed,
         })
-    }
-
-    // ========================
-    // O'qituvchi / Xodim sinxronlash
-    // ========================
-
-    /// HEMIS API dan xodimlar ro'yxatini olish (barcha sahifalar)
-    /// type_filter: "teacher", "employee", yoki "all"
-    pub async fn fetch_all_employees(
-        config: &Config,
-        type_filter: &str,
-    ) -> Result<Vec<HemisEmployeeItem>, AppError> {
-        let client = reqwest::Client::builder()
-            .danger_accept_invalid_certs(config.hemis_skip_ssl)
-            .build()
-            .map_err(|e| {
-                AppError::InternalError(format!("HTTP client yaratishda xatolik: {}", e))
-            })?;
-
-        let mut all_employees: Vec<HemisEmployeeItem> = Vec::new();
-        let mut page = 1;
-        let page_size = 200;
-
-        loop {
-            let url = format!(
-                "{}/rest/v1/data/employee-list?type={}&page={}&limit={}",
-                config.hemis_base_url, type_filter, page, page_size
-            );
-
-            tracing::info!(
-                page = page,
-                type_filter = type_filter,
-                "HEMIS API dan xodimlar olinmoqda..."
-            );
-
-            let response = client
-                .get(&url)
-                .header("Authorization", format!("Bearer {}", config.hemis_token))
-                .send()
-                .await
-                .map_err(|e| {
-                    AppError::InternalError(format!(
-                        "HEMIS API ga so'rov yuborishda xatolik: {}",
-                        e
-                    ))
-                })?;
-
-            if !response.status().is_success() {
-                let status = response.status();
-                let body = response.text().await.unwrap_or_default();
-                return Err(AppError::InternalError(format!(
-                    "HEMIS Employee API xatosi: {} - {}",
-                    status, body
-                )));
-            }
-
-            let hemis_response: HemisEmployeeApiResponse = response.json().await.map_err(|e| {
-                AppError::InternalError(format!(
-                    "HEMIS Employee javobini parse qilishda xatolik: {}",
-                    e
-                ))
-            })?;
-
-            if !hemis_response.success {
-                return Err(AppError::InternalError(
-                    "HEMIS Employee API success: false qaytardi".to_string(),
-                ));
-            }
-
-            let items_count = hemis_response.data.items.len();
-            let total_pages = hemis_response.data.pagination.page_count;
-
-            all_employees.extend(hemis_response.data.items);
-
-            tracing::info!(
-                page = page,
-                total_pages = total_pages,
-                items_in_page = items_count,
-                total_fetched = all_employees.len(),
-                "Xodimlar sahifasi olindi"
-            );
-
-            if page >= total_pages {
-                break;
-            }
-            page += 1;
-        }
-
-        tracing::info!(
-            total = all_employees.len(),
-            type_filter = type_filter,
-            "HEMIS API dan barcha xodimlar olindi"
-        );
-        Ok(all_employees)
-    }
-
-    /// HEMIS xodimlarini bazaga sinxronlash (eski — bir yo'la)
-    /// role: "teacher" yoki "staff"
-    /// type_filter: HEMIS API uchun "teacher", "employee", yoki "all"
-    pub async fn sync_employees(
-        pool: &PgPool,
-        config: &Config,
-        type_filter: &str,
-        role: &str,
-    ) -> Result<SyncResponse, AppError> {
-        let (tx, _rx) = mpsc::channel::<SyncProgressEvent>(16);
-        Self::sync_employees_stream(pool, config, type_filter, role, tx).await
     }
 
     /// ═══════════════════════════════════════════════════════════════

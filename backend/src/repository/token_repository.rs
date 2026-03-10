@@ -62,17 +62,17 @@ impl TokenRepository {
         Ok(())
     }
 
-    /// Foydalanuvchining barcha tokenlarini bekor qilish (barcha qurilmalardan chiqish)
-    pub async fn revoke_all_for_user(pool: &PgPool, user_id: Uuid) -> Result<(), AppError> {
-        sqlx::query(
-            r#"UPDATE "refresh_tokens" SET "revoked_at" = CURRENT_TIMESTAMP WHERE "user_id" = $1 AND "revoked_at" IS NULL"#,
-        )
-        .bind(user_id)
-        .execute(pool)
-        .await?;
+    // /// Foydalanuvchining barcha tokenlarini bekor qilish (barcha qurilmalardan chiqish)
+    // pub async fn revoke_all_for_user(pool: &PgPool, user_id: Uuid) -> Result<(), AppError> {
+    //     sqlx::query(
+    //         r#"UPDATE "refresh_tokens" SET "revoked_at" = CURRENT_TIMESTAMP WHERE "user_id" = $1 AND "revoked_at" IS NULL"#,
+    //     )
+    //     .bind(user_id)
+    //     .execute(pool)
+    //     .await?;
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 
     /// Eski tokenni yangi token bilan almashtirish (rotation)
     pub async fn replace_token(

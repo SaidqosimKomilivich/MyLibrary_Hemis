@@ -1034,7 +1034,7 @@ impl ReportRepository {
         if let Some(c) = category {
             if !c.is_empty() {
                 query_str.push_str(&format!(" AND b.\"category\" = ${}", arg_idx));
-                args.add(c);
+                args.add(c).map_err(|e| AppError::InternalError(e.to_string()))?;
                 arg_idx += 1;
             }
         }
@@ -1042,7 +1042,7 @@ impl ReportRepository {
         if let Some(l) = language {
             if !l.is_empty() {
                 query_str.push_str(&format!(" AND b.\"language\" = ${}", arg_idx));
-                args.add(l);
+                args.add(l).map_err(|e| AppError::InternalError(e.to_string()))?;
                 arg_idx += 1;
             }
         }
@@ -1050,7 +1050,7 @@ impl ReportRepository {
         if let Some(f) = format {
             if !f.is_empty() {
                 query_str.push_str(&format!(" AND b.\"format\" = ${}", arg_idx));
-                args.add(f);
+                args.add(f).map_err(|e| AppError::InternalError(e.to_string()))?;
                 arg_idx += 1;
             }
         }
@@ -1058,7 +1058,7 @@ impl ReportRepository {
         if let Some(t) = teacher_id {
             if !t.is_empty() {
                 query_str.push_str(&format!(" AND b.\"submitted_by\" = ${}", arg_idx));
-                args.add(t);
+                args.add(t).map_err(|e| AppError::InternalError(e.to_string()))?;
                 // arg_idx += 1; // Last arg
             }
         }

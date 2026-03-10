@@ -19,13 +19,8 @@ pub struct HemisData {
 
 #[derive(Debug, Deserialize)]
 pub struct HemisPagination {
-    #[serde(rename = "totalCount")]
-    pub total_count: i64,
-    #[serde(rename = "pageSize")]
-    pub page_size: i64,
     #[serde(rename = "pageCount")]
     pub page_count: i64,
-    pub page: i64,
 }
 
 /// HEMIS API dagi {code, name} formatidagi maydonlar
@@ -38,30 +33,24 @@ pub struct HemisCodeName {
 /// HEMIS API dagi department (kafedra/fakultet) formati
 #[derive(Debug, Deserialize, Clone)]
 pub struct HemisDepartment {
-    pub id: Option<i64>,
     pub name: Option<String>,
-    pub code: Option<String>,
 }
 
 /// HEMIS API dagi specialty formati
 #[derive(Debug, Deserialize, Clone)]
 pub struct HemisSpecialty {
-    pub id: Option<i64>,
-    pub code: Option<String>,
     pub name: Option<String>,
 }
 
 /// HEMIS API dagi group formati
 #[derive(Debug, Deserialize, Clone)]
 pub struct HemisGroup {
-    pub id: Option<i64>,
     pub name: Option<String>,
 }
 
 /// HEMIS API dan keladigan bitta talaba ma'lumotlari
 #[derive(Debug, Deserialize, Clone)]
 pub struct HemisStudentItem {
-    pub id: i64,
     pub full_name: Option<String>,
     pub short_name: Option<String>,
     pub student_id_number: Option<String>,

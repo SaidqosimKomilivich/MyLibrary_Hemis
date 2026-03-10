@@ -1,7 +1,7 @@
-use chrono::NaiveDate;
+// use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
-use sqlx::FromRow;
-use uuid::Uuid;
+// use sqlx::FromRow;
+// use uuid::Uuid;
 
 /// PostgreSQL ENUM 'rental_status_type' ga mos keluvchi Rust enum
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type, PartialEq)]
@@ -24,16 +24,16 @@ impl std::fmt::Display for RentalStatus {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
-pub struct BookRental {
-    pub id: Uuid,
-    pub user_id: String,
-    pub book_id: String,
-    pub loan_date: NaiveDate,
-    pub due_date: NaiveDate,
-    pub return_date: Option<NaiveDate>,
-    pub status: RentalStatus,
-    pub notes: Option<String>,
-    pub created_at: Option<chrono::NaiveDateTime>,
-    pub updated_at: Option<chrono::NaiveDateTime>,
-}
+// #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+// pub struct BookRental {
+//     pub id: Uuid,
+//     pub user_id: String,
+//     pub book_id: String,
+//     pub loan_date: NaiveDate,
+//     pub due_date: NaiveDate,
+//     pub return_date: Option<NaiveDate>,
+//     pub status: RentalStatus,
+//     pub notes: Option<String>,
+//     pub created_at: Option<chrono::NaiveDateTime>,
+//     pub updated_at: Option<chrono::NaiveDateTime>,
+// }

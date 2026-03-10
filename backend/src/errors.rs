@@ -6,7 +6,6 @@ pub enum AppError {
     InternalError(String),
     BadRequest(String),
     Unauthorized(String),
-    Forbidden(String),
     NotFound(String),
 }
 
@@ -16,7 +15,6 @@ impl fmt::Display for AppError {
             AppError::InternalError(msg) => write!(f, "Ichki xatolik: {}", msg),
             AppError::BadRequest(msg) => write!(f, "Noto'g'ri so'rov: {}", msg),
             AppError::Unauthorized(msg) => write!(f, "Avtorizatsiya xatosi: {}", msg),
-            AppError::Forbidden(msg) => write!(f, "Ruxsat yo'q: {}", msg),
             AppError::NotFound(msg) => write!(f, "Topilmadi: {}", msg),
         }
     }
@@ -33,9 +31,6 @@ impl ResponseError for AppError {
             }
             AppError::Unauthorized(msg) => {
                 (actix_web::http::StatusCode::UNAUTHORIZED, msg.clone())
-            }
-            AppError::Forbidden(msg) => {
-                (actix_web::http::StatusCode::FORBIDDEN, msg.clone())
             }
             AppError::NotFound(msg) => {
                 (actix_web::http::StatusCode::NOT_FOUND, msg.clone())

@@ -46,34 +46,24 @@ pub async fn get_my_messages(
 ) -> Result<HttpResponse, AppError> {
     let user_id = Uuid::from_str(&claims.sub).map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
     let page = query.page.unwrap_or(1).max(1);
+    let per_page = 10_i64;
+    let offset = (page - 1) * per_page;
     
-    // In a real scenario, we'd add pagination to MessageRepository::get_all_messages too.
-    // I will assume the user wanted to fix the browser hanging by adding pagination here.
-    // Let's modify the response to use the paginated DTO.
-    
-    let messages = if claims.role == "admin" || claims.role == "staff" {
-        MessageRepository::get_all_messages(pool.get_ref()).await?
+    let (messages, total) = if claims.role == "admin" || claims.role == "staff" {
+        let msgs = MessageRepository::get_all_conversations_paginated(pool.get_ref(), per_page, offset).await?;
+        let count = MessageRepository::count_all_conversations(pool.get_ref()).await?;
+        (msgs, count)
     } else {
-        MessageRepository::get_user_messages(pool.get_ref(), user_id).await?
+        let msgs = MessageRepository::get_user_conversations_paginated(pool.get_ref(), user_id, per_page, offset).await?;
+        let count = MessageRepository::count_user_conversations(pool.get_ref(), user_id).await?;
+        (msgs, count)
     };
 
-    // Manual pagination for now to satisfy the "not hanging" requirement,
-    // though DB-level pagination is better.
-    let per_page = 20_i64;
-    let total = messages.len() as i64;
     let total_pages = (total + per_page - 1) / per_page;
-    let start = ((page - 1) * per_page) as usize;
-    let end = (start + per_page as usize).min(messages.len());
-    
-    let paginated_data = if start < messages.len() {
-        messages[start..end].to_vec()
-    } else {
-        vec![]
-    };
     
     Ok(HttpResponse::Ok().json(PaginatedMessageResponse {
         success: true,
-        data: paginated_data,
+        data: messages,
         pagination: crate::dto::news::NewsPagination {
             current_page: page,
             per_page,
@@ -149,6 +139,50 @@ pub async fn get_announcement_read_status(
     }))
 }
 
+/// POST /api/announcements
+/// Admin only: broadcast a standalone announcement to all users
+pub async fn create_announcement(
+    claims: Claims,
+    pool: web::Data<PgPool>,
+    message_service: web::Data<std::sync::Arc<MessageService>>,
+    body: web::Json<crate::dto::news::CreateNewsRequest>,
+) -> Result<HttpResponse, AppError> {
+    if let Err(resp) = require_role(&claims, &["admin", "staff"]) {
+        return Ok(resp);
+    }
+
+    let author_id = Uuid::from_str(&claims.sub).ok();
+    
+    // Create the announcement in DB
+    let announcement = AnnouncementRepository::create(
+        pool.get_ref(),
+        author_id,
+        &body.title,
+        &body.content,
+        body.category.clone(),
+        Some(body.images.clone()),
+    ).await?;
+
+    // Broadcast real-time
+    message_service.broadcast_announcement(crate::models::announcement::AnnouncementWithStatus {
+        id: announcement.id,
+        sender_id: announcement.sender_id,
+        sender_name: None, 
+        title: announcement.title.clone(),
+        message: announcement.message.clone(),
+        category: announcement.category.clone(),
+        images: announcement.images.clone(),
+        is_read: false,
+        created_at: announcement.created_at,
+    });
+
+    Ok(HttpResponse::Created().json(serde_json::json!({
+        "success": true,
+        "message": "E'lon muvaffaqiyatli yuborildi.",
+        "data": announcement
+    })))
+}
+
 /// GET /api/messages/unread
 /// Returns the number of unread messages for the user
 pub async fn get_unread_count(
@@ -213,11 +247,30 @@ pub async fn mark_as_read(
     })))
 }
 
+/// GET /api/messages/history/{contact_id}
+/// Returns full chat history between me and contact_id
+pub async fn get_chat_history(
+    claims: Claims,
+    pool: web::Data<PgPool>,
+    path: web::Path<Uuid>,
+) -> Result<HttpResponse, AppError> {
+    let user_id = Uuid::from_str(&claims.sub).map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
+    let contact_id = path.into_inner();
+    
+    let messages = MessageRepository::get_chat_history(pool.get_ref(), user_id, contact_id).await?;
+    
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "success": true,
+        "data": messages
+    })))
+}
+
 pub fn config(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/api/messages")
             .route("/stream", web::get().to(message_stream))
             .route("", web::get().to(get_my_messages))
+            .route("/history/{contact_id}", web::get().to(get_chat_history))
             .route("", web::post().to(send_message))
             .route("/unread", web::get().to(get_unread_count))
             .route("/{id}/read", web::patch().to(mark_as_read))
@@ -225,6 +278,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/api/announcements")
             .route("", web::get().to(get_announcements))
+            .route("", web::post().to(create_announcement))
             .route("/{id}/read", web::patch().to(mark_announcement_as_read))
             .route("/{id}/read-status", web::get().to(get_announcement_read_status))
     );

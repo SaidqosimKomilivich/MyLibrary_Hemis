@@ -44,16 +44,7 @@ impl MessageService {
         false
     }
 
-    /// Broadcast a list of messages (one per receiver) to all online users via SSE.
-    /// Typically called after create_broadcast in the repository.
-    pub fn broadcast_messages(&self, messages: Vec<MessageResponseDto>) {
-        for msg in messages {
-            if let Some(recv_id) = msg.receiver_id {
-                self.send_message(recv_id, msg);
-            }
-        }
-    }
-
+    
     /// Broadcast a single announcement to ALL online users.
     /// Announcements are sent to every active connection.
     pub fn broadcast_announcement(&self, announcement: crate::models::announcement::AnnouncementWithStatus) {
