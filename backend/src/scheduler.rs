@@ -22,7 +22,7 @@ use std::sync::Arc;
 pub async fn start_auto_checkout_scheduler(pool: PgPool) {
     tracing::info!("🕗 Auto-checkout scheduleri ishga tushdi (har kuni 20:00 da ishlaydi)");
 
-    let target_time = NaiveTime::from_hms_opt(20, 0, 0).expect("20:00:00 vaqtini yaratib bo'lmadi");
+    let target_time = NaiveTime::from_hms_opt(20, 00, 0).expect("20:00:00 vaqtini yaratib bo'lmadi");
 
     loop {
         let now = Local::now();
@@ -79,7 +79,7 @@ pub async fn start_auto_checkout_scheduler(pool: PgPool) {
 pub async fn start_rental_reminder_scheduler(pool: PgPool, message_service: Arc<MessageService>) {
     tracing::info!("🔔 Rental-reminder scheduleri ishga tushdi (har kuni 06:00 da ishlaydi)");
 
-    let target_time = NaiveTime::from_hms_opt(6, 00, 0).expect("06:00:00 vaqtini yaratib bo'lmadi");
+    let target_time = NaiveTime::from_hms_opt(06, 00, 0).expect("06:00:00 vaqtini yaratib bo'lmadi");
 
     loop {
         let now = Local::now();

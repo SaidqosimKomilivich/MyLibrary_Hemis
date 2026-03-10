@@ -21,6 +21,8 @@ pub struct MessageResponseDto {
     pub receiver_role: Option<String>,
     pub title: String,
     pub message: String,
+    pub category: Option<String>,
+    pub images: Option<Vec<String>>,
     pub is_read: bool,
     pub created_at: DateTime<Utc>,
 }
@@ -28,4 +30,18 @@ pub struct MessageResponseDto {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UnreadCountDto {
     pub unread_count: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PaginatedMessageResponse {
+    pub success: bool,
+    pub data: Vec<MessageResponseDto>,
+    pub pagination: crate::dto::news::NewsPagination,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AnnouncementReadStatusResponse {
+    pub success: bool,
+    pub data: Vec<crate::models::announcement::AnnouncementReadStatus>,
+    pub pagination: crate::dto::news::NewsPagination,
 }

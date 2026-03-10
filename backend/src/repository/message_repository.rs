@@ -56,7 +56,10 @@ impl MessageRepository {
             receiver_role: receiver_info.as_ref().map(|r| r.role.clone()),
             title: message.title,
             message: message.message,
+            category: None,
+            images: None,
             is_read: message.is_read,
+
             created_at: message.created_at,
         })
     }
@@ -77,7 +80,7 @@ impl MessageRepository {
             LEFT JOIN users s ON m.sender_id = s.id
             LEFT JOIN users r ON m.receiver_id = r.id
             WHERE m.receiver_id = $1 OR m.sender_id = $1
-            ORDER BY m.created_at ASC
+            ORDER BY m.created_at DESC
             "#,
             user_id
         )
@@ -94,7 +97,10 @@ impl MessageRepository {
             receiver_role: row.receiver_role,
             title: row.title,
             message: row.message,
+            category: None,
+            images: None,
             is_read: row.is_read,
+
             created_at: row.created_at,
         }).collect();
 
@@ -115,7 +121,7 @@ impl MessageRepository {
             FROM messages m
             LEFT JOIN users s ON m.sender_id = s.id
             LEFT JOIN users r ON m.receiver_id = r.id
-            ORDER BY m.created_at ASC
+            ORDER BY m.created_at DESC
             "#
         )
         .fetch_all(pool)
@@ -131,7 +137,10 @@ impl MessageRepository {
             receiver_role: row.receiver_role,
             title: row.title,
             message: row.message,
+            category: None,
+            images: None,
             is_read: row.is_read,
+
             created_at: row.created_at,
         }).collect();
 
@@ -222,7 +231,10 @@ impl MessageRepository {
                     receiver_role: Some(rec_role),
                     title: row.title,
                     message: row.message,
+                    category: None,
+                    images: None,
                     is_read: row.is_read,
+
                     created_at: row.created_at,
                 })
             })

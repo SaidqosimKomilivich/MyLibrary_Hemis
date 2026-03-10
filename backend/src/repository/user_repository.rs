@@ -95,7 +95,7 @@ impl UserRepository {
         }
         if phone.is_some() {
             query.push_str(&format!(r#", "phone" = COALESCE("phone", ${})"#, bind_idx));
-            bind_idx += 1;
+            // bind_idx += 1;
         }
 
         query.push_str(" WHERE \"id\" = $2");

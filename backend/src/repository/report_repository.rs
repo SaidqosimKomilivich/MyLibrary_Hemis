@@ -921,7 +921,7 @@ impl ReportRepository {
         // Role filtri (yoki umuman adminlarni chiqarib tashlash qoidasi)
         if role.is_some() && !role.unwrap_or("").is_empty() {
             let cond = format!("\"role\" = ${}::text", param_idx);
-            param_idx += 1;
+            // param_idx += 1;
             conditions.push(cond);
         } else {
             // Default: 'admin' rolini chiqarmaymiz

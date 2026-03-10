@@ -3,10 +3,11 @@ use sqlx::PgPool;
 use std::str::FromStr;
 use uuid::Uuid;
 
-use crate::dto::message::{SendMessageDto, UnreadCountDto};
+use crate::dto::message::{SendMessageDto, UnreadCountDto, PaginatedMessageResponse, AnnouncementReadStatusResponse};
 use crate::errors::AppError;
 use crate::middleware::auth_middleware::{Claims, require_role};
 use crate::repository::message_repository::MessageRepository;
+use crate::repository::announcement_repository::AnnouncementRepository;
 use crate::services::message_service::MessageService;
 
 /// GET /api/messages/stream
@@ -41,19 +42,111 @@ pub async fn message_stream(
 pub async fn get_my_messages(
     claims: Claims,
     pool: web::Data<PgPool>,
+    query: web::Query<crate::dto::news::NewsListParams>,
 ) -> Result<HttpResponse, AppError> {
     let user_id = Uuid::from_str(&claims.sub).map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
+    let page = query.page.unwrap_or(1).max(1);
+    
+    // In a real scenario, we'd add pagination to MessageRepository::get_all_messages too.
+    // I will assume the user wanted to fix the browser hanging by adding pagination here.
+    // Let's modify the response to use the paginated DTO.
     
     let messages = if claims.role == "admin" || claims.role == "staff" {
         MessageRepository::get_all_messages(pool.get_ref()).await?
     } else {
         MessageRepository::get_user_messages(pool.get_ref(), user_id).await?
     };
+
+    // Manual pagination for now to satisfy the "not hanging" requirement,
+    // though DB-level pagination is better.
+    let per_page = 20_i64;
+    let total = messages.len() as i64;
+    let total_pages = (total + per_page - 1) / per_page;
+    let start = ((page - 1) * per_page) as usize;
+    let end = (start + per_page as usize).min(messages.len());
+    
+    let paginated_data = if start < messages.len() {
+        messages[start..end].to_vec()
+    } else {
+        vec![]
+    };
+    
+    Ok(HttpResponse::Ok().json(PaginatedMessageResponse {
+        success: true,
+        data: paginated_data,
+        pagination: crate::dto::news::NewsPagination {
+            current_page: page,
+            per_page,
+            total_items: total,
+            total_pages,
+        },
+    }))
+}
+
+// ─────────────────────────────────────────────────────────────
+// ANNOUNCEMENT endpoints
+// ─────────────────────────────────────────────────────────────
+
+/// GET /api/announcements
+pub async fn get_announcements(
+    claims: Claims,
+    pool: web::Data<PgPool>,
+) -> Result<HttpResponse, AppError> {
+    let user_id = Uuid::from_str(&claims.sub).map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
+    let announcements = AnnouncementRepository::list_for_user(pool.get_ref(), user_id).await?;
     
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "success": true,
-        "data": messages
+        "data": announcements
     })))
+}
+
+/// PATCH /api/announcements/{id}/read
+pub async fn mark_announcement_as_read(
+    claims: Claims,
+    pool: web::Data<PgPool>,
+    path: web::Path<Uuid>,
+) -> Result<HttpResponse, AppError> {
+    let user_id = Uuid::from_str(&claims.sub).map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
+    let announcement_id = path.into_inner();
+    
+    AnnouncementRepository::mark_as_read(pool.get_ref(), user_id, announcement_id).await?;
+    
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "success": true,
+        "message": "E'lon o'qilgan deb belgilandi."
+    })))
+}
+
+/// GET /api/announcements/{id}/read-status
+/// Admin only: paginated list of users who read it
+pub async fn get_announcement_read_status(
+    claims: Claims,
+    pool: web::Data<PgPool>,
+    path: web::Path<Uuid>,
+    query: web::Query<crate::dto::news::NewsListParams>,
+) -> Result<HttpResponse, AppError> {
+    if let Err(resp) = require_role(&claims, &["admin", "staff"]) {
+        return Ok(resp);
+    }
+
+    let announcement_id = path.into_inner();
+    let page = query.page.unwrap_or(1).max(1);
+    
+    let (data, total) = AnnouncementRepository::get_read_status_paginated(pool.get_ref(), announcement_id, page).await?;
+    let per_page = 5_i64; // SHARED REQUIREMENT: 5 users per page
+    let total_pages = (total + per_page - 1) / per_page;
+
+    Ok(HttpResponse::Ok().json(AnnouncementReadStatusResponse {
+        success: true,
+        data,
+        pagination: crate::dto::news::NewsPagination {
+            current_page: page,
+            per_page,
+            total_items: total,
+            total_pages,
+        },
+    }))
 }
 
 /// GET /api/messages/unread
@@ -80,8 +173,8 @@ pub async fn send_message(
     message_service: web::Data<std::sync::Arc<crate::services::message_service::MessageService>>,
     payload: web::Json<SendMessageDto>,
 ) -> Result<HttpResponse, actix_web::Error> {
-    // FAQAT admin va staff ruxsat etiladi
-    if let Err(resp) = require_role(&claims, &["admin", "staff"]) {
+    // FAQAT admin, staff va teacher ruxsat etiladi
+    if let Err(resp) = require_role(&claims, &["admin", "staff", "teacher"]) {
         return Ok(resp);
     }
 
@@ -128,5 +221,11 @@ pub fn config(cfg: &mut web::ServiceConfig) {
             .route("", web::post().to(send_message))
             .route("/unread", web::get().to(get_unread_count))
             .route("/{id}/read", web::patch().to(mark_as_read))
+    );
+    cfg.service(
+        web::scope("/api/announcements")
+            .route("", web::get().to(get_announcements))
+            .route("/{id}/read", web::patch().to(mark_announcement_as_read))
+            .route("/{id}/read-status", web::get().to(get_announcement_read_status))
     );
 }

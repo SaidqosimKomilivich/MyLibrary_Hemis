@@ -6,3 +6,4 @@ pub mod reading;
 pub mod rental;
 pub mod token;
 pub mod user;
+pub mod announcement;

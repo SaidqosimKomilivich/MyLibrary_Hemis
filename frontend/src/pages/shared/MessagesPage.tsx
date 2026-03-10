@@ -1,11 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { createPortal } from 'react-dom'
-import type { MessageDataItem } from '../../services/api'
+import type { MessageDataItem, AnnouncementWithStatus, AnnouncementReadStatus } from '../../services/api.types'
 import { api } from '../../services/api'
-import { Send, Plus, Search, X, MessageSquare, Check, CheckCheck } from 'lucide-react'
+import { Send, Plus, Search, X, MessageSquare, Check, CheckCheck, Users, Megaphone, Loader2, ArrowLeft } from 'lucide-react'
 import { toast } from 'react-toastify'
 import { useAuth } from '../../context/AuthContext'
-import { highlightText } from '../../utils/highlightText'
 
 // --- Types ---
 interface Conversation {
@@ -20,15 +18,18 @@ interface Conversation {
 
 // --- Helpers ---
 function getInitials(name: string) {
+    if (!name) return '?'
     return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
 }
 
 function formatTime(iso: string) {
+    if (!iso) return ''
     const d = new Date(iso)
     return d.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })
 }
 
 function formatDate(iso: string) {
+    if (!iso) return ''
     const d = new Date(iso)
     const today = new Date()
     const diff = today.getDate() - d.getDate()
@@ -46,6 +47,7 @@ const AVATAR_COLORS = [
     'from-rose-500 to-pink-600',
 ]
 function avatarColor(name: string) {
+    if (!name) return AVATAR_COLORS[0]
     let hash = 0
     for (const c of name) hash = (hash + c.charCodeAt(0)) % AVATAR_COLORS.length
     return AVATAR_COLORS[hash]
@@ -54,25 +56,37 @@ function avatarColor(name: string) {
 // --- Main Component ---
 export default function MessagesPage() {
     const { user: me } = useAuth()
-    const canSendMessage = me?.role === 'admin' || me?.role === 'staff'
+    const canSendMessage = me?.role === 'admin' || me?.role === 'staff' || me?.role === 'teacher'
     const [allMessages, setAllMessages] = useState<MessageDataItem[]>([])
+    const [announcements, setAnnouncements] = useState<AnnouncementWithStatus[]>([])
     const [conversations, setConversations] = useState<Conversation[]>([])
     const [selectedId, setSelectedId] = useState<string | null>(null)
+    const [isChannelSelected, setIsChannelSelected] = useState(false)
+    
     const [loading, setLoading] = useState(true)
+    const [loadingMore, setLoadingMore] = useState(false)
+    const [page, setPage] = useState(1)
+    const [hasMore, setHasMore] = useState(true)
     const [searchQuery, setSearchQuery] = useState('')
     const [showNewChat, setShowNewChat] = useState(false)
-    const [selectedMessage, setSelectedMessage] = useState<MessageDataItem | null>(null)
+
+    // Who Read Status Panel (Inline)
+    const [showReadStatusId, setShowReadStatusId] = useState<string | null>(null)
+    const [readStatusList, setReadStatusList] = useState<AnnouncementReadStatus[]>([])
+    const [readStatusPage, setReadStatusPage] = useState(1)
+    const [readStatusHasMore, setReadStatusHasMore] = useState(false)
+    const [loadingReadStatus, setLoadingReadStatus] = useState(false)
 
     // Send
     const [inputText, setInputText] = useState('')
     const [sending, setSending] = useState(false)
 
-    // New chat
+    // New chat search
     const [allUsers, setAllUsers] = useState<{ value: string; label: string; role: string }[]>([])
     const [userSearch, setUserSearch] = useState('')
     const messagesEndRef = useRef<HTMLDivElement>(null)
+    const readStatusListRef = useRef<HTMLDivElement>(null)
 
-    // Build conversations from messages
     const buildConversations = useCallback((msgs: MessageDataItem[]) => {
         if (!me) return
         const map = new Map<string, Conversation>()
@@ -90,19 +104,25 @@ export default function MessagesPage() {
                 contactName = msg.receiver_name || 'Foydalanuvchi';
                 contactRole = msg.receiver_role || '';
             } else if (isReceivedByMe) {
-                contactId = msg.sender_id || '';
-                contactName = msg.sender_name || 'Tizim';
-                contactRole = msg.sender_role || '';
+                // If sender_id is null, it's a system message
+                contactId = msg.sender_id || 'system';
+                contactName = msg.sender_name || (msg.sender_id ? 'Foydalanuvchi' : 'Tizim');
+                contactRole = msg.sender_role || (msg.sender_id ? '' : 'System');
             } else {
-                // If admin/staff viewing another's message:
-                if (!msg.sender_id || msg.sender_role === 'admin' || msg.sender_role === 'staff') {
-                    // Sent by system or admin/staff -> contact is receiver
-                    contactId = msg.receiver_id || '';
-                    contactName = msg.receiver_name || 'Foydalanuvchi';
-                    contactRole = msg.receiver_role || '';
+                // Admin/Staff view of all messages
+                const sid = msg.sender_id;
+                const rid = msg.receiver_id;
+
+                if (!sid || sid === 'system') {
+                    contactId = 'system';
+                    contactName = 'Tizim';
+                    contactRole = 'System';
+                } else if (rid === me.id || sid === me.id) {
+                    // This case is already handled by isSentByMe/isReceivedByMe but added for safety
+                    contactId = isSentByMe ? rid! : sid;
+                    contactName = isSentByMe ? (msg.receiver_name || 'Foydalanuvchi') : (msg.sender_name || 'Foydalanuvchi');
                 } else {
-                    // Sent by student/employee -> contact is sender
-                    contactId = msg.sender_id || '';
+                    contactId = sid;
                     contactName = msg.sender_name || 'Foydalanuvchi';
                     contactRole = msg.sender_role || '';
                 }
@@ -131,55 +151,89 @@ export default function MessagesPage() {
             }
         })
 
-        // Sort conversations by last message time
         const list = Array.from(map.values()).sort(
             (a, b) => new Date(b.lastTime).getTime() - new Date(a.lastTime).getTime()
         )
         setConversations(list)
     }, [me])
 
-    const fetchMessages = useCallback(async () => {
+    const fetchMessages = useCallback(async (isInitial = true) => {
         try {
-            setLoading(true)
-            const res = await api.getMyMessages()
+            if (isInitial) {
+                setLoading(true)
+                setPage(1)
+            } else {
+                setLoadingMore(true)
+            }
+
+            const currentPage = isInitial ? 1 : page + 1
+            const res = await api.getMyMessages({ page: currentPage })
+            
             if (res.success) {
-                setAllMessages(res.data)
-                buildConversations(res.data)
+                if (isInitial) {
+                    setAllMessages(res.data)
+                    buildConversations(res.data)
+                } else {
+                    setAllMessages(prev => {
+                        const updated = [...prev, ...res.data]
+                        buildConversations(updated)
+                        return updated
+                    })
+                    setPage(currentPage)
+                }
+                setHasMore(res.pagination.current_page < res.pagination.total_pages)
             }
         } catch (err: any) {
             toast.error(err.message || 'Xabarlarni yuklashda xatolik')
         } finally {
             setLoading(false)
+            setLoadingMore(false)
         }
-    }, [buildConversations])
+    }, [buildConversations, page])
+
+    const fetchAnnouncements = useCallback(async () => {
+        try {
+            const res = await api.getAnnouncements()
+            if (res.success) {
+                setAnnouncements(res.data)
+            }
+        } catch (err: any) {
+            console.error("E'lonlarni yuklashda xatolik:", err)
+        }
+    }, [])
 
     useEffect(() => {
-        fetchMessages()
+        fetchMessages(true)
+        fetchAnnouncements()
 
-        const sub = api.subscribeToMessages((msg) => {
-            setAllMessages(prev => {
-                const updated = [...prev, msg]
-                buildConversations(updated)
-                return updated
-            })
-            // Auto-mark as read if this conversation is open
-            setSelectedId(sel => {
-                if (sel === msg.sender_id) {
-                    api.markMessageAsRead(msg.id).catch(() => { })
-                }
-                return sel
-            })
+        const sub = api.subscribeToMessages((msg: any) => {
+            const isAnnouncement = !msg.receiver_id;
+            const isSystemMessage = !msg.sender_id || msg.sender_role === 'system';
+            
+            if (isAnnouncement) {
+                fetchAnnouncements()
+                toast.info(`${msg.title || 'Yangilik'}`, { theme: 'colored' })
+            } else {
+                // Direct message (either from system or another user)
+                setAllMessages(prev => {
+                    const updated = [msg, ...prev]
+                    buildConversations(updated)
+                    return updated
+                })
+
+                const senderName = msg.sender_name || (isSystemMessage ? 'Tizim' : 'Foydalanuvchi');
+                const titleText = msg.title ? `: ${msg.title}` : '';
+                toast.info(`${senderName}${titleText}`, { theme: 'colored' })
+            }
         })
 
         return () => sub.abort()
-    }, [fetchMessages, buildConversations])
+    }, [fetchMessages, fetchAnnouncements, buildConversations])
 
-    // Scroll to bottom on chat open or new message
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }, [selectedId, allMessages])
+    }, [selectedId, isChannelSelected, announcements, allMessages])
 
-    // Search users dynamically from backend
     useEffect(() => {
         if (!showNewChat) return
 
@@ -200,37 +254,94 @@ export default function MessagesPage() {
         return () => clearTimeout(delayDebounceFn)
     }, [userSearch, showNewChat, me?.id])
 
-    const openNewChat = () => {
-        if (!canSendMessage) return
-        setShowNewChat(true)
-        setUserSearch('')
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (showReadStatusId && readStatusListRef.current && !readStatusListRef.current.contains(event.target as Node)) {
+                // If clicking a toggle button, let toggleReadStatus handled it
+                const target = event.target as HTMLElement;
+                if (target.closest('.read-status-toggle')) return;
+                
+                setShowReadStatusId(null);
+            }
+        };
+
+        if (showReadStatusId) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showReadStatusId]);
+
+    const handleSelectConversation = (conv: Conversation) => {
+        setSelectedId(conv.contactId)
+        setIsChannelSelected(false)
+        setShowReadStatusId(null)
+        conv.messages.forEach(m => {
+            if (!m.is_read && m.sender_id !== me?.id) {
+                api.markMessageAsRead(m.id).catch(() => { })
+            }
+        })
+        setConversations(prev => prev.map(c =>
+            c.contactId === conv.contactId ? { ...c, unreadCount: 0 } : c
+        ))
+        setAllMessages(prev => prev.map(m =>
+            !m.is_read && m.sender_id === conv.contactId ? { ...m, is_read: true } : m
+        ))
     }
 
-    const selectUser = (userId: string, userName: string, userRole: string) => {
-        setShowNewChat(false)
-        // Check if conversation already exists
-        const exists = conversations.find(c => c.contactId === userId)
-        if (!exists) {
-            // Create a placeholder conversation
-            setConversations(prev => [{
-                contactId: userId,
-                contactName: userName,
-                contactRole: userRole,
-                lastMessage: '',
-                lastTime: new Date().toISOString(),
-                unreadCount: 0,
-                messages: [],
-            }, ...prev])
+    const handleSelectChannel = () => {
+        setIsChannelSelected(true)
+        setSelectedId(null)
+        setShowReadStatusId(null)
+        // Mark all announcements as read when opening channel
+        announcements.forEach(ann => {
+            if (!ann.is_read) {
+                api.markAnnouncementAsRead(ann.id).catch(() => { })
+            }
+        })
+        setAnnouncements(prev => prev.map(a => ({ ...a, is_read: true })))
+    }
+
+    const toggleReadStatus = async (announcementId: string) => {
+        if (showReadStatusId === announcementId) {
+            setShowReadStatusId(null)
+            return
         }
-        setSelectedId(userId)
+        
+        setShowReadStatusId(announcementId)
+        setReadStatusList([])
+        setReadStatusPage(1)
+        setReadStatusHasMore(false)
+        fetchReadStatus(announcementId, 1)
+    }
+
+    const fetchReadStatus = async (announcementId: string, pageNum: number) => {
+        try {
+            setLoadingReadStatus(true)
+            const res = await api.getAnnouncementReadStatus(announcementId, pageNum)
+            if (res.success) {
+                setReadStatusList(prev => pageNum === 1 ? res.data : [...prev, ...res.data])
+                setReadStatusHasMore(res.pagination.current_page < res.pagination.total_pages)
+                setReadStatusPage(res.pagination.current_page)
+            }
+        } catch (err: any) {
+            toast.error(err.message || "O'qilganlar holatini yuklashda xatolik")
+        } finally {
+            setLoadingReadStatus(false)
+        }
+    }
+
+    const handleReadStatusScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        const { scrollTop, scrollHeight, clientHeight } = e.currentTarget
+        if (scrollHeight - scrollTop <= clientHeight + 50 && readStatusHasMore && !loadingReadStatus && showReadStatusId) {
+            fetchReadStatus(showReadStatusId, readStatusPage + 1)
+        }
     }
 
     const handleSend = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!inputText.trim() || !selectedId || sending) return
-
-        const conv = conversations.find(c => c.contactId === selectedId)
-        if (!conv) return
 
         try {
             setSending(true)
@@ -255,368 +366,261 @@ export default function MessagesPage() {
         }
     }
 
-    const handleSelectConversation = (conv: Conversation) => {
-        setSelectedId(conv.contactId)
-        // Mark unread as read
-        conv.messages.forEach(m => {
-            if (!m.is_read && m.sender_id !== me?.id) {
-                api.markMessageAsRead(m.id).catch(() => { })
-            }
-        })
-        setConversations(prev => prev.map(c =>
-            c.contactId === conv.contactId ? { ...c, unreadCount: 0 } : c
-        ))
-        setAllMessages(prev => prev.map(m =>
-            !m.is_read && m.sender_id === conv.contactId ? { ...m, is_read: true } : m
-        ))
+    const openNewChat = () => {
+        if (!canSendMessage) return
+        setShowNewChat(true)
+        setUserSearch('')
+    }
+
+    const selectUser = (userId: string, userName: string, userRole: string) => {
+        setShowNewChat(false)
+        const exists = conversations.find(c => c.contactId === userId)
+        if (!exists) {
+            setConversations(prev => [{
+                contactId: userId,
+                contactName: userName,
+                contactRole: userRole,
+                lastMessage: '',
+                lastTime: new Date().toISOString(),
+                unreadCount: 0,
+                messages: [],
+            }, ...prev])
+        }
+        setSelectedId(userId)
+        setIsChannelSelected(false)
     }
 
     const selectedConv = conversations.find(c => c.contactId === selectedId)
-    // Chat messages for the selected conversation (from allMessages)
-    const chatMessages = allMessages.filter(m =>
-        m.sender_id === selectedId || m.receiver_id === selectedId
-    ).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+    const chatMessages = allMessages.filter(m => {
+        if (selectedId === 'system') {
+            return !m.sender_id || m.sender_id === 'system';
+        }
+        return m.sender_id === selectedId || m.receiver_id === selectedId;
+    }).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
 
-    const filteredConversations = conversations.filter(c =>
-        c.contactName.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-    // Filtered users array is already managed by the backend search effect
-    const filteredUsers = allUsers
-
-    // For non-admin/staff users, show a simplified list + modal
-    if (!canSendMessage) {
-        return (
-            <div className="-m-6 max-md:-m-4 p-4 md:p-6 h-[calc(100dvh-64px)] bg-surface shadow-xl flex flex-col">
-                <h2 className="text-2xl font-bold text-text mb-6 px-2">Bildirishnomalar</h2>
-                <div className="flex-1 overflow-y-auto custom-scrollbar px-2 pb-4">
-                    {loading ? (
-                        <div className="flex flex-col gap-3">
-                            {[...Array(5)].map((_, i) => (
-                                <div key={i} className="h-20 bg-surface rounded-xl border border-border animate-pulse" />
-                            ))}
-                        </div>
-                    ) : allMessages.length === 0 ? (
-                        <div className="text-center py-16 text-text-muted bg-surface rounded-2xl border border-border shadow-sm">
-                            <MessageSquare className="w-16 h-16 mx-auto mb-4 opacity-20" />
-                            <p className="text-lg">Hozircha tizimdan yoki adminlardan xabarlar yo'q.</p>
-                        </div>
-                    ) : (
-                        <div className="space-y-3">
-                            {allMessages.slice().sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map(msg => (
-                                <button
-                                    key={msg.id}
-                                    onClick={() => {
-                                        setSelectedMessage(msg)
-                                        if (!msg.is_read && msg.receiver_id === me?.id) {
-                                            api.markMessageAsRead(msg.id).catch(() => { })
-                                            setAllMessages(prev => prev.map(m => m.id === msg.id ? { ...m, is_read: true } : m))
-                                        }
-                                    }}
-                                    className={`w-full flex items-center gap-4 p-4 rounded-xl border transition-all text-left shadow-sm ${msg.is_read ? 'bg-surface border-border hover:border-primary/30' : 'bg-primary/5 border-primary/20 hover:bg-primary/10'}`}
-                                >
-                                    <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${msg.is_read ? 'bg-surface-hover text-text-muted' : 'bg-primary text-white shadow-sm'}`}>
-                                        <MessageSquare className="w-5 h-5" />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex justify-between items-baseline mb-1">
-                                            <h3 className={`font-semibold text-sm truncate pr-2 ${msg.is_read ? 'text-text' : 'text-primary'}`}>
-                                                {msg.title || (msg.sender_name ? `${msg.sender_name} dan xabar` : 'Tizim bildirishnomasi')}
-                                            </h3>
-                                            <span className="text-[11px] text-text-muted shrink-0">
-                                                {formatDate(msg.created_at)} {formatTime(msg.created_at)}
-                                            </span>
-                                        </div>
-                                        <p className={`text-sm truncate ${msg.is_read ? 'text-text-muted' : 'text-text font-medium'}`}>
-                                            {msg.message}
-                                        </p>
-                                    </div>
-                                </button>
-                            ))}
-                        </div>
-                    )}
-                </div>
-
-                {/* Modal View for the Message */}
-                {selectedMessage && createPortal(
-                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-999 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setSelectedMessage(null)}>
-                        <div className="bg-surface border border-border rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
-                            <div className="flex justify-between items-center p-5 border-b border-border bg-white/5 rounded-t-2xl">
-                                <h2 className="m-0 text-lg font-bold text-text truncate pr-4">
-                                    {selectedMessage.title || 'Bildirishnoma'}
-                                </h2>
-                                <button onClick={() => setSelectedMessage(null)} className="flex p-1.5 rounded-lg border-none bg-transparent cursor-pointer text-text-muted transition-colors hover:bg-white/10 hover:text-rose-400">
-                                    <X size={20} />
-                                </button>
-                            </div>
-                            <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
-                                <div className="flex items-center gap-3 mb-6 p-4 rounded-xl bg-surface-hover/50 border border-border/50">
-                                    <div className={`w-12 h-12 rounded-full bg-linear-to-br ${avatarColor(selectedMessage.sender_name || 'Tizim')} flex items-center justify-center text-white font-bold shrink-0 shadow-sm text-lg`}>
-                                        {getInitials(selectedMessage.sender_name || 'Tizim')}
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <span className="font-semibold text-text text-base">{selectedMessage.sender_name || 'Tizim'}</span>
-                                        <span className="text-sm text-text-muted mt-0.5">{formatDate(selectedMessage.created_at)} {formatTime(selectedMessage.created_at)}</span>
-                                    </div>
-                                </div>
-                                <div className="text-base text-text leading-relaxed whitespace-pre-wrap bg-surface/30 p-4 rounded-xl">
-                                    {selectedMessage.message}
-                                </div>
-                            </div>
-                            <div className="flex justify-end gap-3 p-5 border-t border-border bg-surface-hover rounded-b-2xl mt-auto shrink-0">
-                                <button onClick={() => setSelectedMessage(null)} className="px-5 py-2.5 rounded-xl border border-white/10 bg-transparent text-text font-semibold cursor-pointer transition-colors hover:bg-white/5">
-                                    Yopish
-                                </button>
-                            </div>
-                        </div>
-                    </div>,
-                    document.body
-                )}
-            </div>
-        )
-    }
+    const unreadAnnouncementsCount = announcements.filter(a => !a.is_read).length
 
     return (
-        <div className="-m-6 max-md:-m-4 flex h-[calc(100dvh-64px)] overflow-hidden border-t border-border bg-surface shadow-xl">
-
-            {/* ─── LEFT PANEL: Conversations ─────────────────── */}
-            <div className={`flex flex-col w-full md:w-[320px] shrink-0 border-r border-border bg-surface ${selectedId ? 'hidden md:flex' : 'flex'}`}>
-                {/* Header */}
-                <div className="flex items-center justify-between p-4 bg-primary text-primary-foreground shrink-0 shadow-md z-10 relative">
-                    <h2 className="text-xl font-bold tracking-tight">Xabarlar</h2>
-                    {canSendMessage && (
-                        <button
-                            onClick={openNewChat}
-                            className="p-2 hover:bg-white/20 rounded-full transition-colors active:scale-95"
-                            title="Yangi xabar yozish"
-                        >
-                            <Plus className="w-5 h-5" />
-                        </button>
-                    )}
+        <div className="-m-6 max-md:-m-4 flex h-[calc(100dvh-64px)] overflow-hidden border-t border-border bg-surface shadow-xl relative">
+            
+            {/* ─── LEFT SIDEBAR ─────────────────── */}
+            <div className={`flex flex-col w-full md:w-[320px] shrink-0 border-r border-border bg-surface ${ (selectedId || isChannelSelected) ? 'hidden md:flex' : 'flex'}`}>
+                <div className="flex items-center justify-between p-4 bg-primary text-white shrink-0 shadow-sm">
+                    <h2 className="text-xl font-bold">Xabarlar</h2>
+                    {canSendMessage && <button onClick={openNewChat} className="p-2 hover:bg-white/20 rounded-full transition-colors"><Plus className="w-5 h-5" /></button>}
                 </div>
 
-                {/* Search */}
-                <div className="px-3 py-2">
+                <div className="p-2">
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-                        <input
-                            type="text"
-                            placeholder="Qidirish..."
-                            value={searchQuery}
-                            onChange={e => setSearchQuery(e.target.value)}
-                            className="w-full pl-9 pr-3 py-2 rounded-xl bg-surface-hover text-text placeholder:text-text-muted text-sm border-none outline-none focus:ring-2 focus:ring-primary/30"
-                        />
+                        <input type="text" placeholder="Qidirish..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full pl-9 pr-3 py-2 rounded-xl bg-surface-hover text-sm border-none focus:ring-1 focus:ring-primary/30 outline-none" />
                     </div>
                 </div>
 
-                {/* New Chat User Picker */}
-                {showNewChat && (
-                    <div className="flex-1 flex flex-col overflow-hidden">
-                        <div className="flex items-center gap-2 px-3 pb-2 border-b border-border">
-                            <button onClick={() => setShowNewChat(false)} className="text-text-muted hover:text-text">
-                                <X className="w-5 h-5" />
+                <div className="flex-1 overflow-y-auto custom-scrollbar">
+                    {showNewChat ? (
+                        <div className="flex flex-col">
+                            <div className="flex items-center gap-2 p-2 border-b border-border">
+                                <button onClick={() => setShowNewChat(false)} className="text-text-muted hover:text-text"><X className="w-5 h-5" /></button>
+                                <input autoFocus type="text" placeholder="Ism qidirish..." value={userSearch} onChange={e => setUserSearch(e.target.value)} className="flex-1 bg-transparent text-sm outline-none" />
+                            </div>
+                            {allUsers.map(u => (
+                                <button key={u.value} onClick={() => selectUser(u.value, u.label, u.role)} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-surface-hover transition-colors text-left border-b border-border/40">
+                                    <div className={`w-10 h-10 rounded-full bg-linear-to-br ${avatarColor(u.label)} flex items-center justify-center text-white font-bold text-sm shrink-0`}>{getInitials(u.label)}</div>
+                                    <div><p className="font-medium text-text text-sm">{u.label}</p><p className="text-[10px] text-text-muted capitalize">{u.role}</p></div>
+                                </button>
+                            ))}
+                        </div>
+                    ) : (
+                        <>
+                            {/* UNITY ANNOUNCEMENT CHANNEL ENTRY */}
+                            <button 
+                                onClick={handleSelectChannel}
+                                className={`w-full flex items-center gap-3 px-4 py-4 border-b border-border/40 transition-colors text-left ${isChannelSelected ? 'bg-primary/10' : 'hover:bg-primary/5'}`}
+                            >
+                                <div className="w-12 h-12 rounded-full bg-linear-to-br from-indigo-600 to-purple-700 flex items-center justify-center text-white shrink-0 shadow-lg">
+                                    <Megaphone className="w-6 h-6" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex justify-between items-center mb-0.5">
+                                        <p className="font-bold text-text text-sm">Yangiliklar</p>
+                                        {announcements.length > 0 && <span className="text-[9px] text-text-muted">{formatTime(announcements[0].created_at)}</span>}
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <p className="text-xs text-text-muted truncate">Kanal foydalanuvchilari uchun</p>
+                                        {unreadAnnouncementsCount > 0 && (
+                                            <span className="bg-rose-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full ring-2 ring-canvas">
+                                                {unreadAnnouncementsCount}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
                             </button>
-                            <input
-                                autoFocus
-                                type="text"
-                                placeholder="Foydalanuvchi qidirish..."
-                                value={userSearch}
-                                onChange={e => setUserSearch(e.target.value)}
-                                className="flex-1 bg-transparent text-sm text-text outline-none placeholder:text-text-muted"
-                            />
-                        </div>
-                        <div className="flex-1 overflow-y-auto">
-                            {filteredUsers.length === 0 ? (
-                                <p className="p-4 text-center text-sm text-text-muted">Foydalanuvchi topilmadi</p>
-                            ) : (
-                                filteredUsers.map(u => (
-                                    <button
-                                        key={u.value}
-                                        onClick={() => selectUser(u.value, u.label, u.role)}
-                                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-surface-hover transition-colors text-left"
-                                    >
-                                        <div className={`w-10 h-10 rounded-full bg-linear-to-br ${avatarColor(u.label)} flex items-center justify-center text-white font-bold text-sm shrink-0`}>
-                                            {getInitials(u.label)}
-                                        </div>
-                                        <div>
-                                            <p className="font-medium text-text text-sm">{highlightText(u.label, userSearch)}</p>
-                                            <p className="text-xs text-text-muted capitalize">{u.role}</p>
-                                        </div>
-                                    </button>
-                                ))
-                            )}
-                        </div>
-                    </div>
-                )}
 
-                {/* Conversation List */}
-                {!showNewChat && (
-                    <div className="flex-1 overflow-y-auto">
-                        {loading ? (
-                            <div className="flex flex-col gap-3 p-4">
-                                {[...Array(5)].map((_, i) => (
-                                    <div key={i} className="flex items-center gap-3 animate-pulse">
-                                        <div className="w-12 h-12 rounded-full bg-surface-hover shrink-0" />
-                                        <div className="flex-1 space-y-2">
-                                            <div className="h-3 bg-surface-hover rounded w-3/4" />
-                                            <div className="h-2 bg-surface-hover rounded w-1/2" />
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : filteredConversations.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-full gap-3 text-text-muted p-6">
-                                <MessageSquare className="w-12 h-12 opacity-30" />
-                                <p className="text-sm text-center">Hozircha suhbatlar yo'q. Yangi xabar yozing!</p>
-                            </div>
-                        ) : (
-                            filteredConversations.map(conv => (
-                                <button
-                                    key={conv.contactId}
-                                    onClick={() => handleSelectConversation(conv)}
-                                    className={`w-full flex items-center gap-3 px-4 py-3 transition-colors text-left border-b border-border/40 ${conv.contactId === selectedId ? 'bg-primary/10' : 'hover:bg-surface-hover'}`}
-                                >
-                                    <div className={`w-12 h-12 rounded-full bg-linear-to-br ${avatarColor(conv.contactName)} flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-sm`}>
-                                        {getInitials(conv.contactName)}
-                                    </div>
+                            <div className="px-4 py-2 bg-surface-hover/50 text-[10px] font-bold text-text-muted uppercase tracking-wider">Shaxsiy suhbatlar</div>
+                            {conversations.filter(c => c.contactName.toLowerCase().includes(searchQuery.toLowerCase())).map(conv => (
+                                <button key={conv.contactId} onClick={() => handleSelectConversation(conv)} className={`w-full flex items-center gap-3 px-4 py-3 border-b border-border/40 transition-colors text-left ${conv.contactId === selectedId ? 'bg-primary/10' : 'hover:bg-surface-hover'}`}>
+                                    <div className={`w-11 h-11 rounded-full bg-linear-to-br ${avatarColor(conv.contactName)} flex items-center justify-center text-white font-bold text-xs shrink-0`}>{getInitials(conv.contactName)}</div>
                                     <div className="flex-1 min-w-0">
-                                        <div className="flex items-center justify-between gap-2">
-                                            <p className="font-semibold text-text text-sm truncate">{highlightText(conv.contactName, searchQuery)}</p>
-                                            <span className="text-[10px] text-text-muted shrink-0">{formatTime(conv.lastTime)}</span>
+                                        <div className="flex justify-between items-baseline"><p className="font-semibold text-text text-sm truncate">{conv.contactName}</p><span className="text-[10px] text-text-muted">{formatTime(conv.lastTime)}</span></div>
+                                        <div className="flex justify-between items-center"><p className="text-xs text-text-muted truncate">{conv.lastMessage || '...'}</p>{conv.unreadCount > 0 && <span className="bg-primary text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">{conv.unreadCount}</span>}</div>
+                                    </div>
+                                </button>
+                            ))}
+                        </>
+                    )}
+                </div>
+            </div>
+
+            {/* ─── RIGHT PANEL ─────────────────── */}
+            <div className={`flex-1 flex flex-col min-w-0 bg-surface relative overflow-hidden ${ !(selectedId || isChannelSelected) ? 'hidden md:flex' : 'flex'}`}>
+                
+                {selectedConv ? (
+                    /* CHAT VIEW */
+                    <>
+                        <div className="flex items-center gap-3 px-4 py-2 bg-surface-hover border-b border-border shadow-xs">
+                            <button className="md:hidden text-text-muted" onClick={() => setSelectedId(null)}><ArrowLeft className="w-5 h-5" /></button>
+                            <div className={`w-10 h-10 rounded-full bg-linear-to-br ${avatarColor(selectedConv.contactName)} flex items-center justify-center text-white font-bold text-sm`}>{getInitials(selectedConv.contactName)}</div>
+                            <div><p className="font-semibold text-text text-sm leading-tight">{selectedConv.contactName}</p><p className="text-[10px] text-text-muted capitalize">{selectedConv.contactRole}</p></div>
+                        </div>
+                        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2 bg-surface-hover/20">
+                            {chatMessages.map(msg => (
+                                <div key={msg.id} className={`flex ${msg.sender_id === me?.id ? 'justify-end' : 'justify-start'}`}>
+                                    <div className={`max-w-[75%] px-4 py-2 rounded-2xl text-sm shadow-xs ${msg.sender_id === me?.id ? 'bg-primary text-white rounded-br-none' : 'bg-canvas border border-border text-text rounded-bl-none'}`}>
+                                        <p className="whitespace-pre-wrap">{msg.message}</p>
+                                        <div className={`flex items-center justify-end gap-1 mt-1 text-[9px] ${msg.sender_id === me?.id ? 'text-white/70' : 'text-text-muted'}`}>
+                                            <span>{formatTime(msg.created_at)}</span>
+                                            {msg.sender_id === me?.id && (msg.is_read ? <CheckCheck className="w-3 h-3" /> : <Check className="w-3 h-3" />)}
                                         </div>
-                                        <div className="flex items-center justify-between gap-2 mt-0.5">
-                                            <p className="text-xs text-text-muted truncate">{conv.lastMessage || '...'}</p>
-                                            {conv.unreadCount > 0 && (
-                                                <span className="shrink-0 w-5 h-5 bg-primary rounded-full text-white text-[10px] font-bold flex items-center justify-center">
-                                                    {conv.unreadCount > 9 ? '9+' : conv.unreadCount}
-                                                </span>
+                                    </div>
+                                </div>
+                            ))}
+                            <div ref={messagesEndRef} />
+                        </div>
+                        <form onSubmit={handleSend} className="p-4 border-t border-border flex items-end gap-2 bg-surface">
+                            {selectedId === 'system' ? (
+                                <div className="flex-1 bg-surface-hover/50 rounded-xl px-4 py-3 text-sm text-text-muted text-center italic">
+                                    Tizim xabarlariga javob berish imkoniyati yo'q
+                                </div>
+                            ) : !canSendMessage ? (
+                                <div className="flex-1 bg-surface-hover/50 rounded-xl px-4 py-3 text-sm text-text-muted text-center italic">
+                                    Sizda xabar yuborish huquqi yo'q
+                                </div>
+                            ) : (
+                                <>
+                                    <textarea value={inputText} onChange={e => setInputText(e.target.value)} placeholder="Xabar yozing..." rows={1} className="flex-1 resize-none bg-surface-hover rounded-xl px-4 py-3 text-sm focus:ring-1 focus:ring-primary/30 outline-none max-h-32" />
+                                    <button type="submit" disabled={!inputText.trim() || sending} className="w-11 h-11 flex items-center justify-center rounded-full bg-primary text-white disabled:opacity-50"><Send className="w-5 h-5" /></button>
+                                </>
+                            )}
+                        </form>
+                    </>
+                ) : isChannelSelected ? (
+                    /* TELEGRAM-STYLE CHANNEL FEED */
+                    <div className="flex-1 flex flex-col overflow-hidden bg-surface-hover/10">
+                        <div className="bg-primary text-white p-3 flex items-center justify-between border-b border-white/10 shrink-0 z-20">
+                            <div className="flex items-center gap-2">
+                                <button className="md:hidden text-white/60" onClick={() => setIsChannelSelected(false)}><ArrowLeft size={18} /></button>
+                                <span className="text-sm font-bold tracking-wide">Yangiliklar</span>
+                            </div>
+                            <span className="text-[10px] text-white/40 uppercase tracking-tighter">Kanal</span>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto px-4 py-6 md:px-10 custom-scrollbar space-y-12">
+                            {announcements.length === 0 ? (
+                                <div className="h-full flex flex-col items-center justify-center opacity-20"><Megaphone className="w-24 h-24 mb-4" /><p className="text-xl font-bold">E'lonlar yo'q</p></div>
+                            ) : (
+                                [...announcements].reverse().map((ann) => (
+                                    <div key={ann.id} className="max-w-2xl mx-auto bg-canvas rounded-3xl overflow-hidden shadow-card border border-border relative group animate-in slide-in-from-bottom-4 duration-500">
+                                         {/* Visual Decoration */}
+                                        <div className="h-48 bg-linear-to-br from-primary to-indigo-800 flex items-center justify-center relative overflow-hidden">
+                                              {ann.images && ann.images.length > 0 ? (
+                                                  <img src={ann.images[0]} alt={ann.title} className="w-full h-full object-cover" />
+                                              ) : (
+                                                  <>
+                                                      <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_50%_50%,_white_1px,transparent_1px)] bg-[length:15px_15px]"></div>
+                                                      <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white border border-white/20">
+                                                          <Megaphone className="w-6 h-6" />
+                                                      </div>
+                                                  </>
+                                              )}
+                                         </div>
+
+                                        {/* Content */}
+                                        <div className="p-6 md:p-8 space-y-4">
+                                            <div className="flex items-center justify-between">
+                                                {ann.category && (
+                                                    <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">
+                                                        {ann.category}
+                                                    </span>
+                                                )}
+                                                <p className="text-[9px] text-text-muted uppercase font-bold ml-auto">{formatDate(ann.created_at)} {formatTime(ann.created_at)}</p>
+                                            </div>
+
+                                            <h2 className="text-xl font-black text-text tracking-tight">{ann.title}</h2>
+                                            <div className="text-text-muted leading-relaxed text-sm md:text-base whitespace-pre-wrap font-medium pb-4">{ann.message}</div>
+                                            
+                                            {/* Action Bar for Admins */}
+                                            {canSendMessage && (
+                                                <div className="pt-4 border-t border-border flex justify-end">
+                                                    <button 
+                                                        onClick={() => toggleReadStatus(ann.id)}
+                                                        className={`read-status-toggle flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-bold transition-all ${showReadStatusId === ann.id ? 'bg-rose-500 text-white' : 'bg-surface-hover text-text-muted hover:bg-primary/10 hover:text-primary'}`}
+                                                    >
+                                                        <Users size={14} /> 
+                                                        {showReadStatusId === ann.id ? 'Yopish' : 'Kim o\'qidi?'}
+                                                    </button>
+                                                </div>
                                             )}
                                         </div>
                                     </div>
-                                </button>
-                            ))
-                        )}
+                                ))
+                            )}
+                            <div ref={messagesEndRef} />
+                        </div>
+
+                        {/* INLINE READ STATUS SLIDE-OVER (Global within the feed view) */}
+                        <div ref={readStatusListRef} className={`absolute top-0 right-0 h-full w-full md:w-80 bg-canvas border-l border-border shadow-card transition-transform duration-300 z-30 ${showReadStatusId ? 'translate-x-0' : 'translate-x-full'}`} >
+                            <div className="flex flex-col h-full">
+                                <div className="p-4 border-b border-border flex items-center justify-between bg-primary/5">
+                                    <h3 className="font-bold text-text flex items-center gap-2"><Users className="w-5 h-5 text-primary" /> O'qiganlar</h3>
+                                    <button onClick={() => setShowReadStatusId(null)} className="p-1 hover:bg-surface-hover rounded-lg text-text-muted"><X size={20} /></button>
+                                </div>
+                                
+                                <div onScroll={handleReadStatusScroll} className="flex-1 overflow-y-auto p-2 custom-scrollbar space-y-1">
+                                    {readStatusList.length === 0 && !loadingReadStatus ? (
+                                        <div className="py-20 text-center text-text-muted opacity-50 px-4"><p className="text-sm">Hali hech kim o'qimagan</p></div>
+                                    ) : (
+                                        <>
+                                            {readStatusList.map((item, idx) => (
+                                                <div key={`${item.user_id}-${idx}`} className="flex items-center gap-3 p-3 rounded-xl hover:bg-surface-hover border border-transparent hover:border-border transition-all">
+                                                    <div className={`w-10 h-10 rounded-full bg-linear-to-br ${avatarColor(item.full_name)} flex items-center justify-center text-white font-bold text-xs shrink-0`}>{getInitials(item.full_name)}</div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="font-bold text-text text-sm truncate leading-tight">{item.full_name}</p>
+                                                        <p className="text-[10px] text-text-muted capitalize">{item.role}</p>
+                                                    </div>
+                                                    <div className="text-right shrink-0">
+                                                        <p className="text-[9px] text-text-muted">{formatTime(item.read_at)}</p>
+                                                        <p className="text-[10px] text-primary font-bold">{formatDate(item.read_at)}</p>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            {loadingReadStatus && <div className="py-4 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>}
+                                            {readStatusHasMore && !loadingReadStatus && <p className="text-center text-[10px] text-text-muted py-2">Yana yuklash uchun pastga suring...</p>}
+                                        </>
+                                    )}
+                                </div>
+                                <div className="p-4 border-t border-border bg-surface-hover/30 text-center"><p className="text-xs font-bold text-primary">Jami o'qiganlar: {readStatusList.length}</p></div>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    /* EMPTY STATE */
+                    <div className="flex-1 flex flex-col items-center justify-center gap-4 text-text-muted opacity-30 bg-canvas">
+                        <MessageSquare className="w-20 h-24" />
+                        <p className="text-lg font-bold tracking-tight">Xabar yoki kanalni tanlang</p>
                     </div>
                 )}
             </div>
-
-            {/* ─── RIGHT PANEL: Chat ─────────────────────────── */}
-            {selectedConv ? (
-                <div className="flex-1 flex flex-col min-w-0">
-                    {/* Chat Header */}
-                    <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-surface">
-                        <button
-                            className="md:hidden text-text-muted hover:text-text mr-1"
-                            onClick={() => setSelectedId(null)}
-                        >
-                            <X className="w-5 h-5" />
-                        </button>
-                        <div className={`w-10 h-10 rounded-full bg-linear-to-br ${avatarColor(selectedConv.contactName)} flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-sm`}>
-                            {getInitials(selectedConv.contactName)}
-                        </div>
-                        <div>
-                            <p className="font-semibold text-text text-sm">{selectedConv.contactName}</p>
-                            <p className="text-xs text-text-muted capitalize">{selectedConv.contactRole}</p>
-                        </div>
-                    </div>
-
-                    {/* Messages */}
-                    <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, var(--color-border) 1px, transparent 0)', backgroundSize: '24px 24px' }}>
-                        {chatMessages.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-full gap-2 text-text-muted">
-                                <MessageSquare className="w-12 h-12 opacity-20" />
-                                <p className="text-sm">Xabarlar yo'q. Birinchi xabarni yuboring!</p>
-                            </div>
-                        ) : (
-                            (() => {
-                                let lastDate = ''
-                                return chatMessages.map(msg => {
-                                    const isIncoming = msg.sender_id === selectedConv.contactId
-                                    const isMine = msg.sender_id === me?.id
-                                    const msgDate = formatDate(msg.created_at)
-                                    const showDate = msgDate !== lastDate
-                                    lastDate = msgDate
-
-                                    // If it's not incoming, it means it's outgoing to the client.
-                                    // But it could be sent by ME, by SYSTEM, or by ANOTHER ADMIN.
-                                    return (
-                                        <div key={msg.id}>
-                                            {showDate && (
-                                                <div className="flex justify-center my-3">
-                                                    <span className="px-3 py-1 rounded-full bg-surface/80 backdrop-blur-sm text-xs text-text-muted shadow-sm border border-border">
-                                                        {msgDate}
-                                                    </span>
-                                                </div>
-                                            )}
-                                            <div className={`flex ${!isIncoming ? 'justify-end' : 'justify-start'} mb-1`}>
-                                                <div className={`max-w-[70%] px-4 py-2.5 rounded-2xl shadow-sm text-sm ${!isIncoming
-                                                    ? 'bg-primary text-primary-foreground rounded-br-sm'
-                                                    : 'bg-surface border border-border text-text rounded-bl-sm'
-                                                    }`}>
-
-                                                    {/* Sender info for outgoing messages NOT sent by me, or system messages */}
-                                                    {!isIncoming && !isMine && (
-                                                        <div className="text-[10px] font-medium opacity-70 mb-1 border-b border-primary-foreground/20 pb-0.5">
-                                                            Shtrix: {msg.sender_name || 'Tizim'}
-                                                        </div>
-                                                    )}
-
-                                                    <p style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{msg.message}</p>
-
-                                                    <div className={`flex items-center gap-1 mt-1 ${!isIncoming ? 'justify-end text-primary-foreground/70' : 'justify-end text-text-muted'}`}>
-                                                        <span className="text-[10px]">{formatTime(msg.created_at)}</span>
-                                                        {!isIncoming && (
-                                                            msg.is_read
-                                                                ? <CheckCheck className="w-3 h-3" />
-                                                                : <Check className="w-3 h-3" />
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )
-                                })
-                            })()
-                        )}
-                        <div ref={messagesEndRef} />
-                    </div>
-
-                    {/* Input */}
-                    <form onSubmit={handleSend} className="flex items-end gap-2 px-4 py-3 border-t border-border bg-surface">
-                        <textarea
-                            value={inputText}
-                            onChange={e => setInputText(e.target.value)}
-                            onKeyDown={e => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault()
-                                    handleSend(e as any)
-                                }
-                            }}
-                            placeholder="Xabar yozing..."
-                            rows={1}
-                            className="flex-1 resize-none bg-surface-hover rounded-xl px-4 py-2.5 text-sm text-text placeholder:text-text-muted outline-none focus:ring-2 focus:ring-primary/30 max-h-32 overflow-y-auto"
-                            style={{ lineHeight: '1.5' }}
-                        />
-                        <button
-                            type="submit"
-                            disabled={!inputText.trim() || sending}
-                            className="w-10 h-10 flex items-center justify-center rounded-full bg-primary text-white disabled:opacity-40 hover:bg-primary/90 transition-colors shrink-0"
-                        >
-                            <Send className="w-4 h-4" />
-                        </button>
-                    </form>
-                </div>
-            ) : (
-                /* Empty state */
-                <div className="flex-1 hidden md:flex flex-col items-center justify-center gap-4 text-text-muted">
-                    <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center">
-                        <MessageSquare className="w-12 h-12 text-primary/50" />
-                    </div>
-                    <div className="text-center">
-                        <p className="font-semibold text-text">Suhbatni tanlang</p>
-                        <p className="text-sm mt-1">Yoki <button onClick={openNewChat} className="text-primary hover:underline">yangi xabar</button> yozing</p>
-                    </div>
-                </div>
-            )}
         </div>
     )
 }

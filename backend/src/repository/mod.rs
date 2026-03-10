@@ -8,3 +8,4 @@ pub mod report_repository;
 pub mod request_repository;
 pub mod token_repository;
 pub mod user_repository;
+pub mod announcement_repository;

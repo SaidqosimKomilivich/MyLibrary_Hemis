@@ -1,5 +1,7 @@
 use actix_web::{web, HttpResponse};
 use sqlx::PgPool;
+use uuid::Uuid;
+use std::str::FromStr;
 
 use crate::config::Config;
 use crate::dto::user::{PaginatedUsersResponse, UserPaginationInfo, UserPaginationParams};
@@ -511,23 +513,29 @@ pub async fn search_users(
     pool: web::Data<PgPool>,
     query: web::Query<std::collections::HashMap<String, String>>,
 ) -> Result<HttpResponse, actix_web::Error> {
-    let _ = claims; // auth verified via middleware
+    // Faqat admin, staff yoki teacher qidira oladi
+    if let Err(resp) = require_role(&claims, &["admin", "staff", "teacher"]) {
+        return Ok(resp);
+    }
+
     let q = query.get("q").map(|s| s.as_str()).unwrap_or("");
     let limit: i64 = query.get("limit").and_then(|v| v.parse().ok()).unwrap_or(30).min(100);
 
-    // Admin bo'lmagan barcha faol foydalanuvchilarni qidirish
+    // Faqat admin, staff va teacher bo'lgan faol foydalanuvchilarni qidirish
     let users = sqlx::query!(
         r#"
         SELECT id, full_name, role
         FROM users
         WHERE active = true
-          AND role != 'admin'
+          AND role IN ('admin', 'staff', 'teacher')
+          AND id != $3
           AND (LOWER(full_name) LIKE LOWER($1))
         ORDER BY full_name ASC
         LIMIT $2
         "#,
         format!("%{}%", q),
         limit,
+        Uuid::from_str(&claims.sub).unwrap_or(Uuid::nil()),
     )
     .fetch_all(pool.get_ref())
     .await

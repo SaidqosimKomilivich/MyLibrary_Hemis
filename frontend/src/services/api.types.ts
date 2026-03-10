@@ -388,6 +388,8 @@ export interface MessageDataItem {
     receiver_role: string | null
     title: string
     message: string
+    images?: string[]
+    category?: string | null
     is_read: boolean
     created_at: string
 }
@@ -403,4 +405,55 @@ export interface SendMessagePayload {
     receiver_id: string
     title: string
     message: string
+}
+
+export interface Announcement {
+    id: string
+    sender_id: string | null
+    title: string
+    message: string
+    images?: string[]
+    category?: string | null
+    created_at: string
+}
+
+export interface AnnouncementWithStatus {
+    id: string
+    sender_id: string | null
+    sender_name: string | null
+    title: string
+    message: string
+    images?: string[]
+    category?: string | null
+    is_read: boolean
+    created_at: string
+}
+
+export interface AnnouncementReadStatus {
+    user_id: string
+    full_name: string
+    role: string
+    read_at: string
+}
+
+export interface PaginatedMessageResponse {
+    success: boolean
+    data: MessageDataItem[]
+    pagination: {
+        current_page: number
+        per_page: number
+        total_items: number
+        total_pages: number
+    }
+}
+
+export interface AnnouncementReadStatusResponse {
+    success: boolean
+    data: AnnouncementReadStatus[]
+    pagination: {
+        current_page: number
+        per_page: number
+        total_items: number
+        total_pages: number
+    }
 }

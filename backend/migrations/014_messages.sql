@@ -9,6 +9,6 @@ CREATE TABLE IF NOT EXISTS messages (
 );
 
 -- Indexes for fast lookup
-CREATE INDEX idx_messages_receiver_id ON messages(receiver_id);
-CREATE INDEX idx_messages_is_read ON messages(is_read);
-CREATE INDEX idx_messages_created_at ON messages(created_at);
+CREATE INDEX IF NOT EXISTS idx_messages_receiver_id ON messages(receiver_id);
+CREATE INDEX IF NOT EXISTS idx_messages_is_read ON messages(is_read);
+CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at);

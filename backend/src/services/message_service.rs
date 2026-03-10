@@ -53,4 +53,34 @@ impl MessageService {
             }
         }
     }
+
+    /// Broadcast a single announcement to ALL online users.
+    /// Announcements are sent to every active connection.
+    pub fn broadcast_announcement(&self, announcement: crate::models::announcement::AnnouncementWithStatus) {
+        let conns = self.connections.lock().unwrap();
+        // Since SSE protocol here expects MessageResponseDto, we'll convert it or wrap it.
+        // For simplicity, we'll send it as a special "system" message type or just JSON.
+        // I will use a simple wrapper or just send it to all active connection channels.
+        
+        for sender in conns.values() {
+            // We convert AnnouncementWithStatus to a dummy MessageResponseDto 
+            // so the existing client JSON parser doesn't break.
+            let msg = MessageResponseDto {
+                id: announcement.id,
+                sender_id: announcement.sender_id,
+                receiver_id: None,
+                sender_name: announcement.sender_name.clone(),
+                sender_role: Some("system".to_string()),
+                receiver_name: None,
+                receiver_role: None,
+                title: announcement.title.clone(),
+                message: announcement.message.clone(),
+                category: announcement.category.clone(),
+                images: announcement.images.clone(),
+                is_read: announcement.is_read,
+                created_at: announcement.created_at,
+            };
+            let _ = sender.send(msg);
+        }
+    }
 }

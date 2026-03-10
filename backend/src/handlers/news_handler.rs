@@ -9,7 +9,8 @@ use crate::errors::AppError;
 use crate::middleware::auth_middleware::{self, Claims};
 use crate::services::news_service::NewsService;
 use crate::services::message_service::MessageService;
-use crate::repository::message_repository::MessageRepository;
+use crate::repository::announcement_repository::AnnouncementRepository;
+use crate::models::announcement::AnnouncementWithStatus;
 
 // ─────────────────────────────────────────────────────────────
 // PUBLIC endpoints (no auth required)
@@ -125,17 +126,30 @@ pub async fn create_news(
     let author_id = uuid::Uuid::parse_str(&claims.sub).ok();
     let news = NewsService::create(pool.get_ref(), body.into_inner(), author_id).await?;
 
-    // Yangilik darhol nashr qilingan bo'lsa — barcha foydalanuvchilarga bildirishnoma
+    // Yangilik darhol nashr qilingan bo'lsa — guruhli e'lon yaratish
     if news.is_published {
-        let notif_title = format!("📰 Yangi e'lon: {}", news.title);
-        let notif_body = news.content.clone();
-        if let Ok(msgs) = MessageRepository::create_broadcast(
+        // Individual xabar o'rniga Announcement yaratamiz
+        if let Ok(announcement) = AnnouncementRepository::create(
             pool.get_ref(),
             author_id,
-            &notif_title,
-            &notif_body,
+            &news.title,
+            &news.content,
+            news.category.clone(),
+            Some(news.images.clone()),
+
         ).await {
-            message_service.broadcast_messages(msgs);
+            // Real-time broadcast
+            message_service.broadcast_announcement(AnnouncementWithStatus {
+                id: announcement.id,
+                sender_id: announcement.sender_id,
+                sender_name: None, 
+                title: announcement.title,
+                message: announcement.message,
+                category: announcement.category,
+                images: announcement.images,
+                is_read: false,
+                created_at: announcement.created_at,
+            });
         }
     }
 
@@ -184,18 +198,30 @@ pub async fn toggle_publish(
     let news = NewsService::toggle_publish(pool.get_ref(), id).await?;
     let status = if news.is_published { "nashr qilindi" } else { "qoralama qilindi" };
 
-    // Agar hozir nashr qilingan bo'lsa — barcha foydalanuvchilarga bildirishnoma
+    // Agar hozir nashr qilingan bo'lsa — guruhli e'lon yaratish
     if news.is_published {
         let author_id = uuid::Uuid::parse_str(&claims.sub).ok();
-        let notif_title = format!("📰 Yangi e'lon: {}", news.title);
-        let notif_body = news.content.clone();
-        if let Ok(msgs) = MessageRepository::create_broadcast(
+        
+        if let Ok(announcement) = AnnouncementRepository::create(
             pool.get_ref(),
             author_id,
-            &notif_title,
-            &notif_body,
+            &news.title,
+            &news.content,
+            news.category.clone(),
+            Some(news.images.clone()),
+
         ).await {
-            message_service.broadcast_messages(msgs);
+            message_service.broadcast_announcement(AnnouncementWithStatus {
+                id: announcement.id,
+                sender_id: announcement.sender_id,
+                sender_name: None,
+                title: announcement.title,
+                message: announcement.message,
+                category: announcement.category,
+                images: announcement.images,
+                is_read: false,
+                created_at: announcement.created_at,
+            });
         }
     }
 

@@ -140,7 +140,7 @@ pub struct PaginatedPublicNewsResponse {
     pub pagination: NewsPagination,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NewsPagination {
     pub current_page: i64,
     pub per_page: i64,

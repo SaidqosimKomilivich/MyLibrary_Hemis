@@ -30,7 +30,11 @@ import type {
     UserData,
     MessageDataItem,
     UnreadCountResponse,
-    SendMessagePayload
+    SendMessagePayload,
+    PaginatedMessageResponse,
+    AnnouncementWithStatus,
+    AnnouncementReadStatusResponse,
+    AnnouncementReadStatus
 } from './api.types'
 
 export * from './api.types'
@@ -761,8 +765,9 @@ export const api = {
     },
 
     // Message endpoints
-    getMyMessages() {
-        return request<{ success: boolean; data: MessageDataItem[] }>('/messages')
+    getMyMessages(params: PaginationParams = {}) {
+        const qs = buildQueryString(params)
+        return request<PaginatedMessageResponse>(`/messages${qs}`)
     },
 
     getUnreadMessageCount() {
@@ -780,6 +785,21 @@ export const api = {
         return request<MessageResponse>(`/messages/${id}/read`, {
             method: 'PATCH',
         })
+    },
+
+    // Announcement endpoints
+    getAnnouncements() {
+        return request<{ success: boolean; data: AnnouncementWithStatus[] }>('/announcements')
+    },
+
+    markAnnouncementAsRead(id: string) {
+        return request<MessageResponse>(`/announcements/${id}/read`, {
+            method: 'PATCH',
+        })
+    },
+
+    getAnnouncementReadStatus(id: string, page: number = 1) {
+        return request<AnnouncementReadStatusResponse>(`/announcements/${id}/read-status?page=${page}`)
     },
 
     // Server-Sent Events for Messages
