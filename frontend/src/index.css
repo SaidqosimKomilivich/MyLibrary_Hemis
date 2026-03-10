@@ -350,3 +350,33 @@
 .animate-marquee:hover {
   animation-play-state: paused;
 }
+
+/* 
+  ===========================================
+  Print Protection — Chop etishni bloklash
+  ===========================================
+*/
+@media print {
+  body * {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  body::after {
+    display: flex !important;
+    visibility: visible !important;
+    content: "⛔ Chop etish taqiqlangan. Bu sahifa print qilish uchun mo'ljallanmagan.";
+    position: fixed;
+    inset: 0;
+    height: 100vh;
+    width: 100vw;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Inter', sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: #1e293b;
+    text-align: center;
+    padding: 2rem;
+  }
+}

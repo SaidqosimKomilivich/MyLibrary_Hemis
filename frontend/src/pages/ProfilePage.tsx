@@ -523,7 +523,7 @@ export default function ProfilePage() {
                                     </div>
                                     <div className='absolute top-30 right-3 bg-white border-2 rounded-xl w-30 h-30 flex justify-center items-center overflow-hidden'>
                                         {/* XAVFSIZLIK: QR kodda ichki UUID ishlatilmaydi — faqat HEMIS user_id */}
-                                        <QRCodeSVG value={user.user_id || user.id} size={105} level='H' />
+                                        <QRCodeSVG value={user.id} size={105} level='H' />
                                     </div>
 
                                 </div>

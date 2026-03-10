@@ -363,6 +363,8 @@ export default function PdfViewerModal({ title, fileUrl, onClose }: PdfViewerMod
                 <div
                     ref={pdfWrapperRef}
                     className="relative flex-1 overflow-auto bg-[#2d3135] rounded-b-2xl p-4 sm:p-8 flex flex-col items-center custom-scrollbar"
+                    style={{ userSelect: 'none' }}
+                    onContextMenu={(e) => e.preventDefault()}
                 >
                     {fetchError && (
                         <div className="absolute inset-0 flex flex-col items-center justify-center z-10 gap-3">
