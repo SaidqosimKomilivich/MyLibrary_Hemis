@@ -252,12 +252,18 @@ pub async fn mark_as_read(
 pub async fn get_chat_history(
     claims: Claims,
     pool: web::Data<PgPool>,
-    path: web::Path<Uuid>,
+    path: web::Path<String>,
 ) -> Result<HttpResponse, AppError> {
     let user_id = Uuid::from_str(&claims.sub).map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
-    let contact_id = path.into_inner();
+    let contact_id_str = path.into_inner();
     
-    let messages = MessageRepository::get_chat_history(pool.get_ref(), user_id, contact_id).await?;
+    let messages = if contact_id_str == "system" {
+        MessageRepository::get_system_chat_history(pool.get_ref(), user_id).await?
+    } else if let Ok(contact_id) = Uuid::from_str(&contact_id_str) {
+        MessageRepository::get_chat_history(pool.get_ref(), user_id, contact_id).await?
+    } else {
+        return Err(AppError::BadRequest("Noto'g'ri foydalanuvchi ID".to_string()));
+    };
     
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "success": true,

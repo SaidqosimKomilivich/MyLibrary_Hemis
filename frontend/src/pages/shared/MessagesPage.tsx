@@ -97,6 +97,14 @@ export default function MessagesPage() {
             const map = new Map<string, Conversation>()
             if (!clear) {
                 prev.forEach(c => map.set(c.contactId, c))
+            } else {
+                // If clearing (e.g. initial fetch), we still want to preserve 
+                // the full message history of the currently selected chat if it exists.
+                prev.forEach(c => {
+                    if (c.messages.length > 1) {
+                         map.set(c.contactId, c)
+                    }
+                })
             }
 
             msgs.forEach(msg => {
@@ -142,11 +150,22 @@ export default function MessagesPage() {
                     })
                 } else {
                     const conv = map.get(contactId)!
+                    
+                    // Only update lastMessage if this message is newer
                     if (new Date(msg.created_at) >= new Date(conv.lastTime)) {
                         conv.lastMessage = msg.message
                         conv.lastTime = msg.created_at
+                        conv.contactName = contactName // update name if changed
+                        conv.contactRole = contactRole // update role if changed
                     }
                     if (!isSentByMe && !msg.is_read) conv.unreadCount++
+
+                    // Add to messages array if not already present
+                    if (!conv.messages.some(m => m.id === msg.id)) {
+                        conv.messages.push(msg);
+                        // Sort messages to ensure correct order
+                        conv.messages.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+                    }
                 }
             })
 

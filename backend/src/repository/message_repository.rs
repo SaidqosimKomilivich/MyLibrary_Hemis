@@ -343,6 +343,42 @@ impl MessageRepository {
         Ok(res)
     }
 
+    pub async fn get_system_chat_history(
+        pool: &PgPool,
+        user_id: Uuid,
+    ) -> Result<Vec<MessageResponseDto>, AppError> {
+        let messages = sqlx::query!(
+            r#"
+            SELECT 
+                id, sender_id, receiver_id, title, message, is_read, created_at
+            FROM messages
+            WHERE sender_id IS NULL AND receiver_id = $1
+            ORDER BY created_at ASC
+            "#,
+            user_id
+        )
+        .fetch_all(pool)
+        .await?;
+
+        let res = messages.into_iter().map(|row| MessageResponseDto {
+            id: row.id,
+            sender_id: row.sender_id,
+            receiver_id: row.receiver_id,
+            sender_name: Some("Tizim".to_string()),
+            sender_role: Some("System".to_string()),
+            receiver_name: None, // could fetch receiver name but not needed for frontend render
+            receiver_role: None,
+            title: row.title,
+            message: row.message,
+            category: None,
+            images: None,
+            is_read: row.is_read,
+            created_at: row.created_at,
+        }).collect();
+
+        Ok(res)
+    }
+
     pub async fn mark_as_read(pool: &PgPool, message_id: Uuid, user_id: Uuid) -> Result<(), AppError> {
         sqlx::query!(
             "UPDATE messages SET is_read = true WHERE id = $1 AND receiver_id = $2",

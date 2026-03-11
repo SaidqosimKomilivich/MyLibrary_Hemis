@@ -151,8 +151,7 @@ impl NewsService {
         params: NewsListParams,
     ) -> Result<PaginatedNewsResponse, AppError> {
         let page = params.page.unwrap_or(1).max(1);
-        let (news, total) = NewsRepository::list(pool, &params).await?;
-        let per_page = 20_i64;
+        let (news, total, per_page) = NewsRepository::list(pool, &params).await?;
         let total_pages = (total + per_page - 1) / per_page;
 
         Ok(PaginatedNewsResponse {

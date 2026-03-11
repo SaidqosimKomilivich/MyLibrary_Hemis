@@ -24,7 +24,7 @@ export default function LandingPage() {
             try {
                 const [statsRes, newsRes, booksRes] = await Promise.all([
                     api.getPublicStats(),
-                    api.getPublicNewsList({ limit: 4 }),
+                    api.getPublicNewsList({ limit: 8 }),
                     api.getPublicBooks({ limit: 10, page: 1 })
                 ]);
                 if (statsRes.success) {
@@ -203,12 +203,41 @@ export default function LandingPage() {
                                 <div className="book-wrap relative z-20 scale-90 md:scale-100 hover:scale-110 transition-transform duration-700 cursor-pointer">
                                     <div className="book-page-left"></div>
                                     <div className="book-page-right"></div>
-                                    <div className="book-page"></div>
-                                    <div className="book-page"></div>
-                                    <div className="book-page"></div>
-                                    <div className="book-page"></div>
-                                    <div className="book-page"></div>
-                                    <div className="book-page"></div>
+                                    <div className="book-page">
+                                        <div className="book-page-content">
+                                            <p className="text-[10px] md:text-xs font-serif italic text-text leading-tight w-full pointer-events-none">"Bizni savodsizga chiqarganlarning ajdodlari oyog'iga latta bog'lab yurganda,bizning ota-bobolarimiz yulduz sanagan."</p>
+                                            <p className="text-[8px] md:text-[10px] font-bold text-text-muted mt-2 w-full text-right pointer-events-none">- Islom Karimov</p>
+                                        </div>
+                                    </div>
+                                    <div className="book-page">
+                                        <div className="book-page-content">
+                                            <p className="text-[10px] md:text-xs font-serif italic text-text leading-tight w-full pointer-events-none">"Kitob o‘qishdan oldin o‘zimizni o‘qishni o‘rganaylik."</p>
+                                            <p className="text-[8px] md:text-[10px] font-bold text-text-muted mt-2 w-full text-right pointer-events-none">- Jaloliddin Rumiy</p>
+                                        </div>
+                                    </div>
+                                    <div className="book-page">
+                                        <div className="book-page-content">
+                                            <p className="text-[10px] md:text-xs font-serif italic text-text leading-tight w-full pointer-events-none">"Kitob — boylik. Lekin sotib olingani emas, o‘qilgani."</p>
+                                            <p className="text-[8px] md:text-[10px] font-bold text-text-muted mt-2 w-full text-right pointer-events-none">- Asqad Muxtor</p>
+                                        </div>
+                                    </div>
+                                    <div className="book-page">
+                                        <div className="book-page-content">
+                                            <p className="text-[9px] md:text-[11px] font-serif italic text-text leading-tight w-full pointer-events-none">"Kitob zamonlar dengizida sayohat qilayotgan va oʻzining qimmatbaho yukini avlodlardan-avlodlarga tashiyotgan hikmat kemasidir."</p>
+                                            <p className="text-[8px] md:text-[10px] font-bold text-text-muted mt-2 w-full text-right pointer-events-none">- Frensis Bekon</p>
+                                        </div>
+                                    </div>
+                                    <div className="book-page">
+                                        <div className="book-page-content">
+                                            <p className="text-[10px] md:text-xs font-serif italic text-text leading-tight w-full pointer-events-none">"Kitoblar ovozsiz muallimlardir."</p>
+                                            <p className="text-[8px] md:text-[10px] font-bold text-text-muted mt-2 w-full text-right pointer-events-none">- Peter Gille</p>
+                                        </div>
+                                    </div>
+                                    <div className="book-page">
+                                        <div className="book-page-content">
+                                            <p className="text-[10px] md:text-xs font-serif italic text-text leading-tight w-full pointer-events-none">"Kitob odamlarning yoʻlini yoritib turuvchi mayoqdir."</p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -271,7 +300,7 @@ export default function LandingPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         {isLoading ? (
-                            Array(4).fill(0).map((_, i) => (
+                            Array(8).fill(0).map((_, i) => (
                                 <div key={i} className="bg-surface border border-border/50 rounded-2xl p-4 animate-pulse h-64" />
                             ))
                         ) : news && news.length > 0 ? (

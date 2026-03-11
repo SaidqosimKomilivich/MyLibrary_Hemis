@@ -213,6 +213,10 @@
   transform: rotateX(25deg);
 }
 
+.book-wrap:hover .book-page {
+  animation-play-state: paused;
+}
+
 /* ===== LIGHT THEME (default) ===== */
 .book-page {
   position: absolute;
@@ -220,13 +224,13 @@
   right: 0;
   width: 50%;
   height: 100%;
-  background: linear-gradient(135deg, rgba(241, 245, 249, 0.95), rgba(226, 232, 240, 0.98));
+  background: white;
+  background-image: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
   border: 1px solid rgba(79, 70, 229, 0.25);
   border-left: 1px solid rgba(79, 70, 229, 0.6);
   border-radius: 0 16px 16px 0;
   transform-origin: left center;
   transform-style: preserve-3d;
-  animation: page-flip-anim 8s cubic-bezier(0.645, 0.045, 0.355, 1) infinite;
   box-shadow: inset 6px 0 15px rgba(0, 0, 0, 0.08), inset -2px 0 5px rgba(255, 255, 255, 0.5);
 }
 
@@ -247,7 +251,7 @@
   right: 0;
   width: 50%;
   height: 100%;
-  background: linear-gradient(135deg, rgba(241, 245, 249, 0.95), rgba(226, 232, 240, 0.98));
+  background: #f1f5f9;
   border: 1px solid rgba(79, 70, 229, 0.25);
   border-left: 1px solid rgba(79, 70, 229, 0.6);
   border-radius: 0 16px 16px 0;
@@ -260,7 +264,7 @@
   left: 0;
   width: 50%;
   height: 100%;
-  background: linear-gradient(-135deg, rgba(241, 245, 249, 0.95), rgba(226, 232, 240, 0.98));
+  background: #f1f5f9;
   border: 1px solid rgba(79, 70, 229, 0.25);
   border-right: 1px solid rgba(79, 70, 229, 0.6);
   border-radius: 16px 0 0 16px;
@@ -269,7 +273,8 @@
 
 /* ===== DARK THEME ===== */
 .dark .book-page {
-  background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
+  background: #1e293b;
+  background-image: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
   border: 1px solid rgba(16, 185, 129, 0.3);
   border-left: 1px solid rgba(16, 185, 129, 0.8);
   box-shadow: inset 6px 0 15px rgba(0, 0, 0, 0.5), inset -2px 0 5px rgba(255, 255, 255, 0.05);
@@ -281,56 +286,93 @@
 }
 
 .dark .book-page-right {
-  background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
+  background: #1e293b;
   border: 1px solid rgba(16, 185, 129, 0.3);
   border-left: 1px solid rgba(16, 185, 129, 0.8);
   box-shadow: inset 6px 0 15px rgba(0, 0, 0, 0.5);
 }
 
 .dark .book-page-left {
-  background: linear-gradient(-135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
+  background: #1e293b;
   border: 1px solid rgba(16, 185, 129, 0.3);
   border-right: 1px solid rgba(16, 185, 129, 0.8);
   box-shadow: inset -6px 0 15px rgba(0, 0, 0, 0.5);
 }
 
-.book-page:nth-child(2) {
-  animation-delay: 0.25s;
+.book-page::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: inherit;
+  border-radius: 16px 0 0 16px;
+  transform: rotateY(180deg) translateZ(1px);
+  backface-visibility: hidden;
+  box-shadow: inset -6px 0 15px rgba(0, 0, 0, 0.08);
 }
 
-.book-page:nth-child(3) {
-  animation-delay: 0.5s;
+.dark .book-page::after {
+  box-shadow: inset -6px 0 15px rgba(0, 0, 0, 0.5);
 }
 
-.book-page:nth-child(4) {
-  animation-delay: 0.75s;
+.book-page-content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  backface-visibility: hidden;
+  transform: translateZ(1px);
+  background-color: inherit;
+  background-image: inherit;
+  border-radius: 0 16px 16px 0;
 }
 
-.book-page:nth-child(5) {
-  animation-delay: 1.0s;
+.book-page:nth-child(3) { animation: page-flip-1 30s cubic-bezier(0.645, 0.045, 0.355, 1) infinite; z-index: 6; }
+.book-page:nth-child(4) { animation: page-flip-2 30s cubic-bezier(0.645, 0.045, 0.355, 1) infinite; z-index: 5; }
+.book-page:nth-child(5) { animation: page-flip-3 30s cubic-bezier(0.645, 0.045, 0.355, 1) infinite; z-index: 4; }
+.book-page:nth-child(6) { animation: page-flip-4 30s cubic-bezier(0.645, 0.045, 0.355, 1) infinite; z-index: 3; }
+.book-page:nth-child(7) { animation: page-flip-5 30s cubic-bezier(0.645, 0.045, 0.355, 1) infinite; z-index: 2; }
+.book-page:nth-child(8) { animation: page-flip-6 30s cubic-bezier(0.645, 0.045, 0.355, 1) infinite; z-index: 1; }
+
+@keyframes page-flip-1 {
+  0%, 7.5% { transform: rotateY(0deg); z-index: 6; }
+  17.5%, 82.5% { transform: rotateY(-180deg); z-index: 1; }
+  92.5%, 100% { transform: rotateY(0deg); z-index: 6; }
 }
 
-.book-page:nth-child(6) {
-  animation-delay: 1.25s;
+@keyframes page-flip-2 {
+  0%, 12.5% { transform: rotateY(0deg); z-index: 5; }
+  22.5%, 77.5% { transform: rotateY(-180deg); z-index: 2; }
+  87.5%, 100% { transform: rotateY(0deg); z-index: 5; }
 }
 
-.book-page:nth-child(7) {
-  animation-delay: 1.5s;
+@keyframes page-flip-3 {
+  0%, 17.5% { transform: rotateY(0deg); z-index: 4; }
+  27.5%, 72.5% { transform: rotateY(-180deg); z-index: 3; }
+  82.5%, 100% { transform: rotateY(0deg); z-index: 4; }
 }
 
-@keyframes page-flip-anim {
-  0% {
-    transform: rotateY(0deg);
-  }
+@keyframes page-flip-4 {
+  0%, 22.5% { transform: rotateY(0deg); z-index: 3; }
+  32.5%, 67.5% { transform: rotateY(-180deg); z-index: 4; }
+  77.5%, 100% { transform: rotateY(0deg); z-index: 3; }
+}
 
-  40%,
-  60% {
-    transform: rotateY(-180deg);
-  }
+@keyframes page-flip-5 {
+  0%, 27.5% { transform: rotateY(0deg); z-index: 2; }
+  37.5%, 62.5% { transform: rotateY(-180deg); z-index: 5; }
+  72.5%, 100% { transform: rotateY(0deg); z-index: 2; }
+}
 
-  100% {
-    transform: rotateY(0deg);
-  }
+@keyframes page-flip-6 {
+  0%, 32.5% { transform: rotateY(0deg); z-index: 1; }
+  42.5%, 57.5% { transform: rotateY(-180deg); z-index: 6; }
+  67.5%, 100% { transform: rotateY(0deg); z-index: 1; }
 }
 
 /* 

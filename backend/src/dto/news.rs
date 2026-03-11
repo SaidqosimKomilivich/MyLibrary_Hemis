@@ -39,6 +39,7 @@ pub struct NewsListParams {
     pub page: Option<i64>,
     pub search: Option<String>,
     pub category: Option<String>,
+    pub limit: Option<i64>,
     /// Faqat nashr qilinganlarni qaytarish (public endpoint uchun)
     pub published_only: Option<bool>,
 }

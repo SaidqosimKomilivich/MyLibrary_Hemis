@@ -87,9 +87,10 @@ impl NewsRepository {
     pub async fn list(
         pool: &PgPool,
         params: &NewsListParams,
-    ) -> Result<(Vec<News>, i64), AppError> {
+    ) -> Result<(Vec<News>, i64, i64), AppError> {
         let page = params.page.unwrap_or(1).max(1);
-        let offset = (page - 1) * PER_PAGE;
+        let per_page = params.limit.unwrap_or(PER_PAGE).max(1).min(100);
+        let offset = (page - 1) * per_page;
         let published_only = params.published_only.unwrap_or(false);
 
         // Build dynamic search pattern
@@ -112,7 +113,7 @@ impl NewsRepository {
         .bind(published_only)
         .bind(&search)
         .bind(&params.category)
-        .bind(PER_PAGE)
+        .bind(per_page)
         .bind(offset)
         .fetch_all(pool)
         .await?;
@@ -132,7 +133,7 @@ impl NewsRepository {
         .fetch_one(pool)
         .await?;
 
-        Ok((rows, total))
+        Ok((rows, total, per_page))
     }
 
     // ─────────────────────────────────────────────────────────
