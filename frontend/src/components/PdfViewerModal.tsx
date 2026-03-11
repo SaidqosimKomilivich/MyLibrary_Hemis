@@ -388,17 +388,19 @@ export default function PdfViewerModal({ title, fileUrl, onClose }: PdfViewerMod
                                 {pagesList.map((page) => {
                                     // VIRTUALIZATION: Only render the heavy <Page /> component for pages
                                     // near the current viewport. +/- 3 pages means 7 pages max loaded at once.
-                                    const isVisible = Math.abs(page - pageNumber) <= 3;
+                                    // Always keep page 1 ready to prevent initial blank screen.
+                                    const isVisible = page === 1 || Math.abs(page - pageNumber) <= 3;
 
                                     return (
                                         <div
                                             key={`page_${page}`}
                                             ref={el => { pageRefs.current[page - 1] = el }}
-                                            className="bg-white shadow-2xl relative transition-transform flex items-center justify-center"
+                                            className="bg-white shadow-2xl relative transition-transform flex items-center justify-center overflow-hidden"
                                             style={{
-                                                // Provide estimated dimensions when unloaded to keep scroll height stable
-                                                minHeight: isVisible ? 'auto' : `${800 * scale}px`,
-                                                width: isVisible ? 'auto' : `${600 * scale}px`,
+                                                // Constrain dimensions to estimated values to prevent collapse during loading
+                                                // This ensures IntersectionObserver and scroll position stay stable
+                                                minHeight: `${800 * scale}px`,
+                                                width: `${600 * scale}px`,
                                             }}
                                         >
                                             {isVisible ? (
