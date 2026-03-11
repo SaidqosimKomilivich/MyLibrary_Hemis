@@ -50,7 +50,7 @@ export default function LandingPage() {
             {/* Hero Section */}
             <section
                 className="relative pt-20 pb-20 px-6 h-screen overflow-hidden bg-cover bg-center bg-no-repeat w-full"
-                style={{ backgroundImage: "url('/library-hero.jpg')" }}
+                style={{ backgroundImage: "url('/library-hero_1.jpg')" }}
             >
                 <div className="absolute inset-0 bg-black/70 z-0" />
                 <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-emerald-500/20 rounded-full blur-[100px] z-0 pointer-events-none" />
@@ -68,8 +68,8 @@ export default function LandingPage() {
                         className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 leading-[1.1] stagger-fade-up text-white"
                         style={{ animationDelay: '0.25s' }}
                     >
-                        Bilimlar olamiga <br className="hidden md:block" />
-                        <span className="text-transparent bg-clip-text bg-linear-to-r from-emerald-400 to-cyan-400">xush kelibsiz</span>
+                        OʻzMU JF elektron  bilimlar <br className="hidden md:block" />
+                        <span className="text-transparent bg-clip-text bg-linear-to-r from-emerald-400 to-cyan-400">xazinasiga xush kelibsiz</span>
                     </h1>
 
                     <p
