@@ -258,7 +258,7 @@ export default function PdfViewerModal({ title, fileUrl, onClose }: PdfViewerMod
                 {/* Toolbar */}
                 <div className="flex flex-wrap items-center justify-between p-3 border-b border-border bg-surface/50 shrink-0 gap-3">
                     {/* Search */}
-                    <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+                    <div className="flex items-center gap-2 flex-1 min-w-50">
                         <div className="relative flex-1">
                             <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
                             <input
@@ -337,7 +337,7 @@ export default function PdfViewerModal({ title, fileUrl, onClose }: PdfViewerMod
                                     onChange={(e) => setPageInput(e.target.value)}
                                     onKeyDown={handlePageInputKeyDown}
                                     onBlur={handlePageInputBlur}
-                                    className="w-[50px] bg-[#1a1c1e] border border-border rounded-md px-2 py-1 text-center text-sm font-medium text-text focus:outline-none focus:border-primary transition-colors hover:bg-white/5"
+                                    className="w-12.5 bg-[#1a1c1e] border border-border rounded-md px-2 py-1 text-center text-sm font-medium text-text focus:outline-none focus:border-primary transition-colors hover:bg-white/5"
                                     min={1}
                                     max={numPages || 1}
                                     title="Sahifa raqamini yozing va Enter bosing"

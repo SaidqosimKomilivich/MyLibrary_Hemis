@@ -660,7 +660,7 @@ export default function MessagesPage() {
                                                   <img src={ann.images[0]} alt={ann.title} className="w-full h-full object-cover" />
                                               ) : (
                                                   <>
-                                                      <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_50%_50%,_white_1px,transparent_1px)] bg-[length:15px_15px]"></div>
+                                                      <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_50%_50%,white_1px,transparent_1px)] bg-size-[15px_15px]"></div>
                                                       <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white border border-white/20">
                                                           <Megaphone className="w-6 h-6" />
                                                       </div>

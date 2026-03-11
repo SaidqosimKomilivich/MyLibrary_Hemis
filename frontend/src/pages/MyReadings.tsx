@@ -156,7 +156,7 @@ export default function MyReadings() {
 
             {/* Audio Player Modal */}
             {audioBook && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setAudioBook(null)}>
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-999 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setAudioBook(null)}>
                     <div className="w-full max-w-md bg-surface rounded-2xl overflow-hidden shadow-2xl border border-white/10 animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
                         <div className="flex justify-between items-start p-5 border-b border-white/10 bg-surface-hover">
                             <div className="flex items-center gap-4">

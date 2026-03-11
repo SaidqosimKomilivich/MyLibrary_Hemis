@@ -16,7 +16,7 @@ export default function DeleteConfirmModal({
     if (!isOpen) return null
 
     return createPortal(
-        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-200" onClick={onCancel}>
+        <div className="fixed inset-0 z-999 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-200" onClick={onCancel}>
             <div className="w-full max-w-[400px] bg-surface backdrop-blur-2xl border border-border rounded-2xl p-6 md:p-8 flex flex-col items-center text-center shadow-[0_30px_80px_rgba(0,0,0,0.5)] animate-in zoom-in-95 duration-300 isolate relative" onClick={(e) => e.stopPropagation()}>
                 <button className="absolute top-4 right-4 flex items-center justify-center w-[34px] h-[34px] border-none rounded-lg bg-transparent text-text-muted cursor-pointer transition-colors hover:bg-surface-hover hover:text-text z-10" onClick={onCancel}>
                     <X size={18} />
