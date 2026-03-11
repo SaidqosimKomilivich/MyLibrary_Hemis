@@ -242,12 +242,12 @@ export default function PdfViewerModal({ title, fileUrl, onClose }: PdfViewerMod
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="flex justify-between items-center p-4 border-b border-border bg-white/5 rounded-t-2xl shrink-0">
+                <div className="flex justify-between items-center p-4 border-b border-border bg-slate-50 dark:bg-white/5 rounded-t-2xl shrink-0">
                     <h2 className="m-0 text-lg font-bold text-text truncate pr-4">{title}</h2>
                     <div className="flex items-center gap-2">
                         <button
                             onClick={handleClose}
-                            className="flex p-1.5 rounded-lg border-none bg-transparent cursor-pointer text-text-muted transition-colors hover:bg-white/10 hover:text-rose-400"
+                            className="flex p-1.5 rounded-lg border-none bg-transparent cursor-pointer text-text-muted transition-colors hover:bg-slate-200 dark:hover:bg-white/10 hover:text-rose-400"
                             title="Yopish"
                         >
                             <X size={20} />
@@ -267,18 +267,18 @@ export default function PdfViewerModal({ title, fileUrl, onClose }: PdfViewerMod
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && goToNextMatch()}
-                                className="w-full pl-8 pr-3 py-1.5 bg-[#1a1c1e] border border-border rounded-md text-sm text-text focus:outline-none focus:border-primary transition-colors"
+                                className="w-full pl-8 pr-3 py-1.5 border border-border rounded-md text-sm text-slate-800 dark:text-text focus:outline-none focus:border-primary transition-colors"
                             />
                         </div>
                         {searchQuery.trim() && (
                             <div className="flex items-center gap-1 text-xs text-text-muted whitespace-nowrap">
-                                <span className="px-2 py-1 rounded bg-white/5">
+                                <span className="px-2 py-1 rounded bg-slate-200 dark:bg-white/5 text-slate-700 dark:text-text-muted">
                                     {matchCount > 0 ? `${currentMatch} / ${matchCount}` : 'Topilmadi'}
                                 </span>
                                 <button
                                     onClick={goToPrevMatch}
                                     disabled={matchCount === 0}
-                                    className="p-1 rounded hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    className="p-1 rounded hover:bg-slate-300 dark:hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-slate-700 dark:text-text-muted"
                                     title="Oldingi topilma"
                                 >
                                     <ChevronLeft size={14} />
@@ -286,7 +286,7 @@ export default function PdfViewerModal({ title, fileUrl, onClose }: PdfViewerMod
                                 <button
                                     onClick={goToNextMatch}
                                     disabled={matchCount === 0}
-                                    className="p-1 rounded hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    className="p-1 rounded hover:bg-slate-300 dark:hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-slate-700 dark:text-text-muted"
                                     title="Keyingi topilma"
                                 >
                                     <ChevronRight size={14} />
@@ -301,7 +301,7 @@ export default function PdfViewerModal({ title, fileUrl, onClose }: PdfViewerMod
                             <button
                                 onClick={zoomOut}
                                 disabled={scale <= 0.5}
-                                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed text-text transition-colors"
+                                className="p-1.5 rounded-lg bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-text transition-colors"
                                 title="Kichraytirish"
                             >
                                 <ZoomOut size={18} />
@@ -312,7 +312,7 @@ export default function PdfViewerModal({ title, fileUrl, onClose }: PdfViewerMod
                             <button
                                 onClick={zoomIn}
                                 disabled={scale >= 3.0}
-                                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed text-text transition-colors"
+                                className="p-1.5 rounded-lg bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-text transition-colors"
                                 title="Kattalashtirish"
                             >
                                 <ZoomIn size={18} />
@@ -324,7 +324,7 @@ export default function PdfViewerModal({ title, fileUrl, onClose }: PdfViewerMod
                             <button
                                 onClick={prevPage}
                                 disabled={pageNumber <= 1}
-                                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed text-text transition-colors"
+                                className="p-1.5 rounded-lg bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-text transition-colors"
                                 title="Oldingi sahifa"
                             >
                                 <ChevronLeft size={18} />
@@ -337,7 +337,7 @@ export default function PdfViewerModal({ title, fileUrl, onClose }: PdfViewerMod
                                     onChange={(e) => setPageInput(e.target.value)}
                                     onKeyDown={handlePageInputKeyDown}
                                     onBlur={handlePageInputBlur}
-                                    className="w-12.5 bg-[#1a1c1e] border border-border rounded-md px-2 py-1 text-center text-sm font-medium text-text focus:outline-none focus:border-primary transition-colors hover:bg-white/5"
+                                    className="w-12.5 border border-border rounded-md px-2 py-1 text-center text-sm font-medium text-text focus:outline-none focus:border-primary transition-colors hover:bg-white/5"
                                     min={1}
                                     max={numPages || 1}
                                     title="Sahifa raqamini yozing va Enter bosing"
@@ -350,7 +350,7 @@ export default function PdfViewerModal({ title, fileUrl, onClose }: PdfViewerMod
                             <button
                                 onClick={nextPage}
                                 disabled={pageNumber >= (numPages || 1)}
-                                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed text-text transition-colors"
+                                className="p-1.5 rounded-lg bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-text transition-colors"
                                 title="Keyingi sahifa"
                             >
                                 <ChevronRight size={18} />
@@ -362,7 +362,7 @@ export default function PdfViewerModal({ title, fileUrl, onClose }: PdfViewerMod
                 {/* PDF Content */}
                 <div
                     ref={pdfWrapperRef}
-                    className="relative flex-1 overflow-auto bg-[#2d3135] rounded-b-2xl p-4 sm:p-8 flex flex-col items-center custom-scrollbar"
+                    className="relative flex-1 overflow-auto bg-slate-200 dark:bg-[#2d3135] rounded-b-2xl p-4 sm:p-8 flex flex-col items-center custom-scrollbar"
                     style={{ userSelect: 'none' }}
                     onContextMenu={(e) => e.preventDefault()}
                 >
@@ -409,7 +409,7 @@ export default function PdfViewerModal({ title, fileUrl, onClose }: PdfViewerMod
                                                     renderAnnotationLayer={true}
                                                     customTextRenderer={customTextRenderer}
                                                     loading={
-                                                        <div className="flex items-center justify-center bg-white/5 text-text-muted" style={{ width: 600 * scale, height: 800 * scale }}>
+                                                        <div className="flex items-center justify-center bg-slate-200 dark:bg-white/5 text-slate-500 dark:text-text-muted" style={{ width: 600 * scale, height: 800 * scale }}>
                                                             Sahifa {page} yuklanmoqda...
                                                         </div>
                                                     }

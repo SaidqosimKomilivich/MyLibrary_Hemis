@@ -273,11 +273,11 @@
 
 /* ===== DARK THEME ===== */
 .dark .book-page {
-  background: #1e293b;
-  background-image: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  border-left: 1px solid rgba(16, 185, 129, 0.8);
-  box-shadow: inset 6px 0 15px rgba(0, 0, 0, 0.5), inset -2px 0 5px rgba(255, 255, 255, 0.05);
+  background: #334155;
+  background-image: linear-gradient(135deg, #475569 0%, #1e293b 100%);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  border-left: 1px solid rgba(16, 185, 129, 0.9);
+  box-shadow: inset 6px 0 15px rgba(0, 0, 0, 0.4), inset -2px 0 5px rgba(255, 255, 255, 0.1);
 }
 
 .dark .book-page::before {
@@ -286,17 +286,17 @@
 }
 
 .dark .book-page-right {
-  background: #1e293b;
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  border-left: 1px solid rgba(16, 185, 129, 0.8);
-  box-shadow: inset 6px 0 15px rgba(0, 0, 0, 0.5);
+  background: #334155;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  border-left: 1px solid rgba(16, 185, 129, 0.9);
+  box-shadow: inset 6px 0 15px rgba(0, 0, 0, 0.4);
 }
 
 .dark .book-page-left {
-  background: #1e293b;
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  border-right: 1px solid rgba(16, 185, 129, 0.8);
-  box-shadow: inset -6px 0 15px rgba(0, 0, 0, 0.5);
+  background: #334155;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  border-right: 1px solid rgba(16, 185, 129, 0.9);
+  box-shadow: inset -6px 0 15px rgba(0, 0, 0, 0.4);
 }
 
 .book-page::after {
