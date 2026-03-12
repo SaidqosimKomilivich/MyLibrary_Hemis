@@ -58,6 +58,13 @@ export default function AccessControl() {
     const [assignModalOpen, setAssignModalOpen] = useState(false)
     const [bookSearch, setBookSearch] = useState('')
     const [searchResults, setSearchResults] = useState<Book[]>([])
+
+    // Qidiruv maydoni bo'shatilganda natijalarni ham tozalash
+    useEffect(() => {
+        if (!bookSearch.trim()) {
+            setSearchResults([])
+        }
+    }, [bookSearch])
     const [selectedBook, setSelectedBook] = useState<Book | null>(null)
     const [dueDate, setDueDate] = useState('')
     const [assignNotes, setAssignNotes] = useState('')
@@ -724,11 +731,11 @@ export default function AccessControl() {
                ═══════════════════════════════════════ */}
             {
                 assignModalOpen && createPortal(
-                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-999 flex items-center justify-center p-4 animate-in fade-in duration-200">
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-999 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => { setAssignModalOpen(false); setBookSearch(''); setSearchResults([]); setSelectedBook(null); }}>
                         <div className="bg-surface border border-border rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
                             <div className="flex items-center justify-between p-5 border-b border-border bg-surface-hover/40">
                                 <h3 className="flex items-center gap-2 text-lg font-bold text-text m-0"><BookPlus size={20} className="text-primary-light" /> Kitob biriktirish</h3>
-                                <button className="p-1.5 rounded-lg text-text-muted hover:bg-surface-hover hover:text-rose-400 transition-colors" onClick={() => setAssignModalOpen(false)}>
+                                <button className="p-1.5 rounded-lg text-text-muted hover:bg-surface-hover hover:text-rose-400 transition-colors" onClick={() => { setAssignModalOpen(false); setBookSearch(''); setSearchResults([]); setSelectedBook(null); }}>
                                     <X size={20} />
                                 </button>
                             </div>
@@ -836,7 +843,7 @@ export default function AccessControl() {
                             </div>
 
                             <div className="flex items-center justify-end gap-3 p-5 border-t border-border bg-surface-hover/40 shrink-0">
-                                <button className="px-5 py-2.5 rounded-xl text-sm font-semibold text-text bg-transparent hover:bg-surface-hover transition-colors" onClick={() => setAssignModalOpen(false)}>
+                                <button className="px-5 py-2.5 rounded-xl text-sm font-semibold text-text bg-transparent hover:bg-surface-hover transition-colors" onClick={() => { setAssignModalOpen(false); setBookSearch(''); setSearchResults([]); setSelectedBook(null); }}>
                                     Bekor qilish
                                 </button>
                                 <button
