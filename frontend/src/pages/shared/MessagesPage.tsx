@@ -236,6 +236,14 @@ export default function MessagesPage() {
         }
     }, [])
 
+    // Keep a ref to selectedId so the WS callback can access the latest value
+    // without adding selectedId to the mount effect's dependency array.
+    const selectedIdRef = useRef<string | null>(null)
+    useEffect(() => {
+        selectedIdRef.current = selectedId
+    }, [selectedId])
+
+    // Mount-only: initial fetch + WS subscription
     useEffect(() => {
         fetchMessages(true)
         fetchAnnouncements()
@@ -247,18 +255,20 @@ export default function MessagesPage() {
                 fetchAnnouncements()
                 toast.info(`${msg.title || 'Yangilik'}`, { theme: 'colored' })
             } else {
-                // Direct message - update sidebar
-                fetchMessages(true) // Re-fetch sidebar to show latest preview
-                
-                // If it's for the current chat, update history too
+                // Update only the specific conversation in the sidebar, not full reset
                 const otherPartyId = msg.sender_id === me?.id ? msg.receiver_id : msg.sender_id;
-                if (selectedId === otherPartyId) {
+                
+                // If it's for the current chat, update history
+                if (selectedIdRef.current === otherPartyId) {
                     fetchChatHistory(otherPartyId)
                 }
 
+                // Update just this conversation's preview without resetting page
+                buildConversations([msg], false)
+
                 const isSystemMessage = !msg.sender_id || msg.sender_role === 'system';
                 const senderName = msg.sender_name || (isSystemMessage ? 'Tizim' : 'Foydalanuvchi');
-                const titleText = msg.title ? `: ${msg.title}` : '';
+                const titleText = msg.title ? `: ${msg.title}` : ''
                 if (msg.sender_id !== me?.id) {
                     toast.info(`${senderName}${titleText}`, { theme: 'colored' })
                 }
@@ -266,7 +276,8 @@ export default function MessagesPage() {
         })
 
         return () => sub.abort()
-    }, [fetchMessages, fetchAnnouncements, fetchChatHistory, me?.id, selectedId])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []) // intentionally mount-only
 
     useEffect(() => {
         if (selectedId && selectedId !== 'channel') {
