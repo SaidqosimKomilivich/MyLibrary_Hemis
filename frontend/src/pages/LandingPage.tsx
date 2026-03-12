@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { BookOpen, Users, Search, ChevronRight, TrendingUp, Megaphone, Calendar, Info, ShieldCheck, Clock, Phone, Mail, MapPin, ChevronDown } from 'lucide-react'
 import { api, type PublicDashboardResponse, type News, type Book } from '../services/api'
+import { getFileUrl } from '../utils/fileUrl'
 
 export default function LandingPage() {
     const [stats, setStats] = useState<PublicDashboardResponse | null>(null)
@@ -308,7 +309,7 @@ export default function LandingPage() {
                                 <Link to={`/news/${item.slug}`} key={i} className="group bg-surface border border-border/50 rounded-2xl overflow-hidden hover:border-blue-500/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-500/10 flex flex-col h-full">
                                     {item.images && item.images.length > 0 ? (
                                         <div className="h-40 bg-surface/50 border-b border-border/50 overflow-hidden shrink-0">
-                                            <img src={item.images[0]} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                            <img src={getFileUrl(item.images[0])} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                                         </div>
                                     ) : (
                                         <div className="h-40 bg-surface/50 border-b border-border/50 flex flex-col justify-center items-center shrink-0">
@@ -371,7 +372,7 @@ export default function LandingPage() {
                                 <div key={i} className="group bg-surface border border-border/50 rounded-2xl overflow-hidden hover:border-emerald-500/50 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-emerald-500/10 cursor-pointer flex flex-col h-full">
                                     <div className="h-48 bg-surface/50 flex items-center justify-center border-b border-border/50 relative overflow-hidden">
                                         {book.cover_image ? (
-                                            <img src={`http://localhost:8080${book.cover_image}`} alt={book.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                            <img src={getFileUrl(book.cover_image)} alt={book.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                                         ) : (
                                             <BookOpen size={48} className="text-text-muted/50 group-hover:text-emerald-500/50 transition-colors duration-500" />
                                         )}

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { api, type Book } from '../../services/api'
 import { toast } from 'react-toastify'
+import { getFileUrl } from '../../utils/fileUrl'
 import { CustomSelect } from '../../components/CustomSelect'
 import { useAuth } from '../../context/AuthContext'
 import PdfViewerModal from '../../components/PdfViewerModal'
@@ -210,7 +211,7 @@ export default function TeacherBookSubmit() {
                         {submittedBooks.map(book => (
                             <div key={book.id} className="flex items-center gap-4 p-4 hover:bg-white/3 transition-colors">
                                 {book.cover_image_url ? (
-                                    <img src={book.cover_image_url} alt="" className="w-10 h-14 object-cover rounded-lg border border-border shrink-0" />
+                                    <img src={getFileUrl(book.cover_image_url)} alt="" className="w-10 h-14 object-cover rounded-lg border border-border shrink-0" />
                                 ) : (
                                     <div className="w-10 h-14 bg-white/5 border border-border rounded-lg flex items-center justify-center shrink-0">
                                         <BookOpen size={16} className="text-text-muted" />
@@ -509,7 +510,7 @@ export default function TeacherBookSubmit() {
                         <div className="p-5 flex-1 overflow-y-auto custom-scrollbar">
                             <div className="flex gap-5 mb-5">
                                 {selectedBook.cover_image_url ? (
-                                    <img src={selectedBook.cover_image_url} alt={selectedBook.title} className="w-28 h-40 object-cover rounded-xl border border-border shrink-0 shadow-md" />
+                                    <img src={getFileUrl(selectedBook.cover_image_url)} alt={selectedBook.title} className="w-28 h-40 object-cover rounded-xl border border-border shrink-0 shadow-md" />
                                 ) : (
                                     <div className="w-28 h-40 bg-white/5 border border-border rounded-xl flex items-center justify-center shrink-0">
                                         <BookOpen size={28} className="text-text-muted" />

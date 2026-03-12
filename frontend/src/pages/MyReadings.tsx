@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { BookOpen, BookMarked, X } from 'lucide-react'
 import { api, type Reading, type Book } from '../services/api'
 import { toast } from 'react-toastify'
+import { getFileUrl } from '../utils/fileUrl'
 import { useAuth } from '../context/AuthContext'
 import BookCard from '../components/BookCard'
 import DeleteConfirmModal from '../components/DeleteConfirmModal'
@@ -161,7 +162,7 @@ export default function MyReadings() {
                         <div className="flex justify-between items-start p-5 border-b border-white/10 bg-surface-hover">
                             <div className="flex items-center gap-4">
                                 {audioBook.cover_image_url ? (
-                                    <img src={audioBook.cover_image_url} alt={audioBook.title} className="w-16 h-16 rounded-xl object-cover shrink-0 border border-white/10 shadow-sm" />
+                                    <img src={getFileUrl(audioBook.cover_image_url)} alt={audioBook.title} className="w-16 h-16 rounded-xl object-cover shrink-0 border border-white/10 shadow-sm" />
                                 ) : (
                                     <div className="w-16 h-16 rounded-xl bg-white/5 flex items-center justify-center text-2xl shrink-0 border border-white/10 shadow-sm">🎧</div>
                                 )}

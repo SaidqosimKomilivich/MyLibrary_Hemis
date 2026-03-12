@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import { Search, Loader2, BookOpen, Layers, ArrowLeft } from 'lucide-react';
 import { api, type Book } from '../services/api';
 import { highlightText } from '../utils/highlightText';
+import { getFileUrl } from '../utils/fileUrl';
 const DEFAULT_CATEGORIES = [
     { id: 'all', name: 'Barchasi', icon: Layers },
 ];
@@ -179,7 +180,7 @@ const PublicCatalog = () => {
                                         <div className="aspect-2/3 bg-surface-hover flex items-center justify-center border-b border-border/50 relative overflow-hidden shrink-0">
                                             {book.cover_image_url ? (
                                                 <img
-                                                    src={book.cover_image_url}
+                                                    src={getFileUrl(book.cover_image_url)}
                                                     alt={book.title}
                                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                                     onError={(e) => {

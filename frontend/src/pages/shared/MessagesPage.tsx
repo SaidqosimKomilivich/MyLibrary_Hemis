@@ -539,12 +539,14 @@ export default function MessagesPage() {
                     <h2 className="text-xl font-bold">Xabarlar</h2>
                 </div>
 
-                <div className="p-2">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-                        <input type="text" placeholder="Qidirish..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full pl-9 pr-3 py-2 rounded-xl bg-surface-hover text-sm border-none focus:ring-1 focus:ring-primary/30 outline-none" />
+                {(me?.role === 'admin' || me?.role === 'staff') && (
+                    <div className="p-2">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                            <input type="text" placeholder="Qidirish..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full pl-9 pr-3 py-2 rounded-xl bg-surface-hover text-sm border-none focus:ring-1 focus:ring-primary/30 outline-none" />
+                        </div>
                     </div>
-                </div>
+                )}
 
                 <div className="flex-1 overflow-y-auto custom-scrollbar" onScroll={handleSidebarScroll}>
                     {searchQuery.trim().length > 0 ? (

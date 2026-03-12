@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { api, type MyDashboardResponse, type Rental, type Book } from '../../services/api'
+import { getFileUrl } from '../../utils/fileUrl'
 import { BookOpen, Clock, CheckCircle, Library, Star, AlertTriangle, Loader2, Calendar, ArrowRight } from 'lucide-react'
 import { toast } from 'react-toastify'
 
@@ -199,7 +200,7 @@ export default function StudentDashboard() {
                                     <div key={book.id} className="flex gap-3 py-3 px-4 rounded-xl transition-colors hover:bg-surface-hover/50 border border-transparent hover:border-border group cursor-pointer">
                                         <div className="w-[45px] h-[65px] shrink-0 bg-surface-hover rounded flex items-center justify-center overflow-hidden border border-border group-hover:border-border transition-colors">
                                             {book.cover_image ? (
-                                                <img src={book.cover_image} alt={book.title} className="w-full h-full object-cover" />
+                                                <img src={getFileUrl(book.cover_image)} alt={book.title} className="w-full h-full object-cover" />
                                             ) : (
                                                 <BookOpen size={20} className="text-text-muted" />
                                             )}

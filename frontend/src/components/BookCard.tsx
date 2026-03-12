@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { BookOpen, Edit, Trash2, FileText, Headphones, Eye, MapPin, PlusCircle, MinusCircle, ToggleLeft, ToggleRight, Clock } from 'lucide-react'
 import type { Book } from '../services/api'
 import { highlightText } from '../utils/highlightText'
+import { getFileUrl } from '../utils/fileUrl'
 
 interface BookCardProps {
     book: Book
@@ -36,7 +37,7 @@ export default function BookCard({ book, role, onEdit, onDelete, onToggleActive,
                 onMouseLeave={() => setShowOverlay(false)}
             >
                 {book.cover_image_url ? (
-                    <img src={book.cover_image_url} alt={book.title} className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 group-focus:scale-110" />
+                    <img src={getFileUrl(book.cover_image_url)} alt={book.title} className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 group-focus:scale-110" />
                 ) : (
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-text-muted/40 font-medium transition-transform duration-500 group-hover:scale-110 group-focus:scale-110">
                         <BookOpen size={48} />

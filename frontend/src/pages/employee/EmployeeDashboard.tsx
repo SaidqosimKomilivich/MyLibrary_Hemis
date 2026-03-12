@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { BookCopy, Library, ClipboardList, UserCheck, TrendingUp, Clock, Loader2 } from 'lucide-react'
 import { api, type EmployeeDashboardResponse } from '../../services/api'
+import { getFileUrl } from '../../utils/fileUrl'
 import { toast } from 'react-toastify'
 
 export default function EmployeeDashboard() {
@@ -141,7 +142,7 @@ export default function EmployeeDashboard() {
                                 <div key={i} className="flex items-center gap-3.5 py-3 px-5 transition-colors hover:bg-surface-hover/50">
                                     <div className="w-10 h-14 bg-surface rounded flex items-center justify-center overflow-hidden shrink-0 border border-border">
                                         {book.cover_image ? (
-                                            <img src={`http://localhost:8080${book.cover_image}`} alt={book.title} className="w-full h-full object-cover" />
+                                            <img src={getFileUrl(book.cover_image)} alt={book.title} className="w-full h-full object-cover" />
                                         ) : (
                                             <div className="w-full text-center font-bold text-[0.8rem] text-text-muted">{i + 1}</div>
                                         )}

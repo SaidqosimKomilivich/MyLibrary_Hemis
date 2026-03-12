@@ -29,6 +29,7 @@ import { useAudio } from '../context/AudioContext'
 import { useTheme } from '../context/ThemeContext'
 import { Sun, Moon } from 'lucide-react'
 import NotificationBell from './NotificationBell'
+import { getFileUrl } from '../utils/fileUrl'
 
 export type UserRole = 'admin' | 'staff' | 'teacher' | 'student' | 'employee'
 interface NavItem {
@@ -237,7 +238,7 @@ export default function DashboardLayout({ role }: DashboardLayoutProps) {
                         {isMini && book && (
                             <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-violet-500/15 border border-violet-500/25 max-w-[240px]">
                                 {book.cover_image_url ? (
-                                    <img src={book.cover_image_url} alt="" className="w-7 h-7 rounded-lg object-cover shrink-0" />
+                                    <img src={getFileUrl(book.cover_image_url)} alt="" className="w-7 h-7 rounded-lg object-cover shrink-0" />
                                 ) : (
                                     <div className="w-7 h-7 rounded-lg bg-violet-500/30 flex items-center justify-center shrink-0">
                                         <Music2 size={13} className="text-violet-300" />
