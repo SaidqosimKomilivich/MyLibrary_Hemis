@@ -594,7 +594,13 @@ export default function MessagesPage() {
                             </button>
 
                             <div className="px-4 py-2 bg-surface-hover/50 text-[10px] font-bold text-text-muted uppercase tracking-wider">Shaxsiy suhbatlar</div>
-                            {conversations.filter(c => c.contactName.toLowerCase().includes(searchQuery.toLowerCase())).map(conv => {
+                            {conversations
+                                .filter(c => {
+                                    // Faqat haqiqiy xabarlashuvlar ko'rinsin (dummy/bo'sh emas)
+                                    const hasMsgs = new Date(c.lastTime).getFullYear() > 1970 || c.lastMessage !== ''
+                                    return hasMsgs && c.contactName.toLowerCase().includes(searchQuery.toLowerCase())
+                                })
+                                .map(conv => {
                                 const isDummy = conv.lastMessage === "" && new Date(conv.lastTime).getFullYear() === 1970;
                                 return (
                                 <button key={conv.contactId} onClick={() => handleSelectConversation(conv)} className={`w-full flex items-center gap-3 px-4 py-3 border-b border-border/40 transition-colors text-left ${conv.contactId === selectedId ? 'bg-primary/10' : 'hover:bg-surface-hover'}`}>
