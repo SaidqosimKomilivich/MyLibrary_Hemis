@@ -44,14 +44,29 @@ export function DatePicker({
     const updateDropdownPosition = () => {
         if (!buttonRef.current) return;
         const rect = buttonRef.current.getBoundingClientRect();
+        const spaceBelow = window.innerHeight - rect.bottom;
+        const dropdownHeight = 400; // Estimated height of the calendar dropdown
+        const shouldOpenUp = spaceBelow < dropdownHeight && rect.top > dropdownHeight;
         
-        setDropdownStyle({
-            position: 'fixed',
-            left: rect.left,
-            top: rect.bottom + 8,
-            minWidth: '320px',
-            zIndex: 99999,
-        });
+        if (shouldOpenUp) {
+            setDropdownStyle({
+                position: 'fixed',
+                left: rect.left,
+                bottom: (window.innerHeight - rect.top) + 8,
+                minWidth: '320px',
+                zIndex: 99999,
+                transformOrigin: 'bottom',
+            });
+        } else {
+            setDropdownStyle({
+                position: 'fixed',
+                left: rect.left,
+                top: rect.bottom + 8,
+                minWidth: '320px',
+                zIndex: 99999,
+                transformOrigin: 'top',
+            });
+        }
     };
 
     useEffect(() => {
