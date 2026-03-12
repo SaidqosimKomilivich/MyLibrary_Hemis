@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Users, BookOpen, UserCog, BarChart3, TrendingUp, ChevronLeft, ChevronRight, RefreshCcw, AlertTriangle, Calendar, Clock, ArrowRight, Library, Globe } from 'lucide-react'
 import { api } from '../../services/api'
+import { formatDateTime } from '../../utils/dateUtils'
 import type { AdminDashboardResponse, Rental } from '../../services/api'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { toast } from 'react-toastify'
@@ -28,7 +29,7 @@ const formatDate = (dateStr?: string) => {
     if (!dateStr) return '—'
     const d = new Date(dateStr)
     if (isNaN(d.getTime())) return '—'
-    return `${d.getDate().toString().padStart(2, '0')}.${(d.getMonth() + 1).toString().padStart(2, '0')}.${d.getFullYear()}`
+    return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`
 }
 
 const getOverdueDays = (dueDateStr?: string): number => {
@@ -278,7 +279,7 @@ export default function AdminDashboard() {
                                         <strong className="block text-[0.85rem] font-semibold truncate" title={item.user}>{item.user}</strong>
                                         <span className="text-[0.8rem] text-text-muted truncate block" title={item.action}>{item.action}</span>
                                     </div>
-                                    <span className="text-[0.75rem] font-medium px-3 py-1 bg-surface-hover rounded-full text-text-muted whitespace-nowrap border border-border shadow-sm">{item.time}</span>
+                                    <span className="text-[0.75rem] font-medium px-3 py-1 bg-surface-hover rounded-full text-text-muted whitespace-nowrap border border-border shadow-sm">{formatDateTime(item.time)}</span>
                                 </div>
                             ))
                         ) : (

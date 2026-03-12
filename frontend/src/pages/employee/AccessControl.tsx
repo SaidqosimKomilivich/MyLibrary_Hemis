@@ -1,17 +1,22 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import {
     ScanLine, UserCheck, UserX, BookPlus, RotateCcw, Clock,
     Search, X, Calendar, BookOpen, AlertTriangle, CheckCircle2,
     LogIn, LogOut, User, CreditCard,
     RefreshCw,
     Camera,
-    Settings2
+    Settings2,
+    Loader2
 } from 'lucide-react'
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode'
 import { highlightText } from '../../utils/highlightText'
 import { api, type Rental, type Book, type ControlRecord, type UserData } from '../../services/api'
 import { toast } from 'react-toastify'
 import { CustomSelect } from '../../components/CustomSelect'
+import { getFileUrl } from '../../utils/fileUrl'
+import { formatDateTime } from '../../utils/dateUtils'
+import { DatePicker } from '../../components/DatePicker'
 
 /* ────────────────────────────────────────────────
    Muddat ranglari hisoblash
@@ -64,26 +69,35 @@ export default function AccessControl() {
     const [returnNotes, setReturnNotes] = useState('')
     const [returnLoading, setReturnLoading] = useState(false)
 
-    // ──── Today's visitors ────
     const [todayRecords, setTodayRecords] = useState<ControlRecord[]>([])
     const [todayLoading, setTodayLoading] = useState(false)
+    const [historyDate, setHistoryDate] = useState(new Date().toISOString().split('T')[0])
     const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
     const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
     const [permissionGranted, setPermissionGranted] = useState(false);
 
 
-    // Load today's visitors on mount
+    // Load visitors when historyDate changes
     useEffect(() => {
-        loadTodayRecords()
-    }, [])
+        loadHistoryRecords()
+    }, [historyDate])
 
-    const loadTodayRecords = async () => {
+    const loadHistoryRecords = async () => {
         setTodayLoading(true)
         try {
-            const res = await api.getControlToday()
-            setTodayRecords(res.data)
+            // Bugungi bo'lsa getControlToday, bo'lmasa getReportPreview ishlatamiz
+            const todayStr = new Date().toISOString().split('T')[0]
+            if (historyDate === todayStr) {
+                const res = await api.getControlToday()
+                setTodayRecords(res.data)
+            } else {
+                const res = await api.getReportPreview('gate_control', historyDate, historyDate)
+                if (res.success) {
+                    setTodayRecords(res.data)
+                }
+            }
         } catch {
-            // Silently fail, data may not be available
+            // Silently fail
         } finally {
             setTodayLoading(false)
         }
@@ -261,7 +275,7 @@ export default function AccessControl() {
         try {
             await api.controlArrive(scannedUser?.user_id)
             toast.success(`${userName} — kirish qayd etildi ✅`)
-            loadTodayRecords()
+            loadHistoryRecords()
             // Tozalash + kamerani qayta yoqish
             clearUser()
         }
@@ -276,7 +290,7 @@ export default function AccessControl() {
         try {
             await api.controlDepart(scannedUser?.user_id)
             toast.success(`${userName} — chiqish qayd etildi ✅`)
-            loadTodayRecords()
+            loadHistoryRecords()
             // Tozalash + kamerani qayta yoqish
             clearUser()
         }
@@ -313,8 +327,8 @@ export default function AccessControl() {
             setDueDate('')
             setAssignNotes('')
             loadUserRentals(scannedUser.user_id)
-        } catch {
-            toast.error("Kitob berishda xatolik")
+        } catch (error: any) {
+            toast.error(error.message || "Kitob berishda xatolik")
         } finally {
             setAssignLoading(false)
         }
@@ -339,7 +353,6 @@ export default function AccessControl() {
     }
 
     // ──── Sana hisoblash ────
-    const today = new Date().toISOString().split('T')[0]
     const defaultDue = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
     // ──── Sort rentals: overdue first, then by deadline ────
@@ -409,7 +422,7 @@ export default function AccessControl() {
                             </div>
                             <button
                                 onClick={getDevices}
-                                className="p-1.5 rounded-full hover:bg-white/10 text-text-muted transition-colors"
+                                className="p-1.5 rounded-full hover:bg-surface-hover text-text-muted transition-colors"
                             >
                                 <RefreshCw className="w-4 h-4" />
                             </button>
@@ -419,7 +432,7 @@ export default function AccessControl() {
 
                     {/* Kamera tanlash (agar 1 tadan ko'p bo'lsa) */}
                     {devices.length > 1 && (
-                        <div className="mb-4 bg-white/5 p-3 rounded-xl border border-border w-full">
+                        <div className="mb-4 bg-surface-hover/30 p-3 rounded-xl border border-border w-full">
                             <label className="flex items-center gap-2 text-xs font-semibold text-text mb-2">
                                 <Settings2 className="w-3.5 h-3.5" />
                                 Kamerani tanlash
@@ -480,11 +493,11 @@ export default function AccessControl() {
                             <div className="flex items-center gap-2 mb-6 pb-4 border-b border-border w-full">
                                 <UserCheck size={20} className="text-primary-light" />
                                 <h2 className="text-lg font-bold text-text">Foydalanuvchi topildi</h2>
-                                <span className={`ml-3 px-2.5 py-1 rounded-full text-xs font-bold tracking-wide border ${userIsInside ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' : 'bg-red-500/15 text-red-400 border-red-500/20'}`}>
+                                <span className={`ml-3 px-2.5 py-1 rounded-full text-xs font-bold tracking-wide border ${userIsInside ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
                                     {userIsInside ? '🟢 Ichkarida' : '🔴 Tashqarida'}
                                 </span>
                                 <button
-                                    className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 bg-transparent border border-border rounded-lg text-text-muted text-xs font-medium hover:bg-white/5 hover:text-text transition-colors"
+                                    className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 bg-transparent border border-border rounded-lg text-text-muted text-xs font-medium hover:bg-surface-hover hover:text-text transition-colors"
                                     onClick={clearUser}
                                     title="Tozalash"
                                 >
@@ -495,7 +508,7 @@ export default function AccessControl() {
                             <div className="flex items-start gap-5 mb-8">
                                 <div className="w-[84px] h-[84px] shrink-0">
                                     {scannedUser.image_url ? (
-                                        <img src={scannedUser.image_url} alt={scannedUser.full_name} className="w-full h-full object-cover rounded-xl shadow-sm border border-border" />
+                                        <img src={getFileUrl(scannedUser.image_url)} alt={scannedUser.full_name} className="w-full h-full object-cover rounded-xl shadow-sm border border-border" />
                                     ) : (
                                         <div className="w-full h-full bg-linear-to-br from-primary to-accent rounded-xl text-white flex items-center justify-center font-bold text-2xl shadow-sm">
                                             <User size={40} />
@@ -505,7 +518,7 @@ export default function AccessControl() {
 
                                 <div className="flex flex-col min-w-0">
                                     <h3 className="text-xl font-bold text-text mb-1 truncate">{scannedUser.full_name}</h3>
-                                    <span className="inline-block px-2.5 py-1 rounded-md bg-white/5 border border-border text-xs text-text-muted font-medium w-fit mb-3">
+                                    <span className="inline-block px-2.5 py-1 rounded-md bg-surface-hover/50 border border-border text-xs text-text-muted font-medium w-fit mb-3">
                                         {roleLabels[scannedUser.role] || scannedUser.role}
                                     </span>
 
@@ -552,7 +565,7 @@ export default function AccessControl() {
             {
                 scannedUser && (
                     <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-sm">
-                        <div className="flex items-center justify-between p-5 border-b border-border bg-white/5">
+                        <div className="flex items-center justify-between p-5 border-b border-border bg-surface-hover/40">
                             <h2 className="flex items-center gap-2.5 text-lg font-bold text-text m-0">
                                 <BookOpen size={20} className="text-primary-light" />
                                 Olingan kitoblar
@@ -567,7 +580,7 @@ export default function AccessControl() {
                                 <div className="w-8 h-8 rounded-full border-2 border-border border-t-primary animate-spin" />
                             </div>
                         ) : sortedRentals.length === 0 ? (
-                            <div className="p-16 flex flex-col items-center justify-center text-text-muted opacity-70 gap-4 text-center">
+                            <div className="p-16 flex flex-col items-center justify-center text-text-muted opacity-60 gap-4 text-center">
                                 <CheckCircle2 size={48} strokeWidth={1} />
                                 <p className="text-sm">Hech qanday aktiv ijara yo'q</p>
                             </div>
@@ -588,13 +601,13 @@ export default function AccessControl() {
                                         {sortedRentals.map(rental => {
                                             const deadline = getDeadlineInfo(rental.due_date)
                                             return (
-                                                <tr key={rental.id} className="hover:bg-white/5 transition-colors group">
+                                                <tr key={rental.id} className="hover:bg-surface-hover/50 transition-colors group">
                                                     <td className="p-4 border-b border-border">
                                                         <div className="flex items-center gap-3">
                                                             {rental.book_cover ? (
-                                                                <img src={rental.book_cover} alt="" className="w-10 h-10 object-cover rounded-lg shadow-sm border border-border" />
+                                                                <img src={getFileUrl(rental.book_cover)} alt="" className="w-10 h-10 object-cover rounded-lg shadow-sm border border-border" />
                                                             ) : (
-                                                                <div className="w-10 h-10 bg-white/5 border border-border rounded-lg text-text-muted flex items-center justify-center">
+                                                                    <div className="w-10 h-10 bg-surface-hover/30 border border-border rounded-lg text-text-muted flex items-center justify-center">
                                                                     <BookOpen size={16} />
                                                                 </div>
                                                             )}
@@ -602,8 +615,8 @@ export default function AccessControl() {
                                                         </div>
                                                     </td>
                                                     <td className="p-4 border-b border-border text-sm text-text-muted">{rental.book_author || '—'}</td>
-                                                    <td className="p-4 border-b border-border text-sm text-text-muted">{rental.loan_date}</td>
-                                                    <td className="p-4 border-b border-border text-sm text-text-muted font-medium">{rental.due_date}</td>
+                                                    <td className="p-4 border-b border-border text-sm text-text-muted">{formatDateTime(rental.loan_date)}</td>
+                                                    <td className="p-4 border-b border-border text-sm text-text-muted font-medium">{formatDateTime(rental.due_date)}</td>
                                                     <td className="p-4 border-b border-border">
                                                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold tracking-wide border ${deadline.color === 'danger' ? 'bg-red-500/15 text-red-400 border-red-500/20' : deadline.color === 'warning' ? 'bg-amber-500/15 text-amber-500 border-amber-500/20' : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20'}`}>
                                                             {deadline.color === 'danger' && <AlertTriangle size={14} />}
@@ -614,7 +627,7 @@ export default function AccessControl() {
                                                     </td>
                                                     <td className="p-4 border-b border-border">
                                                         <button
-                                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-transparent border border-border rounded-lg text-text font-medium text-xs hover:bg-white/10 transition-colors"
+                                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-transparent border border-border rounded-lg text-text font-medium text-xs hover:bg-surface-hover transition-colors"
                                                             onClick={() => { setReturningRental(rental); setReturnModalOpen(true) }}
                                                         >
                                                             <RotateCcw size={14} /> Qaytarish
@@ -635,17 +648,24 @@ export default function AccessControl() {
                TODAY'S VISITORS
                ═══════════════════════════════════════ */}
             <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-sm">
-                <div className="flex items-center justify-between p-5 border-b border-border bg-white/5">
+                <div className="flex items-center justify-between p-5 border-b border-border bg-surface-hover/40">
                     <h2 className="flex items-center gap-2.5 text-lg font-bold text-text m-0">
                         <Clock size={20} className="text-primary-light" />
-                        Bugungi tashrif buyurganlar
+                        {historyDate === new Date().toISOString().split('T')[0] ? "Bugungi" : `${historyDate} sanasidagi`} tashrif buyurganlar
                         {todayRecords.length > 0 && (
                             <span className="bg-indigo-500/15 text-primary-light px-2.5 py-0.5 rounded-full text-xs font-bold">{todayRecords.length}</span>
                         )}
                     </h2>
-                    <button className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-transparent border border-border rounded-lg text-text-muted text-xs font-medium hover:bg-white/5 hover:text-text transition-colors" onClick={loadTodayRecords} disabled={todayLoading}>
-                        <RotateCcw size={14} /> Yangilash
-                    </button>
+                    <div className="flex items-center gap-3 ml-auto">
+                        <DatePicker
+                            value={historyDate}
+                            onChange={(d) => setHistoryDate(d ? d.toISOString().split('T')[0] : new Date().toISOString().split('T')[0])}
+                            className="w-44"
+                        />
+                        <button className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-transparent border border-border rounded-lg text-text-muted text-xs font-medium hover:bg-surface-hover hover:text-text transition-colors" onClick={loadHistoryRecords} disabled={todayLoading}>
+                            <RotateCcw size={14} /> Yangilash
+                        </button>
+                    </div>
                 </div>
 
                 {todayLoading ? (
@@ -653,7 +673,7 @@ export default function AccessControl() {
                         <div className="w-8 h-8 rounded-full border-2 border-border border-t-primary animate-spin" />
                     </div>
                 ) : todayRecords.length === 0 ? (
-                    <div className="p-16 flex flex-col items-center justify-center text-text-muted opacity-70 gap-4 text-center">
+                    <div className="p-16 flex flex-col items-center justify-center text-text-muted opacity-60 gap-4 text-center">
                         <UserX size={48} strokeWidth={1} />
                         <p className="text-sm">Bugun hali hech kim kelmagan</p>
                     </div>
@@ -679,12 +699,12 @@ export default function AccessControl() {
                                         : (rec.staff_position || roleLabels[roleStr] || roleStr)
 
                                     return (
-                                        <tr key={rec.id} className="hover:bg-white/5 transition-colors">
+                                        <tr key={rec.id} className="hover:bg-surface-hover/50 transition-colors">
                                             <td className="p-4 border-b border-border text-sm text-text-muted">{i + 1}</td>
                                             <td className="p-4 border-b border-border font-medium text-sm text-text">{rec.full_name || 'Noma\'lum'}</td>
                                             <td className="p-4 border-b border-border text-sm text-text-muted">{displayRoleInfo || '—'}</td>
-                                            <td className="p-4 border-b border-border text-sm text-text-muted font-medium">{rec.arrival || '—'}</td>
-                                            <td className="p-4 border-b border-border text-sm text-text-muted font-medium">{isStillInside ? '—' : rec.departure}</td>
+                                            <td className="p-4 border-b border-border text-sm text-text-muted font-medium">{formatDateTime(rec.arrival)}</td>
+                                            <td className="p-4 border-b border-border text-sm text-text-muted font-medium">{isStillInside ? '—' : formatDateTime(rec.departure)}</td>
                                             <td className="p-4 border-b border-border">
                                                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold tracking-wide border ${isStillInside ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' : 'bg-slate-500/15 text-slate-400 border-slate-500/20'}`}>
                                                     {isStillInside ? '🟢 Ichkarida' : '⚪ Ketgan'}
@@ -703,57 +723,64 @@ export default function AccessControl() {
                BOOK ASSIGNMENT MODAL
                ═══════════════════════════════════════ */}
             {
-                assignModalOpen && (
-                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-999 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setAssignModalOpen(false)}>
-                        <div className="bg-surface border border-border rounded-2xl w-full max-w-md shadow-xl overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
-                            <div className="flex items-center justify-between p-5 border-b border-border">
+                assignModalOpen && createPortal(
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-999 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setAssignModalOpen(false)}>
+                        <div className="bg-surface border border-border rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+                            <div className="flex items-center justify-between p-5 border-b border-border bg-surface-hover/40">
                                 <h3 className="flex items-center gap-2 text-lg font-bold text-text m-0"><BookPlus size={20} className="text-primary-light" /> Kitob biriktirish</h3>
-                                <button className="p-1.5 rounded-lg text-text-muted hover:bg-white/5 transition-colors" onClick={() => setAssignModalOpen(false)}>
+                                <button className="p-1.5 rounded-lg text-text-muted hover:bg-surface-hover hover:text-rose-400 transition-colors" onClick={() => setAssignModalOpen(false)}>
                                     <X size={20} />
                                 </button>
                             </div>
 
-                            <div className="p-5 flex flex-col gap-4">
+                            <div className="p-5 flex flex-col gap-4 overflow-y-auto custom-scrollbar">
                                 {/* User info */}
-                                <div className="flex items-center gap-2 text-sm text-text bg-white/5 p-3 rounded-lg border border-border">
-                                    <User size={16} className="text-primary-light" />
-                                    <strong>{scannedUser?.full_name}</strong>
-                                    <span className="bg-white/10 px-2 py-0.5 rounded text-xs font-medium ml-auto">
-                                        {roleLabels[scannedUser?.role || ''] || scannedUser?.role}
-                                    </span>
+                                <div className="flex items-center gap-3 text-sm text-text bg-surface-hover/50 p-3 rounded-xl border border-border">
+                                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary-light font-bold text-xs uppercase">
+                                        {scannedUser?.full_name ? scannedUser.full_name.charAt(0) : '?'}
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="font-bold">{scannedUser?.full_name}</span>
+                                        <span className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">
+                                            {roleLabels[scannedUser?.role || ''] || scannedUser?.role}
+                                        </span>
+                                    </div>
                                 </div>
 
                                 {/* Book search */}
                                 <div className="flex flex-col gap-1.5">
-                                    <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Kitob qidirish</label>
+                                    <label className="text-[0.8rem] font-semibold text-text-muted uppercase tracking-wider">Kitob qidirish</label>
                                     <div className="flex gap-2">
-                                        <input
-                                            className="flex-1 bg-white/5 border border-border px-3 py-2 rounded-lg text-sm text-text outline-none focus:border-primary transition-colors"
-                                            placeholder="Kitob nomi..."
-                                            value={bookSearch}
-                                            onChange={e => setBookSearch(e.target.value)}
-                                            onKeyDown={e => e.key === 'Enter' && handleSearchBooks()}
-                                        />
-                                        <button className="flex items-center justify-center p-2 rounded-lg bg-primary text-white hover:bg-primary-hover transition-colors" onClick={handleSearchBooks}>
-                                            <Search size={18} />
+                                        <div className="relative flex-1">
+                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                                            <input
+                                                className="w-full bg-surface-hover/30 border border-border pl-9 pr-3 py-2.5 rounded-xl text-sm text-text outline-none focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)] transition-all"
+                                                placeholder="Kitob nomi yoki muallifi..."
+                                                value={bookSearch}
+                                                onChange={e => setBookSearch(e.target.value)}
+                                                onKeyDown={e => e.key === 'Enter' && handleSearchBooks()}
+                                            />
+                                        </div>
+                                        <button className="flex items-center justify-center px-4 rounded-xl bg-primary text-white hover:bg-primary-hover shadow-lg shadow-primary/20 transition-all active:scale-95" onClick={handleSearchBooks}>
+                                            Qidirish
                                         </button>
                                     </div>
                                 </div>
 
                                 {/* Search results */}
                                 {searchResults.length > 0 && (
-                                    <div className="flex flex-col gap-1 max-h-[160px] overflow-y-auto border border-border rounded-lg p-1">
+                                    <div className="flex flex-col gap-1 max-h-[220px] overflow-y-auto border border-border rounded-xl p-1 bg-surface-hover/30">
                                         {searchResults.map(book => (
                                             <div
                                                 key={book.id}
-                                                className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-colors ${selectedBook?.id === book.id ? 'bg-indigo-500/20 border border-indigo-500/30' : 'hover:bg-white/5 border border-transparent'}`}
+                                                className={`flex items-center justify-between p-2.5 rounded-lg cursor-pointer transition-all ${selectedBook?.id === book.id ? 'bg-primary/20 border-l-4 border-l-primary' : 'hover:bg-surface-hover border-l-4 border-l-transparent'}`}
                                                 onClick={() => setSelectedBook(book)}
                                             >
                                                 <div className="flex flex-col min-w-0 pr-3">
-                                                    <strong className="text-sm text-text truncate">{highlightText(book.title, bookSearch)}</strong>
+                                                    <strong className={`text-sm truncate transition-colors ${selectedBook?.id === book.id ? 'text-primary-light' : 'text-text'}`}>{highlightText(book.title, bookSearch)}</strong>
                                                     <span className="text-xs text-text-muted truncate">{highlightText(book.author, bookSearch)}</span>
                                                 </div>
-                                                <span className={`shrink-0 text-xs font-semibold px-2 py-1 rounded-full ${(book.available_quantity || 0) > 0 ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-500'}`}>
+                                                <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full border ${(book.available_quantity || 0) > 0 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
                                                     {(book.available_quantity || 0) > 0 ? `${book.available_quantity} ta` : 'Yo\'q'}
                                                 </span>
                                             </div>
@@ -762,86 +789,104 @@ export default function AccessControl() {
                                 )}
 
                                 {selectedBook && (
-                                    <div className="flex items-center gap-2 p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg text-sm mt-1">
-                                        <CheckCircle2 size={16} className="shrink-0" />
-                                        <span className="truncate">Tanlangan: <strong>{selectedBook.title}</strong></span>
+                                    <div className="flex flex-col gap-3 p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl mt-1 animate-in slide-in-from-top-2">
+                                        <div className="flex items-center gap-2">
+                                            <CheckCircle2 size={16} className="shrink-0" />
+                                            <span className="text-sm font-semibold">Tanlangan kitob:</span>
+                                        </div>
+                                        <div className="flex items-center gap-3 bg-canvas/30 p-2 rounded-lg">
+                                             {selectedBook.cover_image_url && <img src={getFileUrl(selectedBook.cover_image_url)} className="w-10 h-14 object-cover rounded shadow-sm" alt="" />}
+                                             <div className="flex flex-col min-w-0">
+                                                  <span className="text-sm font-bold text-text truncate">{selectedBook.title}</span>
+                                                  <span className="text-xs text-emerald-400/80 truncate">{selectedBook.author}</span>
+                                             </div>
+                                        </div>
                                     </div>
                                 )}
 
                                 {/* Due date */}
-                                <div className="flex flex-col gap-1.5 mt-2">
-                                    <label className="flex items-center gap-1.5 text-xs font-semibold text-text-muted uppercase tracking-wider">
-                                        <Calendar size={14} /> Qaytarish muddati (default: 15 kun)
-                                    </label>
-                                    <input
-                                        type="date"
-                                        className="bg-white/5 border border-border px-3 py-2 rounded-lg text-sm text-text outline-none focus:border-primary transition-colors appearance-none"
-                                        style={{ colorScheme: 'dark' }}
-                                        value={dueDate || defaultDue}
-                                        min={today}
-                                        onChange={e => setDueDate(e.target.value)}
-                                    />
-                                </div>
-
-                                {/* Notes */}
-                                <div className="flex flex-col gap-1.5 mt-2">
-                                    <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">
-                                        📝 Izoh (ixtiyoriy)
-                                    </label>
-                                    <textarea
-                                        className="bg-white/5 border border-border px-3 py-2 rounded-lg text-sm text-text outline-none focus:border-primary transition-colors resize-none"
-                                        placeholder="Izoh yozing..."
-                                        value={assignNotes}
-                                        onChange={e => setAssignNotes(e.target.value)}
-                                        rows={3}
-                                    />
+                                <div className="grid grid-cols-1 gap-4 mt-2">
+                                    <div className="flex flex-col gap-1.5">
+                                        <label className="flex items-center gap-1.5 text-[0.8rem] font-semibold text-text-muted uppercase tracking-wider">
+                                            <Calendar size={14} /> Qaytarish muddati
+                                        </label>
+                                        <DatePicker
+                                            label="Muddati"
+                                            placeholder="Tanlang (default 15 kun)"
+                                            value={dueDate || (typeof defaultDue === 'string' ? defaultDue : '')}
+                                            onChange={(d) => setDueDate(d ? d.toISOString().split('T')[0] : '')}
+                                            className="w-full"
+                                        />
+                                    </div>
+                                    
+                                    {/* Notes */}
+                                    <div className="flex flex-col gap-1.5">
+                                        <label className="text-[0.8rem] font-semibold text-text-muted uppercase tracking-wider">
+                                            Izoh (ixtiyoriy)
+                                        </label>
+                                        <textarea
+                                            className="bg-surface-hover/30 border border-border px-3 py-2 rounded-xl text-sm text-text outline-none focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)] transition-all resize-none min-h-[80px]"
+                                            placeholder="Kitob holati haqida qayd..."
+                                            value={assignNotes}
+                                            onChange={e => setAssignNotes(e.target.value)}
+                                            rows={2}
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="flex items-center justify-end gap-3 p-4 border-t border-border bg-white/5 mt-2">
-                                <button className="px-4 py-2.5 border border-border rounded-lg text-sm font-medium text-text bg-transparent hover:bg-white/5 transition-colors" onClick={() => setAssignModalOpen(false)}>
+                            <div className="flex items-center justify-end gap-3 p-5 border-t border-border bg-surface-hover/40 shrink-0">
+                                <button className="px-5 py-2.5 rounded-xl text-sm font-semibold text-text bg-transparent hover:bg-surface-hover transition-colors" onClick={() => setAssignModalOpen(false)}>
                                     Bekor qilish
                                 </button>
                                 <button
-                                    className="flex items-center justify-center gap-2 px-4 py-2.5 bg-primary border border-transparent rounded-lg text-sm font-semibold text-white hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-[100px]"
+                                    className="flex items-center justify-center gap-2 px-6 py-2.5 bg-primary text-white border-none rounded-xl text-sm font-bold hover:bg-primary-hover shadow-lg shadow-primary/25 hover:-translate-y-0.5 transition-all active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                                     onClick={handleAssignBook}
                                     disabled={!selectedBook || (!(dueDate || defaultDue)) || assignLoading}
                                 >
-                                    {assignLoading ? <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /> : <><BookPlus size={16} /> Berish</>}
+                                    {assignLoading ? <Loader2 size={18} className="animate-spin" /> : <><BookPlus size={18} /> Berish</>}
                                 </button>
                             </div>
                         </div>
-                    </div>
+                    </div>,
+                    document.body
                 )
             }
 
             {/* ═══════════════════════════════════════
-               BOOK RETURN MODAL (IZOH BILAN)
+               BOOK RETURN MODAL
                ═══════════════════════════════════════ */}
             {
-                returnModalOpen && (
-                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-999 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => { setReturnModalOpen(false); setReturningRental(null); setReturnNotes('') }}>
-                        <div className="bg-surface border border-border rounded-2xl w-full max-w-sm shadow-xl overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
-                            <div className="flex items-center justify-between p-5 border-b border-border">
+                returnModalOpen && createPortal(
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-1000 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => { setReturnModalOpen(false); setReturningRental(null); setReturnNotes('') }}>
+                        <div className="bg-surface border border-border rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                            <div className="flex items-center justify-between p-5 border-b border-border bg-surface-hover/40">
                                 <h3 className="flex items-center gap-2 text-lg font-bold text-text m-0"><RotateCcw size={20} className="text-primary-light" /> Kitobni qaytarish</h3>
-                                <button className="p-1.5 rounded-lg text-text-muted hover:bg-white/5 transition-colors" onClick={() => { setReturnModalOpen(false); setReturningRental(null); setReturnNotes('') }}>
+                                <button className="p-1.5 rounded-lg text-text-muted hover:bg-surface-hover hover:text-rose-400 transition-colors" onClick={() => { setReturnModalOpen(false); setReturningRental(null); setReturnNotes('') }}>
                                     <X size={20} />
                                 </button>
                             </div>
 
-                            <div className="p-5 flex flex-col gap-4">
-                                <div className="flex items-start gap-3 p-3 bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-lg text-sm font-medium">
-                                    <AlertTriangle size={18} className="shrink-0 mt-0.5" />
-                                    <span>"{returningRental?.book_title}" kitobini qaytarildi deb belgilamoqchimisiz?</span>
+                            <div className="p-6 flex flex-col gap-6">
+                                <div className="flex flex-col gap-3">
+                                    <div className="flex items-start gap-3 p-4 bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-xl">
+                                        <AlertTriangle size={20} className="shrink-0 mt-0.5" />
+                                        <div className="flex flex-col gap-1">
+                                            <p className="text-sm font-bold">Diqqat!</p>
+                                            <p className="text-xs leading-relaxed font-medium opacity-90">
+                                                "{returningRental?.book_title}" kitobini qaytarildi deb belgilamoqchimisiz?
+                                            </p>
+                                        </div>
+                                    </div>
                                 </div>
 
-                                <div className="flex flex-col gap-1.5 mt-2">
-                                    <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">
-                                        📝 Izoh (ixtiyoriy)
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-[0.8rem] font-semibold text-text-muted uppercase tracking-wider">
+                                        Izoh (ixtiyoriy)
                                     </label>
                                     <textarea
-                                        className="bg-white/5 border border-border px-3 py-2 rounded-lg text-sm text-text outline-none focus:border-primary transition-colors resize-none"
-                                        placeholder="Kitob holati, qayd, izoh..."
+                                        className="bg-surface-hover/30 border border-border px-4 py-3 rounded-xl text-sm text-text outline-none focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)] transition-all resize-none min-h-[100px]"
+                                        placeholder="Kitob holati haqida qisqacha ma'lumot (masalan: sahifasi yirtilgan, toza va h.k.)"
                                         value={returnNotes}
                                         onChange={e => setReturnNotes(e.target.value)}
                                         rows={3}
@@ -849,20 +894,21 @@ export default function AccessControl() {
                                 </div>
                             </div>
 
-                            <div className="flex items-center justify-end gap-3 p-4 border-t border-border bg-white/5 mt-2">
-                                <button className="px-4 py-2.5 border border-border rounded-lg text-sm font-medium text-text bg-transparent hover:bg-white/5 transition-colors" onClick={() => { setReturnModalOpen(false); setReturningRental(null); setReturnNotes('') }}>
+                            <div className="flex items-center justify-end gap-3 p-5 border-t border-border bg-surface-hover/40">
+                                <button className="px-5 py-2.5 rounded-xl text-sm font-semibold text-text bg-transparent hover:bg-surface-hover transition-colors" onClick={() => { setReturnModalOpen(false); setReturningRental(null); setReturnNotes('') }}>
                                     Bekor qilish
                                 </button>
                                 <button
-                                    className="flex items-center justify-center gap-2 px-4 py-2.5 bg-primary border border-transparent rounded-lg text-sm font-semibold text-white hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-[120px]"
+                                    className="flex items-center justify-center gap-2 px-6 py-2.5 bg-primary text-white border-none rounded-xl text-sm font-bold hover:bg-primary-hover shadow-lg shadow-primary/25 hover:-translate-y-0.5 transition-all active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none min-w-[130px]"
                                     onClick={handleReturnConfirm}
                                     disabled={returnLoading}
                                 >
-                                    {returnLoading ? <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /> : <><RotateCcw size={16} /> Qaytarish</>}
+                                    {returnLoading ? <Loader2 size={18} className="animate-spin" /> : <><RotateCcw size={18} /> Qaytarish</>}
                                 </button>
                             </div>
                         </div>
-                    </div>
+                    </div>,
+                    document.body
                 )
             }
         </div >

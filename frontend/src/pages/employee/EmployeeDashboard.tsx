@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { BookCopy, Library, ClipboardList, UserCheck, TrendingUp, Clock, Loader2 } from 'lucide-react'
 import { api, type EmployeeDashboardResponse } from '../../services/api'
 import { getFileUrl } from '../../utils/fileUrl'
+import { formatDate } from '../../utils/dateUtils'
 import { toast } from 'react-toastify'
 
 export default function EmployeeDashboard() {
@@ -87,7 +88,7 @@ export default function EmployeeDashboard() {
                                         <tr key={i} className="transition-colors hover:bg-surface-hover/50 border-t border-border">
                                             <td className="py-3 px-4 text-[0.875rem]">{item.student}</td>
                                             <td className="py-3 px-4 text-[0.875rem]">{item.book}</td>
-                                            <td className="py-3 px-4 text-[0.875rem]">{item.due_date}</td>
+                                            <td className="py-3 px-4 text-[0.875rem]">{formatDate(item.due_date)}</td>
                                             <td className="py-3 px-4 text-[0.875rem]">
                                                 {(() => {
                                                     const [yyyy, mm, dd] = item.due_date.split('-');

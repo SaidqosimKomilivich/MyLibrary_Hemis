@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { api } from '../../services/api'
 import { CustomSelect, type SelectOption } from '../../components/CustomSelect'
-import { Loader2, Calendar as CalendarIcon, ArrowRightLeft, BookOpen, Clock, AlertCircle, Users, Download } from 'lucide-react'
+import { Loader2, ArrowRightLeft, BookOpen, Clock, AlertCircle, Users, Download } from 'lucide-react'
 import { toast } from 'react-toastify'
+import { DatePicker } from '../../components/DatePicker'
+import { formatDateTime } from '../../utils/dateUtils'
 
 type ReportType = 'rentals' | 'controls' | 'submissions' | 'users_statistics' | 'book_inventory' | 'overdue_rentals' | 'gate_control' | 'book_requests' | 'books_added' | 'staff_book_counts'
 
@@ -33,7 +35,7 @@ const REPORT_CONFIGS: ReportConfig[] = [
                 <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.specialty_name || '-'}</td>
                 <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.group_name || '-'}</td>
                 <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.staff_position || '-'}</td>
-                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.created_at || '-'}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.created_at ? formatDateTime(item.created_at) : '-'}</td>
             </>
         )
     },
@@ -67,8 +69,8 @@ const REPORT_CONFIGS: ReportConfig[] = [
             <>
                 <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] font-medium text-text">{item.user_full_name || '-'}</td>
                 <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.book_title || '-'}</td>
-                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.loan_date || '-'}</td>
-                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.due_date || '-'}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.loan_date ? formatDateTime(item.loan_date) : '-'}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.due_date ? formatDateTime(item.due_date) : '-'}</td>
                 <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-red-400 font-bold">{item.overdue_days || 0} kun</td>
             </>
         )
@@ -90,8 +92,8 @@ const REPORT_CONFIGS: ReportConfig[] = [
                         {item.status}
                     </span>
                 </td>
-                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.loan_date || '-'}</td>
-                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.return_date || '-'}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.loan_date ? formatDateTime(item.loan_date) : '-'}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.return_date ? formatDateTime(item.return_date) : '-'}</td>
             </>
         )
     },
@@ -111,8 +113,8 @@ const REPORT_CONFIGS: ReportConfig[] = [
                 <>
                     <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] font-medium text-text">{item.full_name || '-'}</td>
                     <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{pos || '-'}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-emerald-400">{item.arrival ? new Date(item.arrival).toLocaleString('uz-UZ') : '-'}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-red-400">{item.departure ? new Date(item.departure).toLocaleString('uz-UZ') : '-'}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-emerald-400">{item.arrival ? formatDateTime(item.arrival) : '-'}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-red-400">{item.departure ? formatDateTime(item.departure) : '-'}</td>
                 </>
             )
         }
@@ -139,7 +141,7 @@ const REPORT_CONFIGS: ReportConfig[] = [
                         {item.status === 'pending' ? 'Kutilmoqda' : item.status === 'processing' ? "Ko'rilmoqda" : item.status === 'ready' ? 'Tayyor' : 'Rad etildi'}
                     </span>
                 </td>
-                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.created_at || '-'}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.created_at ? formatDateTime(item.created_at) : '-'}</td>
             </>
         )
     },
@@ -156,7 +158,7 @@ const REPORT_CONFIGS: ReportConfig[] = [
                 <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] font-medium text-text">{item.title || '-'}</td>
                 <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.author || '-'}</td>
                 <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.status || '-'}</td>
-                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.submitted_at || '-'}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.submitted_at ? formatDateTime(item.submitted_at) : '-'}</td>
             </>
         )
     },
@@ -177,7 +179,7 @@ const REPORT_CONFIGS: ReportConfig[] = [
                 <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.format || '-'}</td>
                 <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-emerald-400 font-medium">{item.total_quantity ?? 0}</td>
                 <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-indigo-300 font-medium">{item.added_by_name || '-'}</td>
-                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.created_at || '-'}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] text-text-muted">{item.created_at ? formatDateTime(item.created_at) : '-'}</td>
             </>
         )
     }
@@ -389,28 +391,18 @@ function ReportSection({ config }: { config: ReportConfig }) {
                 <div className="flex items-center gap-3 flex-wrap">
                     {config.filterMode === 'date' ? (
                         <>
-                            <div className="flex items-center gap-2 bg-background py-1.5 px-3 rounded-lg border border-border h-10">
-                                <CalendarIcon size={16} className="text-text-muted" />
-                                <span className="text-text-muted text-[0.85rem]">dan:</span>
-                                <input
-                                    type="date"
-                                    value={startDate}
-                                    max={today}
-                                    onChange={e => setStartDate(e.target.value)}
-                                    className="bg-transparent border-none text-text outline-none text-[0.85rem] [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-60 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                                />
-                            </div>
-                            <div className="flex items-center gap-2 bg-background py-1.5 px-3 rounded-lg border border-border h-10">
-                                <CalendarIcon size={16} className="text-text-muted" />
-                                <span className="text-text-muted text-[0.85rem]">gacha:</span>
-                                <input
-                                    type="date"
-                                    value={endDate}
-                                    max={today}
-                                    onChange={e => setEndDate(e.target.value)}
-                                    className="bg-transparent border-none text-text outline-none text-[0.85rem] [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-60 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                                />
-                            </div>
+                            <DatePicker
+                                label="dan"
+                                value={startDate}
+                                onChange={(d) => setStartDate(d ? d.toISOString().split('T')[0] : '')}
+                                className="h-10"
+                            />
+                            <DatePicker
+                                label="gacha"
+                                value={endDate}
+                                onChange={(d) => setEndDate(d ? d.toISOString().split('T')[0] : '')}
+                                className="h-10"
+                            />
                         </>
                     ) : config.filterMode === 'staff' ? (
                         <>

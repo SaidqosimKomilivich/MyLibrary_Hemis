@@ -32,7 +32,7 @@ impl RentalService {
         // Dublikat tekshirish: foydalanuvchida bu kitob allaqachon aktiv ijarada bormi?
         if RentalRepository::find_active_by_user_and_book(pool, &req.user_id, &req.book_id).await? {
             return Err(AppError::BadRequest(
-                "Bu kitob allaqachon ushbu foydalanuvchiga topshirilgan".to_string(),
+                "bu kitobni siz avval olgansiz va hali qaytarmagansiz, kitobni berish munkin emas".to_string(),
             ));
         }
 
