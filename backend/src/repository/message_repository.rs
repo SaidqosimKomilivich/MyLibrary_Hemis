@@ -152,54 +152,6 @@ impl MessageRepository {
         Ok(res)
     }
 
-    pub async fn get_all_conversations_paginated(
-        pool: &PgPool,
-        limit: i64,
-        offset: i64,
-    ) -> Result<Vec<MessageResponseDto>, AppError> {
-        // Adminlar uchun barcha unique pairlar (sender, receiver)
-        let conversations = sqlx::query!(
-            r#"
-            SELECT * FROM (
-                SELECT DISTINCT ON (LEAST(m.sender_id, m.receiver_id), GREATEST(m.sender_id, m.receiver_id))
-                    m.id, m.sender_id, m.receiver_id, m.title, m.message, m.is_read, m.created_at,
-                    s.full_name as "sender_name?",
-                    s.role as "sender_role?",
-                    r.full_name as "receiver_name?",
-                    r.role as "receiver_role?"
-                FROM messages m
-                LEFT JOIN users s ON m.sender_id = s.id
-                LEFT JOIN users r ON m.receiver_id = r.id
-                ORDER BY LEAST(m.sender_id, m.receiver_id), GREATEST(m.sender_id, m.receiver_id), m.created_at DESC
-            ) sub
-            ORDER BY created_at DESC
-            LIMIT $1 OFFSET $2
-            "#,
-            limit,
-            offset
-        )
-        .fetch_all(pool)
-        .await?;
-
-        let res = conversations.into_iter().map(|row| MessageResponseDto {
-            id: row.id,
-            sender_id: row.sender_id,
-            receiver_id: row.receiver_id,
-            sender_name: row.sender_name,
-            sender_role: row.sender_role,
-            receiver_name: row.receiver_name,
-            receiver_role: row.receiver_role,
-            title: row.title,
-            message: row.message,
-            category: None,
-            images: None,
-            is_read: row.is_read,
-            created_at: row.created_at,
-        }).collect();
-
-        Ok(res)
-    }
-
     pub async fn count_user_conversations(pool: &PgPool, user_id: Uuid) -> Result<i64, AppError> {
         let res = sqlx::query!(
             r#"
@@ -216,14 +168,14 @@ impl MessageRepository {
         Ok(res.count.unwrap_or(0))
     }
 
-    pub async fn count_all_conversations(pool: &PgPool) -> Result<i64, AppError> {
-        let res = sqlx::query!(
-            "SELECT count(DISTINCT (LEAST(sender_id, receiver_id), GREATEST(sender_id, receiver_id))) as count FROM messages"
-        )
-        .fetch_one(pool)
-        .await?;
-        Ok(res.count.unwrap_or(0))
-    }
+    // pub async fn count_all_conversations(pool: &PgPool) -> Result<i64, AppError> {
+    //     let res = sqlx::query!(
+    //         "SELECT count(DISTINCT (LEAST(sender_id, receiver_id), GREATEST(sender_id, receiver_id))) as count FROM messages"
+    //     )
+    //     .fetch_one(pool)
+    //     .await?;
+    //     Ok(res.count.unwrap_or(0))
+    // }
 
     pub async fn count_unread(pool: &PgPool, user_id: Uuid) -> Result<i64, AppError> {
         let res = sqlx::query!(
