@@ -36,6 +36,25 @@ export default function PublicNewsPage() {
         fetchNews()
     }, [currentPage])
 
+    const generatePageNumbers = () => {
+        const pages: (number | '...')[] = []
+        const total = totalPages
+        const current = currentPage
+
+        if (total <= 7) {
+            for (let i = 1; i <= total; i++) pages.push(i)
+        } else {
+            pages.push(1)
+            if (current > 3) pages.push('...')
+            const start = Math.max(2, current - 1)
+            const end = Math.min(total - 1, current + 1)
+            for (let i = start; i <= end; i++) pages.push(i)
+            if (current < total - 2) pages.push('...')
+            pages.push(total)
+        }
+        return pages
+    }
+
     return (
         <div className="w-full">
             <main className="pt-10 pb-20 px-6 max-w-7xl mx-auto">
@@ -106,21 +125,22 @@ export default function PublicNewsPage() {
                 {/* Pagination */}
                 {totalPages > 1 && !isLoading && (
                     <div className="mt-16 flex justify-center gap-2">
-                        {Array.from({ length: totalPages }).map((_, idx) => {
-                            const pageNum = idx + 1;
-                            return (
+                        {generatePageNumbers().map((p, i) =>
+                            p === '...' ? (
+                                <span key={`dots-${i}`} className="w-10 h-10 flex items-center justify-center text-text-muted text-sm tracking-widest">...</span>
+                            ) : (
                                 <button
-                                    key={pageNum}
-                                    onClick={() => setCurrentPage(pageNum)}
-                                    className={`w-10 h-10 rounded-xl font-bold flex items-center justify-center transition-all ${pageNum === currentPage
+                                    key={p}
+                                    onClick={() => setCurrentPage(p as number)}
+                                    className={`w-10 h-10 rounded-xl font-bold flex items-center justify-center transition-all ${p === currentPage
                                         ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30'
                                         : 'bg-surface border border-border/50 text-text-muted hover:bg-white/5 hover:text-white'
                                         }`}
                                 >
-                                    {pageNum}
+                                    {p}
                                 </button>
-                            );
-                        })}
+                            )
+                        )}
                     </div>
                 )}
             </main>

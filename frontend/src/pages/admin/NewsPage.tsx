@@ -4,13 +4,16 @@ import { api } from "../../services/api"
 import type { News } from "../../services/api"
 import { toast } from "react-toastify"
 import AddNewsModal from "./AddNewsModal"
-import { Trash2, X } from "lucide-react"
+import { Trash2, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
+import { CustomSelect } from "../../components/CustomSelect"
 
 export default function NewsPage() {
     const [news, setNews] = useState<News[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [page, setPage] = useState(1)
     const [totalPages, setTotalPages] = useState(1)
+    const [totalItems, setTotalItems] = useState(0)
+    const [limit, setLimit] = useState(20)
 
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [editingNews, setEditingNews] = useState<News | null>(null)
@@ -22,10 +25,11 @@ export default function NewsPage() {
     const fetchNews = async () => {
         setIsLoading(true)
         try {
-            const res = await api.getNewsList({ page, limit: 20 })
+            const res = await api.getNewsList({ page, limit })
             if (res.success) {
                 setNews(res.data)
                 setTotalPages(res.pagination.total_pages || 1)
+                setTotalItems(res.pagination.total_items || 0)
             }
         }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -39,7 +43,7 @@ export default function NewsPage() {
     useEffect(() => {
         fetchNews()
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [page])
+    }, [page, limit])
 
     const handleDeleteClick = (item: News) => {
         setNewsToDelete(item)
@@ -85,6 +89,30 @@ export default function NewsPage() {
     const openEditModal = (item: News) => {
         setEditingNews(item)
         setIsModalOpen(true)
+    }
+
+    const generatePageNumbers = () => {
+        const pages: (number | '...')[] = []
+        const total = totalPages
+        const current = page
+
+        if (total <= 7) {
+            for (let i = 1; i <= total; i++) pages.push(i)
+        } else {
+            pages.push(1)
+            if (current > 3) pages.push('...')
+            const start = Math.max(2, current - 1)
+            const end = Math.min(total - 1, current + 1)
+            for (let i = start; i <= end; i++) pages.push(i)
+            if (current < total - 2) pages.push('...')
+            pages.push(total)
+        }
+        return pages
+    }
+
+    const handlePerPageChange = (newLimit: number) => {
+        setLimit(newLimit)
+        setPage(1)
     }
 
     return (
@@ -200,26 +228,75 @@ export default function NewsPage() {
                 </div>
 
                 {/* Pagination */}
-                {totalPages > 1 && (
-                    <div className="px-6 py-4 border-t border-border flex items-center justify-between">
-                        <span className="text-sm text-text-muted">
-                            Sahifa {page} / {totalPages}
-                        </span>
-                        <div className="flex gap-2">
+                {totalItems > 0 && (
+                    <div className="flex items-center justify-between gap-4 p-4 border-t border-border flex-wrap max-md:flex-col max-md:justify-center">
+                        <div className="text-[0.85rem] text-text-muted">
+                            Jami <strong className="text-text font-semibold">{totalItems}</strong> ta natija, {' '}
+                            <strong className="text-text font-semibold">{(page - 1) * limit + 1}</strong>–
+                            <strong className="text-text font-semibold">{Math.min(page * limit, totalItems)}</strong> ko'rsatilmoqda
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
                             <button
+                                className="flex items-center justify-center w-8 h-8 rounded-lg border border-border text-text-muted hover:bg-blue-500/10 hover:text-blue-400 hover:border-blue-500/30 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:border-border disabled:hover:text-text-muted transition-all"
+                                disabled={page <= 1}
+                                onClick={() => setPage(1)}
+                                title="Birinchi sahifa"
+                            >
+                                <ChevronsLeft size={16} />
+                            </button>
+                            <button
+                                className="flex items-center justify-center w-8 h-8 rounded-lg border border-border text-text-muted hover:bg-blue-500/10 hover:text-blue-400 hover:border-blue-500/30 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:border-border disabled:hover:text-text-muted transition-all"
+                                disabled={page <= 1}
                                 onClick={() => setPage(p => Math.max(1, p - 1))}
-                                disabled={page === 1}
-                                className="px-3 py-1.5 rounded bg-surface-hover text-text-muted hover:bg-surface-hover/80 hover:text-text disabled:opacity-50 disabled:cursor-not-allowed text-sm transition-colors"
+                                title="Oldingi sahifa"
                             >
-                                Oldingi
+                                <ChevronLeft size={16} />
+                            </button>
+
+                            <div className="flex gap-1 mx-2">
+                                {generatePageNumbers().map((p, i) =>
+                                    p === '...' ? (
+                                        <span key={`dots-${i}`} className="flex items-center justify-center w-8 h-8 text-text-muted text-[0.85rem] tracking-widest">...</span>
+                                    ) : (
+                                        <button
+                                            key={p}
+                                            className={`flex items-center justify-center w-8 h-8 rounded-lg text-[0.85rem] font-medium transition-all ${page === p ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20' : 'border border-border text-text-muted hover:border-blue-500/30 hover:text-blue-400 hover:bg-blue-500/5'}`}
+                                            onClick={() => setPage(p as number)}
+                                        >
+                                            {p}
+                                        </button>
+                                    )
+                                )}
+                            </div>
+
+                            <button
+                                className="flex items-center justify-center w-8 h-8 rounded-lg border border-border text-text-muted hover:bg-blue-500/10 hover:text-blue-400 hover:border-blue-500/30 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:border-border disabled:hover:text-text-muted transition-all"
+                                disabled={page >= totalPages}
+                                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                title="Keyingi sahifa"
+                            >
+                                <ChevronRight size={16} />
                             </button>
                             <button
-                                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                                disabled={page === totalPages}
-                                className="px-3 py-1.5 rounded bg-surface-hover text-text-muted hover:bg-surface-hover/80 hover:text-text disabled:opacity-50 disabled:cursor-not-allowed text-sm transition-colors"
+                                className="flex items-center justify-center w-8 h-8 rounded-lg border border-border text-text-muted hover:bg-blue-500/10 hover:text-blue-400 hover:border-blue-500/30 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:border-border disabled:hover:text-text-muted transition-all"
+                                disabled={page >= totalPages}
+                                onClick={() => setPage(totalPages)}
+                                title="Oxirgi sahifa"
                             >
-                                Keyingi
+                                <ChevronsRight size={16} />
                             </button>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <label className="text-[0.82rem] font-medium text-text-muted">Sahifada:</label>
+                            <CustomSelect
+                                value={String(limit)}
+                                onChange={(val: string) => handlePerPageChange(Number(val))}
+                                options={[10, 20, 50, 100].map(n => ({ value: String(n), label: String(n) }))}
+                                buttonClassName="py-1.5 pl-3 pr-2 w-[70px] bg-surface-hover border border-border rounded-lg text-[0.85rem] text-text font-medium outline-none focus:border-blue-500"
+                                dropUp
+                            />
                         </div>
                     </div>
                 )}
