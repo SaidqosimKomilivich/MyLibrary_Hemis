@@ -51,7 +51,7 @@ export default function LandingPage() {
             {/* Hero Section */}
             <section
                 className="relative pt-20 pb-20 px-6 h-screen overflow-hidden bg-cover bg-center bg-no-repeat w-full"
-                style={{ backgroundImage: "url('/library-hero_1.jpg')" }}
+                style={{ backgroundImage: "url('/library-hero_2.jpg')" }}
             >
                 <div className="absolute inset-0 bg-black/70 z-0" />
                 <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-emerald-500/20 rounded-full blur-[100px] z-0 pointer-events-none" />
