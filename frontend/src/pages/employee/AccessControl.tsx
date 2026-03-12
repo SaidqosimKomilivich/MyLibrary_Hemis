@@ -821,6 +821,7 @@ export default function AccessControl() {
                                             label="Muddati"
                                             placeholder="Tanlang (default 15 kun)"
                                             value={dueDate || (typeof defaultDue === 'string' ? defaultDue : '')}
+                                            minDate={new Date(Date.now() + 24 * 60 * 60 * 1000)}
                                             onChange={(d) => setDueDate(d ? d.toISOString().split('T')[0] : '')}
                                             className="w-full"
                                         />

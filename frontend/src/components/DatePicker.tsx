@@ -5,6 +5,7 @@ import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, X } from 'lucide-r
 interface DatePickerProps {
     value: Date | string | null;
     onChange: (date: Date | null) => void;
+    minDate?: Date | string | null;
     placeholder?: string;
     label?: string;
     className?: string;
@@ -20,6 +21,7 @@ const DAYS_UZ = ['Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh', 'Ya'];
 export function DatePicker({
     value,
     onChange,
+    minDate,
     placeholder = 'Sanani tanlang...',
     label,
     className = ''
@@ -99,6 +101,14 @@ export function DatePicker({
     };
 
     const handleDateSelect = (day: number) => {
+        const selected = new Date(year, month, day);
+        
+        if (minDate) {
+            const min = new Date(minDate);
+            min.setHours(0, 0, 0, 0);
+            if (selected < min) return;
+        }
+
         const newDate = new Date(viewDate.getFullYear(), viewDate.getMonth(), day);
         onChange(newDate);
         setIsOpen(false);
@@ -212,6 +222,17 @@ export function DatePicker({
                     {/* Days */}
                     <div className="grid grid-cols-7 gap-1">
                         {calendarCells.map((cell, idx) => {
+                            const dateObj = cell.current ? new Date(year, month, cell.day) : null;
+                            
+                            let isDisabled = !cell.current;
+                            if (cell.current && minDate) {
+                                const min = new Date(minDate);
+                                min.setHours(0, 0, 0, 0);
+                                if (dateObj && dateObj < min) {
+                                    isDisabled = true;
+                                }
+                            }
+
                             const isToday = cell.current &&
                                 new Date().getDate() === cell.day &&
                                 new Date().getMonth() === month &&
@@ -225,13 +246,13 @@ export function DatePicker({
                             return (
                                 <button
                                     key={idx}
-                                    disabled={!cell.current}
+                                    disabled={isDisabled}
                                     onClick={() => handleDateSelect(cell.day)}
                                     className={`
                                         h-9 w-9 flex items-center justify-center rounded-xl text-[0.9rem] transition-all relative
-                                        ${cell.current ? 'hover:bg-primary/10 hover:text-primary cursor-pointer' : 'opacity-20 cursor-default'}
+                                        ${cell.current && !isDisabled ? 'hover:bg-primary/10 hover:text-primary cursor-pointer' : 'opacity-20 cursor-not-allowed'}
                                         ${isToday && !isSelected ? 'text-primary font-bold' : ''}
-                                        ${isSelected ? 'bg-primary text-white font-bold shadow-lg shadow-primary/25' : 'text-text'}
+                                        ${isSelected ? 'bg-primary text-white font-bold shadow-lg shadow-primary/25' : (!cell.current || isDisabled) ? 'text-text-muted' : 'text-text'}
                                     `}
                                 >
                                     {cell.day}
