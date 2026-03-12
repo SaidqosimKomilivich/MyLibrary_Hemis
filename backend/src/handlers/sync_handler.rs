@@ -555,7 +555,7 @@ pub async fn search_users(
         SELECT id, full_name, role
         FROM users
         WHERE active = true
-          AND role IN ('admin', 'staff', 'teacher')
+          AND role IN ('admin', 'staff', 'teacher', 'student')
           AND id != $3
           AND (LOWER(full_name) LIKE LOWER($1))
         ORDER BY full_name ASC

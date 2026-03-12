@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import type { MessageDataItem, AnnouncementWithStatus, AnnouncementReadStatus } from '../../services/api.types'
 import { api } from '../../services/api'
-import { Send, Plus, Search, X, MessageSquare, Check, CheckCheck, Users, Megaphone, Loader2, ArrowLeft } from 'lucide-react'
+import { Send, Search, X, MessageSquare, Check, CheckCheck, Users, Megaphone, Loader2, ArrowLeft } from 'lucide-react'
 import { toast } from 'react-toastify'
 import { useAuth } from '../../context/AuthContext'
 
@@ -65,10 +65,9 @@ export default function MessagesPage() {
     
     const [loading, setLoading] = useState(true)
     const [loadingMore, setLoadingMore] = useState(false)
-    const [page, setPage] = useState(1)
+    const pageRef = useRef(1)
     const [hasMore, setHasMore] = useState(true)
     const [searchQuery, setSearchQuery] = useState('')
-    const [showNewChat, setShowNewChat] = useState(false)
 
     // Who Read Status Panel (Inline)
     const [showReadStatusId, setShowReadStatusId] = useState<string | null>(null)
@@ -83,7 +82,6 @@ export default function MessagesPage() {
 
     // New chat search
     const [allUsers, setAllUsers] = useState<{ value: string; label: string; role: string }[]>([])
-    const [userSearch, setUserSearch] = useState('')
     const [userSearchPage, setUserSearchPage] = useState(1)
     const [userSearchHasMore, setUserSearchHasMore] = useState(true)
     const [loadingUserSearch, setLoadingUserSearch] = useState(false)
@@ -169,9 +167,14 @@ export default function MessagesPage() {
                 }
             })
 
-            return Array.from(map.values()).sort(
-                (a, b) => new Date(b.lastTime).getTime() - new Date(a.lastTime).getTime()
-            )
+            return Array.from(map.values()).sort((a, b) => {
+                const bTime = new Date(b.lastTime).getTime();
+                const aTime = new Date(a.lastTime).getTime();
+                if (bTime !== aTime) {
+                    return bTime - aTime;
+                }
+                return a.contactName.localeCompare(b.contactName);
+            });
         })
     }, [me])
 
@@ -179,12 +182,12 @@ export default function MessagesPage() {
         try {
             if (isInitial) {
                 setLoading(true)
-                setPage(1)
+                pageRef.current = 1
             } else {
                 setLoadingMore(true)
             }
 
-            const currentPage = isInitial ? 1 : page + 1
+            const currentPage = isInitial ? 1 : pageRef.current + 1
             const res = await api.getMyMessages({ page: currentPage })
             
             if (res.success) {
@@ -194,7 +197,7 @@ export default function MessagesPage() {
                 } else {
                     setAllMessages(prev => [...prev, ...res.data])
                     buildConversations(res.data, false)
-                    setPage(currentPage)
+                    pageRef.current = currentPage
                 }
                 setHasMore(res.pagination.current_page < res.pagination.total_pages)
             }
@@ -204,7 +207,7 @@ export default function MessagesPage() {
             setLoading(false)
             setLoadingMore(false)
         }
-    }, [buildConversations, page])
+    }, [buildConversations])
 
     const fetchAnnouncements = useCallback(async () => {
         try {
@@ -276,12 +279,15 @@ export default function MessagesPage() {
     }, [selectedId, isChannelSelected, announcements, allMessages])
 
     useEffect(() => {
-        if (!showNewChat) return
+        if (!searchQuery.trim()) {
+            setAllUsers([])
+            return
+        }
 
         const delayDebounceFn = setTimeout(async () => {
             try {
                 setLoadingUserSearch(true)
-                const res = await api.searchUsers(userSearch, 1, 10)
+                const res = await api.searchUsers(searchQuery, 1, 50)
                 if (res.success && res.data) {
                     const mapped = res.data
                         .filter(u => u.id !== me?.id)
@@ -302,7 +308,7 @@ export default function MessagesPage() {
         }, 300)
 
         return () => clearTimeout(delayDebounceFn)
-    }, [userSearch, showNewChat, me?.id])
+    }, [searchQuery, me?.id])
 
     const fetchMoreUsers = async () => {
         if (loadingUserSearch || !userSearchHasMore) return;
@@ -310,7 +316,7 @@ export default function MessagesPage() {
         try {
             setLoadingUserSearch(true)
             const nextPage = userSearchPage + 1
-            const res = await api.searchUsers(userSearch, nextPage, 10)
+            const res = await api.searchUsers(searchQuery, nextPage, 50)
             if (res.success && res.data) {
                 const mapped = res.data
                     .filter(u => u.id !== me?.id)
@@ -423,11 +429,9 @@ export default function MessagesPage() {
 
     const handleSidebarScroll = (e: React.UIEvent<HTMLDivElement>) => {
         const { scrollTop, scrollHeight, clientHeight } = e.currentTarget
-        
-        // Use Math.ceil to handle fractional scrolling positions and a smaller threshold
-        const isNearBottom = Math.ceil(scrollTop) + clientHeight >= scrollHeight - 20
-        
-        if (showNewChat) {
+        const isNearBottom = Math.ceil(scrollTop) + clientHeight >= scrollHeight - 50
+
+        if (searchQuery.trim().length > 0) {
             if (isNearBottom && userSearchHasMore && !loadingUserSearch) {
                 fetchMoreUsers()
             }
@@ -490,14 +494,10 @@ export default function MessagesPage() {
         }
     }
 
-    const openNewChat = () => {
-        if (!canSendMessage) return
-        setShowNewChat(true)
-        setUserSearch('')
-    }
-
     const selectUser = (userId: string, userName: string, userRole: string) => {
-        setShowNewChat(false)
+        setSearchQuery('')
+        // Clear search users results
+        setAllUsers([])
         const exists = conversations.find(c => c.contactId === userId)
         if (!exists) {
             setConversations(prev => [{
@@ -526,7 +526,6 @@ export default function MessagesPage() {
             <div className={`flex flex-col w-full md:w-[320px] shrink-0 border-r border-border bg-surface ${ (selectedId || isChannelSelected) ? 'hidden md:flex' : 'flex'}`}>
                 <div className="flex items-center justify-between p-4 bg-primary text-white shrink-0 shadow-sm">
                     <h2 className="text-xl font-bold">Xabarlar</h2>
-                    {canSendMessage && <button onClick={openNewChat} className="p-2 hover:bg-white/20 rounded-full transition-colors"><Plus className="w-5 h-5" /></button>}
                 </div>
 
                 <div className="p-2">
@@ -537,18 +536,20 @@ export default function MessagesPage() {
                 </div>
 
                 <div className="flex-1 overflow-y-auto custom-scrollbar" onScroll={handleSidebarScroll}>
-                    {showNewChat ? (
+                    {searchQuery.trim().length > 0 ? (
                         <div className="flex flex-col">
-                            <div className="flex items-center gap-2 p-2 border-b border-border">
-                                <button onClick={() => setShowNewChat(false)} className="text-text-muted hover:text-text"><X className="w-5 h-5" /></button>
-                                <input autoFocus type="text" placeholder="Ism qidirish..." value={userSearch} onChange={e => setUserSearch(e.target.value)} className="flex-1 bg-transparent text-sm outline-none" />
-                            </div>
-                            {allUsers.map(u => (
-                                <button key={u.value} onClick={() => selectUser(u.value, u.label, u.role)} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-surface-hover transition-colors text-left border-b border-border/40">
-                                    <div className={`w-10 h-10 rounded-full bg-linear-to-br ${avatarColor(u.label)} flex items-center justify-center text-white font-bold text-sm shrink-0`}>{getInitials(u.label)}</div>
-                                    <div><p className="font-medium text-text text-sm">{u.label}</p><p className="text-[10px] text-text-muted capitalize">{u.role}</p></div>
-                                </button>
-                            ))}
+                            {allUsers.length > 0 ? (
+                                allUsers.map(u => (
+                                    <button key={u.value} onClick={() => selectUser(u.value, u.label, u.role)} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-surface-hover transition-colors text-left border-b border-border/40">
+                                        <div className={`w-10 h-10 rounded-full bg-linear-to-br ${avatarColor(u.label)} flex items-center justify-center text-white font-bold text-sm shrink-0`}>{getInitials(u.label)}</div>
+                                        <div><p className="font-medium text-text text-sm">{u.label}</p><p className="text-[10px] text-text-muted capitalize">{u.role}</p></div>
+                                    </button>
+                                ))
+                            ) : !loadingUserSearch && (
+                                <div className="p-4 text-center text-text-muted text-sm">
+                                    Foydalanuvchilar topilmadi
+                                </div>
+                            )}
                             {loadingUserSearch && (
                                 <div className="p-4 flex justify-center">
                                     <Loader2 className="w-5 h-5 animate-spin text-primary opacity-50" />
@@ -582,15 +583,20 @@ export default function MessagesPage() {
                             </button>
 
                             <div className="px-4 py-2 bg-surface-hover/50 text-[10px] font-bold text-text-muted uppercase tracking-wider">Shaxsiy suhbatlar</div>
-                            {conversations.filter(c => c.contactName.toLowerCase().includes(searchQuery.toLowerCase())).map(conv => (
+                            {conversations.filter(c => c.contactName.toLowerCase().includes(searchQuery.toLowerCase())).map(conv => {
+                                const isDummy = conv.lastMessage === "" && new Date(conv.lastTime).getFullYear() === 1970;
+                                return (
                                 <button key={conv.contactId} onClick={() => handleSelectConversation(conv)} className={`w-full flex items-center gap-3 px-4 py-3 border-b border-border/40 transition-colors text-left ${conv.contactId === selectedId ? 'bg-primary/10' : 'hover:bg-surface-hover'}`}>
                                     <div className={`w-11 h-11 rounded-full bg-linear-to-br ${avatarColor(conv.contactName)} flex items-center justify-center text-white font-bold text-xs shrink-0`}>{getInitials(conv.contactName)}</div>
                                     <div className="flex-1 min-w-0">
-                                        <div className="flex justify-between items-baseline"><p className="font-semibold text-text text-sm truncate">{conv.contactName}</p><span className="text-[10px] text-text-muted">{formatTime(conv.lastTime)}</span></div>
+                                        <div className="flex justify-between items-baseline"><p className="font-semibold text-text text-sm truncate">{conv.contactName}</p>
+                                        {!isDummy && <span className="text-[10px] text-text-muted">{formatTime(conv.lastTime)}</span>}
+                                        </div>
                                         <div className="flex justify-between items-center"><p className="text-xs text-text-muted truncate">{conv.lastMessage || '...'}</p>{conv.unreadCount > 0 && <span className="bg-primary text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">{conv.unreadCount}</span>}</div>
                                     </div>
                                 </button>
-                            ))}
+                                )
+                            })}
                             
                             {loadingMore && (
                                 <div className="p-4 flex justify-center">
@@ -614,7 +620,7 @@ export default function MessagesPage() {
                             <div><p className="font-semibold text-text text-sm leading-tight">{selectedConv.contactName}</p><p className="text-[10px] text-text-muted capitalize">{selectedConv.contactRole}</p></div>
                         </div>
                         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2 bg-surface-hover/20">
-                            {chatMessages.map(msg => (
+                            {chatMessages.filter(m => m.id !== '00000000-0000-0000-0000-000000000000').map(msg => (
                                 <div key={msg.id} className={`flex ${msg.sender_id === me?.id ? 'justify-end' : 'justify-start'}`}>
                                     <div className={`max-w-[75%] px-4 py-2 rounded-2xl text-sm shadow-xs ${msg.sender_id === me?.id ? 'bg-primary text-white rounded-br-none' : 'bg-canvas border border-border text-text rounded-bl-none'}`}>
                                         {canSendMessage && msg.sender_id !== me?.id && (

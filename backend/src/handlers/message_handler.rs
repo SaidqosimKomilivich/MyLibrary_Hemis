@@ -37,8 +37,6 @@ pub async fn message_stream(
         .streaming(stream))
 }
 
-/// GET /api/messages
-/// Returns the authenticated user's messages
 pub async fn get_my_messages(
     claims: Claims,
     pool: web::Data<PgPool>,
@@ -46,18 +44,13 @@ pub async fn get_my_messages(
 ) -> Result<HttpResponse, AppError> {
     let user_id = Uuid::from_str(&claims.sub).map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
     let page = query.page.unwrap_or(1).max(1);
-    let per_page = 10_i64;
+    let per_page = 30_i64;
     let offset = (page - 1) * per_page;
     
-    let (messages, total) = if claims.role == "admin" || claims.role == "staff" {
-        let msgs = MessageRepository::get_all_conversations_paginated(pool.get_ref(), per_page, offset).await?;
-        let count = MessageRepository::count_all_conversations(pool.get_ref()).await?;
-        (msgs, count)
-    } else {
-        let msgs = MessageRepository::get_user_conversations_paginated(pool.get_ref(), user_id, per_page, offset).await?;
-        let count = MessageRepository::count_user_conversations(pool.get_ref(), user_id).await?;
-        (msgs, count)
-    };
+    // We now always fetch users and their latest message relative to the CURRENT user,
+    // so that clicking on a user loads the chat history correctly between the current user and that contact.
+    let messages = MessageRepository::get_user_conversations_paginated(pool.get_ref(), user_id, per_page, offset).await?;
+    let total = MessageRepository::count_user_conversations(pool.get_ref(), user_id).await?;
 
     let total_pages = (total + per_page - 1) / per_page;
     

@@ -72,20 +72,36 @@ impl MessageRepository {
     ) -> Result<Vec<MessageResponseDto>, AppError> {
         let conversations = sqlx::query!(
             r#"
-            SELECT * FROM (
-                SELECT DISTINCT ON (CASE WHEN m.sender_id = $1 THEN m.receiver_id ELSE m.sender_id END)
-                    m.id, m.sender_id, m.receiver_id, m.title, m.message, m.is_read, m.created_at,
-                    s.full_name as "sender_name?",
-                    s.role as "sender_role?",
-                    r.full_name as "receiver_name?",
-                    r.role as "receiver_role?"
-                FROM messages m
-                LEFT JOIN users s ON m.sender_id = s.id
-                LEFT JOIN users r ON m.receiver_id = r.id
-                WHERE m.receiver_id = $1 OR m.sender_id = $1
-                ORDER BY (CASE WHEN m.sender_id = $1 THEN m.receiver_id ELSE m.sender_id END), m.created_at DESC
-            ) sub
-            ORDER BY created_at DESC
+            SELECT 
+                u.id as contact_id,
+                u.full_name as contact_name,
+                u.role as contact_role,
+                m.id as "message_id?",
+                m.sender_id as "sender_id?",
+                m.receiver_id as "receiver_id?",
+                m.title as "title?",
+                m.message as "message_text?",
+                m.is_read as "is_read?",
+                m.created_at as "created_at?",
+                s.full_name as "sender_name_full?",
+                s.role as "sender_role_full?",
+                r.full_name as "receiver_name_full?",
+                r.role as "receiver_role_full?"
+            FROM users u
+            LEFT JOIN LATERAL (
+                SELECT msg.id, msg.sender_id, msg.receiver_id, msg.title, msg.message, msg.is_read, msg.created_at
+                FROM messages msg 
+                WHERE (msg.sender_id = $1 AND msg.receiver_id = u.id) 
+                   OR (msg.sender_id = u.id AND msg.receiver_id = $1)
+                ORDER BY msg.created_at DESC 
+                LIMIT 1
+            ) m ON true
+            LEFT JOIN users s ON m.sender_id = s.id
+            LEFT JOIN users r ON m.receiver_id = r.id
+            WHERE u.active = true 
+              AND u.id != $1 
+              AND u.role IN ('admin', 'staff', 'teacher', 'student', 'employee')
+            ORDER BY m.created_at DESC NULLS LAST, u.full_name ASC
             LIMIT $2 OFFSET $3
             "#,
             user_id,
@@ -95,20 +111,42 @@ impl MessageRepository {
         .fetch_all(pool)
         .await?;
 
-        let res = conversations.into_iter().map(|row| MessageResponseDto {
-            id: row.id,
-            sender_id: row.sender_id,
-            receiver_id: row.receiver_id,
-            sender_name: row.sender_name,
-            sender_role: row.sender_role,
-            receiver_name: row.receiver_name,
-            receiver_role: row.receiver_role,
-            title: row.title,
-            message: row.message,
-            category: None,
-            images: None,
-            is_read: row.is_read,
-            created_at: row.created_at,
+        let res = conversations.into_iter().map(|row| {
+            if let Some(msg_id) = row.message_id {
+                // Foydalanuvchi bilan yozishma mavjud
+                MessageResponseDto {
+                    id: msg_id,
+                    sender_id: row.sender_id,
+                    receiver_id: row.receiver_id,
+                    sender_name: row.sender_name_full,
+                    sender_role: row.sender_role_full,
+                    receiver_name: row.receiver_name_full,
+                    receiver_role: row.receiver_role_full,
+                    title: row.title.unwrap_or_default(),
+                    message: row.message_text.unwrap_or_default(),
+                    category: None,
+                    images: None,
+                    is_read: row.is_read.unwrap_or(true),
+                    created_at: row.created_at.unwrap_or_else(|| chrono::Utc::now()),
+                }
+            } else {
+                // Foydalanuvchi bilan hali yozishma yo'q, "bo'sh" qolip qaytaramiz
+                MessageResponseDto {
+                    id: Uuid::nil(),          // Dummy ID
+                    sender_id: Some(row.contact_id), // UI uni tanib olishi uchun contact_id ni sender_id sifatida beramiz
+                    receiver_id: Some(user_id),
+                    sender_name: Some(row.contact_name), // Bu ism UI da chiqishi uchun
+                    sender_role: Some(row.contact_role),
+                    receiver_name: None,
+                    receiver_role: None,
+                    title: "".to_string(),
+                    message: "".to_string(),
+                    category: None,
+                    images: None,
+                    is_read: true, // yozishma yo'q, o'qilmagan narsa ham yo'q
+                    created_at: chrono::DateTime::from_timestamp(0, 0).unwrap().into(), // Eski sana qilib qo'yamiz
+                }
+            }
         }).collect();
 
         Ok(res)
@@ -165,9 +203,11 @@ impl MessageRepository {
     pub async fn count_user_conversations(pool: &PgPool, user_id: Uuid) -> Result<i64, AppError> {
         let res = sqlx::query!(
             r#"
-            SELECT count(DISTINCT CASE WHEN sender_id = $1 THEN receiver_id ELSE sender_id END) as count
-            FROM messages
-            WHERE receiver_id = $1 OR sender_id = $1
+            SELECT count(*) as count
+            FROM users
+            WHERE active = true 
+              AND id != $1 
+              AND role IN ('admin', 'staff', 'teacher', 'student', 'employee')
             "#,
             user_id
         )
@@ -195,108 +235,6 @@ impl MessageRepository {
 
         Ok(res.count.unwrap_or(0))
     }
-
-    // pub async fn count_all(pool: &PgPool) -> Result<i64, AppError> {
-    //     let res = sqlx::query!("SELECT count(*) as count FROM messages")
-    //         .fetch_one(pool)
-    //         .await?;
-    //     Ok(res.count.unwrap_or(0))
-    // }
-
-    // pub async fn count_user_messages(pool: &PgPool, user_id: Uuid) -> Result<i64, AppError> {
-    //     let res = sqlx::query!(
-    //         "SELECT count(*) as count FROM messages WHERE receiver_id = $1 OR sender_id = $1",
-    //         user_id
-    //     )
-    //     .fetch_one(pool)
-    //     .await?;
-    //     Ok(res.count.unwrap_or(0))
-    // }
-
-    /// Barcha aktiv foydalanuvchilarga bir martalik xabar yuborish (yangilik/e'lon uchun)
-    /// sender_id = NULL bo'lsa, tizim nomi bilan yuboriladi
-    // pub async fn create_broadcast(
-    //     pool: &PgPool,
-    //     sender_id: Option<Uuid>,
-    //     title: &str,
-    //     message: &str,
-    // ) -> Result<Vec<MessageResponseDto>, AppError> {
-    //     // 1. Barcha aktiv foydalanuvchilarga xabar yozamiz (sender o'ziga ham yozmas uchun filter)
-    //     let rows = sqlx::query!(
-    //         r#"
-    //         INSERT INTO messages (sender_id, receiver_id, title, message)
-    //         SELECT $1, u.id, $2, $3
-    //         FROM users u
-    //         WHERE u.active = true
-    //           AND ($1::uuid IS NULL OR u.id != $1)
-    //         RETURNING id, sender_id, receiver_id, title, message, is_read, created_at
-    //         "#,
-    //         sender_id,
-    //         title,
-    //         message
-    //     )
-    //     .fetch_all(pool)
-    //     .await?;
-
-    //     // 2. Sender ma'lumotini olish
-    //     let sender_info = if let Some(sid) = sender_id {
-    //         sqlx::query!(
-    //             "SELECT full_name, role FROM users WHERE id = $1",
-    //             sid
-    //         )
-    //         .fetch_optional(pool)
-    //         .await?
-    //     } else {
-    //         None
-    //     };
-
-    //     // 3. Receiver ma'lumotlarini bir so'rovda olish
-    //     let receiver_ids: Vec<Uuid> = rows.iter().filter_map(|r| r.receiver_id).collect();
-    //     let receivers = if receiver_ids.is_empty() {
-    //         vec![]
-    //     } else {
-    //         sqlx::query!(
-    //             "SELECT id, full_name, role FROM users WHERE id = ANY($1)",
-    //             &receiver_ids
-    //         )
-    //         .fetch_all(pool)
-    //         .await?
-    //     };
-
-    //     let receiver_map: std::collections::HashMap<Uuid, (String, String)> = receivers
-    //         .into_iter()
-    //         .map(|r| (r.id, (r.full_name, r.role)))
-    //         .collect();
-
-    //     let result = rows
-    //         .into_iter()
-    //         .filter_map(|row| {
-    //             let recv_id = row.receiver_id?;
-    //             let (rec_name, rec_role) = receiver_map
-    //                 .get(&recv_id)
-    //                 .cloned()
-    //                 .unwrap_or_default();
-    //             Some(MessageResponseDto {
-    //                 id: row.id,
-    //                 sender_id: row.sender_id,
-    //                 receiver_id: Some(recv_id),
-    //                 sender_name: sender_info.as_ref().map(|s| s.full_name.clone()),
-    //                 sender_role: sender_info.as_ref().map(|s| s.role.clone()),
-    //                 receiver_name: Some(rec_name),
-    //                 receiver_role: Some(rec_role),
-    //                 title: row.title,
-    //                 message: row.message,
-    //                 category: None,
-    //                 images: None,
-    //                 is_read: row.is_read,
-
-    //                 created_at: row.created_at,
-    //             })
-    //         })
-    //         .collect();
-
-    //     Ok(result)
-    // }
 
     pub async fn get_chat_history(
         pool: &PgPool,
