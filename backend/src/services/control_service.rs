@@ -15,10 +15,10 @@ impl ControlService {
             user_id: record.user_id,
             arrival: record
                 .arrival
-                .map(|d| d.format("%Y-%m-%d %H:%M:%S").to_string()),
+                .map(|d| format!("{}Z", d.format("%Y-%m-%dT%H:%M:%S"))),
             departure: record
                 .departure
-                .map(|d| d.format("%Y-%m-%d %H:%M:%S").to_string()),
+                .map(|d| format!("{}Z", d.format("%Y-%m-%dT%H:%M:%S"))),
             full_name: None,
             role: None,
             department_name: None,
@@ -34,10 +34,10 @@ impl ControlService {
             user_id: record.user_id,
             arrival: record
                 .arrival
-                .map(|d| d.format("%Y-%m-%d %H:%M:%S").to_string()),
+                .map(|d| format!("{}Z", d.format("%Y-%m-%dT%H:%M:%S"))),
             departure: record
                 .departure
-                .map(|d| d.format("%Y-%m-%d %H:%M:%S").to_string()),
+                .map(|d| format!("{}Z", d.format("%Y-%m-%dT%H:%M:%S"))),
             full_name: record.full_name,
             role: record.role,
             department_name: record.department_name,

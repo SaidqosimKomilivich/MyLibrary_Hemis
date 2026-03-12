@@ -83,8 +83,8 @@ impl ReportRepository {
             .map(|r| ControlResponse {
                 id: r.id,
                 user_id: r.user_id,
-                arrival: r.arrival.map(|t| t.to_string()),
-                departure: r.departure.map(|t| t.to_string()),
+                arrival: r.arrival.map(|t| format!("{}Z", t.format("%Y-%m-%dT%H:%M:%S"))),
+                departure: r.departure.map(|t| format!("{}Z", t.format("%Y-%m-%dT%H:%M:%S"))),
                 full_name: r.full_name,
                 role: r.role,
                 department_name: r.department_name,
@@ -302,8 +302,8 @@ impl ReportRepository {
             .map(|r| ControlResponse {
                 id: r.id,
                 user_id: r.user_id,
-                arrival: r.arrival.map(|t| t.to_string()),
-                departure: r.departure.map(|t| t.to_string()),
+                arrival: r.arrival.map(|t| format!("{}Z", t.format("%Y-%m-%dT%H:%M:%S"))),
+                departure: r.departure.map(|t| format!("{}Z", t.format("%Y-%m-%dT%H:%M:%S"))),
                 full_name: r.full_name,
                 role: r.role,
                 department_name: r.department_name,
@@ -561,7 +561,7 @@ impl ReportRepository {
                     _ => "Noma'lum harakat".to_string(),
                 };
 
-                let time_str = r.action_date.format("%Y-%m-%d").to_string();
+                let time_str = format!("{}Z", r.action_date.format("%Y-%m-%dT%H:%M:%S"));
 
                 crate::dto::report::ActivityLog {
                     id: r.id,
@@ -690,7 +690,7 @@ impl ReportRepository {
                     _ => "Noma'lum harakat".to_string(),
                 };
 
-                let time_str = r.action_date.format("%Y-%m-%d %H:%M").to_string();
+                let time_str = format!("{}Z", r.action_date.format("%Y-%m-%dT%H:%M:%S"));
 
                 crate::dto::report::ActivityLog {
                     id: r.id,
