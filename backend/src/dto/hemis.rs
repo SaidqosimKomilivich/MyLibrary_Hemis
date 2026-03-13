@@ -112,3 +112,19 @@ pub struct SyncResponse {
     pub updated: i64,
     pub total: i64,
 }
+
+// ========================
+// HEMIS Student Auth API
+// ========================
+
+#[derive(Debug, Deserialize)]
+pub struct HemisStudentAuthResponse {
+    pub success: bool,
+    pub data: Option<HemisStudentAuthData>,
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct HemisStudentAuthData {
+    pub token: String,
+}

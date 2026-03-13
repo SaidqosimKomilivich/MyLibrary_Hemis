@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT COUNT(*)\n        FROM users\n        WHERE active = true\n          AND role IN ('admin', 'staff', 'teacher')\n          AND id != $2\n          AND (LOWER(full_name) LIKE LOWER($1))\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "0fe95638148a7890154cd5b1eae8061e3a1299931c118e19dea5b89575c60de4"
+}

@@ -3,7 +3,7 @@ use tokio::sync::mpsc;
 
 use crate::config::Config;
 use crate::dto::hemis::{
-    HemisApiResponse, HemisEmployeeApiResponse, HemisStudentItem, SyncResponse,
+    HemisApiResponse, HemisEmployeeApiResponse, HemisStudentItem, SyncResponse, HemisStudentAuthResponse
 };
 use crate::errors::AppError;
 use crate::repository::user_repository::UserRepository;
@@ -39,6 +39,60 @@ impl HemisService {
     /// bazaga yoziladi va xotiradan tozalanadi.
     /// Progress xabarlari `tx` kanali orqali SSE ga uzatiladi.
     /// ═══════════════════════════════════════════════════════════════
+    
+    pub async fn auth_student(config: &Config, login: &str, password: &str) -> Result<String, AppError> {
+        let client = reqwest::Client::builder()
+            .danger_accept_invalid_certs(config.hemis_skip_ssl)
+            .user_agent("MyLibrary-Backend/1.0")
+            .build()
+            .map_err(|e| {
+                AppError::InternalError(format!("HTTP client yaratishda xatolik: {}", e))
+            })?;
+
+        let url = format!("{}/rest/v1/auth/login", config.hemis_base_url);
+        
+        let payload = serde_json::json!({
+            "login": login,
+            "password": password
+        });
+
+        let response = client
+            .post(&url)
+            .json(&payload)
+            .send()
+            .await
+            .map_err(|e| {
+                AppError::InternalError(format!("HEMIS API ga so'rov yuborishda xatolik: {}", e))
+            })?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_else(|_| "Noma'lum xato".to_string());
+            tracing::warn!("HEMIS auth xatosi: {} - {}", status, body);
+            // 401 Unauthorized for bad credentials typically
+            if status.as_u16() == 401 || status.as_u16() == 400 || status.as_u16() == 403 {
+               return Err(AppError::Unauthorized("Login yoki parol noto'g'ri (HEMIS)".to_string()));
+            }
+            return Err(AppError::InternalError("HEMIS tizimi bilan ulanishda xatolik".to_string()));
+        }
+
+        let hemis_response: HemisStudentAuthResponse = response.json().await.map_err(|e| {
+            AppError::InternalError(format!("HEMIS javobini parse qilishda xatolik: {}", e))
+        })?;
+
+        if !hemis_response.success {
+            let err_msg = hemis_response.error.unwrap_or_else(|| "HEMIS API rad etdi".to_string());
+            tracing::warn!("HEMIS auth success: false. Xato: {}", err_msg);
+            return Err(AppError::Unauthorized(format!("HEMIS xatosi: {}", err_msg)));
+        }
+
+        if let Some(data) = hemis_response.data {
+             Ok(data.token)
+        } else {
+             Err(AppError::InternalError("HEMIS token topilmadi".to_string()))
+        }
+    }
+
     pub async fn sync_students_stream(
         pool: &PgPool,
         config: &Config,

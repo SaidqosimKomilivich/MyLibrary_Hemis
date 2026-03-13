@@ -142,6 +142,25 @@ impl UserRepository {
         Ok(())
     }
 
+    /// HEMIS token va uning tugash vaqtini saqlash
+    pub async fn update_hemis_token(
+        pool: &PgPool,
+        id: Uuid,
+        token: &str,
+        expires_at: chrono::DateTime<chrono::Utc>,
+    ) -> Result<(), AppError> {
+        sqlx::query(
+            r#"UPDATE "users" SET "hemis_token" = $1, "hemis_token_expires_at" = $2 WHERE "id" = $3"#,
+        )
+        .bind(token)
+        .bind(expires_at)
+        .bind(id)
+        .execute(pool)
+        .await?;
+
+        Ok(())
+    }
+
     /// Foydalanuvchi faol/nofaol holatini o'zgartirish (admin uchun)
     pub async fn update_active(pool: &PgPool, id: Uuid, active: bool) -> Result<(), AppError> {
         sqlx::query(r#"UPDATE "users" SET "active" = $1 WHERE "id" = $2"#)

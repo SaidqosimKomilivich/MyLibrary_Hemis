@@ -23,6 +23,8 @@ pub struct User {
     pub staff_position: Option<String>,
     pub created_at: Option<chrono::DateTime<chrono::Utc>>,
     pub updated_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub hemis_token: Option<String>,
+    pub hemis_token_expires_at: Option<chrono::DateTime<chrono::Utc>>,
     pub active: bool,
     pub is_password_update: bool,
 }

@@ -1,0 +1,42 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                ar.user_id, ar.read_at,\n                u.full_name as \"full_name!\", u.role as \"role!\"\n            FROM announcement_reads ar\n            JOIN users u ON ar.user_id = u.id\n            WHERE ar.announcement_id = $1\n            ORDER BY ar.read_at DESC\n            LIMIT $2 OFFSET $3\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "read_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 2,
+        "name": "full_name!",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "role!",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "a94f4da385a4c85c2af9d5f65ebcc04077ca1a34c337714e7ca24e5c5dd4622f"
+}

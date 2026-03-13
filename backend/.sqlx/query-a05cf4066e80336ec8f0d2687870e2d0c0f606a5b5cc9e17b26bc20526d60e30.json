@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT id, full_name, role\n        FROM users\n        WHERE active = true\n          AND role != 'admin'\n          AND (LOWER(full_name) LIKE LOWER($1))\n        ORDER BY full_name ASC\n        LIMIT $2\n        ",
+  "query": "\n        SELECT id, full_name, role\n        FROM users\n        WHERE active = true\n          AND role IN ('admin', 'staff', 'teacher', 'student')\n          AND id != $3\n          AND (LOWER(full_name) LIKE LOWER($1))\n        ORDER BY full_name ASC\n        LIMIT $2 OFFSET $4\n        ",
   "describe": {
     "columns": [
       {
@@ -22,6 +22,8 @@
     "parameters": {
       "Left": [
         "Text",
+        "Int8",
+        "Uuid",
         "Int8"
       ]
     },
@@ -31,5 +33,5 @@
       false
     ]
   },
-  "hash": "cd32f55952a19bade682bb5f1c58311376ed24759420c391a6b05bffb8af9fec"
+  "hash": "a05cf4066e80336ec8f0d2687870e2d0c0f606a5b5cc9e17b26bc20526d60e30"
 }

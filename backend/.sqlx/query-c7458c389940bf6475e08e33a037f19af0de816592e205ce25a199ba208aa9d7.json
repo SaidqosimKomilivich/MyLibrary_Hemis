@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT COUNT(*) FROM \"book_rentals\" WHERE \"status\" = 'overdue'",
+  "query": "SELECT COUNT(*) FROM \"book_rentals\" WHERE \"status\" = 'overdue' OR (\"status\" = 'active' AND \"due_date\" < CURRENT_DATE)",
   "describe": {
     "columns": [
       {
@@ -16,5 +16,5 @@
       null
     ]
   },
-  "hash": "dd58261975f79eed0af6aec4e294c375fd81adffba5005903248d52c86d406c2"
+  "hash": "c7458c389940bf6475e08e33a037f19af0de816592e205ce25a199ba208aa9d7"
 }

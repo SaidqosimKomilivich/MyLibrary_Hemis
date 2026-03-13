@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT \n                m.id, m.sender_id, m.receiver_id, m.title, m.message, m.is_read, m.created_at,\n                s.full_name as \"sender_name?\",\n                s.role as \"sender_role?\",\n                r.full_name as \"receiver_name?\",\n                r.role as \"receiver_role?\"\n            FROM messages m\n            LEFT JOIN users s ON m.sender_id = s.id\n            LEFT JOIN users r ON m.receiver_id = r.id\n            WHERE m.receiver_id = $1 OR m.sender_id = $1\n            ORDER BY m.created_at ASC\n            ",
+  "query": "\n            SELECT \n                m.id, m.sender_id, m.receiver_id, m.title, m.message, m.is_read, m.created_at,\n                s.full_name as \"sender_name?\",\n                s.role as \"sender_role?\",\n                r.full_name as \"receiver_name?\",\n                r.role as \"receiver_role?\"\n            FROM messages m\n            LEFT JOIN users s ON m.sender_id = s.id\n            LEFT JOIN users r ON m.receiver_id = r.id\n            WHERE (m.sender_id = $1 AND m.receiver_id = $2) \n               OR (m.sender_id = $2 AND m.receiver_id = $1)\n            ORDER BY m.created_at ASC\n            ",
   "describe": {
     "columns": [
       {
@@ -61,6 +61,7 @@
     ],
     "parameters": {
       "Left": [
+        "Uuid",
         "Uuid"
       ]
     },
@@ -78,5 +79,5 @@
       false
     ]
   },
-  "hash": "e7dc66002dc411a825f15ea1eccc7560f10a4c889fc0d6def369423c81ff6e83"
+  "hash": "f31543191a18a6718c5d782620ec62fc15b506ef1c3d0cf70834aecb912ca242"
 }

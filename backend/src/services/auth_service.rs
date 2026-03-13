@@ -156,12 +156,46 @@ impl AuthService {
             .await?
             .ok_or_else(|| AppError::Unauthorized("Login yoki parol noto'g'ri".to_string()))?;
 
-        // 2. Parolni tekshirish
-        let is_valid = Self::verify_password(&req.password, &user.password)?;
-        if !is_valid {
-            return Err(AppError::Unauthorized(
-                "Login yoki parol noto'g'ri".to_string(),
-            ));
+        // 2. Parolni tekshirish (Rolga qarab farqlanadi)
+        if user.role == "student" {
+            // Studentlar uchun HEMIS tokenini tekshiramiz
+            let now = Utc::now();
+            let mut needs_live_auth = true;
+
+            // Agar token mavjud bo'lsa va muddati o'tmagan bo'lsa, lokal parolni tekshiramiz (Tezkor variant)
+            if let Some(expires_at) = user.hemis_token_expires_at {
+                if now < expires_at {
+                    needs_live_auth = false;
+                    let is_valid = Self::verify_password(&req.password, &user.password)?;
+                    if !is_valid {
+                        return Err(AppError::Unauthorized("Login yoki parol noto'g'ri".to_string()));
+                    }
+                }
+            }
+
+            if needs_live_auth {
+                // Token muddati o'tgan yoki yo'q, HEMIS dagi asl API ni chaqiramiz
+                tracing::info!(user_id = %user.user_id, "Lokal token eskirgan, live HEMIS auth bajarilmoqda...");
+                
+                use crate::services::hemis_service::HemisService;
+                let new_token = HemisService::auth_student(config, &req.user_id, &req.password).await?;
+                
+                // HEMIS muvaffaqiyatli o'tsa (parol to'g'ri bo'lsa) lokal bazadagi parolni xeshlab yozamiz
+                let new_hash = Self::hash_password(&req.password)?;
+                UserRepository::update_password(pool, user.id, &new_hash).await?;
+                
+                // Yangi token va 48 soatlik muddatni yozamiz
+                let expires_at = now + Duration::hours(48);
+                UserRepository::update_hemis_token(pool, user.id, &new_token, expires_at).await?;
+            }
+        } else {
+            // Boshqa rollar uchun doimiy (lokal) tekshiruv
+            let is_valid = Self::verify_password(&req.password, &user.password)?;
+            if !is_valid {
+                return Err(AppError::Unauthorized(
+                    "Login yoki parol noto'g'ri".to_string(),
+                ));
+            }
         }
 
         // 3. Access va Refresh tokenlarni yaratish

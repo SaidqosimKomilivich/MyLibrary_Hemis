@@ -1,0 +1,102 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                u.id as contact_id,\n                u.full_name as contact_name,\n                u.role as contact_role,\n                m.id as \"message_id?\",\n                m.sender_id as \"sender_id?\",\n                m.receiver_id as \"receiver_id?\",\n                m.title as \"title?\",\n                m.message as \"message_text?\",\n                m.is_read as \"is_read?\",\n                m.created_at as \"created_at?\",\n                s.full_name as \"sender_name_full?\",\n                s.role as \"sender_role_full?\",\n                r.full_name as \"receiver_name_full?\",\n                r.role as \"receiver_role_full?\"\n            FROM users u\n            LEFT JOIN LATERAL (\n                SELECT msg.id, msg.sender_id, msg.receiver_id, msg.title, msg.message, msg.is_read, msg.created_at\n                FROM messages msg \n                WHERE (msg.sender_id = $1 AND msg.receiver_id = u.id) \n                   OR (msg.sender_id = u.id AND msg.receiver_id = $1)\n                ORDER BY msg.created_at DESC \n                LIMIT 1\n            ) m ON true\n            LEFT JOIN users s ON m.sender_id = s.id\n            LEFT JOIN users r ON m.receiver_id = r.id\n            WHERE u.active = true \n              AND u.id != $1 \n              AND u.role IN ('admin', 'staff', 'teacher', 'student', 'employee')\n            ORDER BY m.created_at DESC NULLS LAST, u.full_name ASC\n            LIMIT $2 OFFSET $3\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "contact_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "contact_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "contact_role",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "message_id?",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "sender_id?",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 5,
+        "name": "receiver_id?",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 6,
+        "name": "title?",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "message_text?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "is_read?",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at?",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "sender_name_full?",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 11,
+        "name": "sender_role_full?",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 12,
+        "name": "receiver_name_full?",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 13,
+        "name": "receiver_role_full?",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "6bcd0f21a8ecf025d4c4f67752b39e8046b870e89a1a3c39e700754a77c582cb"
+}
