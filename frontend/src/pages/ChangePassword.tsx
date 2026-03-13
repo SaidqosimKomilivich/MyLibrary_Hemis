@@ -18,7 +18,7 @@ export default function ChangePassword() {
     const needsPhone = !user?.phone;
 
     const [email, setEmail] = useState('');
-    const [phone, setPhone] = useState('');
+    const [phone, setPhone] = useState('+998 ');
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
@@ -53,8 +53,9 @@ export default function ChangePassword() {
             return;
         }
 
-        if (needsPhone && !phone.trim()) {
-            toast.error("Iltimos, telefon raqamini kiriting");
+        const phoneDigits = phone.replace(/\D/g, '');
+        if (needsPhone && phoneDigits.length !== 12) {
+            toast.error("Iltimos, to'liq telefon raqamini kiriting (+998 XX XXX XX XX)");
             return;
         }
 
@@ -98,7 +99,7 @@ export default function ChangePassword() {
         confirmPassword.length > 0 &&
         confirmPassword.trim() === newPassword.trim() &&
         (!needsEmail || email.trim().length > 0) &&
-        (!needsPhone || phone.trim().length > 0);
+        (!needsPhone || phone.replace(/\D/g, '').length === 12);
 
     const hasMinLen = newPassword.length >= 8;
     const hasUpper = /[A-Z]/.test(newPassword);
@@ -229,7 +230,23 @@ export default function ChangePassword() {
                                     type="tel"
                                     placeholder="+998 90 123 45 67"
                                     value={phone}
-                                    onChange={(e) => setPhone(e.target.value)}
+                                    onChange={(e) => {
+                                        const prefix = '+998 '
+                                        let raw = e.target.value
+                                        if (!raw.startsWith(prefix)) {
+                                            raw = prefix
+                                        }
+                                        const digits = raw.slice(prefix.length).replace(/\D/g, '').slice(0, 9)
+                                        let formatted = prefix
+                                        if (digits.length > 0) formatted += digits.slice(0, 2)
+                                        if (digits.length > 2) formatted += ' ' + digits.slice(2, 5)
+                                        if (digits.length > 5) formatted += ' ' + digits.slice(5, 7)
+                                        if (digits.length > 7) formatted += ' ' + digits.slice(7, 9)
+                                        setPhone(formatted)
+                                    }}
+                                    onFocus={(e) => {
+                                        if (!e.target.value.startsWith('+998 ')) setPhone('+998 ')
+                                    }}
                                     className="w-full bg-surface-hover border border-border text-text px-4 py-3.5 pl-11 rounded-xl text-[1rem] outline-none transition-all focus:border-primary-light focus:bg-canvas/50 placeholder:text-text-muted/50"
                                 />
                             </div>

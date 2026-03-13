@@ -11,7 +11,7 @@ export default function ContactInfoPage() {
     const navigate = useNavigate()
 
     const [email, setEmail] = useState('')
-    const [phone, setPhone] = useState('')
+    const [phone, setPhone] = useState('+998 ')
     const [isSaving, setIsSaving] = useState(false)
 
     // --- Auth Guards ---
@@ -39,9 +39,12 @@ export default function ContactInfoPage() {
     const isPhoneMissing = !user.phone
 
     // Barcha kerakli maydonlar to'ldirilmasa Saqlash tugmasi o'chirilgan bo'ladi
+    const phoneDigits = phone.replace(/\D/g, '') // masalan: 99890... -> 9 ta raqam prefixsiz
+    const isPhoneComplete = phoneDigits.length === 12 // +998 + 9 raqam = 12 ta raqam
+
     const isSaveDisabled =
         (isEmailMissing && !email.trim()) ||
-        (isPhoneMissing && !phone.trim()) ||
+        (isPhoneMissing && !isPhoneComplete) ||
         isSaving
 
     const handleSave = async (e: React.FormEvent) => {
@@ -87,7 +90,6 @@ export default function ContactInfoPage() {
                         <h1 className="text-2xl font-bold text-text text-center tracking-tight">Xush kelibsiz!</h1>
                         <p className="text-[0.95rem] text-text-muted text-center leading-relaxed mt-2.5 max-w-[290px]">
                             Tizimdan foydalanish uchun aloqa ma'lumotlaringizni to'ldiring.
-                            Bu <strong>majburiy</strong> qadam.
                         </p>
                     </div>
 
@@ -128,9 +130,28 @@ export default function ContactInfoPage() {
                                     <input
                                         id="contact-phone"
                                         type="tel"
-                                        placeholder="+998901234567"
+                                        placeholder="+998 90 123 45 67"
                                         value={phone}
-                                        onChange={(e) => setPhone(e.target.value)}
+                                        onChange={(e) => {
+                                            const prefix = '+998 '
+                                            let raw = e.target.value
+                                            // Prefixni o'chirmaslik
+                                            if (!raw.startsWith(prefix)) {
+                                                raw = prefix
+                                            }
+                                            // Prefixdan keyingi faqat raqamlarni olish
+                                            const digits = raw.slice(prefix.length).replace(/\D/g, '').slice(0, 9)
+                                            // Formatlash: XX XXX XX XX
+                                            let formatted = prefix
+                                            if (digits.length > 0) formatted += digits.slice(0, 2)
+                                            if (digits.length > 2) formatted += ' ' + digits.slice(2, 5)
+                                            if (digits.length > 5) formatted += ' ' + digits.slice(5, 7)
+                                            if (digits.length > 7) formatted += ' ' + digits.slice(7, 9)
+                                            setPhone(formatted)
+                                        }}
+                                        onFocus={(e) => {
+                                            if (!e.target.value.startsWith('+998 ')) setPhone('+998 ')
+                                        }}
                                         className="w-full bg-bg-light/50 border border-border text-text text-[0.95rem] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary block pl-11! py-3 transition-all duration-200"
                                         autoComplete="tel"
                                     />
@@ -150,7 +171,7 @@ export default function ContactInfoPage() {
                                     <Loader2 size={18} className="animate-spin" />
                                 ) : (
                                     <>
-                                        Saqlash va Davom etish
+                                        Saqlash
                                         <ArrowRight size={18} className="transform group-hover:translate-x-1 transition-transform" />
                                     </>
                                 )}
