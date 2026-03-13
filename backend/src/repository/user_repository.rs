@@ -114,6 +114,25 @@ impl UserRepository {
         Ok(())
     }
 
+    /// Parol o'zgartirmasdan faqat kontakt ma'lumotlarini (email, phone) yangilash
+    pub async fn update_user_contacts(
+        pool: &PgPool,
+        id: Uuid,
+        email: Option<&str>,
+        phone: Option<&str>,
+    ) -> Result<(), AppError> {
+        sqlx::query(
+            r#"UPDATE "users" SET "email" = COALESCE($1, "email"), "phone" = COALESCE($2, "phone") WHERE "id" = $3"#,
+        )
+        .bind(email)
+        .bind(phone)
+        .bind(id)
+        .execute(pool)
+        .await?;
+
+        Ok(())
+    }
+
     /// Parolni default holatga qaytarish (admin uchun)
     pub async fn reset_password(
         pool: &PgPool,

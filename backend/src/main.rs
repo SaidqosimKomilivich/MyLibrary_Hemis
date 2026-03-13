@@ -132,6 +132,7 @@ async fn main() -> std::io::Result<()> {
                     .route("/logout", web::post().to(auth_handler::logout))
                     .route("/refresh", web::post().to(auth_handler::refresh))
                     .route("/me", web::get().to(auth_handler::me))
+                    .route("/update-contacts", web::post().to(auth_handler::update_contacts))
                     .route(
                         "/change-password",
                         web::post().to(auth_handler::change_password),

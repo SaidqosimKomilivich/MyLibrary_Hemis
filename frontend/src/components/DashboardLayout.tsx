@@ -160,10 +160,17 @@ export default function DashboardLayout({ role }: DashboardLayoutProps) {
         )
     }
 
-    // Force password update if required
-    if (user && !user.is_password_update) {
-        // Prevent infinite loop if we are already on the change password page (though DashboardLayout shouldn't be used there)
+    // Force password update if required (students use HEMIS — no password change needed)
+    if (user && !user.is_password_update && user.role !== 'student') {
         return <Navigate to="/change-password" replace />
+    }
+
+    // Force contact info update for students if missing
+    if (user && user.role === 'student') {
+        const needsContactInfo = !user.email || !user.phone;
+        if (needsContactInfo && location.pathname !== '/student/contact-info') {
+            return <Navigate to="/student/contact-info" replace />
+        }
     }
 
     const displayName = user?.full_name || user?.user_id || roleLabels[role]

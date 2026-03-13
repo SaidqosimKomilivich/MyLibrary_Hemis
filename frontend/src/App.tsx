@@ -33,6 +33,7 @@ import ReportsPage from './pages/employee/ReportsPage'
 import PendingBooksPage from './pages/admin/PendingBooksPage'
 import MyRentals from './pages/student/MyRentals'
 import MessagesPage from './pages/shared/MessagesPage'
+import ContactInfoPage from './pages/student/ContactInfoPage'
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -50,6 +51,8 @@ function AnimatedRoutes() {
       {/* Login */}
       <Route path="/login" element={<Login />} />
       <Route path="/change-password" element={<ChangePassword />} />
+      {/* Student contact info — full-screen, standalone (no sidebar) */}
+      <Route path="/student/contact-info" element={<ContactInfoPage />} />
 
 
       {/* Admin */}
@@ -115,7 +118,6 @@ function AnimatedRoutes() {
         <Route path="requests" element={<MyRequestsPage />} />
         <Route path="messages" element={<MessagesPage />} />
         <Route path="profile" element={<ProfilePage />} />
-
       </Route>
 
       {/* Default redirect (agar biron notanish manzil kiritilsa asosiysiga yuboradi) */}

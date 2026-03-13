@@ -217,6 +217,26 @@ pub async fn change_password(
     Ok(HttpResponse::Ok().json(response))
 }
 
+/// POST /api/auth/update-contacts
+pub async fn update_contacts(
+    pool: web::Data<PgPool>,
+    claims: Claims,
+    body: web::Json<crate::dto::auth::UpdateContactsRequest>,
+) -> Result<HttpResponse, AppError> {
+    let user_id = uuid::Uuid::parse_str(&claims.sub)
+        .map_err(|_| AppError::InternalError("UUID noto'g'ri".to_string()))?;
+
+    let response = AuthService::update_contacts(
+        pool.get_ref(),
+        user_id,
+        body.email.as_deref(),
+        body.phone.as_deref(),
+    )
+    .await?;
+
+    Ok(HttpResponse::Ok().json(response))
+}
+
 /// POST /api/auth/reset-password/{user_id}
 /// Faqat admin: foydalanuvchi parolini default holatga qaytarish
 pub async fn reset_password(

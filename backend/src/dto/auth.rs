@@ -17,6 +17,12 @@ pub struct ChangePasswordRequest {
     pub phone: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct UpdateContactsRequest {
+    pub email: Option<String>,
+    pub phone: Option<String>,
+}
+
 #[derive(Debug, Serialize)]
 pub struct CaptchaResponse {
     pub success: bool,

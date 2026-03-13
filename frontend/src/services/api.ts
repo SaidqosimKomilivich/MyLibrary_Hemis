@@ -152,6 +152,13 @@ export const api = {
         })
     },
 
+    updateContacts(email?: string, phone?: string) {
+        return request<MessageResponse>('/auth/update-contacts', {
+            method: 'POST',
+            body: JSON.stringify({ email, phone }),
+        })
+    },
+
     resetPassword(userId: string) {
         return request<MessageResponse>(`/auth/reset-password/${userId}`, {
             method: 'POST',

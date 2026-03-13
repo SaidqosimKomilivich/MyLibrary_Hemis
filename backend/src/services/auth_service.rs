@@ -371,4 +371,25 @@ impl AuthService {
             message: "Parol muvaffaqiyatli o'zgartirildi".to_string(),
         })
     }
+
+    /// Parolni o'zgartirmasdan faqat email/phone ni yangilash
+    pub async fn update_contacts(
+        pool: &PgPool,
+        user_id: Uuid,
+        email: Option<&str>,
+        phone: Option<&str>,
+    ) -> Result<MessageResponse, AppError> {
+        let user = UserRepository::find_by_id(pool, user_id)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Foydalanuvchi topilmadi".to_string()))?;
+
+        UserRepository::update_user_contacts(pool, user_id, email, phone).await?;
+
+        tracing::info!(user_id = %user.user_id, "Kontakt ma'lumotlari yangilandi");
+
+        Ok(MessageResponse {
+            success: true,
+            message: "Kontakt ma'lumotlari muvaffaqiyatli saqlandi".to_string(),
+        })
+    }
 }
