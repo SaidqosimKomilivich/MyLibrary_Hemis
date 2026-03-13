@@ -246,13 +246,29 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
                                 value={formData.category || ''}
                                 onChange={(val) => setFormData({ ...formData, category: val })}
                                 options={[
-                                    { value: '', label: 'Tanlang' },
-                                    { value: 'Badiiy adabiyot', label: 'Badiiy adabiyot' },
-                                    { value: 'Darslik', label: 'Darslik' },
-                                    { value: 'Ilmiy', label: 'Ilmiy' },
-                                    { value: 'Siyosiy', label: 'Siyosiy' },
-                                    { value: 'Tarixiy', label: 'Tarixiy' },
-                                    { value: 'Texnologiya', label: 'Texnologiya' }
+                                    { value: '', label: 'Kategoriyani tanlang' },
+    
+                                    // --- 1-BAND: ASOSIY JANR VA FORMAT ---
+                                    { value: 'badiiy_adabiyot', label: 'Badiiy adabiyot' },
+                                    { value: 'ilmiy_ommabop', label: 'Ilmiy-ommabop' },
+                                    { value: 'darslik_metodik', label: 'Darslik va metodik qo‘llanma' },
+                                    { value: 'monografiya', label: 'Ilmiy monografiya' },
+                                    { value: 'lugat_entsiklopediya', label: 'Lug‘at va entsiklopediya' },
+
+                                    // --- 2-BAND: MAVZU VA SOHA (SUBJECT) ---
+                                    { value: 'it_texnologiya', label: 'IT va Texnologiyalar' },
+                                    { value: 'tarix_falsafa', label: 'Tarix va Falsafa' },
+                                    { value: 'iqtisodiyot_siyosat', label: 'Iqtisodiyot va Siyosat' },
+                                    { value: 'psixologiya_shaxsiy_rivojlanish', label: 'Psixologiya va Shaxsiy rivojlanish' },
+                                    { value: 'tabiiy_fanlar', label: 'Tabiiy fanlar (Fizika, Kimyo, Biologiya)' },
+                                    { value: 'tibbiyot', label: 'Tibbiyot va Sog‘liqni saqlash' },
+                                    { value: 'huquqshunoslik', label: 'Huquqshunoslik' },
+                                    { value: 'xorijiy_tillar', label: 'Xorijiy tillarni o‘rganish' },
+
+                                    // --- 3-BAND: AUDITORIYA (TARGET AUDIENCE) ---
+                                    { value: 'bolalar_uchun', label: 'Bolalar adabiyoti' },
+                                    { value: 'osmirlar_uchun', label: 'O‘smirlar adabiyoti' },
+                                    { value: 'mutaxassislar_uchun', label: 'Mutaxassislar va tadqiqotchilar' }
                                 ]}
                                 buttonClassName="w-full bg-surface/50 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
                             />
@@ -306,7 +322,19 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
                                 options={[
                                     { value: 'uz', label: 'O\'zbek' },
                                     { value: 'ru', label: 'Rus' },
-                                    { value: 'en', label: 'Ingliz' }
+                                    { value: 'en', label: 'Ingliz' },
+                                    { value: 'tr', label: 'Turk' },
+                                    { value: 'ar', label: 'Arab' },
+                                    { value: 'de', label: 'Nemis' },
+                                    { value: 'fr', label: 'Fransuz' },
+                                    { value: 'es', label: 'Ispan' },
+                                    { value: 'zh', label: 'Xitoy' },
+                                    { value: 'ja', label: 'Yapon' },
+                                    { value: 'ko', label: 'Koreys' },
+                                    { value: 'kk', label: 'Qozoq' },
+                                    { value: 'tg', label: 'Tojik' },
+                                    { value: 'ky', label: 'Qirg\'iz' },
+                                    { value: 'tk', label: 'Turkman' }
                                 ]}
                                 buttonClassName="w-full bg-surface/50 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
                             />
@@ -335,7 +363,7 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
                         {/* Description - full width */}
                         <div className="flex flex-col gap-1.5 min-w-0 md:col-span-2">
                             <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">Tavsif</label>
-                            <textarea className="w-full bg-surface/50 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)] resize-y min-h-[100px]" name="description" value={formData.description} onChange={handleChange} rows={3} />
+                            <textarea className="w-full bg-surface/50 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)] resize-y min-h-25" name="description" value={formData.description} onChange={handleChange} rows={3} />
                         </div>
 
                         {/* File uploads */}
@@ -343,10 +371,10 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
                             {/* Cover image upload */}
                             <div className="flex-1 flex flex-col gap-2">
                                 <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">Muqova rasmi</label>
-                                <div className="border border-dashed border-border rounded-xl p-2 bg-surface/50 transition-colors hover:border-border/80 flex-1 flex flex-col items-center justify-center min-h-[140px] relative overflow-hidden">
+                                <div className="border border-dashed border-border rounded-xl p-2 bg-surface/50 transition-colors hover:border-border/80 flex-1 flex flex-col items-center justify-center min-h-35 relative overflow-hidden">
                                     {formData.cover_image_url ? (
                                         <div className="flex flex-col items-center justify-center gap-2 group w-full h-full relative">
-                                            <img src={formData.cover_image_url} alt="Muqova" className="max-h-[110px] w-auto rounded object-cover shadow-sm bg-white" />
+                                            <img src={formData.cover_image_url} alt="Muqova" className="max-h-27.5 w-auto rounded object-cover shadow-sm bg-white" />
                                             <button type="button" onClick={handleRemoveCover} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-rose-500/90 text-white flex items-center justify-center border-none cursor-pointer opacity-0 transition-all scale-90 group-hover:opacity-100 group-hover:scale-100 hover:bg-rose-500 shadow-md">
                                                 <X size={20} />
                                             </button>
@@ -381,7 +409,7 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
                             {formData.format && (
                                 <div className="flex-1 flex flex-col gap-2">
                                     <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">{formData.format === 'pdf' ? 'PDF fayl' : 'Audio fayl'}</label>
-                                    <div className="border border-dashed border-border rounded-xl p-2 bg-surface/50 transition-colors hover:border-border/80 flex-1 flex flex-col items-center justify-center min-h-[140px] relative overflow-hidden">
+                                    <div className="border border-dashed border-border rounded-xl p-2 bg-surface/50 transition-colors hover:border-border/80 flex-1 flex flex-col items-center justify-center min-h-35 relative overflow-hidden">
                                         {formData.digital_file_url ? (
                                             <div className="flex flex-col items-center justify-center gap-3 w-full h-full text-emerald-400">
                                                 <div className="w-12 h-12 bg-emerald-500/20 rounded-full flex items-center justify-center">

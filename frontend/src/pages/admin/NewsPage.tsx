@@ -367,7 +367,7 @@ export default function NewsPage() {
                                     className="flex items-center justify-center gap-2 flex-1 px-6 py-2.5 rounded-xl border-none font-semibold cursor-pointer transition-all bg-red-600 text-white hover:bg-red-500 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(239,68,68,0.35)] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
                                 >
                                     {isDeleting
-                                        ? <span className="w-[18px] h-[18px] border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        ? <span className="w-4.5 h-4.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                         : <><Trash2 size={16} /> O'chirish</>}
                                 </button>
                             </div>

@@ -151,7 +151,7 @@ export default function TeacherBookSubmit() {
     }
 
     return (
-        <div className="flex flex-col gap-6 w-full max-w-[900px] mx-auto">
+        <div className="flex flex-col gap-6 w-full max-w-225 mx-auto">
             {/* Header */}
             <div className="flex items-start justify-between gap-4">
                 <div>
@@ -245,7 +245,7 @@ export default function TeacherBookSubmit() {
             {/* ══════════════════════════ SUBMIT MODAL ══════════════════════════ */}
             {modalOpen && createPortal(
                 <div
-                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200"
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-999 flex items-center justify-center p-4 animate-in fade-in duration-200"
                     onClick={handleCloseModal}
                     style={{ pointerEvents: submitting || coverUploading || fileUploading ? 'none' : 'auto' }}
                 >
@@ -366,7 +366,7 @@ export default function TeacherBookSubmit() {
                                 <div className="md:col-span-2 flex flex-col gap-1.5 min-w-0">
                                     <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">Qisqacha tavsif (Annotatsiya)</label>
                                     <textarea
-                                        className="w-full bg-surface-hover border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)] resize-y min-h-[100px]"
+                                        className="w-full bg-surface-hover border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)] resize-y min-h-25"
                                         placeholder="Kitob haqida ma'lumot qoldiring..."
                                         value={form.description}
                                         onChange={e => handleChange('description', e.target.value)}
@@ -425,7 +425,7 @@ export default function TeacherBookSubmit() {
                                     {/* Elektron fayl */}
                                     <div className="flex flex-col gap-2">
                                         <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">Elektron nusxasi (ixtiyoriy)</label>
-                                        <div className="bg-surface-hover border border-border p-4 rounded-xl flex flex-col items-center justify-center gap-3 text-center min-h-[112px]">
+                                        <div className="bg-surface-hover border border-border p-4 rounded-xl flex flex-col items-center justify-center gap-3 text-center min-h-28">
                                             <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".pdf,.epub,.doc,.docx,.mp3,.m4a" className="hidden" />
 
                                             {form.digital_file_url ? (
@@ -495,7 +495,7 @@ export default function TeacherBookSubmit() {
 
             {/* ══════════════════════════ DETAIL MODAL ══════════════════════════ */}
             {selectedBook && createPortal(
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setSelectedBook(null)}>
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-999 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setSelectedBook(null)}>
                     <div className="bg-surface border border-border rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
                         <div className="flex justify-between items-center p-5 border-b border-border bg-white/5 rounded-t-2xl shrink-0">
                             <h3 className="flex items-center gap-2 m-0 text-lg font-bold text-text">

@@ -179,7 +179,7 @@ export default function DashboardLayout({ role }: DashboardLayoutProps) {
             )}
 
             {/* Sidebar */}
-            <aside className={`fixed top-0 left-0 w-[260px] h-dvh bg-surface border-r border-border flex flex-col z-100 transition-transform duration-250 max-md:-translate-x-full ${sidebarOpen ? 'max-md:translate-x-0' : ''}`}>
+            <aside className={`fixed top-0 left-0 w-65 h-dvh bg-surface border-r border-border flex flex-col z-100 transition-transform duration-250 max-md:-translate-x-full ${sidebarOpen ? 'max-md:translate-x-0' : ''}`}>
                 <div className="flex items-center gap-2.5 p-4 border-b border-border">
                     <img
                         src="/icon_arm.png"
@@ -204,7 +204,7 @@ export default function DashboardLayout({ role }: DashboardLayoutProps) {
                             to={item.path}
                             end={item.path === `/${role}`}
                             className={({ isActive }) =>
-                                `relative flex items-center gap-3 py-2.5 px-3.5 rounded-xl text-[0.9rem] font-medium transition-colors duration-250 border-none bg-transparent cursor-pointer w-full font-inherit hover:bg-surface-hover hover:text-text ${isActive ? 'bg-indigo-500/15 text-primary-light before:content-[""] before:absolute before:left-0 before:w-[3px] before:h-6 before:bg-primary-light before:rounded-r-md' : 'text-text-muted'}`
+                                `relative flex items-center gap-3 py-2.5 px-3.5 rounded-xl text-[0.9rem] font-medium transition-colors duration-250 border-none bg-transparent cursor-pointer w-full font-inherit hover:bg-surface-hover hover:text-text ${isActive ? 'bg-indigo-500/15 text-primary-light before:content-[""] before:absolute before:left-0 before:w-0.75 before:h-6 before:bg-primary-light before:rounded-r-md' : 'text-text-muted'}`
                             }
                             onClick={() => setSidebarOpen(false)}
                         >
@@ -223,9 +223,9 @@ export default function DashboardLayout({ role }: DashboardLayoutProps) {
             </aside>
 
             {/* Main */}
-            <div className="flex-1 ml-[260px] flex flex-col min-h-dvh max-md:ml-0">
+            <div className="flex-1 ml-65 flex flex-col min-h-dvh max-md:ml-0">
                 {/* Top bar */}
-                <header className="sticky top-0 z-50 flex items-center gap-4 h-[64px] px-6 bg-surface/80 backdrop-blur-xl border-b border-border max-md:px-4">
+                <header className="sticky top-0 z-50 flex items-center gap-4 h-16 px-6 bg-surface/80 backdrop-blur-xl border-b border-border max-md:px-4">
                     <button
                         className="hidden bg-transparent border-none text-text cursor-pointer p-1.5 max-md:block"
                         onClick={() => setSidebarOpen(true)}
@@ -236,7 +236,7 @@ export default function DashboardLayout({ role }: DashboardLayoutProps) {
                     <div className="ml-auto flex items-center gap-3">
                         {/* Mini Audio Player */}
                         {isMini && book && (
-                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-violet-500/15 border border-violet-500/25 max-w-[240px]">
+                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-violet-500/15 border border-violet-500/25 max-w-60">
                                 {book.cover_image_url ? (
                                     <img src={getFileUrl(book.cover_image_url)} alt="" className="w-7 h-7 rounded-lg object-cover shrink-0" />
                                 ) : (

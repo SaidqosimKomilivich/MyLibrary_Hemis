@@ -397,7 +397,7 @@ export default function AccessControl() {
     }, []);
 
     return (
-        <div className="flex flex-col gap-6 w-full max-w-[1200px] mx-auto">
+        <div className="flex flex-col gap-6 w-full max-w-300 mx-auto">
 
             {/* ═══════════════════════════════════════
                HEADER
@@ -489,11 +489,11 @@ export default function AccessControl() {
                 `}</style>
 
                 {/* User Verification Card */}
-                <div className="bg-surface border border-border rounded-2xl p-6 shadow-sm flex flex-col min-h-[400px]">
+                <div className="bg-surface border border-border rounded-2xl p-6 shadow-sm flex flex-col min-h-100">
                     {!scannedUser ? (
                         <div className="flex flex-col items-center justify-center text-center text-text-muted h-full opacity-60 m-auto gap-4">
                             <User size={56} strokeWidth={1} />
-                            <p className="max-w-[200px] text-sm">Foydalanuvchini topish uchun ID kartani skanerlang</p>
+                            <p className="max-w-50 text-sm">Foydalanuvchini topish uchun ID kartani skanerlang</p>
                         </div>
                     ) : (
                         <>
@@ -513,7 +513,7 @@ export default function AccessControl() {
                             </div>
 
                             <div className="flex items-start gap-5 mb-8">
-                                <div className="w-[84px] h-[84px] shrink-0">
+                                <div className="w-21 h-21 shrink-0">
                                     {scannedUser.image_url ? (
                                         <img src={getFileUrl(scannedUser.image_url)} alt={scannedUser.full_name} className="w-full h-full object-cover rounded-xl shadow-sm border border-border" />
                                     ) : (
@@ -593,7 +593,7 @@ export default function AccessControl() {
                             </div>
                         ) : (
                             <div className="w-full overflow-x-auto">
-                                <table className="w-full border-collapse min-w-[600px]">
+                                <table className="w-full border-collapse min-w-150">
                                     <thead>
                                         <tr>
                                             <th className="text-left p-4 text-xs font-semibold text-text-muted uppercase tracking-wider border-b border-border">Kitob</th>
@@ -686,7 +686,7 @@ export default function AccessControl() {
                     </div>
                 ) : (
                     <div className="w-full overflow-x-auto">
-                        <table className="w-full border-collapse min-w-[700px]">
+                        <table className="w-full border-collapse min-w-175">
                             <thead>
                                 <tr>
                                     <th className="text-left p-4 text-xs font-semibold text-text-muted uppercase tracking-wider border-b border-border">Tr</th>
@@ -776,7 +776,7 @@ export default function AccessControl() {
 
                                 {/* Search results */}
                                 {searchResults.length > 0 && (
-                                    <div className="flex flex-col gap-1 max-h-[220px] overflow-y-auto border border-border rounded-xl p-1 bg-surface-hover/30">
+                                    <div className="flex flex-col gap-1 max-h-55 overflow-y-auto border border-border rounded-xl p-1 bg-surface-hover/30">
                                         {searchResults.map(book => (
                                             <div
                                                 key={book.id}
@@ -833,7 +833,7 @@ export default function AccessControl() {
                                             Izoh (ixtiyoriy)
                                         </label>
                                         <textarea
-                                            className="bg-surface-hover/30 border border-border px-3 py-2 rounded-xl text-sm text-text outline-none focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)] transition-all resize-none min-h-[80px]"
+                                            className="bg-surface-hover/30 border border-border px-3 py-2 rounded-xl text-sm text-text outline-none focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)] transition-all resize-none min-h-20"
                                             placeholder="Kitob holati haqida qayd..."
                                             value={assignNotes}
                                             onChange={e => setAssignNotes(e.target.value)}
@@ -893,7 +893,7 @@ export default function AccessControl() {
                                         Izoh (ixtiyoriy)
                                     </label>
                                     <textarea
-                                        className="bg-surface-hover/30 border border-border px-4 py-3 rounded-xl text-sm text-text outline-none focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)] transition-all resize-none min-h-[100px]"
+                                        className="bg-surface-hover/30 border border-border px-4 py-3 rounded-xl text-sm text-text outline-none focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)] transition-all resize-none min-h-25"
                                         placeholder="Kitob holati haqida qisqacha ma'lumot (masalan: sahifasi yirtilgan, toza va h.k.)"
                                         value={returnNotes}
                                         onChange={e => setReturnNotes(e.target.value)}
@@ -907,7 +907,7 @@ export default function AccessControl() {
                                     Bekor qilish
                                 </button>
                                 <button
-                                    className="flex items-center justify-center gap-2 px-6 py-2.5 bg-primary text-white border-none rounded-xl text-sm font-bold hover:bg-primary-hover shadow-lg shadow-primary/25 hover:-translate-y-0.5 transition-all active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none min-w-[130px]"
+                                    className="flex items-center justify-center gap-2 px-6 py-2.5 bg-primary text-white border-none rounded-xl text-sm font-bold hover:bg-primary-hover shadow-lg shadow-primary/25 hover:-translate-y-0.5 transition-all active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none min-w-32.5"
                                     onClick={handleReturnConfirm}
                                     disabled={returnLoading}
                                 >

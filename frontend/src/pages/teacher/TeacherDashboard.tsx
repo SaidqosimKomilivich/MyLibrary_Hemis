@@ -146,7 +146,7 @@ export default function TeacherDashboard() {
                                                         </div>
                                                     </div>
 
-                                                    <div className="shrink-0 flex items-center justify-center min-w-[140px]">
+                                                    <div className="shrink-0 flex items-center justify-center min-w-35">
                                                         {isOverdue ? (
                                                             <div className="flex flex-col items-center justify-center w-full bg-red-500/10 border border-red-500/20 rounded-xl py-3 px-4">
                                                                 <AlertTriangle size={20} className="text-red-400 mb-1" />
@@ -182,12 +182,12 @@ export default function TeacherDashboard() {
                                     Mening oxirgi harakatlarim
                                 </h2>
 
-                                <div className="relative pl-6 space-y-6 before:absolute before:inset-y-0 before:left-[11px] before:w-[2px] before:bg-border">
+                                <div className="relative pl-6 space-y-6 before:absolute before:inset-y-0 before:left-2.75 before:w-0.5 before:bg-border">
                                     {dashboardData?.recent_activities?.length === 0 ? (
                                         <p className="text-[0.9rem] text-text-muted">Harakatlar tarixi bo'sh.</p>
                                     ) : dashboardData?.recent_activities.map((act, i) => (
                                         <div key={act.id + i} className="relative">
-                                            <div className="absolute -left-[30px] top-1 w-[12px] h-[12px] rounded-full bg-surface border-2 border-emerald-400 ring-4 ring-canvas"></div>
+                                            <div className="absolute -left-7.5 top-1 w-3 h-3 rounded-full bg-surface border-2 border-emerald-400 ring-4 ring-canvas"></div>
                                             <div className="flex flex-col">
                                                 <p className="text-[0.95rem] text-text m-0 leading-snug">{act.action}</p>
                                                 <span className="text-[0.75rem] text-text-muted font-mono mt-1">{act.time}</span>
@@ -200,18 +200,6 @@ export default function TeacherDashboard() {
 
                         {/* Recommend Side Panel */}
                         <div className="flex flex-col gap-5">
-                            {/* Submit Book CTA
-                            <div className="bg-linear-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 rounded-xl p-6 shadow-sm flex flex-col items-center text-center">
-                                <div className="w-14 h-14 rounded-full bg-indigo-500/20 flex items-center justify-center mb-4">
-                                    <Upload size={24} className="text-indigo-400" />
-                                </div>
-                                <h3 className="text-[1.1rem] font-bold text-slate-100 mb-2">Yangi kitob taqdim etish</h3>
-                                <p className="text-[0.85rem] text-indigo-200/70 mb-5">Kutubxona bazasiga o'z hissangizni qo'shing. PDF, EPUB yoki Audio formatdagi resurslarni yuklang.</p>
-                                <Link to="/teacher/submit-book" className="w-full py-2.5 px-4 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl text-[0.9rem] font-semibold transition-colors">
-                                    Kitob yuklash
-                                </Link>
-                            </div> */}
-
                             {/* Recommended books */}
                             <div className="bg-surface border border-border rounded-xl p-6 shadow-sm flex-1">
                                 <h2 className="flex items-center gap-2 text-[1.1rem] font-bold mb-5 text-text">
@@ -223,7 +211,7 @@ export default function TeacherDashboard() {
                                         <p className="text-[0.9rem] text-text-muted">Hozircha kitoblar yo'q</p>
                                     ) : recommendedBooks.map((book) => (
                                         <div key={book.id} className="flex gap-3 py-3 px-4 rounded-xl transition-colors hover:bg-surface-hover border border-transparent hover:border-border group cursor-pointer">
-                                            <div className="w-[45px] h-[65px] shrink-0 bg-surface-hover rounded flex items-center justify-center overflow-hidden border border-border group-hover:border-border transition-colors">
+                                            <div className="w-11.25 h-16.25 shrink-0 bg-surface-hover rounded flex items-center justify-center overflow-hidden border border-border group-hover:border-border transition-colors">
                                                 {book.cover_image ? (
                                                     <img src={book.cover_image} alt={book.title} className="w-full h-full object-cover" />
                                                 ) : (

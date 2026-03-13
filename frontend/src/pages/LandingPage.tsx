@@ -51,11 +51,11 @@ export default function LandingPage() {
             {/* Hero Section */}
             <section
                 className="relative pt-20 pb-20 px-6 h-screen overflow-hidden bg-cover bg-center bg-no-repeat w-full"
-                style={{ backgroundImage: "url('/library-hero_2.jpg')" }}
+                style={{ backgroundImage: "url('/library-hero.jpg')" }}
             >
                 <div className="absolute inset-0 bg-black/70 z-0" />
-                <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-emerald-500/20 rounded-full blur-[100px] z-0 pointer-events-none" />
-                <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-indigo-500/20 rounded-full blur-[100px] z-0 pointer-events-none" />
+                <div className="absolute top-1/4 left-1/4 w-125 h-125 bg-emerald-500/20 rounded-full blur-[100px] z-0 pointer-events-none" />
+                <div className="absolute bottom-1/4 right-1/4 w-100 h-100 bg-indigo-500/20 rounded-full blur-[100px] z-0 pointer-events-none" />
 
                 <div className="max-w-4xl mx-auto text-center relative z-10 flex flex-col justify-center h-full pt-10">
                     {/* <div
@@ -115,9 +115,9 @@ export default function LandingPage() {
                                         <Link
                                             key={`first-${book.id}-${i}`}
                                             to={`/search?q=${encodeURIComponent(book.title)}`}
-                                            className="flex flex-col items-center bg-surface border border-border/50 p-3 rounded-2xl hover:bg-surface-hover hover:border-emerald-500/30 transition-all shadow-sm shrink-0 w-[140px] group/card"
+                                            className="flex flex-col items-center bg-surface border border-border/50 p-3 rounded-2xl hover:bg-surface-hover hover:border-emerald-500/30 transition-all shadow-sm shrink-0 w-35 group/card"
                                         >
-                                            <div className="w-[100px] h-[140px] bg-canvas rounded-xl overflow-hidden shadow-sm border border-border/30 mb-3 relative group-hover/card:shadow-md transition-shadow">
+                                            <div className="w-25 h-35 bg-canvas rounded-xl overflow-hidden shadow-sm border border-border/30 mb-3 relative group-hover/card:shadow-md transition-shadow">
                                                 {book.cover_image_url ? (
                                                     <img src={book.cover_image_url} alt={book.title} className="w-full h-full object-cover group-hover/card:scale-105 transition-transform duration-500" />
                                                 ) : (
@@ -142,9 +142,9 @@ export default function LandingPage() {
                                             key={`second-${book.id}-${i}`}
                                             to={`/search?q=${encodeURIComponent(book.title)}`}
                                             tabIndex={-1}
-                                            className="flex flex-col items-center bg-surface border border-border/50 p-3 rounded-2xl hover:bg-surface-hover hover:border-emerald-500/30 transition-all shadow-sm shrink-0 w-[140px] group/card"
+                                            className="flex flex-col items-center bg-surface border border-border/50 p-3 rounded-2xl hover:bg-surface-hover hover:border-emerald-500/30 transition-all shadow-sm shrink-0 w-35 group/card"
                                         >
-                                            <div className="w-[100px] h-[140px] bg-canvas rounded-xl overflow-hidden shadow-sm border border-border/30 mb-3 relative group-hover/card:shadow-md transition-shadow">
+                                            <div className="w-25 h-35 bg-canvas rounded-xl overflow-hidden shadow-sm border border-border/30 mb-3 relative group-hover/card:shadow-md transition-shadow">
                                                 {book.cover_image_url ? (
                                                     <img src={book.cover_image_url} alt={book.title} className="w-full h-full object-cover group-hover/card:scale-105 transition-transform duration-500" />
                                                 ) : (

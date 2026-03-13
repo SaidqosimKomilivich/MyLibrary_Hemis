@@ -406,7 +406,7 @@ function ReportSection({ config }: { config: ReportConfig }) {
                         </>
                     ) : config.filterMode === 'staff' ? (
                         <>
-                            <div className="flex-1 min-w-[200px] max-w-[280px]">
+                            <div className="flex-1 min-w-50 max-w-70">
                                 <CustomSelect
                                     value={staffId}
                                     onChange={setStaffId}
@@ -420,7 +420,7 @@ function ReportSection({ config }: { config: ReportConfig }) {
                     ) : config.filterMode === 'teacher' ? (
                         <>
                             {/* O'qituvchilar */}
-                            <div className="flex-1 min-w-[180px] max-w-[240px]">
+                            <div className="flex-1 min-w-45 max-w-60">
                                 <CustomSelect
                                     value={bookTeacher}
                                     onChange={setBookTeacher}
@@ -434,7 +434,7 @@ function ReportSection({ config }: { config: ReportConfig }) {
                     ) : config.filterMode === 'books' ? (
                         <>
                             {/* Kitob Kategoriyasi */}
-                            <div className="flex-1 min-w-[140px] max-w-[200px]">
+                            <div className="flex-1 min-w-35 max-w-50">
                                 <CustomSelect
                                     value={bookCategory}
                                     onChange={setBookCategory}
@@ -446,7 +446,7 @@ function ReportSection({ config }: { config: ReportConfig }) {
                             </div>
 
                             {/* Kitob Tili */}
-                            <div className="w-[140px]">
+                            <div className="w-35">
                                 <CustomSelect
                                     value={bookLanguage}
                                     onChange={setBookLanguage}
@@ -458,7 +458,7 @@ function ReportSection({ config }: { config: ReportConfig }) {
                             </div>
 
                             {/* Kitob Formati */}
-                            <div className="w-[140px]">
+                            <div className="w-35">
                                 <CustomSelect
                                     value={bookFormat}
                                     onChange={setBookFormat}
@@ -470,7 +470,7 @@ function ReportSection({ config }: { config: ReportConfig }) {
                             </div>
 
                             {/* O'qituvchilar */}
-                            <div className="flex-1 min-w-[180px] max-w-[240px]">
+                            <div className="flex-1 min-w-45 max-w-60">
                                 <CustomSelect
                                     value={bookTeacher}
                                     onChange={setBookTeacher}
@@ -484,7 +484,7 @@ function ReportSection({ config }: { config: ReportConfig }) {
                     ) : (
                         <>
                             {/* Faol / Nofaol */}
-                            <div className="w-[160px]">
+                            <div className="w-40">
                                 <CustomSelect
                                     value={userStatus}
                                     onChange={setUserStatus}
@@ -500,7 +500,7 @@ function ReportSection({ config }: { config: ReportConfig }) {
                             </div>
 
                             {/* Fakultet / Bo'lim / Kafedra */}
-                            <div className="flex-1 min-w-[180px] max-w-[280px]">
+                            <div className="flex-1 min-w-45 max-w-70">
                                 <CustomSelect
                                     value={userDepartment}
                                     onChange={setUserDepartment}
@@ -512,7 +512,7 @@ function ReportSection({ config }: { config: ReportConfig }) {
                             </div>
 
                             {/* Guruh */}
-                            <div className="w-[160px]">
+                            <div className="w-40">
                                 <CustomSelect
                                     value={userGroup}
                                     onChange={setUserGroup}
@@ -537,13 +537,13 @@ function ReportSection({ config }: { config: ReportConfig }) {
             </div>
 
             {/* Table */}
-            <div className="overflow-x-auto relative min-h-[100px]">
+            <div className="overflow-x-auto relative min-h-25">
                 {loading && (
                     <div className="absolute inset-0 bg-surface/50 backdrop-blur-[2px] z-10 flex items-center justify-center">
                         <Loader2 size={32} className={`${config.colorClass} animate-spin`} />
                     </div>
                 )}
-                <table className="w-full min-w-[800px] border-collapse">
+                <table className="w-full min-w-200 border-collapse">
                     <thead>
                         <tr className="border-b border-border bg-surface-hover/20">
                             <th className="px-4 py-3 text-left text-[0.8rem] font-semibold text-text-muted uppercase tracking-wider w-12">#</th>
@@ -581,7 +581,7 @@ function ReportSection({ config }: { config: ReportConfig }) {
 
 export default function ReportsPage() {
     return (
-        <div className="p-8 md:p-10 max-w-[1600px] mx-auto min-h-screen">
+        <div className="p-8 md:p-10 max-w-400 mx-auto min-h-screen">
             <div className="flex flex-col">
                 {REPORT_CONFIGS.map(config => (
                     <ReportSection key={config.type} config={config} />

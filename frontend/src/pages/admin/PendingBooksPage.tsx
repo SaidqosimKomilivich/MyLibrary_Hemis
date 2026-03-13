@@ -176,7 +176,7 @@ export default function PendingBooksPage() {
                         <Clock size={15} />
                         Tasdiq kutmoqda
                         {books.length > 0 && (
-                            <span className="bg-amber-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[20px] text-center">{books.length}</span>
+                            <span className="bg-amber-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-5 text-center">{books.length}</span>
                         )}
                     </button>
                     <button
@@ -186,7 +186,7 @@ export default function PendingBooksPage() {
                         <BookOpen size={15} />
                         O'qituvchilardan
                         {teacherBooks.length > 0 && (
-                            <span className="bg-blue-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[20px] text-center">{teacherBooks.length}</span>
+                            <span className="bg-blue-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-5 text-center">{teacherBooks.length}</span>
                         )}
                     </button>
                 </div>
@@ -241,7 +241,7 @@ export default function PendingBooksPage() {
                                                         <BookOpen size={14} className="text-text-muted" />
                                                     </div>
                                                 )}
-                                                <span className="font-semibold text-text line-clamp-2 max-w-[200px]">{highlightText(book.title, searchTerm)}</span>
+                                                <span className="font-semibold text-text line-clamp-2 max-w-50">{highlightText(book.title, searchTerm)}</span>
                                             </div>
                                         </td>
                                         <td className="p-4 text-text-muted">{highlightText(book.author, searchTerm)}</td>

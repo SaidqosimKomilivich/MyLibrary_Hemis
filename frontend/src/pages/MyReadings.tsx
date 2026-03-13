@@ -101,7 +101,7 @@ export default function MyReadings() {
     }
 
     return (
-        <div className="p-5 md:p-8 max-w-[1400px] mx-auto min-h-[calc(100vh-80px)]">
+        <div className="p-5 md:p-8 max-w-350 mx-auto min-h-[calc(100vh-80px)]">
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                 <div>
@@ -117,7 +117,7 @@ export default function MyReadings() {
 
             {/* Content */}
             {isLoading ? (
-                <div className="flex justify-center items-center py-20 min-h-[300px]">
+                <div className="flex justify-center items-center py-20 min-h-75">
                     <div className="w-10 h-10 border-3 border-border border-t-primary rounded-full animate-spin"></div>
                 </div>
             ) : readings.length === 0 ? (

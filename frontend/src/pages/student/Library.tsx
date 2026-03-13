@@ -227,7 +227,7 @@ export default function Library() {
     }
 
     return (
-        <div className="p-5 md:p-8 max-w-[1400px] mx-auto min-h-[calc(100vh-80px)]">
+        <div className="p-5 md:p-8 max-w-350 mx-auto min-h-[calc(100vh-80px)]">
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                 <div>
@@ -252,7 +252,7 @@ export default function Library() {
 
             {/* Search */}
             <div className="mb-8">
-                <div className="relative max-w-[500px]">
+                <div className="relative max-w-125">
                     <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
                     <input
                         type="text"
@@ -266,7 +266,7 @@ export default function Library() {
 
             {/* Book Grid */}
             {isLoading ? (
-                <div className="flex justify-center items-center py-20 min-h-[300px]">
+                <div className="flex justify-center items-center py-20 min-h-75">
                     <div className="w-10 h-10 border-3 border-border border-t-primary rounded-full animate-spin"></div>
                 </div>
             ) : books.length === 0 ? (
@@ -365,7 +365,7 @@ export default function Library() {
                                 <h3 className="font-bold text-text text-sm">
                                     {toggleBook.is_active ? 'Kitobni nofaollashtirish' : 'Kitobni faollashtirish'}
                                 </h3>
-                                <p className="text-xs text-text-muted mt-0.5 truncate max-w-[220px]">"{toggleBook.title}"</p>
+                                <p className="text-xs text-text-muted mt-0.5 truncate max-w-55">"{toggleBook.title}"</p>
                             </div>
                         </div>
 
@@ -537,7 +537,7 @@ export default function Library() {
             {/* Request Book Modal */}
             {requestModalOpen && requestBook && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-999 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => !isRequesting && setRequestModalOpen(false)}>
-                    <div className="w-full max-w-[450px] bg-surface rounded-2xl p-6 shadow-2xl border border-white/10 animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+                    <div className="w-full max-w-112.5 bg-surface rounded-2xl p-6 shadow-2xl border border-white/10 animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
                         <div className="flex justify-between items-center pb-4 mb-5 border-b border-white/10">
                             <h3 className="m-0 text-[1.2rem] font-bold">Kitob so'rash</h3>
                             <button onClick={() => !isRequesting && setRequestModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 border-none text-text-muted cursor-pointer transition-colors hover:bg-white/10 hover:text-white">

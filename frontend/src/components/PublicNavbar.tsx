@@ -30,7 +30,7 @@ export default function PublicNavbar() {
                         alt="ARM logo"
                         className="w-8 h-8 object-contain"
                     />
-                    <span className="text-[0.72rem] font-bold leading-snug text-text max-w-[200px] sm:max-w-xs">
+                    <span className="text-[0.72rem] font-bold leading-snug text-text max-w-50 sm:max-w-xs">
                         Mirzo Ulug'bek nomidagi O'zbekiston Milliy universitetining Jizzax filiali «Axborot Resurs Markazi»
                     </span>
                 </Link>

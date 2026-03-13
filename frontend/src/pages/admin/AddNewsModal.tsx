@@ -245,7 +245,7 @@ export default function AdminNewsModal({
                         {/* Publish toggle */}
                         <div className="flex flex-col gap-1.5 min-w-0 justify-end">
                             <label className={labelClass}>Nashr holati</label>
-                            <label className="flex items-center gap-3 h-[42px] px-3 border border-border rounded-xl bg-surface/50 cursor-pointer group select-none">
+                            <label className="flex items-center gap-3 h-10.5 px-3 border border-border rounded-xl bg-surface/50 cursor-pointer group select-none">
                                 <div className={`relative w-10 h-6 rounded-full transition-all duration-200 ${isPublished ? 'bg-emerald-500' : 'bg-border'}`}>
                                     <div className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all duration-200 ${isPublished ? 'left-5' : 'left-1'}`} />
                                 </div>
@@ -282,7 +282,7 @@ export default function AdminNewsModal({
                             <textarea
                                 value={content}
                                 onChange={(e) => setContent(e.target.value)}
-                                className={`${inputClass} resize-y min-h-[120px]`}
+                                className={`${inputClass} resize-y min-h-30`}
                                 placeholder="Yangilik matni"
                                 required
                             />
@@ -294,7 +294,7 @@ export default function AdminNewsModal({
                                 <Tag size={13} /> Teglar
                                 <span className="font-normal text-text-muted/60 normal-case">(Vergul yoki Enter)</span>
                             </label>
-                            <div className="w-full bg-surface/50 border border-border rounded-xl px-3 py-2 flex flex-wrap gap-2 focus-within:border-primary focus-within:shadow-[0_0_0_3px_rgba(99,102,241,0.1)] transition-all min-h-[42px]">
+                            <div className="w-full bg-surface/50 border border-border rounded-xl px-3 py-2 flex flex-wrap gap-2 focus-within:border-primary focus-within:shadow-[0_0_0_3px_rgba(99,102,241,0.1)] transition-all min-h-10.5">
                                 {tags.map(tag => (
                                     <span key={tag} className="flex items-center gap-1 bg-primary/10 text-primary border border-primary/20 px-2.5 py-0.5 rounded-full text-[0.8rem] font-semibold">
                                         {tag}
@@ -309,7 +309,7 @@ export default function AdminNewsModal({
                                     onChange={(e) => setTagInput(e.target.value)}
                                     onKeyDown={handleAddTag}
                                     placeholder={tags.length === 0 ? "Teg yozing..." : ""}
-                                    className="bg-transparent border-none outline-none text-text text-[0.9rem] flex-1 min-w-[100px] py-0.5 placeholder:text-text-muted/50"
+                                    className="bg-transparent border-none outline-none text-text text-[0.9rem] flex-1 min-w-25 py-0.5 placeholder:text-text-muted/50"
                                 />
                             </div>
                         </div>

@@ -136,7 +136,7 @@ function UserDetailModal({ user, type, onClose }: { user: UserData; type: 'stude
 
     return createPortal(
         <div className="fixed inset-0 z-999 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={onClose}>
-            <div className="relative w-full max-w-[480px] bg-surface border border-border rounded-2xl overflow-hidden animate-modal-scale shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="relative w-full max-w-120 bg-surface border border-border rounded-2xl overflow-hidden animate-modal-scale shadow-2xl" onClick={(e) => e.stopPropagation()}>
                 <button className="absolute top-3.5 right-3.5 flex items-center justify-center w-8 h-8 rounded-lg border-none bg-transparent text-text-muted hover:bg-white/10 hover:text-text transition-colors z-10" onClick={onClose}>
                     <X size={18} />
                 </button>
@@ -612,7 +612,7 @@ export default function UsersPage() {
                                     ) : (
                                         <div className="w-8 h-8 rounded-full bg-linear-to-br from-indigo-500 to-indigo-600 text-white flex items-center justify-center font-bold text-[0.85rem] shrink-0 shadow-sm">{u.full_name.charAt(0)}</div>
                                     )}
-                                    <span className="truncate max-w-[200px]">{highlightText(u.full_name, activeSearch)}</span>
+                                    <span className="truncate max-w-50">{highlightText(u.full_name, activeSearch)}</span>
                                 </div>
                             </td>
                             {columns.map((col, ci) => <td key={ci} className="py-3 px-4 text-[0.875rem] text-text-muted">{col.render(u)}</td>)}
@@ -662,7 +662,7 @@ export default function UsersPage() {
 
             {/* Search & Filter Bar */}
             <div className="flex items-center justify-between gap-4 mb-6 p-1.5 bg-surface border border-border rounded-2xl max-md:flex-col max-md:p-3 max-md:gap-3">
-                <div className="flex items-center relative flex-1 min-w-[280px] max-md:w-full">
+                <div className="flex items-center relative flex-1 min-w-70 max-md:w-full">
                     <Search size={18} className="absolute left-4 text-text-muted" />
                     <input
                         type="text"
@@ -725,7 +725,7 @@ export default function UsersPage() {
                         { header: 'Guruh', render: u => <span className="inline-flex py-1 px-3 bg-surface-hover border border-border rounded-lg text-[0.8rem] font-medium font-mono">{highlightText(u.group_name || '-', debouncedSearch.students)}</span> },
                         {
                             header: 'Fakultet', render: u => (
-                                <span className="inline-flex py-1 px-3 bg-surface-hover border border-border rounded-lg text-[0.8rem] font-medium truncate max-w-[220px]" title={u.department_name || '-'}>
+                                <span className="inline-flex py-1 px-3 bg-surface-hover border border-border rounded-lg text-[0.8rem] font-medium truncate max-w-55" title={u.department_name || '-'}>
                                     {highlightText(u.department_name || '-', debouncedSearch.students)}
                                 </span>
                             )
@@ -750,7 +750,7 @@ export default function UsersPage() {
                     [
                         {
                             header: 'Kafedra', render: u => (
-                                <span className="inline-flex py-1 px-3 bg-surface-hover border border-border rounded-lg text-[0.8rem] font-medium truncate max-w-[220px]" title={u.department_name || '-'}>
+                                <span className="inline-flex py-1 px-3 bg-surface-hover border border-border rounded-lg text-[0.8rem] font-medium truncate max-w-55" title={u.department_name || '-'}>
                                     {highlightText(u.department_name || '-', debouncedSearch.teachers)}
                                 </span>
                             )
@@ -782,7 +782,7 @@ export default function UsersPage() {
                     [
                         {
                             header: "Bo'lim", render: u => (
-                                <span className="inline-flex py-1 px-3 bg-surface-hover border border-border rounded-lg text-[0.8rem] font-medium truncate max-w-[220px]" title={u.department_name || '-'}>
+                                <span className="inline-flex py-1 px-3 bg-surface-hover border border-border rounded-lg text-[0.8rem] font-medium truncate max-w-55" title={u.department_name || '-'}>
                                     {highlightText(u.department_name || '-', debouncedSearch.employees)}
                                 </span>
                             )
@@ -897,7 +897,7 @@ export default function UsersPage() {
             {/* HEMIS Sync Modal */}
             {syncModalOpen && createPortal(
                 <div className="fixed inset-0 z-999 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in" >
-                    <div className="relative w-full max-w-[560px] bg-surface border border-border rounded-2xl overflow-hidden animate-modal-scale shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                    <div className="relative w-full max-w-140 bg-surface border border-border rounded-2xl overflow-hidden animate-modal-scale shadow-2xl" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-between p-6 pb-5 border-b border-border">
                             <div className="flex items-center gap-3.5">
                                 <div className="flex items-center justify-center w-11 h-11 rounded-xl bg-linear-to-br from-indigo-500 to-indigo-600 text-white shadow-sm">
@@ -958,7 +958,7 @@ export default function UsersPage() {
             {/* Password Reset Modal */}
             {resetUser && createPortal(
                 <div className="fixed inset-0 z-999 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={() => !resetLoading && setResetUser(null)}>
-                    <div className="relative w-full max-w-[440px] bg-surface border border-border rounded-2xl overflow-hidden animate-modal-scale shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                    <div className="relative w-full max-w-110 bg-surface border border-border rounded-2xl overflow-hidden animate-modal-scale shadow-2xl" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-between p-6 pb-5 border-b border-border">
                             <div className="flex items-center gap-3.5">
                                 <div className="flex items-center justify-center w-11 h-11 rounded-xl bg-amber-500 text-black shadow-sm">
@@ -1008,7 +1008,7 @@ export default function UsersPage() {
                                 Bekor qilish
                             </button>
                             <button
-                                className="flex items-center justify-center py-2 px-5 rounded-lg border border-transparent bg-amber-500 text-black font-semibold text-[0.85rem] hover:bg-amber-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-[130px]"
+                                className="flex items-center justify-center py-2 px-5 rounded-lg border border-transparent bg-amber-500 text-black font-semibold text-[0.85rem] hover:bg-amber-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-32.5"
                                 onClick={confirmResetPassword}
                                 disabled={resetLoading}
                             >
@@ -1030,7 +1030,7 @@ export default function UsersPage() {
             {/* Role Change Modal */}
             {roleUser && createPortal(
                 <div className="fixed inset-0 z-999 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={() => !roleLoading && setRoleUser(null)}>
-                    <div className="relative w-full max-w-[440px] bg-surface border border-border rounded-2xl overflow-hidden animate-modal-scale shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                    <div className="relative w-full max-w-110 bg-surface border border-border rounded-2xl overflow-hidden animate-modal-scale shadow-2xl" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-between p-6 pb-5 border-b border-border">
                             <div className="flex items-center gap-3.5">
                                 <div className="flex items-center justify-center w-11 h-11 rounded-xl bg-blue-500 text-white shadow-sm">
@@ -1086,7 +1086,7 @@ export default function UsersPage() {
                                 Bekor qilish
                             </button>
                             <button
-                                className="flex items-center justify-center py-2 px-5 rounded-lg border border-transparent bg-blue-500 text-white font-semibold text-[0.85rem] hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-[130px]"
+                                className="flex items-center justify-center py-2 px-5 rounded-lg border border-transparent bg-blue-500 text-white font-semibold text-[0.85rem] hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-32.5"
                                 onClick={confirmChangeRole}
                                 disabled={roleLoading}
                             >
@@ -1108,7 +1108,7 @@ export default function UsersPage() {
             {/* Status Toggle Modal */}
             {statusUser && createPortal(
                 <div className="fixed inset-0 z-999 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={() => !statusLoading && setStatusUser(null)}>
-                    <div className="relative w-full max-w-[440px] bg-surface border border-border rounded-2xl overflow-hidden animate-modal-scale shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                    <div className="relative w-full max-w-110 bg-surface border border-border rounded-2xl overflow-hidden animate-modal-scale shadow-2xl" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-between p-6 pb-5 border-b border-border">
                             <div className="flex items-center gap-3.5">
                                 <div className={`flex items-center justify-center w-11 h-11 rounded-xl text-white shadow-sm ${statusUser.active ? 'bg-red-500' : 'bg-emerald-500'}`}>
@@ -1165,7 +1165,7 @@ export default function UsersPage() {
                                 Bekor qilish
                             </button>
                             <button
-                                className={`flex items-center justify-center py-2 px-5 rounded-lg border border-transparent text-white font-semibold text-[0.85rem] transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-[130px] ${statusUser.active ? 'bg-red-500 hover:bg-red-600' : 'bg-emerald-500 hover:bg-emerald-600'}`}
+                                className={`flex items-center justify-center py-2 px-5 rounded-lg border border-transparent text-white font-semibold text-[0.85rem] transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-32.5 ${statusUser.active ? 'bg-red-500 hover:bg-red-600' : 'bg-emerald-500 hover:bg-emerald-600'}`}
                                 onClick={confirmToggleStatus}
                                 disabled={statusLoading}
                             >

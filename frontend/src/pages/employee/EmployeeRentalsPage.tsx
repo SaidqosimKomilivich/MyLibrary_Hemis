@@ -115,7 +115,7 @@ export default function EmployeeRentalsPage() {
     }
 
     return (
-        <div className="p-8 md:p-10 max-w-[1600px] mx-auto min-h-screen">
+        <div className="p-8 md:p-10 max-w-400 mx-auto min-h-screen">
             <div className="flex w-full gap-3 mb-6 overflow-x-auto pb-3 hide-scrollbar">
                 <button className={`flex-1 w-full flex items-center justify-center px-4 py-3 rounded-xl border font-semibold text-[0.95rem] whitespace-nowrap transition-all ${filter === 'all' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400 shadow-[0_4px_12px_-4px_rgba(59,130,246,0.3)]' : 'bg-surface-hover/50 border-border text-text-muted hover:bg-surface-hover hover:text-text'}`} onClick={() => setFilter('all')}>
                     Barcha ijara qilinganlar
@@ -134,14 +134,14 @@ export default function EmployeeRentalsPage() {
                 </button>
             </div>
 
-            <div className="relative mb-8 max-w-[600px]">
+            <div className="relative mb-8 max-w-150">
                 <Search size={22} className="absolute left-5 top-1/2 -translate-y-1/2 text-text-muted" />
                 <input
                     type="text"
                     placeholder="Talaba ismi yoki kitob qidirish..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="w-full bg-surface border border-border py-[18px] pr-5 pl-14 rounded-2xl text-text text-[1.05rem] transition-all focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-400/15 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.2)] backdrop-blur-md"
+                    className="w-full bg-surface border border-border py-4.5 pr-5 pl-14 rounded-2xl text-text text-[1.05rem] transition-all focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-400/15 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.2)] backdrop-blur-md"
                 />
             </div>
 
@@ -164,7 +164,7 @@ export default function EmployeeRentalsPage() {
                                 <div className="absolute top-0 left-0 right-0 h-1" style={{ background: style.color }}></div>
 
                                 <div className="flex items-center gap-4 mb-6 mt-2">
-                                    <div className="w-[52px] h-[52px] rounded-2xl bg-linear-to-br from-surface-hover/50 to-surface-hover border border-border flex items-center justify-center font-bold text-text text-[1.2rem]">
+                                    <div className="w-13 h-13 rounded-2xl bg-linear-to-br from-surface-hover/50 to-surface-hover border border-border flex items-center justify-center font-bold text-text text-[1.2rem]">
                                         {getInitials(r.user_full_name || '')}
                                     </div>
                                     <div className="flex flex-col">

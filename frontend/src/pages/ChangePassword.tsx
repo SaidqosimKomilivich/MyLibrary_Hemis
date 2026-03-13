@@ -110,13 +110,13 @@ export default function ChangePassword() {
     return (
         <div className="min-h-screen flex items-center justify-center p-5 bg-background relative overflow-hidden isolate">
             {/* Reuse login background styles */}
-            <div className="absolute top-1/2 left-1/2 w-full max-w-[800px] aspect-square bg-primary/20 rounded-full blur-[120px] -translate-x-1/2 -translate-y-1/2 -z-10 mix-blend-screen pointer-events-none animate-float-center" />
-            <div className="absolute top-[-10%] right-[-5%] w-[400px] aspect-square bg-accent/20 rounded-full blur-[100px] -z-10 mix-blend-screen pointer-events-none animate-float" style={{ animationDelay: '-4s' }} />
-            <div className="absolute bottom-[-10%] left-[-5%] w-[500px] aspect-square bg-indigo-500/20 rounded-full blur-[100px] -z-10 mix-blend-screen pointer-events-none animate-float" style={{ animationDelay: '-8s' }} />
+            <div className="absolute top-1/2 left-1/2 w-full max-w-200 aspect-square bg-primary/20 rounded-full blur-[120px] -translate-x-1/2 -translate-y-1/2 -z-10 mix-blend-screen pointer-events-none animate-float-center" />
+            <div className="absolute top-[-10%] right-[-5%] w-100 aspect-square bg-accent/20 rounded-full blur-[100px] -z-10 mix-blend-screen pointer-events-none animate-float" style={{ animationDelay: '-4s' }} />
+            <div className="absolute bottom-[-10%] left-[-5%] w-125 aspect-square bg-indigo-500/20 rounded-full blur-[100px] -z-10 mix-blend-screen pointer-events-none animate-float" style={{ animationDelay: '-8s' }} />
 
-            <div className="w-full max-w-[440px] bg-surface/80 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 md:p-12 shadow-card animate-card-enter">
+            <div className="w-full max-w-110 bg-surface/80 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 md:p-12 shadow-card animate-card-enter">
                 <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-[72px] h-[72px] rounded-2xl bg-linear-to-br from-primary to-primary-light text-white mb-6 shadow-[0_8px_24px_rgba(79,70,229,0.4)] relative">
+                    <div className="inline-flex items-center justify-center w-18 h-18 rounded-2xl bg-linear-to-br from-primary to-primary-light text-white mb-6 shadow-[0_8px_24px_rgba(79,70,229,0.4)] relative">
                         <GraduationCap size={32} strokeWidth={1.8} />
                         <div className="absolute inset-0 rounded-2xl border border-white/20" />
                     </div>

@@ -102,7 +102,7 @@ export default function EmployeeRequestsPage() {
     }
 
     return (
-        <div className="p-8 md:p-10 max-w-[1600px] mx-auto min-h-screen">
+        <div className="p-8 md:p-10 max-w-400 mx-auto min-h-screen">
             <div className="flex flex-col md:flex-row gap-4 mb-8 bg-surface/50 p-4 rounded-2xl border border-white/5 shadow-lg backdrop-blur-md">
                 <div className="flex-1 relative">
                     <Search size={22} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
@@ -209,7 +209,7 @@ export default function EmployeeRequestsPage() {
             {/* Action Modal */}
             {modalOpen && selectedRequest && createPortal(
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-9999 animate-in fade-in duration-200 p-4" onClick={() => !isUpdating && setModalOpen(false)}>
-                    <div className="bg-surface border border-border rounded-3xl w-full max-w-[550px] shadow-2xl animate-in fade-in zoom-in-95 duration-200 overflow-hidden relative" onClick={(e) => e.stopPropagation()}>
+                    <div className="bg-surface border border-border rounded-3xl w-full max-w-137.5 shadow-2xl animate-in fade-in zoom-in-95 duration-200 overflow-hidden relative" onClick={(e) => e.stopPropagation()}>
                         <div className="bg-surface-hover/50 px-8 py-6 border-b border-border flex justify-between items-center">
                             <div>
                                 <h2 className="m-0 mb-1 text-[1.4rem] text-text font-bold">So'rov tartibi</h2>

@@ -74,7 +74,7 @@ function UserDetailModal({ user, onClose }: { user: UserData; onClose: () => voi
 
     return createPortal(
         <div className="fixed inset-0 z-999 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={onClose}>
-            <div className="relative w-full max-w-[480px] bg-surface border border-border rounded-2xl overflow-hidden animate-modal-scale shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="relative w-full max-w-120 bg-surface border border-border rounded-2xl overflow-hidden animate-modal-scale shadow-2xl" onClick={(e) => e.stopPropagation()}>
                 <button className="absolute top-3.5 right-3.5 flex items-center justify-center w-8 h-8 rounded-lg border-none bg-transparent text-text-muted hover:bg-surface-hover hover:text-text transition-colors z-10" onClick={onClose}>
                     <X size={18} />
                 </button>
@@ -356,23 +356,9 @@ export default function AdminEmployeesPage() {
 
     return (
         <div className="animate-page-enter">
-            {/* <div className="flex justify-between items-start gap-4 mb-6 flex-wrap">
-                <div>
-                    <h1 className="text-[1.6rem] font-bold tracking-[-0.02em] mb-1">Xodimlar (Kutubxonachi)</h1>
-                    <p className="text-[0.9rem] text-text-muted">Kutubxonada ishlovchi va tizimni boshqaruvchi xodimlarni nazorat qilish</p>
-                </div>
-                <button
-                    className="flex items-center gap-2 py-2.5 px-5 bg-linear-to-br from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white rounded-xl font-semibold text-[0.9rem] shadow-[0_4px_16px_rgba(79,70,229,0.3)] transition-all hover:-translate-y-0.5"
-                    onClick={handleOpenSyncModal}
-                >
-                    <RefreshCw size={18} />
-                    Sinxronlash
-                </button>
-            </div> */}
-
             {/* Search & Filter Bar */}
             <div className="flex items-center justify-between gap-4 mb-6 p-1.5 bg-surface border border-border rounded-2xl max-md:flex-col max-md:p-3 max-md:gap-3">
-                <div className="flex items-center relative flex-1 min-w-[280px] max-md:w-full">
+                <div className="flex items-center relative flex-1 min-w-70 max-md:w-full">
                     <Search size={18} className="absolute left-4 text-text-muted" />
                     <input
                         type="text"
@@ -474,7 +460,7 @@ export default function AdminEmployeesPage() {
                                                 ) : (
                                                     <div className="w-8 h-8 rounded-full bg-linear-to-br from-indigo-500 to-indigo-600 text-white flex items-center justify-center font-bold text-[0.85rem] shrink-0 shadow-sm">{u.full_name.charAt(0)}</div>
                                                 )}
-                                                <span className="truncate max-w-[200px]">{highlightText(u.full_name, debouncedSearch)}</span>
+                                                <span className="truncate max-w-50">{highlightText(u.full_name, debouncedSearch)}</span>
                                             </div>
                                         </td>
                                         <td className="py-3 px-4 text-[0.875rem] text-text-muted">{highlightText(u.department_name || '-', debouncedSearch)}</td>
@@ -540,7 +526,7 @@ export default function AdminEmployeesPage() {
                                                 ) : (
                                                     <div className="w-8 h-8 rounded-full bg-linear-to-br from-indigo-500 to-indigo-600 text-white flex items-center justify-center font-bold text-[0.85rem] shrink-0 shadow-sm">{u.full_name.charAt(0)}</div>
                                                 )}
-                                                <span className="truncate max-w-[200px]">{highlightText(u.full_name, debouncedSearch)}</span>
+                                                <span className="truncate max-w-50">{highlightText(u.full_name, debouncedSearch)}</span>
                                             </div>
                                         </td>
                                         <td className="py-3 px-4 text-[0.875rem] text-text-muted">
@@ -648,7 +634,7 @@ export default function AdminEmployeesPage() {
                     </button>
                 </div>
 
-                <div className="overflow-x-auto min-h-[150px] relative">
+                <div className="overflow-x-auto min-h-37.5 relative">
                     {loadingCounts ? (
                         <div className="absolute inset-0 z-10 bg-surface/50 backdrop-blur-sm flex items-center justify-center">
                             <Loader2 size={32} className="animate-spin text-rose-400" />
@@ -689,7 +675,7 @@ export default function AdminEmployeesPage() {
             {/* Sync Modal */}
             {syncModalOpen && createPortal(
                 <div className="fixed inset-0 z-999 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={() => setSyncModalOpen(false)}>
-                    <div className="relative w-full max-w-[500px] bg-surface border border-border rounded-2xl overflow-hidden animate-modal-scale shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                    <div className="relative w-full max-w-125 bg-surface border border-border rounded-2xl overflow-hidden animate-modal-scale shadow-2xl" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-between p-6 pb-5 border-b border-border">
                             <div className="flex items-center gap-3.5">
                                 <div className="flex items-center justify-center w-11 h-11 rounded-xl bg-linear-to-br from-indigo-500 to-indigo-600 text-white shadow-sm">
@@ -764,7 +750,7 @@ export default function AdminEmployeesPage() {
             {/* Same reset, role, status modals as UsersPage */}
             {resetUser && createPortal(
                 <div className="fixed inset-0 z-999 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={() => !resetLoading && setResetUser(null)}>
-                    <div className="relative w-full max-w-[440px] bg-surface border border-border rounded-2xl overflow-hidden animate-modal-scale shadow-2xl" onClick={e => e.stopPropagation()}>
+                    <div className="relative w-full max-w-110 bg-surface border border-border rounded-2xl overflow-hidden animate-modal-scale shadow-2xl" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-between p-6 pb-5 border-b border-border">
                             <div className="flex items-center gap-3.5">
                                 <div className="flex items-center justify-center w-11 h-11 rounded-xl bg-amber-500 text-black shadow-sm"><ShieldAlert size={22} /></div>
@@ -788,7 +774,7 @@ export default function AdminEmployeesPage() {
 
             {roleUser && createPortal(
                 <div className="fixed inset-0 z-999 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={() => !roleLoading && setRoleUser(null)}>
-                    <div className="relative w-full max-w-[440px] bg-surface border border-border rounded-2xl overflow-hidden animate-modal-scale shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                    <div className="relative w-full max-w-110 bg-surface border border-border rounded-2xl overflow-hidden animate-modal-scale shadow-2xl" onClick={(e) => e.stopPropagation()}>
                         <div className="p-6 pb-5 border-b border-border">
                             <h2 className="text-[1.1rem] font-bold text-text mb-2">Rolni o'zgartirish</h2>
                             <p className="text-text-muted">{roleUser.full_name}</p>
@@ -812,7 +798,7 @@ export default function AdminEmployeesPage() {
 
             {statusUser && createPortal(
                 <div className="fixed inset-0 z-999 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={() => !statusLoading && setStatusUser(null)}>
-                    <div className="relative w-full max-w-[440px] bg-surface border border-border rounded-2xl overflow-hidden animate-modal-scale shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                    <div className="relative w-full max-w-110 bg-surface border border-border rounded-2xl overflow-hidden animate-modal-scale shadow-2xl" onClick={(e) => e.stopPropagation()}>
                         <div className="p-6 pb-5 border-b border-border">
                             <h2 className="text-[1.1rem] font-bold text-text mb-2 animate-pulse">{statusUser.active ? "Foydalanuvchini Nofaol qilish" : "Foydalanuvchini Faol qilish"}</h2>
                             <p className="text-text-muted text-sm">Shu xodim qat'iy boshqaruvchi sifatida {statusUser.active ? "ruxsatsiz qoladi" : "tizimga kiroladi"}.</p>

@@ -135,7 +135,7 @@ export default function StudentDashboard() {
                                                         </div>
                                                     </div>
 
-                                                    <div className="shrink-0 flex items-center justify-center min-w-[140px]">
+                                                    <div className="shrink-0 flex items-center justify-center min-w-35">
                                                         {isOverdue ? (
                                                             <div className="flex flex-col items-center justify-center w-full bg-red-500/10 border border-red-500/20 rounded-xl py-3 px-4">
                                                                 <AlertTriangle size={20} className="text-red-400 mb-1" />
@@ -171,12 +171,12 @@ export default function StudentDashboard() {
                                     Mening oxirgi harakatlarim
                                 </h2>
 
-                                <div className="relative pl-6 space-y-6 before:absolute before:inset-y-0 before:left-[11px] before:w-[2px] before:bg-border">
+                                <div className="relative pl-6 space-y-6 before:absolute before:inset-y-0 before:left-2.75 before:w-0.5 before:bg-border">
                                     {dashboardData?.recent_activities?.length === 0 ? (
                                         <p className="text-[0.9rem] text-text-muted">Harakatlar tarixi bo'sh.</p>
                                     ) : dashboardData?.recent_activities.map((act, i) => (
                                         <div key={act.id + i} className="relative">
-                                            <div className="absolute -left-[30px] top-1 w-[12px] h-[12px] rounded-full bg-surface-hover border-2 border-emerald-400 ring-4 ring-surface"></div>
+                                            <div className="absolute -left-7.5 top-1 w-3 h-3 rounded-full bg-surface-hover border-2 border-emerald-400 ring-4 ring-surface"></div>
                                             <div className="flex flex-col">
                                                 <p className="text-[0.95rem] text-text m-0 leading-snug">{act.action}</p>
                                                 <span className="text-[0.75rem] text-text-muted font-mono mt-1">{act.time}</span>
@@ -198,7 +198,7 @@ export default function StudentDashboard() {
                                     <p className="text-[0.9rem] text-text-muted">Hozircha kitoblar yo'q</p>
                                 ) : recommendedBooks.map((book) => (
                                     <div key={book.id} className="flex gap-3 py-3 px-4 rounded-xl transition-colors hover:bg-surface-hover/50 border border-transparent hover:border-border group cursor-pointer">
-                                        <div className="w-[45px] h-[65px] shrink-0 bg-surface-hover rounded flex items-center justify-center overflow-hidden border border-border group-hover:border-border transition-colors">
+                                        <div className="w-11.25 h-16.25 shrink-0 bg-surface-hover rounded flex items-center justify-center overflow-hidden border border-border group-hover:border-border transition-colors">
                                             {book.cover_image ? (
                                                 <img src={getFileUrl(book.cover_image)} alt={book.title} className="w-full h-full object-cover" />
                                             ) : (

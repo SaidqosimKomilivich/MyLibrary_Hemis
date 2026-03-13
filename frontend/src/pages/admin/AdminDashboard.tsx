@@ -134,7 +134,7 @@ export default function AdminDashboard() {
                     >
                         <ChevronLeft size={18} />
                     </button>
-                    <span className="font-medium text-[0.95rem] min-w-[120px] text-center">
+                    <span className="font-medium text-[0.95rem] min-w-30 text-center">
                         {displayMonthYear}
                     </span>
                     <button
@@ -181,7 +181,7 @@ export default function AdminDashboard() {
             <div className="grid grid-cols-[2fr_1fr] gap-5 max-lg:grid-cols-1 mb-5">
 
                 {/* Left side: Charts */}
-                <div className="bg-surface border border-border rounded-xl overflow-hidden p-5 flex flex-col min-h-[450px]">
+                <div className="bg-surface border border-border rounded-xl overflow-hidden p-5 flex flex-col min-h-112.5">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="flex items-center gap-2 text-[0.95rem] font-semibold">
                             <BarChart3 size={18} />
@@ -259,7 +259,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Recent activity */}
-                <div className="bg-surface border border-border rounded-xl overflow-hidden flex flex-col max-h-[480px]">
+                <div className="bg-surface border border-border rounded-xl overflow-hidden flex flex-col max-h-120">
                     <div className="flex items-center justify-between py-4 px-5 border-b border-border">
                         <h2 className="flex items-center gap-2 text-[0.95rem] font-semibold">
                             <TrendingUp size={18} />
@@ -463,8 +463,8 @@ export default function AdminDashboard() {
                                             </td>
                                             {/* Book */}
                                             <td className="p-4">
-                                                <p className="font-semibold text-text text-[0.88rem] line-clamp-1 max-w-[220px]">{r.book_title}</p>
-                                                <p className="text-[0.75rem] text-text-muted truncate max-w-[220px]">{r.book_author}</p>
+                                                <p className="font-semibold text-text text-[0.88rem] line-clamp-1 max-w-55">{r.book_title}</p>
+                                                <p className="text-[0.75rem] text-text-muted truncate max-w-55">{r.book_author}</p>
                                             </td>
                                             {/* Loan date */}
                                             <td className="p-4 hidden md:table-cell">
