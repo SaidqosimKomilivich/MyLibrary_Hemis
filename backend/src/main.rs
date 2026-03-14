@@ -306,6 +306,9 @@ async fn main() -> std::io::Result<()> {
                 web::get().to(upload_handler::serve_file),
             )
     })
+    .keep_alive(std::time::Duration::from_secs(600))     // 10 daqiqa yashirin aloqa
+    .client_disconnect_timeout(std::time::Duration::from_secs(600)) // 10 daqiqa
+    .client_request_timeout(std::time::Duration::from_secs(600))    // 10 daqiqa
     .bind(&server_addr)?
     .run()
     .await

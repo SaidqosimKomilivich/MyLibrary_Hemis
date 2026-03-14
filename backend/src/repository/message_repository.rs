@@ -179,13 +179,19 @@ impl MessageRepository {
 
     pub async fn count_unread(pool: &PgPool, user_id: Uuid) -> Result<i64, AppError> {
         let res = sqlx::query!(
-            "SELECT count(*) as count FROM messages WHERE receiver_id = $1 AND is_read = false",
+            r#"
+            SELECT 
+                (SELECT count(*) FROM messages WHERE receiver_id = $1 AND is_read = false) +
+                (SELECT count(*) FROM announcements a WHERE NOT EXISTS (
+                    SELECT 1 FROM announcement_reads ar WHERE ar.announcement_id = a.id AND ar.user_id = $1
+                )) as total_unread
+            "#,
             user_id
         )
         .fetch_one(pool)
         .await?;
 
-        Ok(res.count.unwrap_or(0))
+        Ok(res.total_unread.unwrap_or(0))
     }
 
     pub async fn get_chat_history(

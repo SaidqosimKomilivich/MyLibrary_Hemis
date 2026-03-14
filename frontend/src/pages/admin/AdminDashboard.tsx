@@ -188,7 +188,7 @@ export default function AdminDashboard() {
                             Oylik faoliyat ko'rsatkichlari (Ijara va Tashriflar)
                         </h2>
                     </div>
-                    <div className="flex-1 w-full relative">
+                    <div className="flex-1 w-full relative min-h-0 min-w-0">
                         {loading && (
                             <div className="absolute inset-0 bg-surface/50 z-10 flex items-center justify-center backdrop-blur-sm">
                                 <RefreshCcw size={24} className="animate-spin text-primary" />

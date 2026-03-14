@@ -1,23 +1,33 @@
-# version: '3.8'
+# Production Docker Compose konfiguratsiyasi
+# Ishlatish:
+#   1. .env.db faylini yarating: echo "DB_PASSWORD=KuchlíParol123" > .env.db
+#   2. docker compose -f docker-compose.prod.yml up -d
 
 services:
   db:
     image: postgres:15-alpine
     container_name: kutubxona_db
+    env_file:
+      - .env.db              # DB_PASSWORD shu fayldan o'qiladi
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: Farishtam@localhost
       POSTGRES_DB: kutubxona_db
-    ports:
-      - "5433:5432"
+    # XAVFSIZLIK: DB porti tashqariga ochilmaydi (faqat ichki network)
+    expose:
+      - "5432"
     volumes:
       - bdata:/var/lib/postgresql/data
-    restart: unless-stopped
+    restart: always
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 10s
       timeout: 5s
       retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   backend:
     build:
@@ -27,17 +37,19 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    environment:
-      DATABASE_URL: postgres://postgres:Farishtam%40localhost@db:5432/kutubxona_db
-      SERVER_HOST: 0.0.0.0
-      SERVER_PORT: 8080
     env_file:
       - ./backend/.env
-    ports:
-      - "8080:8080"
+    # XAVFSIZLIK: Backend porti ham faqat ichki network orqali (nginx proksi)
+    expose:
+      - "8080"
     volumes:
       - app_uploads:/app/uploads
-    restart: unless-stopped
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
 
   frontend:
     build:
@@ -48,7 +60,12 @@ services:
       - backend
     ports:
       - "80:80"
-    restart: unless-stopped
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   db-backup:
     image: postgres:15-alpine
@@ -59,14 +76,15 @@ services:
     volumes:
       - ./backups:/backups
       - ./backup.sh:/backup.sh:ro
+    env_file:
+      - .env.db              # DB_PASSWORD shu fayldan o'qiladi
     environment:
       PGUSER: postgres
-      PGPASSWORD: Farishtam@localhost
       PGHOST: db
       PGDB: kutubxona_db
     entrypoint: >
-      sh -c "echo '0 5 * * 0 sh /backup.sh' > /etc/crontabs/root && crond -f -l 2"
-    restart: unless-stopped
+      sh -c "chmod +x /backup.sh && echo '0 5 * * 0 /backup.sh' > /etc/crontabs/root && crond -f -l 2"
+    restart: always
 
 volumes:
   bdata:

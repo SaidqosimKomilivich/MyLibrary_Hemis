@@ -57,17 +57,23 @@ function avatarColor(name: string) {
 export default function MessagesPage() {
     const { user: me } = useAuth()
     const canSendMessage = me?.role === 'admin' || me?.role === 'staff' || me?.role === 'teacher'
-    const [allMessages, setAllMessages] = useState<MessageDataItem[]>([])
     const [announcements, setAnnouncements] = useState<AnnouncementWithStatus[]>([])
     const [conversations, setConversations] = useState<Conversation[]>([])
     const [selectedId, setSelectedId] = useState<string | null>(null)
     const [isChannelSelected, setIsChannelSelected] = useState(false)
+
+    const selectedConv = conversations.find(c => c.contactId === selectedId)
+    const chatMessages = selectedConv?.messages || []
+    const unreadAnnouncementsCount = announcements.filter(a => !a.is_read).length
     
     // Smart Scroll States
     const [isAtBottomChat, setIsAtBottomChat] = useState(true)
     const [unreadSinceScrolledChat, setUnreadSinceScrolledChat] = useState(0)
     const [isAtBottomChannel, setIsAtBottomChannel] = useState(true)
     const [unreadSinceScrolledChannel, setUnreadSinceScrolledChannel] = useState(0)
+    
+    // Target element tracking for First Unread prioritization
+    const [scrollTargetId, setScrollTargetId] = useState<{ id: string, type: 'chat' | 'channel' } | null>(null)
     
     const [loading, setLoading] = useState(true)
     const [loadingMore, setLoadingMore] = useState(false)
@@ -201,10 +207,8 @@ export default function MessagesPage() {
             
             if (res.success) {
                 if (isInitial) {
-                    setAllMessages(res.data)
                     buildConversations(res.data, true)
                 } else {
-                    setAllMessages(prev => [...prev, ...res.data])
                     buildConversations(res.data, false)
                     pageRef.current = currentPage
                 }
@@ -301,16 +305,31 @@ export default function MessagesPage() {
     }, [selectedId, fetchChatHistory])
 
     useEffect(() => {
-        if (isAtBottomChat && selectedId) {
-            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-        }
-    }, [allMessages.length, selectedId])
-
-    useEffect(() => {
-        if (isAtBottomChannel && isChannelSelected) {
+        if (isAtBottomChannel && isChannelSelected && !scrollTargetId) {
             channelEndRef.current?.scrollIntoView({ behavior: 'smooth' })
         }
-    }, [announcements.length, isChannelSelected])
+    }, [announcements.length, isChannelSelected, scrollTargetId])
+
+    // Effect to handle "First Unread" scrolling once DOM elements exist
+    useEffect(() => {
+        if (!scrollTargetId) return;
+
+        const { id, type } = scrollTargetId;
+        const prefix = type === 'chat' ? 'msg-' : 'ann-';
+        const element = document.getElementById(`${prefix}${id}`);
+
+        if (element) {
+            // Scroll element into view and reset target
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Add a brief highlight effect (optional but nice UX)
+            element.classList.add('ring-2', 'ring-primary', 'transition-all', 'duration-1000');
+            setTimeout(() => {
+                element.classList.remove('ring-2', 'ring-primary');
+            }, 2000);
+            
+            setScrollTargetId(null);
+        }
+    }, [chatMessages, announcements, scrollTargetId]);
 
     useEffect(() => {
         if (!searchQuery.trim()) {
@@ -405,15 +424,23 @@ export default function MessagesPage() {
             }
         })
         setConversations(prev => prev.map(c =>
-            c.contactId === conv.contactId ? { ...c, unreadCount: 0 } : c
+            c.contactId === conv.contactId ? { ...c, unreadCount: 0, messages: c.messages.map(m => !m.is_read && m.sender_id === conv.contactId ? { ...m, is_read: true } : m) } : c
         ))
-        setAllMessages(prev => prev.map(m =>
-            !m.is_read && m.sender_id === conv.contactId ? { ...m, is_read: true } : m
-        ))
-        // Reset scroll states for new chat
-        setIsAtBottomChat(true)
+
+        // First Unread Scroll Logic
+        const firstUnread = conv.messages.find(m => !m.is_read && m.sender_id !== me?.id)
+        
+        // Ensure effect doesn't auto-scroll to bottom immediately
+        setIsAtBottomChat(false) 
         setUnreadSinceScrolledChat(0)
-        setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
+
+        if (firstUnread) {
+            setScrollTargetId({ id: firstUnread.id, type: 'chat' })
+        } else {
+            setScrollTargetId(null)
+            setIsAtBottomChat(true)
+            setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 300)
+        }
     }
 
     const handleSelectChannel = () => {
@@ -427,10 +454,20 @@ export default function MessagesPage() {
             }
         })
         setAnnouncements(prev => prev.map(a => ({ ...a, is_read: true })))
-        // Reset scroll states for channel
-        setIsAtBottomChannel(true)
+        
+        // First Unread Scroll Logic for Channel
+        const firstUnread = announcements.find(a => !a.is_read)
+        
+        setIsAtBottomChannel(false)
         setUnreadSinceScrolledChannel(0)
-        setTimeout(() => channelEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
+
+        if (firstUnread) {
+            setScrollTargetId({ id: firstUnread.id, type: 'channel' })
+        } else {
+            setScrollTargetId(null)
+            setIsAtBottomChannel(true)
+            setTimeout(() => channelEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 300)
+        }
     }
 
     const toggleReadStatus = async (announcementId: string) => {
@@ -584,10 +621,7 @@ export default function MessagesPage() {
         setIsChannelSelected(false)
     }
 
-    const selectedConv = conversations.find(c => c.contactId === selectedId)
-    const chatMessages = selectedConv?.messages || []
-
-    const unreadAnnouncementsCount = announcements.filter(a => !a.is_read).length
+    // console.debug("Debug allMessages usage to bypass lint:", allMessages.length)
 
     return (
         <div className="-m-6 max-md:-m-4 flex h-[calc(100dvh-64px)] overflow-hidden border-t border-border bg-surface shadow-xl relative">
@@ -699,7 +733,7 @@ export default function MessagesPage() {
                         </div>
                         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2 bg-surface-hover/20 relative" ref={chatContainerRef} onScroll={handleChatScroll}>
                             {chatMessages.filter(m => m.id !== '00000000-0000-0000-0000-000000000000').map(msg => (
-                                <div key={msg.id} className={`flex ${msg.sender_id === me?.id ? 'justify-end' : 'justify-start'}`}>
+                                <div key={msg.id} id={`msg-${msg.id}`} className={`flex ${msg.sender_id === me?.id ? 'justify-end' : 'justify-start'}`}>
                                     <div className={`max-w-[75%] px-4 py-2 rounded-2xl text-sm shadow-xs ${msg.sender_id === me?.id ? 'bg-primary text-white rounded-br-none' : 'bg-canvas border border-border text-text rounded-bl-none'}`}>
                                         {canSendMessage && msg.sender_id !== me?.id && (
                                             <p className={`text-[10px] font-bold mb-1 opacity-70 ${msg.sender_id === 'system' || !msg.sender_id ? 'text-rose-500' : 'text-primary'}`}>

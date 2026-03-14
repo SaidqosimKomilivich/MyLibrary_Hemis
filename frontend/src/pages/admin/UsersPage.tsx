@@ -626,9 +626,11 @@ export default function UsersPage() {
                                     <button className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-colors" title="Ko'rish" onClick={() => handleView(u, type)}>
                                         <Eye size={15} />
                                     </button>
-                                    <button className="flex items-center justify-center w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 hover:bg-amber-500 hover:text-white transition-colors" title="Parolni tiklash" onClick={() => handleResetPassword(u)}>
-                                        <KeyRound size={15} />
-                                    </button>
+                                    {u.role !== 'student' && type !== 'student' && (
+                                        <button className="flex items-center justify-center w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 hover:bg-amber-500 hover:text-white transition-colors" title="Parolni tiklash" onClick={() => handleResetPassword(u)}>
+                                            <KeyRound size={15} />
+                                        </button>
+                                    )}
                                     <button className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white transition-colors" title="Rolni o'zgartirish" onClick={() => handleChangeRole(u)}>
                                         <UserCog size={15} />
                                     </button>

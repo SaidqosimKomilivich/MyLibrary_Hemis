@@ -24,6 +24,7 @@ pub struct UserResponse {
     pub active: bool,
     pub is_password_update: bool,
     pub is_super_admin: Option<bool>,
+    pub last_login: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 impl From<User> for UserResponse {
@@ -47,6 +48,7 @@ impl From<User> for UserResponse {
             active: user.active,
             is_password_update: user.is_password_update,
             is_super_admin: None,
+            last_login: user.last_login,
         }
     }
 }

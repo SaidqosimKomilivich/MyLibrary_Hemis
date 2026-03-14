@@ -3,7 +3,7 @@ use tokio::sync::mpsc;
 
 use crate::config::Config;
 use crate::dto::hemis::{
-    HemisApiResponse, HemisEmployeeApiResponse, HemisStudentItem, SyncResponse, HemisStudentAuthResponse
+    HemisApiResponse, HemisEmployeeApiResponse, SyncResponse, HemisStudentAuthResponse
 };
 use crate::errors::AppError;
 use crate::repository::user_repository::UserRepository;
@@ -261,32 +261,14 @@ impl HemisService {
 
             // ── Yaratish (hash + bulk insert) ──
             let created_in_page = to_create.len() as i64;
+            let mut batch_to_insert = Vec::new();
 
-            // to_create ni Vec<Vec<..>> ga bo'lib olamiz (Send xavfsiz)
-            let create_chunks: Vec<Vec<HemisStudentItem>> =
-                to_create.chunks(500).map(|c| c.to_vec()).collect();
+            for student in to_create {
+                let password_hash = "".to_string(); // Talabalar HEMIS paroli bilan kiradi, shuning uchun mahalliy parol kerak emas
+                batch_to_insert.push((student, password_hash));
+            }
 
-            for chunk_data in create_chunks {
-                // CPU-intensiv: parollarni parallel heshlash
-                let mut hash_tasks = Vec::new();
-                for student in chunk_data {
-                    hash_tasks.push(tokio::task::spawn_blocking(move || {
-                        let user_id = student.student_id_number.clone().unwrap();
-                        let hash_result = AuthService::hash_password(&user_id);
-                        (student, hash_result)
-                    }));
-                }
-                let results = futures_util::future::join_all(hash_tasks).await;
-
-                let mut batch_to_insert = Vec::new();
-                for res in results {
-                    if let Ok((student, Ok(password_hash))) = res {
-                        batch_to_insert.push((student, password_hash));
-                    } else {
-                        tracing::error!("Parolni heshlashda xatolik!");
-                    }
-                }
-
+            if !batch_to_insert.is_empty() {
                 // Bulk insert
                 let insert_data = batch_to_insert.iter().map(|(s, hash)| {
                     (
@@ -547,7 +529,7 @@ impl HemisService {
                     .and_then(|s| s.name.clone());
 
                 // Rolni department ga qarab aniqlash:
-                // "AXBOROT RESURS MARKAZI" → "staff" (kutubxonachi), qolganlari → "employee"
+                // "AXBOROT RESURS MARKAZI" → "staff" (kutubxonachi), qolganlari → o'zining "role"i ("employee" yoki "teacher")
                 let actual_role = if department_name
                     .as_deref()
                     .map(|d| d.to_uppercase().contains("AXBOROT RESURS MARKAZ"))
@@ -555,7 +537,7 @@ impl HemisService {
                 {
                     "staff"
                 } else {
-                    "employee"
+                    role
                 };
 
                 let existing = UserRepository::find_by_user_id(pool, &user_id).await?;
@@ -564,6 +546,7 @@ impl HemisService {
                     UserRepository::update_employee_info(
                         pool,
                         &user_id,
+                        actual_role,
                         &full_name,
                         short_name.as_deref(),
                         birth_date,

@@ -25,6 +25,7 @@ pub struct User {
     pub updated_at: Option<chrono::DateTime<chrono::Utc>>,
     pub hemis_token: Option<String>,
     pub hemis_token_expires_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub last_login: Option<chrono::DateTime<chrono::Utc>>,
     pub active: bool,
     pub is_password_update: bool,
 }

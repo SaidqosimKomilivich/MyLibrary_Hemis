@@ -191,6 +191,17 @@ impl UserRepository {
         Ok(())
     }
 
+    /// Oxirgi kirish vaqtini yangilash
+    pub async fn update_last_login(pool: &PgPool, id: Uuid, last_login: chrono::DateTime<chrono::Utc>) -> Result<(), AppError> {
+        sqlx::query(r#"UPDATE "users" SET "last_login" = $1 WHERE "id" = $2"#)
+            .bind(last_login)
+            .bind(id)
+            .execute(pool)
+            .await?;
+
+        Ok(())
+    }
+
     // /// Yangi talaba yaratish (HEMIS sinxronlash uchun)
     // #[allow(clippy::too_many_arguments)]
     // pub async fn create_student(
@@ -682,6 +693,7 @@ impl UserRepository {
     pub async fn update_employee_info(
         pool: &PgPool,
         user_id: &str,
+        role: &str,
         full_name: &str,
         short_name: Option<&str>,
         birth_date: Option<NaiveDate>,
@@ -692,15 +704,17 @@ impl UserRepository {
         sqlx::query(
             r#"
             UPDATE "users" SET
-                "full_name" = $1,
-                "short_name" = $2,
-                "birth_date" = $3,
-                "image_url" = $4,
-                "department_name" = $5,
-                "staff_position" = $6
-            WHERE "user_id" = $7
+                "role" = $1,
+                "full_name" = $2,
+                "short_name" = $3,
+                "birth_date" = $4,
+                "image_url" = $5,
+                "department_name" = $6,
+                "staff_position" = $7
+            WHERE "user_id" = $8
             "#,
         )
+        .bind(role)
         .bind(full_name)
         .bind(short_name)
         .bind(birth_date)

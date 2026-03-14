@@ -214,9 +214,15 @@ impl AuthService {
         )
         .await?;
 
+        // 5. Oxirgi kirish vaqtini yangilash
+        let now = Utc::now();
+        UserRepository::update_last_login(pool, user.id, now).await?;
+
         tracing::info!(user_id = %user.user_id, role = %user.role, "Foydalanuvchi tizimga kirdi");
 
         let is_super_admin = user.role == "admin" && user.user_id == config.admin_login;
+        let mut user = user;
+        user.last_login = Some(now);
         let mut user_response = UserResponse::from(user);
         user_response.is_super_admin = Some(is_super_admin);
 
