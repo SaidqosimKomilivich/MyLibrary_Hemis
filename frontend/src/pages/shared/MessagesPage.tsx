@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import type { MessageDataItem, AnnouncementWithStatus, AnnouncementReadStatus } from '../../services/api.types'
 import { api } from '../../services/api'
-import { Send, Search, X, MessageSquare, Check, CheckCheck, Users, Megaphone, Loader2, ArrowLeft } from 'lucide-react'
+import { Send, Search, X, MessageSquare, Check, CheckCheck, Users, Megaphone, Loader2, ArrowLeft, ArrowDown } from 'lucide-react'
 import { toast } from 'react-toastify'
 import { useAuth } from '../../context/AuthContext'
 
@@ -63,6 +63,12 @@ export default function MessagesPage() {
     const [selectedId, setSelectedId] = useState<string | null>(null)
     const [isChannelSelected, setIsChannelSelected] = useState(false)
     
+    // Smart Scroll States
+    const [isAtBottomChat, setIsAtBottomChat] = useState(true)
+    const [unreadSinceScrolledChat, setUnreadSinceScrolledChat] = useState(0)
+    const [isAtBottomChannel, setIsAtBottomChannel] = useState(true)
+    const [unreadSinceScrolledChannel, setUnreadSinceScrolledChannel] = useState(0)
+    
     const [loading, setLoading] = useState(true)
     const [loadingMore, setLoadingMore] = useState(false)
     const pageRef = useRef(1)
@@ -86,6 +92,9 @@ export default function MessagesPage() {
     const [userSearchHasMore, setUserSearchHasMore] = useState(true)
     const [loadingUserSearch, setLoadingUserSearch] = useState(false)
     const messagesEndRef = useRef<HTMLDivElement>(null)
+    const channelEndRef = useRef<HTMLDivElement>(null)
+    const chatContainerRef = useRef<HTMLDivElement>(null)
+    const channelContainerRef = useRef<HTMLDivElement>(null)
     const readStatusListRef = useRef<HTMLDivElement>(null)
 
     const buildConversations = useCallback((msgs: MessageDataItem[], clear = false) => {
@@ -254,6 +263,9 @@ export default function MessagesPage() {
             if (isAnnouncement) {
                 fetchAnnouncements()
                 toast.info(`${msg.title || 'Yangilik'}`, { theme: 'colored' })
+                if (!isAtBottomChannel) {
+                    setUnreadSinceScrolledChannel(prev => prev + 1)
+                }
             } else {
                 // Update only the specific conversation in the sidebar, not full reset
                 const otherPartyId = msg.sender_id === me?.id ? msg.receiver_id : msg.sender_id;
@@ -271,6 +283,9 @@ export default function MessagesPage() {
                 const titleText = msg.title ? `: ${msg.title}` : ''
                 if (msg.sender_id !== me?.id) {
                     toast.info(`${senderName}${titleText}`, { theme: 'colored' })
+                    if (selectedIdRef.current === otherPartyId && !isAtBottomChat) {
+                         setUnreadSinceScrolledChat(prev => prev + 1)
+                    }
                 }
             }
         })
@@ -286,8 +301,16 @@ export default function MessagesPage() {
     }, [selectedId, fetchChatHistory])
 
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }, [selectedId, isChannelSelected, announcements, allMessages])
+        if (isAtBottomChat && selectedId) {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+        }
+    }, [allMessages.length, selectedId])
+
+    useEffect(() => {
+        if (isAtBottomChannel && isChannelSelected) {
+            channelEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+        }
+    }, [announcements.length, isChannelSelected])
 
     useEffect(() => {
         if (!searchQuery.trim()) {
@@ -387,6 +410,10 @@ export default function MessagesPage() {
         setAllMessages(prev => prev.map(m =>
             !m.is_read && m.sender_id === conv.contactId ? { ...m, is_read: true } : m
         ))
+        // Reset scroll states for new chat
+        setIsAtBottomChat(true)
+        setUnreadSinceScrolledChat(0)
+        setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
     }
 
     const handleSelectChannel = () => {
@@ -400,6 +427,10 @@ export default function MessagesPage() {
             }
         })
         setAnnouncements(prev => prev.map(a => ({ ...a, is_read: true })))
+        // Reset scroll states for channel
+        setIsAtBottomChannel(true)
+        setUnreadSinceScrolledChannel(0)
+        setTimeout(() => channelEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
     }
 
     const toggleReadStatus = async (announcementId: string) => {
@@ -454,6 +485,32 @@ export default function MessagesPage() {
         }
     }
 
+    const handleChatScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        const { scrollTop, scrollHeight, clientHeight } = e.currentTarget
+        const isNearBottom = Math.ceil(scrollTop) + clientHeight >= scrollHeight - 20
+        setIsAtBottomChat(isNearBottom)
+        if (isNearBottom) setUnreadSinceScrolledChat(0)
+    }
+
+    const handleChannelScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        const { scrollTop, scrollHeight, clientHeight } = e.currentTarget
+        const isNearBottom = Math.ceil(scrollTop) + clientHeight >= scrollHeight - 20
+        setIsAtBottomChannel(isNearBottom)
+        if (isNearBottom) setUnreadSinceScrolledChannel(0)
+    }
+
+    const scrollToBottomChat = () => {
+        setIsAtBottomChat(true)
+        setUnreadSinceScrolledChat(0)
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+
+    const scrollToBottomChannel = () => {
+        setIsAtBottomChannel(true)
+        setUnreadSinceScrolledChannel(0)
+        channelEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+
     const handleSend = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!inputText.trim() || !selectedId || sending) return
@@ -471,6 +528,7 @@ export default function MessagesPage() {
                 if (selectedId) fetchChatHistory(selectedId)
                 // Refresh sidebar to show latest message preview
                 fetchMessages(true)
+                scrollToBottomChat()
             }
         } catch (err: any) {
             toast.error(err.message || 'Xabar yuborishda xatolik')
@@ -497,6 +555,7 @@ export default function MessagesPage() {
             if (res.success) {
                 setInputText('')
                 fetchAnnouncements()
+                scrollToBottomChannel()
             }
         } catch (err: any) {
             toast.error(err.message || 'E\'lon yuborishda xatolik')
@@ -638,7 +697,7 @@ export default function MessagesPage() {
                             <div className={`w-10 h-10 rounded-full bg-linear-to-br ${avatarColor(selectedConv.contactName)} flex items-center justify-center text-white font-bold text-sm`}>{getInitials(selectedConv.contactName)}</div>
                             <div><p className="font-semibold text-text text-sm leading-tight">{selectedConv.contactName}</p><p className="text-[10px] text-text-muted capitalize">{selectedConv.contactRole}</p></div>
                         </div>
-                        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2 bg-surface-hover/20">
+                        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2 bg-surface-hover/20 relative" ref={chatContainerRef} onScroll={handleChatScroll}>
                             {chatMessages.filter(m => m.id !== '00000000-0000-0000-0000-000000000000').map(msg => (
                                 <div key={msg.id} className={`flex ${msg.sender_id === me?.id ? 'justify-end' : 'justify-start'}`}>
                                     <div className={`max-w-[75%] px-4 py-2 rounded-2xl text-sm shadow-xs ${msg.sender_id === me?.id ? 'bg-primary text-white rounded-br-none' : 'bg-canvas border border-border text-text rounded-bl-none'}`}>
@@ -656,6 +715,21 @@ export default function MessagesPage() {
                                 </div>
                             ))}
                             <div ref={messagesEndRef} />
+                            
+                            {/* Floating Scroll to Bottom Button */}
+                            {!isAtBottomChat && (
+                                <button 
+                                    onClick={scrollToBottomChat} 
+                                    className="sticky bottom-5 ml-auto right-5 z-10 flex items-center justify-center w-11 h-11 rounded-full bg-surface shadow-2xl border border-border text-primary hover:bg-surface-hover transition-all transform active:scale-90"
+                                >
+                                    <ArrowDown size={22} />
+                                    {unreadSinceScrolledChat > 0 && (
+                                        <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white shadow-lg animate-bounce">
+                                            {unreadSinceScrolledChat}
+                                        </span>
+                                    )}
+                                </button>
+                            )}
                         </div>
                         <form onSubmit={handleSend} className="p-4 border-t border-border flex items-end gap-2 bg-surface">
                             {selectedId === 'system' ? (
@@ -685,7 +759,7 @@ export default function MessagesPage() {
                             <span className="text-[10px] text-white/40 uppercase tracking-tighter">Kanal</span>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto px-4 py-6 md:px-10 custom-scrollbar space-y-12">
+                        <div className="flex-1 overflow-y-auto px-4 py-6 md:px-10 custom-scrollbar space-y-12 relative" ref={channelContainerRef} onScroll={handleChannelScroll}>
                             {loading && (
                                 <div className="flex flex-col items-center justify-center py-12 gap-3 opacity-40">
                                     <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -742,7 +816,22 @@ export default function MessagesPage() {
                                     </div>
                                 ))
                             )}
-                            <div ref={messagesEndRef} />
+                            <div ref={channelEndRef} />
+                            
+                            {/* Floating Scroll to Bottom Button */}
+                            {!isAtBottomChannel && (
+                                <button 
+                                    onClick={scrollToBottomChannel} 
+                                    className="sticky bottom-5 ml-auto right-5 z-10 flex items-center justify-center w-11 h-11 rounded-full bg-surface shadow-2xl border border-border text-primary hover:bg-surface-hover transition-all transform active:scale-90"
+                                >
+                                    <ArrowDown size={22} />
+                                    {unreadSinceScrolledChannel > 0 && (
+                                        <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white shadow-lg animate-bounce">
+                                            {unreadSinceScrolledChannel}
+                                        </span>
+                                    )}
+                                </button>
+                            )}
                         </div>
 
                         {/* CHANNEL COMPOSE AREA (Admin/Staff only) */}

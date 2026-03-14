@@ -741,6 +741,19 @@ export default function UsersPage() {
                                 </span>
                             )
                         },
+                        {
+                            header: 'Oxirgi kirish', render: u => (
+                                <span className="inline-flex py-1 px-3 bg-surface-hover border border-border rounded-lg text-[0.8rem] font-medium text-text-muted whitespace-nowrap">
+                                    {u.last_login ? new Date(u.last_login).toLocaleString('ru-RU', {
+                                        year: 'numeric',
+                                        month: '2-digit',
+                                        day: '2-digit',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                    }) : 'Kirmagan'}
+                                </span>
+                            )
+                        },
                     ],
                     studentsPag,
                     debouncedSearch.students,
@@ -773,6 +786,19 @@ export default function UsersPage() {
                                 </span>
                             )
                         },
+                        {
+                            header: 'Oxirgi kirish', render: u => (
+                                <span className="inline-flex py-1 px-3 bg-surface-hover border border-border rounded-lg text-[0.8rem] font-medium text-text-muted whitespace-nowrap">
+                                    {u.last_login ? new Date(u.last_login).toLocaleString('ru-RU', {
+                                        year: 'numeric',
+                                        month: '2-digit',
+                                        day: '2-digit',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                    }) : 'Kirmagan'}
+                                </span>
+                            )
+                        },
                     ],
                     teachersPag,
                     debouncedSearch.teachers,
@@ -802,6 +828,19 @@ export default function UsersPage() {
                                     }`}>
                                     <Download size={12} />
                                     {u.id_card ?? 0} marta
+                                </span>
+                            )
+                        },
+                        {
+                            header: 'Oxirgi kirish', render: u => (
+                                <span className="inline-flex py-1 px-3 bg-surface-hover border border-border rounded-lg text-[0.8rem] font-medium text-text-muted whitespace-nowrap">
+                                    {u.last_login ? new Date(u.last_login).toLocaleString('ru-RU', {
+                                        year: 'numeric',
+                                        month: '2-digit',
+                                        day: '2-digit',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                    }) : 'Kirmagan'}
                                 </span>
                             )
                         },

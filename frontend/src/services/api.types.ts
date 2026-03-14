@@ -30,6 +30,7 @@ export interface UserData {
     active: boolean
     is_password_update: boolean
     is_super_admin?: boolean
+    last_login?: string | null
 }
 
 export interface LoginResponse {
