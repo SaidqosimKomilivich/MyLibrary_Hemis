@@ -1,5 +1,5 @@
 # Build bosqichi
-FROM node:20-alpine AS builder
+FROM node:20.19-alpine AS builder
 
 WORKDIR /app
 
@@ -12,7 +12,7 @@ COPY . .
 RUN npm run build
 
 # Xizmat ko'rsatish bosqichi (Nginx)
-FROM nginx:alpine
+FROM nginx:1.25.3-alpine
 
 # Nginx konfiguratsiyasini o'rnatamiz
 COPY nginx.conf /etc/nginx/conf.d/default.conf
