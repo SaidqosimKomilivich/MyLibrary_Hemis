@@ -11,42 +11,57 @@ export default function NotificationBell() {
     const location = useLocation()
     const { user } = useAuth()
 
-    // Har bir rol uchun to'g'ri messages yo'li: /admin/messages, /staff/messages va h.k.
+    // Har bir rol uchun to'g'ri messages yo'li
     const messagesPath = user?.role ? `/${user.role}/messages` : '/messages'
 
-    useEffect(() => {
-        // Fetch existing unread count
-        const fetchUnread = async () => {
-            try {
-                const res = await api.getUnreadMessageCount()
-                if (res.success) {
-                    setUnreadCount(res.data.unread_count)
-                }
-            } catch (err) {
-                console.error("Xabarlarni yuklashda xatolik:", err)
+    const fetchUnread = async () => {
+        try {
+            const res = await api.getUnreadMessageCount()
+            if (res.success) {
+                setUnreadCount(res.data.unread_count)
             }
+        } catch (err) {
+            console.error("Xabarlarni yuklashda xatolik:", err)
         }
+    }
+
+    useEffect(() => {
+        // Sahifa ochilganda dastlabki unread count
         fetchUnread()
 
-        // Subscribe to real-time events via SSE
+        // Real-time SSE orqali yangi xabarlarni qabul qilish
         const sub = api.subscribeToMessages((msg: MessageDataItem) => {
-            // Agar foydalanuvchi hozir messages sahifasida bo'lmasa, sonni oshiramiz va toast chiqaramiz
-            if (window.location.pathname !== messagesPath) {
-                setUnreadCount((prev) => prev + 1)
-                toast.success(`Yangi xabar: \n${msg.title}`, {
-                    autoClose: 4000
-                })
+            const isOnMessagesPage = window.location.pathname === messagesPath
+
+            // Foydalanuvchi messages sahifasida emas bo'lsa
+            if (!isOnMessagesPage) {
+                // Serverdan aniq sonni qayta olamiz (optimistik ortiqcha hisob-kitobning oldini olish uchun)
+                fetchUnread()
+
+                // Toast ma'lumoti
+                const isAnnouncement = !msg.receiver_id
+                const title = isAnnouncement
+                    ? (msg.title || 'Yangi e\'lon')
+                    : `${msg.sender_name || 'Yangi xabar'}: ${msg.message?.slice(0, 40) || ''}`
+                toast.info(title, { autoClose: 5000 })
             }
         })
 
         return () => sub.abort()
-    }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [messagesPath])
 
-    // Agar foydalanuvchi messages sahifasiga kirsa, unreadCount'ni o'chirib turish (messages ichidan ham qo'lda boshqarilishi mumkin)
+    // Messages sahifasiga kirilganda serverdan aniq sonni qayta yuklash
     useEffect(() => {
         if (location.pathname === messagesPath) {
+            // Sahifaga kirilganda sonni hozircha 0 (sahifaning o'zi boshqaradi),
+            // lekin chiqilganda yana serverdan yuklash uchun flagni qoldirmiz.
             setUnreadCount(0)
+        } else {
+            // Boshqa sahifaga o'tilganda, serverdan qayta yuklash (masalan, tab almashuvi)
+            fetchUnread()
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [location.pathname])
 
     return (

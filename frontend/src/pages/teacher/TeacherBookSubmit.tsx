@@ -41,13 +41,6 @@ const EMPTY_FORM: BookFormData = {
     total_quantity: '1',
 }
 
-const CATEGORIES = [
-    'Darslik', "Qo'llanma", 'Monografiya', 'Ilmiy maqola', "Metodik qo'llanma",
-    'Ensiklopediya', "Lug'at", 'Badiiy adabiyot', 'Tarix', 'Falsafa',
-    'Iqtisodiyot', 'Texnika', 'Tibbiyot', 'Huquq', 'Boshqa'
-]
-const LANGUAGES = ["O'zbek", 'Rus', 'Ingliz', 'Boshqa']
-
 export default function TeacherBookSubmit() {
     const { user } = useAuth()
     const [form, setForm] = useState<BookFormData>({ ...EMPTY_FORM, author: user?.full_name || '' })
@@ -306,7 +299,27 @@ export default function TeacherBookSubmit() {
                                         onChange={(val) => handleChange('category', val)}
                                         options={[
                                             { value: '', label: 'Tanlang' },
-                                            ...CATEGORIES.map(c => ({ value: c, label: c }))
+                                            // --- 1-BAND: ASOSIY JANR VA FORMAT ---
+                                            { value: 'badiiy_adabiyot', label: 'Badiiy adabiyot' },
+                                            { value: 'ilmiy_ommabop', label: 'Ilmiy-ommabop' },
+                                            { value: 'darslik_metodik', label: 'Darslik va metodik qo‘llanma' },
+                                            { value: 'monografiya', label: 'Ilmiy monografiya' },
+                                            { value: 'lugat_entsiklopediya', label: 'Lug‘at va entsiklopediya' },
+
+                                            // --- 2-BAND: MAVZU VA SOHA (SUBJECT) ---
+                                            { value: 'it_texnologiya', label: 'IT va Texnologiyalar' },
+                                            { value: 'tarix_falsafa', label: 'Tarix va Falsafa' },
+                                            { value: 'iqtisodiyot_siyosat', label: 'Iqtisodiyot va Siyosat' },
+                                            { value: 'psixologiya_shaxsiy_rivojlanish', label: 'Psixologiya va Shaxsiy rivojlanish' },
+                                            { value: 'tabiiy_fanlar', label: 'Tabiiy fanlar (Fizika, Kimyo, Biologiya)' },
+                                            { value: 'tibbiyot', label: 'Tibbiyot va Sog‘liqni saqlash' },
+                                            { value: 'huquqshunoslik', label: 'Huquqshunoslik' },
+                                            { value: 'xorijiy_tillar', label: 'Xorijiy tillarni o‘rganish' },
+
+                                            // --- 3-BAND: AUDITORIYA (TARGET AUDIENCE) ---
+                                            { value: 'bolalar_uchun', label: 'Bolalar adabiyoti' },
+                                            { value: 'osmirlar_uchun', label: 'O‘smirlar adabiyoti' },
+                                            { value: 'mutaxassislar_uchun', label: 'Mutaxassislar va tadqiqotchilar' }
                                         ]}
                                         buttonClassName="w-full bg-surface-hover border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
                                     />
@@ -320,7 +333,21 @@ export default function TeacherBookSubmit() {
                                         onChange={(val) => handleChange('language', val)}
                                         options={[
                                             { value: '', label: 'Tanlang' },
-                                            ...LANGUAGES.map(l => ({ value: l, label: l }))
+                                            { value: 'uz', label: 'O\'zbek' },
+                                            { value: 'ru', label: 'Rus' },
+                                            { value: 'en', label: 'Ingliz' },
+                                            { value: 'tr', label: 'Turk' },
+                                            { value: 'ar', label: 'Arab' },
+                                            { value: 'de', label: 'Nemis' },
+                                            { value: 'fr', label: 'Fransuz' },
+                                            { value: 'es', label: 'Ispan' },
+                                            { value: 'zh', label: 'Xitoy' },
+                                            { value: 'ja', label: 'Yapon' },
+                                            { value: 'ko', label: 'Koreys' },
+                                            { value: 'kk', label: 'Qozoq' },
+                                            { value: 'tg', label: 'Tojik' },
+                                            { value: 'ky', label: 'Qirg\'iz' },
+                                            { value: 'tk', label: 'Turkman' }
                                         ]}
                                         buttonClassName="w-full bg-surface-hover border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
                                     />

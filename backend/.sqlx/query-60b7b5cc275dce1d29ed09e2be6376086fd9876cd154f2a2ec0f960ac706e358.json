@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                (SELECT count(*) FROM messages WHERE receiver_id = $1 AND is_read = false) +\n                (SELECT count(*) FROM announcements a WHERE NOT EXISTS (\n                    SELECT 1 FROM announcement_reads ar WHERE ar.announcement_id = a.id AND ar.user_id = $1\n                )) as total_unread\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "total_unread",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "60b7b5cc275dce1d29ed09e2be6376086fd9876cd154f2a2ec0f960ac706e358"
+}

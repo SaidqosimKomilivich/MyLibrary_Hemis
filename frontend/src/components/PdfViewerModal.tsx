@@ -5,14 +5,12 @@ import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
 
-// Worker setup for Vite
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.min.mjs',
-    import.meta.url,
-).toString()
+// Worker setup for Vite — ?url import ensures Vite bundles the worker as a separate asset
+// with the correct URL and MIME type (application/javascript)
+import pdfjsWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
+pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl
 
-// Module-level in-memory cache: URL -> Blob Object URL (string)
-// Blob URLs don't get detached unlike ArrayBuffers, so they're safe to re-pass to pdfjs.
+// Module-level cache: fileUrl -> blobUrl
 const pdfCache = new Map<string, string>()
 
 interface PdfViewerModalProps {
@@ -37,17 +35,17 @@ export default function PdfViewerModal({ title, fileUrl, onClose }: PdfViewerMod
     const pdfWrapperRef = useRef<HTMLDivElement>(null)
     const pageRefs = useRef<(HTMLDivElement | null)[]>([])
 
-    // Fetch PDF once, create a Blob URL and store in RAM cache.
-    // Blob URLs are stable strings — unlike ArrayBuffer they don't get
-    // transferred/detached when passed to pdfjs Web Worker.
+    // PDF faylni credentials bilan yuklaymiz (auth cookie kerak)
     useEffect(() => {
         if (pdfCache.has(fileUrl)) {
             setPdfData(pdfCache.get(fileUrl)!)
             return
         }
-        fetch(fileUrl)
+        setFetchError(false)
+        setLoading(true)
+        fetch(fileUrl, { credentials: 'include' })
             .then(res => {
-                if (!res.ok) throw new Error('Fayl yuklanmadi')
+                if (!res.ok) throw new Error(`HTTP ${res.status}`)
                 return res.blob()
             })
             .then(blob => {
@@ -61,7 +59,7 @@ export default function PdfViewerModal({ title, fileUrl, onClose }: PdfViewerMod
             })
     }, [fileUrl])
 
-    // Close handler: revoke Blob URL and clear cache entry to free RAM
+    // Close handler: blob URL ni tozalaymiz
     const handleClose = () => {
         const objectUrl = pdfCache.get(fileUrl)
         if (objectUrl) {
@@ -359,7 +357,6 @@ export default function PdfViewerModal({ title, fileUrl, onClose }: PdfViewerMod
                     </div>
                 </div>
 
-                {/* PDF Content */}
                 <div
                     ref={pdfWrapperRef}
                     className="relative flex-1 overflow-auto bg-slate-200 dark:bg-[#2d3135] rounded-b-2xl p-4 sm:p-8 flex flex-col items-center custom-scrollbar"
@@ -369,36 +366,36 @@ export default function PdfViewerModal({ title, fileUrl, onClose }: PdfViewerMod
                     {fetchError && (
                         <div className="absolute inset-0 flex flex-col items-center justify-center z-10 gap-3">
                             <span className="text-rose-400 text-lg font-semibold">Fayl yuklab bo'lmadi</span>
+                            <span className="text-text-muted text-sm">Tizimga kirganingizni tekshiring yoki sahifani yangilang</span>
                             <button onClick={handleClose} className="px-4 py-2 rounded-lg bg-white/10 text-text hover:bg-white/20 transition-colors">Yopish</button>
                         </div>
                     )}
                     {!fetchError && loading && (
-                        <div className="absolute inset-0 flex items-center justify-center z-10">
+                        <div className="absolute inset-0 flex flex-col items-center justify-center z-10 gap-3">
                             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+                            <span className="text-text-muted text-sm font-medium animate-pulse">PDF yuklanmoqda...</span>
                         </div>
                     )}
                     {pdfData && (
                         <Document
                             file={pdfData}
                             onLoadSuccess={onDocumentLoadSuccess}
+                            onLoadError={(error) => {
+                                console.error("PDF yuklashda xatolik:", error);
+                                setLoading(false);
+                            }}
                             loading={null}
                             className="flex flex-col items-center w-full"
                         >
                             <div className="flex flex-col gap-6 pb-12 w-full items-center">
                                 {pagesList.map((page) => {
-                                    // VIRTUALIZATION: Only render the heavy <Page /> component for pages
-                                    // near the current viewport. +/- 3 pages means 7 pages max loaded at once.
-                                    // Always keep page 1 ready to prevent initial blank screen.
                                     const isVisible = page === 1 || Math.abs(page - pageNumber) <= 3;
-
                                     return (
                                         <div
                                             key={`page_${page}`}
                                             ref={el => { pageRefs.current[page - 1] = el }}
                                             className="bg-white shadow-2xl relative transition-transform flex items-center justify-center overflow-hidden"
                                             style={{
-                                                // Constrain dimensions to estimated values to prevent collapse during loading
-                                                // This ensures IntersectionObserver and scroll position stay stable
                                                 minHeight: `${800 * scale}px`,
                                                 width: `${600 * scale}px`,
                                             }}
@@ -428,6 +425,7 @@ export default function PdfViewerModal({ title, fileUrl, onClose }: PdfViewerMod
                         </Document>
                     )}
                 </div>
+
             </div>
         </div>,
         document.body

@@ -38,6 +38,47 @@ function formatDate(iso: string) {
     return d.toLocaleDateString('uz-UZ', { day: '2-digit', month: 'long' })
 }
 
+function formatDateLabel(iso: string) {
+    if (!iso) return ''
+    const d = new Date(iso)
+    const today = new Date()
+    const yesterday = new Date()
+    yesterday.setDate(today.getDate() - 1)
+
+    if (d.toDateString() === today.toDateString()) return 'Bugun'
+    if (d.toDateString() === yesterday.toDateString()) return 'Kecha'
+    return d.toLocaleDateString('uz-UZ', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+function formatFullDateTime(iso: string) {
+    if (!iso) return ''
+    const d = new Date(iso)
+    const day = String(d.getDate()).padStart(2, '0')
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const year = d.getFullYear()
+    const hours = String(d.getHours()).padStart(2, '0')
+    const min = String(d.getMinutes()).padStart(2, '0')
+    return `${day}.${month}.${year}, ${hours}:${min}`
+}
+
+// Groups messages by date, inserting "date separator" objects between groups
+type DateSeparator = { type: 'date-separator'; label: string; key: string }
+type ChatItem = MessageDataItem | DateSeparator
+
+function groupMessagesByDate(messages: MessageDataItem[]): ChatItem[] {
+    const result: ChatItem[] = []
+    let lastDateStr = ''
+    for (const msg of messages) {
+        const dateStr = new Date(msg.created_at).toDateString()
+        if (dateStr !== lastDateStr) {
+            result.push({ type: 'date-separator', label: formatDateLabel(msg.created_at), key: `sep-${msg.created_at}` })
+            lastDateStr = dateStr
+        }
+        result.push(msg)
+    }
+    return result
+}
+
 const AVATAR_COLORS = [
     'from-blue-500 to-indigo-600',
     'from-purple-500 to-pink-600',
@@ -53,6 +94,98 @@ function avatarColor(name: string) {
     return AVATAR_COLORS[hash]
 }
 
+// --- Message Bubble with Intersection Observer ---
+interface ObservableMessageProps {
+    msg: MessageDataItem
+    myId: string | undefined
+    canSendMessage: boolean
+    onVisible: (msgId: string) => void
+}
+
+function ObservableMessage({ msg, myId, canSendMessage, onVisible }: ObservableMessageProps) {
+    const ref = useRef<HTMLDivElement>(null)
+    const isRead = useRef(msg.is_read)
+
+    useEffect(() => {
+        isRead.current = msg.is_read
+    }, [msg.is_read])
+
+    useEffect(() => {
+        if (msg.sender_id === myId || msg.is_read) return
+
+        const el = ref.current
+        if (!el) return
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && !isRead.current) {
+                    isRead.current = true
+                    onVisible(msg.id)
+                    observer.disconnect()
+                }
+            },
+            { threshold: 0.6 }
+        )
+        observer.observe(el)
+        return () => observer.disconnect()
+    }, [msg.id, msg.sender_id, msg.is_read, myId, onVisible])
+
+    return (
+        <div ref={ref} id={`msg-${msg.id}`} className={`flex ${msg.sender_id === myId ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-[75%] px-4 py-2 rounded-2xl text-sm shadow-xs ${msg.sender_id === myId ? 'bg-primary text-white rounded-br-none' : 'bg-canvas border border-border text-text rounded-bl-none'}`}>
+                {canSendMessage && msg.sender_id !== myId && (
+                    <p className={`text-[10px] font-bold mb-1 opacity-70 ${msg.sender_id === 'system' || !msg.sender_id ? 'text-rose-500' : 'text-primary'}`}>
+                        {msg.sender_name || (msg.sender_id === 'system' || !msg.sender_id ? 'Tizim' : 'Foydalanuvchi')}
+                    </p>
+                )}
+                <p className="whitespace-pre-wrap">{msg.message}</p>
+                <div className={`flex items-center justify-end gap-1 mt-1 text-[9px] ${msg.sender_id === myId ? 'text-white/70' : 'text-text-muted'}`}>
+                    <span>{formatTime(msg.created_at)}</span>
+                    {msg.sender_id === myId && (msg.is_read ? <CheckCheck className="w-3 h-3" /> : <Check className="w-3 h-3" />)}
+                </div>
+            </div>
+        </div>
+    )
+}
+
+// --- Observable Announcement (for channel scroll-read) ---
+interface ObservableAnnouncementWrapperProps {
+    ann: AnnouncementWithStatus
+    onVisible: (annId: string) => void
+    children: React.ReactNode
+}
+
+function ObservableAnnouncementWrapper({ ann, onVisible, children }: ObservableAnnouncementWrapperProps) {
+    const ref = useRef<HTMLDivElement>(null)
+    const isRead = useRef(ann.is_read)
+
+    useEffect(() => {
+        isRead.current = ann.is_read
+    }, [ann.is_read])
+
+    useEffect(() => {
+        if (ann.is_read) return
+
+        const el = ref.current
+        if (!el) return
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && !isRead.current) {
+                    isRead.current = true
+                    onVisible(ann.id)
+                    observer.disconnect()
+                }
+            },
+            { threshold: 0.3 }
+        )
+        observer.observe(el)
+        return () => observer.disconnect()
+    }, [ann.id, ann.is_read, onVisible])
+
+    return <div ref={ref} id={`ann-${ann.id}`}>{children}</div>
+}
+
 // --- Main Component ---
 export default function MessagesPage() {
     const { user: me } = useAuth()
@@ -65,23 +198,23 @@ export default function MessagesPage() {
     const selectedConv = conversations.find(c => c.contactId === selectedId)
     const chatMessages = selectedConv?.messages || []
     const unreadAnnouncementsCount = announcements.filter(a => !a.is_read).length
-    
+
     // Smart Scroll States
     const [isAtBottomChat, setIsAtBottomChat] = useState(true)
     const [unreadSinceScrolledChat, setUnreadSinceScrolledChat] = useState(0)
     const [isAtBottomChannel, setIsAtBottomChannel] = useState(true)
     const [unreadSinceScrolledChannel, setUnreadSinceScrolledChannel] = useState(0)
-    
-    // Target element tracking for First Unread prioritization
+
+    // Target element for First Unread prioritization
     const [scrollTargetId, setScrollTargetId] = useState<{ id: string, type: 'chat' | 'channel' } | null>(null)
-    
+
     const [loading, setLoading] = useState(true)
     const [loadingMore, setLoadingMore] = useState(false)
     const pageRef = useRef(1)
     const [hasMore, setHasMore] = useState(true)
     const [searchQuery, setSearchQuery] = useState('')
 
-    // Who Read Status Panel (Inline)
+    // Who Read Status Panel
     const [showReadStatusId, setShowReadStatusId] = useState<string | null>(null)
     const [readStatusList, setReadStatusList] = useState<AnnouncementReadStatus[]>([])
     const [readStatusPage, setReadStatusPage] = useState(1)
@@ -105,17 +238,15 @@ export default function MessagesPage() {
 
     const buildConversations = useCallback((msgs: MessageDataItem[], clear = false) => {
         if (!me) return
-        
+
         setConversations(prev => {
             const map = new Map<string, Conversation>()
             if (!clear) {
                 prev.forEach(c => map.set(c.contactId, c))
             } else {
-                // If clearing (e.g. initial fetch), we still want to preserve 
-                // the full message history of the currently selected chat if it exists.
                 prev.forEach(c => {
                     if (c.messages.length > 1) {
-                         map.set(c.contactId, c)
+                        map.set(c.contactId, c)
                     }
                 })
             }
@@ -163,20 +294,17 @@ export default function MessagesPage() {
                     })
                 } else {
                     const conv = map.get(contactId)!
-                    
-                    // Only update lastMessage if this message is newer
+
                     if (new Date(msg.created_at) >= new Date(conv.lastTime)) {
                         conv.lastMessage = msg.message
                         conv.lastTime = msg.created_at
-                        conv.contactName = contactName // update name if changed
-                        conv.contactRole = contactRole // update role if changed
+                        conv.contactName = contactName
+                        conv.contactRole = contactRole
                     }
                     if (!isSentByMe && !msg.is_read) conv.unreadCount++
 
-                    // Add to messages array if not already present
                     if (!conv.messages.some(m => m.id === msg.id)) {
                         conv.messages.push(msg);
-                        // Sort messages to ensure correct order
                         conv.messages.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
                     }
                 }
@@ -185,9 +313,7 @@ export default function MessagesPage() {
             return Array.from(map.values()).sort((a, b) => {
                 const bTime = new Date(b.lastTime).getTime();
                 const aTime = new Date(a.lastTime).getTime();
-                if (bTime !== aTime) {
-                    return bTime - aTime;
-                }
+                if (bTime !== aTime) return bTime - aTime;
                 return a.contactName.localeCompare(b.contactName);
             });
         })
@@ -204,7 +330,7 @@ export default function MessagesPage() {
 
             const currentPage = isInitial ? 1 : pageRef.current + 1
             const res = await api.getMyMessages({ page: currentPage })
-            
+
             if (res.success) {
                 if (isInitial) {
                     buildConversations(res.data, true)
@@ -249,12 +375,15 @@ export default function MessagesPage() {
         }
     }, [])
 
-    // Keep a ref to selectedId so the WS callback can access the latest value
-    // without adding selectedId to the mount effect's dependency array.
     const selectedIdRef = useRef<string | null>(null)
     useEffect(() => {
         selectedIdRef.current = selectedId
     }, [selectedId])
+
+    const isChannelSelectedRef = useRef(false)
+    useEffect(() => {
+        isChannelSelectedRef.current = isChannelSelected
+    }, [isChannelSelected])
 
     // Mount-only: initial fetch + WS subscription
     useEffect(() => {
@@ -263,32 +392,27 @@ export default function MessagesPage() {
 
         const sub = api.subscribeToMessages((msg: any) => {
             const isAnnouncement = !msg.receiver_id;
-            
+
             if (isAnnouncement) {
+                // Refresh announcements list so badge updates for everyone
                 fetchAnnouncements()
-                toast.info(`${msg.title || 'Yangilik'}`, { theme: 'colored' })
-                if (!isAtBottomChannel) {
+
+                // If channel is open, add unread counter for scroll-down button
+                if (isChannelSelectedRef.current && !isAtBottomChannel) {
                     setUnreadSinceScrolledChannel(prev => prev + 1)
                 }
             } else {
-                // Update only the specific conversation in the sidebar, not full reset
                 const otherPartyId = msg.sender_id === me?.id ? msg.receiver_id : msg.sender_id;
-                
-                // If it's for the current chat, update history
+
                 if (selectedIdRef.current === otherPartyId) {
                     fetchChatHistory(otherPartyId)
                 }
 
-                // Update just this conversation's preview without resetting page
                 buildConversations([msg], false)
 
-                const isSystemMessage = !msg.sender_id || msg.sender_role === 'system';
-                const senderName = msg.sender_name || (isSystemMessage ? 'Tizim' : 'Foydalanuvchi');
-                const titleText = msg.title ? `: ${msg.title}` : ''
                 if (msg.sender_id !== me?.id) {
-                    toast.info(`${senderName}${titleText}`, { theme: 'colored' })
                     if (selectedIdRef.current === otherPartyId && !isAtBottomChat) {
-                         setUnreadSinceScrolledChat(prev => prev + 1)
+                        setUnreadSinceScrolledChat(prev => prev + 1)
                     }
                 }
             }
@@ -319,14 +443,11 @@ export default function MessagesPage() {
         const element = document.getElementById(`${prefix}${id}`);
 
         if (element) {
-            // Scroll element into view and reset target
             element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            // Add a brief highlight effect (optional but nice UX)
             element.classList.add('ring-2', 'ring-primary', 'transition-all', 'duration-1000');
             setTimeout(() => {
                 element.classList.remove('ring-2', 'ring-primary');
             }, 2000);
-            
             setScrollTargetId(null);
         }
     }, [chatMessages, announcements, scrollTargetId]);
@@ -365,7 +486,7 @@ export default function MessagesPage() {
 
     const fetchMoreUsers = async () => {
         if (loadingUserSearch || !userSearchHasMore) return;
-        
+
         try {
             setLoadingUserSearch(true)
             const nextPage = userSearchPage + 1
@@ -374,13 +495,13 @@ export default function MessagesPage() {
                 const mapped = res.data
                     .filter(u => u.id !== me?.id)
                     .map(u => ({ value: u.id, label: u.full_name, role: u.role }))
-                
+
                 setAllUsers(prev => {
                     const existingIds = new Set(prev.map(u => u.value))
                     const newUsers = mapped.filter(u => !existingIds.has(u.value))
                     return [...prev, ...newUsers]
                 })
-                
+
                 setUserSearchPage(nextPage)
                 if (res.pagination) {
                     setUserSearchHasMore(res.pagination.current_page < res.pagination.total_pages)
@@ -398,10 +519,8 @@ export default function MessagesPage() {
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (showReadStatusId && readStatusListRef.current && !readStatusListRef.current.contains(event.target as Node)) {
-                // If clicking a toggle button, let toggleReadStatus handled it
                 const target = event.target as HTMLElement;
                 if (target.closest('.read-status-toggle')) return;
-                
                 setShowReadStatusId(null);
             }
         };
@@ -414,24 +533,36 @@ export default function MessagesPage() {
         };
     }, [showReadStatusId]);
 
+    // Handles marking a chat message as read when it scrolls into view
+    const handleMessageVisible = useCallback((msgId: string) => {
+        // Optimistically update local state
+        setConversations(prev => prev.map(conv => {
+            if (conv.contactId !== selectedIdRef.current) return conv;
+            const updated = conv.messages.map(m => m.id === msgId ? { ...m, is_read: true } : m)
+            const newUnread = updated.filter(m => !m.is_read && m.sender_id !== me?.id).length
+            return { ...conv, messages: updated, unreadCount: newUnread }
+        }))
+        // Notify server
+        api.markMessageAsRead(msgId).catch(() => { })
+    }, [me?.id])
+
+    // Handles marking an announcement as read when it scrolls into view
+    const handleAnnouncementVisible = useCallback((annId: string) => {
+        // Optimistically update local state first
+        setAnnouncements(prev => prev.map(a => a.id === annId ? { ...a, is_read: true } : a))
+        // Notify server
+        api.markAnnouncementAsRead(annId).catch(() => { })
+    }, [])
+
     const handleSelectConversation = (conv: Conversation) => {
         setSelectedId(conv.contactId)
         setIsChannelSelected(false)
         setShowReadStatusId(null)
-        conv.messages.forEach(m => {
-            if (!m.is_read && m.sender_id !== me?.id) {
-                api.markMessageAsRead(m.id).catch(() => { })
-            }
-        })
-        setConversations(prev => prev.map(c =>
-            c.contactId === conv.contactId ? { ...c, unreadCount: 0, messages: c.messages.map(m => !m.is_read && m.sender_id === conv.contactId ? { ...m, is_read: true } : m) } : c
-        ))
 
         // First Unread Scroll Logic
         const firstUnread = conv.messages.find(m => !m.is_read && m.sender_id !== me?.id)
-        
-        // Ensure effect doesn't auto-scroll to bottom immediately
-        setIsAtBottomChat(false) 
+
+        setIsAtBottomChat(false)
         setUnreadSinceScrolledChat(0)
 
         if (firstUnread) {
@@ -447,17 +578,14 @@ export default function MessagesPage() {
         setIsChannelSelected(true)
         setSelectedId(null)
         setShowReadStatusId(null)
-        // Mark all announcements as read when opening channel
-        announcements.forEach(ann => {
-            if (!ann.is_read) {
-                api.markAnnouncementAsRead(ann.id).catch(() => { })
-            }
-        })
-        setAnnouncements(prev => prev.map(a => ({ ...a, is_read: true })))
-        
+
+        // Do NOT immediately mark all as read here.
+        // The IntersectionObserver on each announcement card will do it
+        // as the user scrolls through.
+
         // First Unread Scroll Logic for Channel
         const firstUnread = announcements.find(a => !a.is_read)
-        
+
         setIsAtBottomChannel(false)
         setUnreadSinceScrolledChannel(0)
 
@@ -475,7 +603,7 @@ export default function MessagesPage() {
             setShowReadStatusId(null)
             return
         }
-        
+
         setShowReadStatusId(announcementId)
         setReadStatusList([])
         setReadStatusPage(1)
@@ -516,7 +644,7 @@ export default function MessagesPage() {
             }
             return
         }
-        
+
         if (isNearBottom && hasMore && !loadingMore && !loading) {
             fetchMessages(false)
         }
@@ -561,9 +689,7 @@ export default function MessagesPage() {
             })
             if (res.success) {
                 setInputText('')
-                // Update local chat history immediately
                 if (selectedId) fetchChatHistory(selectedId)
-                // Refresh sidebar to show latest message preview
                 fetchMessages(true)
                 scrollToBottomChat()
             }
@@ -580,10 +706,9 @@ export default function MessagesPage() {
 
         try {
             setSending(true)
-            // Title is required by backend, we'll use a portion of the message or a default
             const lines = inputText.trim().split('\n')
             const title = lines[0].length > 50 ? lines[0].substring(0, 50) + '...' : lines[0]
-            
+
             const res = await api.createAnnouncement({
                 title: title,
                 message: inputText.trim(),
@@ -603,7 +728,6 @@ export default function MessagesPage() {
 
     const selectUser = (userId: string, userName: string, userRole: string) => {
         setSearchQuery('')
-        // Clear search users results
         setAllUsers([])
         const exists = conversations.find(c => c.contactId === userId)
         if (!exists) {
@@ -621,11 +745,12 @@ export default function MessagesPage() {
         setIsChannelSelected(false)
     }
 
-    // console.debug("Debug allMessages usage to bypass lint:", allMessages.length)
+    // Group chat messages with date separators
+    const chatItems = groupMessagesByDate(chatMessages.filter(m => m.id !== '00000000-0000-0000-0000-000000000000'))
 
     return (
         <div className="-m-6 max-md:-m-4 flex h-[calc(100dvh-64px)] overflow-hidden border-t border-border bg-surface shadow-xl relative">
-            
+
             {/* ─── LEFT SIDEBAR ─────────────────── */}
             <div className={`flex flex-col w-full md:w-[320px] shrink-0 border-r border-border bg-surface ${ (selectedId || isChannelSelected) ? 'hidden md:flex' : 'flex'}`}>
                 <div className="flex items-center justify-between p-4 bg-primary text-white shrink-0 shadow-sm">
@@ -665,7 +790,7 @@ export default function MessagesPage() {
                     ) : (
                         <>
                             {/* UNITY ANNOUNCEMENT CHANNEL ENTRY */}
-                            <button 
+                            <button
                                 onClick={handleSelectChannel}
                                 className={`w-full flex items-center gap-3 px-4 py-4 border-b border-border/40 transition-colors text-left ${isChannelSelected ? 'bg-primary/10' : 'hover:bg-primary/5'}`}
                             >
@@ -691,7 +816,6 @@ export default function MessagesPage() {
                             <div className="px-4 py-2 bg-surface-hover/50 text-[10px] font-bold text-text-muted uppercase tracking-wider">Shaxsiy suhbatlar</div>
                             {conversations
                                 .filter(c => {
-                                    // Faqat haqiqiy xabarlashuvlar ko'rinsin (dummy/bo'sh emas)
                                     const hasMsgs = new Date(c.lastTime).getFullYear() > 1970 || c.lastMessage !== ''
                                     return hasMsgs && c.contactName.toLowerCase().includes(searchQuery.toLowerCase())
                                 })
@@ -709,7 +833,7 @@ export default function MessagesPage() {
                                 </button>
                                 )
                             })}
-                            
+
                             {loadingMore && (
                                 <div className="p-4 flex justify-center">
                                     <Loader2 className="w-5 h-5 animate-spin text-primary opacity-50" />
@@ -722,7 +846,7 @@ export default function MessagesPage() {
 
             {/* ─── RIGHT PANEL ─────────────────── */}
             <div className={`flex-1 flex flex-col min-w-0 bg-surface relative overflow-hidden ${ !(selectedId || isChannelSelected) ? 'hidden md:flex' : 'flex'}`}>
-                
+
                 {selectedConv ? (
                     /* CHAT VIEW */
                     <>
@@ -732,28 +856,35 @@ export default function MessagesPage() {
                             <div><p className="font-semibold text-text text-sm leading-tight">{selectedConv.contactName}</p><p className="text-[10px] text-text-muted capitalize">{selectedConv.contactRole}</p></div>
                         </div>
                         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2 bg-surface-hover/20 relative" ref={chatContainerRef} onScroll={handleChatScroll}>
-                            {chatMessages.filter(m => m.id !== '00000000-0000-0000-0000-000000000000').map(msg => (
-                                <div key={msg.id} id={`msg-${msg.id}`} className={`flex ${msg.sender_id === me?.id ? 'justify-end' : 'justify-start'}`}>
-                                    <div className={`max-w-[75%] px-4 py-2 rounded-2xl text-sm shadow-xs ${msg.sender_id === me?.id ? 'bg-primary text-white rounded-br-none' : 'bg-canvas border border-border text-text rounded-bl-none'}`}>
-                                        {canSendMessage && msg.sender_id !== me?.id && (
-                                            <p className={`text-[10px] font-bold mb-1 opacity-70 ${msg.sender_id === 'system' || !msg.sender_id ? 'text-rose-500' : 'text-primary'}`}>
-                                                {msg.sender_name || (msg.sender_id === 'system' || !msg.sender_id ? 'Tizim' : 'Foydalanuvchi')}
-                                            </p>
-                                        )}
-                                        <p className="whitespace-pre-wrap">{msg.message}</p>
-                                        <div className={`flex items-center justify-end gap-1 mt-1 text-[9px] ${msg.sender_id === me?.id ? 'text-white/70' : 'text-text-muted'}`}>
-                                            <span>{formatTime(msg.created_at)}</span>
-                                            {msg.sender_id === me?.id && (msg.is_read ? <CheckCheck className="w-3 h-3" /> : <Check className="w-3 h-3" />)}
+                            {chatItems.map(item => {
+                                // Date separator
+                                if ('type' in item && item.type === 'date-separator') {
+                                    return (
+                                        <div key={item.key} className="flex items-center justify-center py-2">
+                                            <span className="px-3 py-1 rounded-full bg-surface-hover text-[11px] font-semibold text-text-muted shadow-xs border border-border/30">
+                                                {item.label}
+                                            </span>
                                         </div>
-                                    </div>
-                                </div>
-                            ))}
+                                    )
+                                }
+                                // Message bubble
+                                const msg = item as MessageDataItem
+                                return (
+                                    <ObservableMessage
+                                        key={msg.id}
+                                        msg={msg}
+                                        myId={me?.id}
+                                        canSendMessage={canSendMessage}
+                                        onVisible={handleMessageVisible}
+                                    />
+                                )
+                            })}
                             <div ref={messagesEndRef} />
-                            
+
                             {/* Floating Scroll to Bottom Button */}
                             {!isAtBottomChat && (
-                                <button 
-                                    onClick={scrollToBottomChat} 
+                                <button
+                                    onClick={scrollToBottomChat}
                                     className="sticky bottom-5 ml-auto right-5 z-10 flex items-center justify-center w-11 h-11 rounded-full bg-surface shadow-2xl border border-border text-primary hover:bg-surface-hover transition-all transform active:scale-90"
                                 >
                                     <ArrowDown size={22} />
@@ -805,57 +936,59 @@ export default function MessagesPage() {
                             )}
                             {!loading && announcements.length > 0 && (
                                 [...announcements].reverse().map((ann) => (
-                                    <div key={ann.id} className="max-w-2xl mx-auto bg-canvas rounded-3xl overflow-hidden shadow-card border border-border relative group animate-in slide-in-from-bottom-4 duration-500">
-                                         {/* Visual Decoration */}
-                                        <div className="h-48 bg-linear-to-br from-primary to-indigo-800 flex items-center justify-center relative overflow-hidden">
-                                              {ann.images && ann.images.length > 0 ? (
-                                                  <img src={ann.images[0]} alt={ann.title} className="w-full h-full object-cover" />
-                                              ) : (
-                                                  <>
-                                                      <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_50%_50%,white_1px,transparent_1px)] bg-size-[15px_15px]"></div>
-                                                      <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white border border-white/20">
-                                                          <Megaphone className="w-6 h-6" />
-                                                      </div>
-                                                  </>
-                                              )}
-                                         </div>
-
-                                        {/* Content */}
-                                        <div className="p-6 md:p-8 space-y-4">
-                                            <div className="flex items-center justify-between">
-                                                {ann.category && (
-                                                    <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">
-                                                        {ann.category}
-                                                    </span>
+                                    <ObservableAnnouncementWrapper key={ann.id} ann={ann} onVisible={handleAnnouncementVisible}>
+                                        <div className="max-w-2xl mx-auto bg-canvas rounded-3xl overflow-hidden shadow-card border border-border relative group animate-in slide-in-from-bottom-4 duration-500">
+                                            {/* Visual Decoration */}
+                                            <div className="h-48 bg-linear-to-br from-primary to-indigo-800 flex items-center justify-center relative overflow-hidden">
+                                                {ann.images && ann.images.length > 0 ? (
+                                                    <img src={ann.images[0]} alt={ann.title} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <>
+                                                        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_50%_50%,white_1px,transparent_1px)] bg-size-[15px_15px]"></div>
+                                                        <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white border border-white/20">
+                                                            <Megaphone className="w-6 h-6" />
+                                                        </div>
+                                                    </>
                                                 )}
-                                                <p className="text-[9px] text-text-muted uppercase font-bold ml-auto">{formatDate(ann.created_at)} {formatTime(ann.created_at)}</p>
                                             </div>
 
-                                            <h2 className="text-xl font-black text-text tracking-tight">{ann.title}</h2>
-                                            <div className="text-text-muted leading-relaxed text-sm md:text-base whitespace-pre-wrap font-medium pb-4">{ann.message}</div>
-                                            
-                                            {/* Action Bar for Admins */}
-                                            {canSendMessage && (
-                                                <div className="pt-4 border-t border-border flex justify-end">
-                                                    <button 
-                                                        onClick={() => toggleReadStatus(ann.id)}
-                                                        className={`read-status-toggle flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-bold transition-all ${showReadStatusId === ann.id ? 'bg-rose-500 text-white' : 'bg-surface-hover text-text-muted hover:bg-primary/10 hover:text-primary'}`}
-                                                    >
-                                                        <Users size={14} /> 
-                                                        {showReadStatusId === ann.id ? 'Yopish' : 'Kim o\'qidi?'}
-                                                    </button>
+                                            {/* Content */}
+                                            <div className="p-6 md:p-8 space-y-4">
+                                                <div className="flex items-center justify-between">
+                                                    {ann.category && (
+                                                        <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">
+                                                            {ann.category}
+                                                        </span>
+                                                    )}
+                                                    <p className="text-[11px] text-text-muted font-bold ml-auto">{formatFullDateTime(ann.created_at)}</p>
                                                 </div>
-                                            )}
+
+                                                <h2 className="text-xl font-black text-text tracking-tight">{ann.title}</h2>
+                                                <div className="text-text-muted leading-relaxed text-sm md:text-base whitespace-pre-wrap font-medium pb-4">{ann.message}</div>
+
+                                                {/* Action Bar for Admins */}
+                                                {canSendMessage && (
+                                                    <div className="pt-4 border-t border-border flex justify-end">
+                                                        <button
+                                                            onClick={() => toggleReadStatus(ann.id)}
+                                                            className={`read-status-toggle flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-bold transition-all ${showReadStatusId === ann.id ? 'bg-rose-500 text-white' : 'bg-surface-hover text-text-muted hover:bg-primary/10 hover:text-primary'}`}
+                                                        >
+                                                            <Users size={14} />
+                                                            {showReadStatusId === ann.id ? 'Yopish' : 'Kim o\'qidi?'}
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
+                                    </ObservableAnnouncementWrapper>
                                 ))
                             )}
                             <div ref={channelEndRef} />
-                            
+
                             {/* Floating Scroll to Bottom Button */}
                             {!isAtBottomChannel && (
-                                <button 
-                                    onClick={scrollToBottomChannel} 
+                                <button
+                                    onClick={scrollToBottomChannel}
                                     className="sticky bottom-5 ml-auto right-5 z-10 flex items-center justify-center w-11 h-11 rounded-full bg-surface shadow-2xl border border-border text-primary hover:bg-surface-hover transition-all transform active:scale-90"
                                 >
                                     <ArrowDown size={22} />
@@ -871,16 +1004,16 @@ export default function MessagesPage() {
                         {/* CHANNEL COMPOSE AREA (Admin/Staff only) */}
                         {(me?.role === 'admin' || me?.role === 'staff') && (
                             <form onSubmit={handleSendAnnouncement} className="p-4 border-t border-border flex items-end gap-2 bg-surface">
-                                <textarea 
-                                    value={inputText} 
-                                    onChange={e => setInputText(e.target.value)} 
-                                    placeholder="Kanalga xabar yozing..." 
-                                    rows={1} 
-                                    className="flex-1 resize-none bg-primary/5 rounded-xl px-4 py-3 text-sm focus:ring-1 focus:ring-primary/30 outline-none max-h-32 border border-primary/10" 
+                                <textarea
+                                    value={inputText}
+                                    onChange={e => setInputText(e.target.value)}
+                                    placeholder="Kanalga xabar yozing..."
+                                    rows={1}
+                                    className="flex-1 resize-none bg-primary/5 rounded-xl px-4 py-3 text-sm focus:ring-1 focus:ring-primary/30 outline-none max-h-32 border border-primary/10"
                                 />
-                                <button 
-                                    type="submit" 
-                                    disabled={!inputText.trim() || sending} 
+                                <button
+                                    type="submit"
+                                    disabled={!inputText.trim() || sending}
                                     className="w-11 h-11 flex items-center justify-center rounded-full bg-primary text-white disabled:opacity-50 shadow-lg shadow-primary/20 transition-transform active:scale-95"
                                 >
                                     <Send className="w-5 h-5" />
@@ -888,14 +1021,14 @@ export default function MessagesPage() {
                             </form>
                         )}
 
-                        {/* INLINE READ STATUS SLIDE-OVER (Global within the feed view) */}
+                        {/* INLINE READ STATUS SLIDE-OVER */}
                         <div ref={readStatusListRef} className={`absolute top-0 right-0 h-full w-full md:w-80 bg-canvas border-l border-border shadow-card transition-transform duration-300 z-30 ${showReadStatusId ? 'translate-x-0' : 'translate-x-full'}`} >
                             <div className="flex flex-col h-full">
                                 <div className="p-4 border-b border-border flex items-center justify-between bg-primary/5">
                                     <h3 className="font-bold text-text flex items-center gap-2"><Users className="w-5 h-5 text-primary" /> O'qiganlar</h3>
                                     <button onClick={() => setShowReadStatusId(null)} className="p-1 hover:bg-surface-hover rounded-lg text-text-muted"><X size={20} /></button>
                                 </div>
-                                
+
                                 <div onScroll={handleReadStatusScroll} className="flex-1 overflow-y-auto p-2 custom-scrollbar space-y-1">
                                     {readStatusList.length === 0 && !loadingReadStatus ? (
                                         <div className="py-20 text-center text-text-muted opacity-50 px-4"><p className="text-sm">Hali hech kim o'qimagan</p></div>

@@ -99,6 +99,8 @@ async fn main() -> std::io::Result<()> {
             .allowed_origin("http://localhost:5173")
             .allowed_origin("http://127.0.0.1:5173")
             .allowed_origin("http://10.42.0.241:5173")
+            .allowed_origin("http://10.42.0.241")
+            .allowed_origin("http://localhost")
             .allowed_methods(vec!["GET", "POST", "PUT", "PATCH", "DELETE"])
             .allowed_headers(vec![
                 actix_web::http::header::CONTENT_TYPE,

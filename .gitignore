@@ -3,11 +3,11 @@
 # ===================================================
 
 # Environment fayllar (maxfiy ma'lumotlar)
-backend/.env
-frontend/.env
-frontend/.env.production
-.env
-.env.db
+# backend/.env
+# frontend/.env
+# frontend/.env.production
+# .env
+# .env.db
 
 # Docker volumes va kesh
 .docker/

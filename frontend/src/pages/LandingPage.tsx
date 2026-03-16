@@ -485,7 +485,6 @@ export default function LandingPage() {
                                             <p className="font-bold text-[1.05rem] mb-1 line-clamp-2 leading-tight">
                                                 Jizzax viloyati, Jizzax shahri Sh.Rashidov shox ko'chasi, 259 uy
                                             </p>
-                                            {/* <a href="#" className="text-sm text-emerald-500 hover:text-emerald-400 transition-colors font-medium hover:underline">Xaritada ko'rish</a> */}
                                         </div>
                                     </div>
                                 </div>
