@@ -9,6 +9,11 @@ use crate::config::Config;
 use crate::errors::AppError;
 use crate::middleware::auth_middleware::{require_role, Claims};
 
+/// Kengaytmaga qarab subdirectory rasmmi yoki yo'qligini tekshiradi
+fn is_image_subdir(subdir: &str) -> bool {
+    subdir == "images"
+}
+
 /// Ruxsat berilgan fayl turlari
 const ALLOWED_EXTENSIONS: &[&str] = &[
     "jpg", "jpeg", "png", "gif", "webp", "pdf", "svg", "mp3", "ogg", "wav", "m4a",
@@ -194,9 +199,9 @@ pub async fn delete_file(
     })))
 }
 
-/// GET /uploads/{subdir}/{filename} — Faylni o'qish (Indirect Mapping yordamida NGINX orqali)
-/// Rasmlar Nginx tomonidan keshlangan holda tez qaytariladi, PDF va Audio fayllar esa 
-/// faqat autentifikatsiya qilingan foydalanuvchilar (token borligi tekshiriladi) uchun ochiladi.
+/// GET /uploads/{subdir}/{filename} — Faylni o'qish
+/// - Rasmlar (images): X-Accel-Redirect orqali Nginx tomonidan keshlangan holda tez qaytariladi
+/// - PDF va Audio: faqat autentifikatsiya bo'lgan foydalanuvchilarga, to'g'ridan-to'g'ri stream qilinadi
 pub async fn serve_file(
     claims: Option<Claims>,
     path: web::Path<(String, String)>,
@@ -204,13 +209,17 @@ pub async fn serve_file(
 ) -> Result<HttpResponse, AppError> {
     let (subdir, filename) = path.into_inner();
 
-    if (subdir == "pdf" || subdir == "audio") && claims.is_none() {
+    // PDF va Audio uchun autentifikatsiya talab qilinadi
+    if !is_image_subdir(&subdir) && claims.is_none() {
         return Err(AppError::Unauthorized(
-            format!("{} fayllarini o'qish uchun tizimga kirish talab qilinadi", if subdir == "pdf" { "PDF" } else { "Audio" }),
+            format!(
+                "{} fayllarini o'qish uchun tizimga kirish talab qilinadi",
+                if subdir == "pdf" { "PDF" } else { "Audio" }
+            ),
         ));
     }
 
-    // Xavfsizlik tekshiruvi (Path traversal oldini olish)
+    // Path traversal xavfsizlik tekshiruvi
     if subdir.contains("..") || filename.contains("..") {
         return Err(AppError::BadRequest("Noto'g'ri fayl yo'li".to_string()));
     }
@@ -222,37 +231,51 @@ pub async fn serve_file(
         return Err(AppError::NotFound("Fayl topilmadi".to_string()));
     }
 
-    // NGINX ga faylni o'zi yetkazib berishi uchun X-Accel-Redirect sarlavhasini qaytaramiz
-    let internal_path = format!("/internal_uploads/{}/{}", subdir, filename);
-    
-    // Content-Type ni explicitly o'rnatamiz (garchi NGINX o'zi yuborsada, fallback uchun yaxshi)
+    // Content-Type aniqlash
     let ext = file_path
         .extension()
         .and_then(|e| e.to_str())
         .unwrap_or("")
         .to_lowercase();
-        
+
     let content_type = match ext.as_str() {
-        "pdf" => "application/pdf",
-        "png" => "image/png",
+        "pdf"        => "application/pdf",
+        "png"        => "image/png",
         "jpg" | "jpeg" => "image/jpeg",
-        "webp" => "image/webp",
-        "svg" => "image/svg+xml",
-        "mp3" => "audio/mpeg",
-        "ogg" => "audio/ogg",
-        "wav" => "audio/wav",
-        "m4a" => "audio/mp4",
-        _ => "application/octet-stream",
+        "webp"       => "image/webp",
+        "gif"        => "image/gif",
+        "svg"        => "image/svg+xml",
+        "mp3"        => "audio/mpeg",
+        "ogg"        => "audio/ogg",
+        "wav"        => "audio/wav",
+        "m4a"        => "audio/mp4",
+        _            => "application/octet-stream",
     };
 
-    // HeaderValue ga o'tkazish: TryFrom<String> orqali owned qiymat hosil qilamiz
-    // shunda builder chain davomida borrow muammosi bo'lmaydi
-    use actix_web::http::header::HeaderValue;
-    let accel_value = HeaderValue::from_str(&internal_path)
-        .unwrap_or_else(|_| HeaderValue::from_static("/internal_uploads/unknown"));
+    if is_image_subdir(&subdir) {
+        // ── Rasmlar: Nginx X-Accel-Redirect orqali keshlangan holda qaytariladi ──
+        use actix_web::http::header::HeaderValue;
+        let internal_path = format!("/internal_uploads/{}/{}", subdir, filename);
+        let accel_value = HeaderValue::from_str(&internal_path)
+            .unwrap_or_else(|_| HeaderValue::from_static("/internal_uploads/unknown"));
 
-    Ok(HttpResponse::Ok()
-        .content_type(content_type)
-        .insert_header(("X-Accel-Redirect", accel_value))
-        .finish())
+        Ok(HttpResponse::Ok()
+            .content_type(content_type)
+            .insert_header(("X-Accel-Redirect", accel_value))
+            .insert_header(("Content-Disposition", "inline"))
+            .finish())
+    } else {
+        // ── PDF va Audio: To'g'ridan-to'g'ri backenddan stream qilinadi ──
+        // Bu usul JS fetch().blob() to'g'ri ishlashini ta'minlaydi
+        let file_bytes = std::fs::read(&filepath).map_err(|e| {
+            tracing::error!("Fayl o'qishda xatolik: {} — {}", filepath, e);
+            AppError::InternalError("Fayl o'qishda xatolik".to_string())
+        })?;
+
+        Ok(HttpResponse::Ok()
+            .content_type(content_type)
+            .insert_header(("Content-Disposition", "inline"))
+            .insert_header(("Accept-Ranges", "bytes"))
+            .body(file_bytes))
+    }
 }
