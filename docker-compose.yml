@@ -138,6 +138,8 @@ services:
       - backend
     ports:
       - "80:80"
+    volumes:
+      - app_uploads:/app/uploads:ro
     restart: always
     logging:
       driver: "json-file"

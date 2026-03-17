@@ -4,6 +4,7 @@ import {
     Volume2, VolumeX, BookOpen, Music2,
 } from 'lucide-react'
 import { useAudio } from '../context/AudioContext'
+import toast from 'react-hot-toast'
 
 function formatTime(s: number): string {
     if (!isFinite(s) || isNaN(s)) return '0:00'
@@ -33,6 +34,16 @@ export default function AudioPlayerModal() {
         const onPlay = () => setIsPlaying(true)
         const onPause = () => setIsPlaying(false)
         const onEnd = () => setIsPlaying(false)
+        const onError = () => {
+            setIsPlaying(false);
+            if (audio.error) {
+                if (audio.error.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED) {
+                     toast.error("Audioni eshitish uchun tizimga kirishingiz kerak", { id: 'audio-auth-error' });
+                } else {
+                     toast.error("Audio yuklanishida xatolik yuz berdi", { id: 'audio-load-error' });
+                }
+            }
+        }
 
         audio.addEventListener('timeupdate', onTime)
         audio.addEventListener('durationchange', onDur)
@@ -40,6 +51,7 @@ export default function AudioPlayerModal() {
         audio.addEventListener('play', onPlay)
         audio.addEventListener('pause', onPause)
         audio.addEventListener('ended', onEnd)
+        audio.addEventListener('error', onError)
 
         return () => {
             audio.removeEventListener('timeupdate', onTime)
@@ -48,6 +60,7 @@ export default function AudioPlayerModal() {
             audio.removeEventListener('play', onPlay)
             audio.removeEventListener('pause', onPause)
             audio.removeEventListener('ended', onEnd)
+            audio.removeEventListener('error', onError)
         }
     }
 

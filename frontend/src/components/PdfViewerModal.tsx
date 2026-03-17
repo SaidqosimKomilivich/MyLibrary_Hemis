@@ -23,13 +23,17 @@ export default function PdfViewerModal({ title, fileUrl, onClose }: PdfViewerMod
     const [numPages, setNumPages] = useState<number | null>(null)
     const [pageNumber, setPageNumber] = useState(1)
     const [pageInput, setPageInput] = useState('1')
-    const [scale, setScale] = useState(1.5)
+    
+    // Initial scale based on device width to ensure it fits mobile out of the box
+    const [scale, setScale] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768 ? 0.6 : 1.5)
+    
     const [loading, setLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState('')
     const [matchCount, setMatchCount] = useState(0)
     const [currentMatch, setCurrentMatch] = useState(0)
     const [pdfData, setPdfData] = useState<string | null>(null)
     const [fetchError, setFetchError] = useState(false)
+    const [pageDimensions, setPageDimensions] = useState<{ [key: number]: { width: number; height: number } }>({})
     const searchMarkRefs = useRef<HTMLElement[]>([])
 
     const pdfWrapperRef = useRef<HTMLDivElement>(null)
@@ -111,6 +115,16 @@ export default function PdfViewerModal({ title, fileUrl, onClose }: PdfViewerMod
         setNumPages(numPages)
         setLoading(false)
         pageRefs.current = new Array(numPages).fill(null)
+    }
+
+    const onPageLoadSuccess = (pageInfo: any) => {
+        setPageDimensions(prev => ({
+            ...prev,
+            [pageInfo.pageNumber]: {
+                width: pageInfo.originalWidth,
+                height: pageInfo.originalHeight
+            }
+        }))
     }
 
     const zoomIn = () => setScale(prev => Math.min(prev + 0.1, 3.0))
@@ -390,14 +404,20 @@ export default function PdfViewerModal({ title, fileUrl, onClose }: PdfViewerMod
                             <div className="flex flex-col gap-6 pb-12 w-full items-center">
                                 {pagesList.map((page) => {
                                     const isVisible = page === 1 || Math.abs(page - pageNumber) <= 3;
+                                    
+                                    // Use known aspect ratio if loaded, otherwise fallback to standard A4 ratio roughly
+                                    const dims = pageDimensions[page];
+                                    const baseWidth = dims ? dims.width : 600;
+                                    const baseHeight = dims ? dims.height : 842;
+                                    
                                     return (
                                         <div
                                             key={`page_${page}`}
                                             ref={el => { pageRefs.current[page - 1] = el }}
                                             className="bg-white shadow-2xl relative transition-transform flex items-center justify-center overflow-hidden"
                                             style={{
-                                                minHeight: `${800 * scale}px`,
-                                                width: `${600 * scale}px`,
+                                                minHeight: `${baseHeight * scale}px`,
+                                                width: `${baseWidth * scale}px`,
                                             }}
                                         >
                                             {isVisible ? (
@@ -407,14 +427,15 @@ export default function PdfViewerModal({ title, fileUrl, onClose }: PdfViewerMod
                                                     renderTextLayer={true}
                                                     renderAnnotationLayer={true}
                                                     customTextRenderer={customTextRenderer}
+                                                    onLoadSuccess={onPageLoadSuccess}
                                                     loading={
-                                                        <div className="flex items-center justify-center bg-slate-200 dark:bg-white/5 text-slate-500 dark:text-text-muted" style={{ width: 600 * scale, height: 800 * scale }}>
+                                                        <div className="flex items-center justify-center bg-slate-200 dark:bg-white/5 text-slate-500 dark:text-text-muted" style={{ width: baseWidth * scale, height: baseHeight * scale }}>
                                                             Sahifa {page} yuklanmoqda...
                                                         </div>
                                                     }
                                                 />
                                             ) : (
-                                                <div className="text-text-muted">
+                                                <div className="text-text-muted flex items-center justify-center w-full h-full">
                                                     Sahifa {page}
                                                 </div>
                                             )}

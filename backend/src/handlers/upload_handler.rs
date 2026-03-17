@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 use crate::config::Config;
 use crate::errors::AppError;
-use crate::middleware::auth_middleware::Claims;
+use crate::middleware::auth_middleware::{require_role, Claims};
 
 /// Ruxsat berilgan fayl turlari
 const ALLOWED_EXTENSIONS: &[&str] = &[
@@ -48,9 +48,13 @@ fn get_subdir(extension: &str) -> &'static str {
 /// POST /api/upload — Fayl yuklash (faqat autentifikatsiya qilingan foydalanuvchilar)
 pub async fn upload_file(
     config: web::Data<Config>,
-    _claims: Claims,
+    claims: Claims,
     mut payload: Multipart,
-) -> Result<HttpResponse, AppError> {
+) -> Result<HttpResponse, actix_web::Error> {
+    if let Err(resp) = require_role(&claims, &["admin", "staff", "teacher"]) {
+        return Ok(resp);
+    }
+
     let upload_dir = &config.upload_dir;
 
     // Subdirectorylarni yaratish
@@ -58,7 +62,7 @@ pub async fn upload_file(
         let dir_path = format!("{}/{}", upload_dir, subdir);
         std::fs::create_dir_all(&dir_path).map_err(|e| {
             tracing::error!("Papkani yaratib bo'lmadi: {} — {}", dir_path, e);
-            AppError::InternalError("Fayl tizimi xatosi".to_string())
+            actix_web::error::ErrorInternalServerError("Fayl tizimi xatosi")
         })?;
     }
 
@@ -68,13 +72,13 @@ pub async fn upload_file(
         let original_filename = field
             .content_disposition()
             .and_then(|cd| cd.get_filename().map(|s| s.to_string()))
-            .ok_or_else(|| AppError::BadRequest("Fayl nomi topilmadi".to_string()))?;
+            .ok_or_else(|| actix_web::error::ErrorBadRequest("Fayl nomi topilmadi"))?;
 
         let extension = get_extension(&original_filename)
-            .ok_or_else(|| AppError::BadRequest("Fayl kengaytmasi aniqlanmadi".to_string()))?;
+            .ok_or_else(|| actix_web::error::ErrorBadRequest("Fayl kengaytmasi aniqlanmadi"))?;
 
         if !ALLOWED_EXTENSIONS.contains(&extension.as_str()) {
-            return Err(AppError::BadRequest(format!(
+            return Err(actix_web::error::ErrorBadRequest(format!(
                 "Ruxsat berilmagan fayl turi: .{}. Ruxsat berilgan: {}",
                 extension,
                 ALLOWED_EXTENSIONS.join(", ")
@@ -87,7 +91,7 @@ pub async fn upload_file(
 
         let mut file = std::fs::File::create(&filepath).map_err(|e| {
             tracing::error!("Fayl yaratib bo'lmadi: {}", e);
-            AppError::InternalError("Fayl saqlashda xatolik".to_string())
+            actix_web::error::ErrorInternalServerError("Fayl saqlashda xatolik")
         })?;
 
         let max_file_size = if subdir == "images" {
@@ -103,7 +107,7 @@ pub async fn upload_file(
 
             if total_size > max_file_size {
                 let _ = std::fs::remove_file(&filepath);
-                return Err(AppError::BadRequest(format!(
+                return Err(actix_web::error::ErrorBadRequest(format!(
                     "Fayl hajmi {} MB dan oshmasligi kerak",
                     max_file_size / (1024 * 1024)
                 )));
@@ -111,7 +115,7 @@ pub async fn upload_file(
 
             file.write_all(&chunk).map_err(|e| {
                 tracing::error!("Faylga yozishda xatolik: {}", e);
-                AppError::InternalError("Fayl saqlashda xatolik".to_string())
+                actix_web::error::ErrorInternalServerError("Fayl saqlashda xatolik")
             })?;
         }
 
@@ -135,8 +139,8 @@ pub async fn upload_file(
     }
 
     if uploaded_files.is_empty() {
-        return Err(AppError::BadRequest(
-            "Hech qanday fayl yuklanmadi".to_string(),
+        return Err(actix_web::error::ErrorBadRequest(
+            "Hech qanday fayl yuklanmadi",
         ));
     }
 
@@ -151,21 +155,25 @@ pub async fn upload_file(
 /// Body: { "url": "/uploads/images/uuid.jpg" }
 pub async fn delete_file(
     config: web::Data<Config>,
-    _claims: Claims,
+    claims: Claims,
     body: web::Json<serde_json::Value>,
-) -> Result<HttpResponse, AppError> {
+) -> Result<HttpResponse, actix_web::Error> {
+    if let Err(resp) = require_role(&claims, &["admin", "staff", "teacher"]) {
+        return Ok(resp);
+    }
+
     let url = body["url"]
         .as_str()
-        .ok_or_else(|| AppError::BadRequest("'url' maydoni talab qilinadi".to_string()))?;
+        .ok_or_else(|| actix_web::error::ErrorBadRequest("'url' maydoni talab qilinadi"))?;
 
     // URL dan fayl yo'lini olish: /uploads/images/uuid.jpg -> ./uploads/images/uuid.jpg
     let relative_path = url
         .strip_prefix("/uploads/")
-        .ok_or_else(|| AppError::BadRequest("Noto'g'ri fayl URL".to_string()))?;
+        .ok_or_else(|| actix_web::error::ErrorBadRequest("Noto'g'ri fayl URL"))?;
 
     // Path traversal xavfsizlik tekshiruvi
     if relative_path.contains("..") {
-        return Err(AppError::BadRequest("Noto'g'ri fayl yo'li".to_string()));
+        return Err(actix_web::error::ErrorBadRequest("Noto'g'ri fayl yo'li").into());
     }
 
     let filepath = format!("{}/{}", config.upload_dir, relative_path);
@@ -173,7 +181,7 @@ pub async fn delete_file(
     if Path::new(&filepath).exists() {
         std::fs::remove_file(&filepath).map_err(|e| {
             tracing::error!("Faylni o'chirib bo'lmadi: {} — {}", filepath, e);
-            AppError::InternalError("Faylni o'chirishda xatolik".to_string())
+            actix_web::error::ErrorInternalServerError("Faylni o'chirishda xatolik")
         })?;
         tracing::info!(file = %relative_path, "Fayl o'chirildi");
     } else {
@@ -186,18 +194,19 @@ pub async fn delete_file(
     })))
 }
 
-/// GET /uploads/{subdir}/{filename} — Faylni o'qish (NamedFile yordamida streaming)
-/// Rasmlar hamma uchun ochiq, PDF fayllar esa faqat autentifikatsiya qilinganlarga
+/// GET /uploads/{subdir}/{filename} — Faylni o'qish (Indirect Mapping yordamida NGINX orqali)
+/// Rasmlar Nginx tomonidan keshlangan holda tez qaytariladi, PDF va Audio fayllar esa 
+/// faqat autentifikatsiya qilingan foydalanuvchilar (token borligi tekshiriladi) uchun ochiladi.
 pub async fn serve_file(
     claims: Option<Claims>,
     path: web::Path<(String, String)>,
     config: web::Data<Config>,
-) -> Result<actix_files::NamedFile, AppError> {
+) -> Result<HttpResponse, AppError> {
     let (subdir, filename) = path.into_inner();
 
-    if subdir == "pdf" && claims.is_none() {
+    if (subdir == "pdf" || subdir == "audio") && claims.is_none() {
         return Err(AppError::Unauthorized(
-            "PDF fayllarini o'qish uchun tizimga kirish talab qilinadi".to_string(),
+            format!("{} fayllarini o'qish uchun tizimga kirish talab qilinadi", if subdir == "pdf" { "PDF" } else { "Audio" }),
         ));
     }
 
@@ -213,43 +222,37 @@ pub async fn serve_file(
         return Err(AppError::NotFound("Fayl topilmadi".to_string()));
     }
 
-    let mut file = actix_files::NamedFile::open(file_path).map_err(|e| {
-        tracing::error!("Faylni ochishda xatolik: {} — {}", filepath, e);
-        AppError::InternalError("Faylni o'qib bo'lmadi".to_string())
-    })?;
-
-    // Fayl kengaytmasini aniqlash va Content-Type ni explicitly (aniq) qilib o'rnatish
+    // NGINX ga faylni o'zi yetkazib berishi uchun X-Accel-Redirect sarlavhasini qaytaramiz
+    let internal_path = format!("/internal_uploads/{}/{}", subdir, filename);
+    
+    // Content-Type ni explicitly o'rnatamiz (garchi NGINX o'zi yuborsada, fallback uchun yaxshi)
     let ext = file_path
         .extension()
         .and_then(|e| e.to_str())
         .unwrap_or("")
         .to_lowercase();
-    if ext == "pdf" {
-        if let Ok(m) = "application/pdf".parse() {
-            file = file.set_content_type(m);
-        }
-    } else if ext == "png" {
-        if let Ok(m) = "image/png".parse() {
-            file = file.set_content_type(m);
-        }
-    } else if ext == "jpg" || ext == "jpeg" {
-        if let Ok(m) = "image/jpeg".parse() {
-            file = file.set_content_type(m);
-        }
-    }
+        
+    let content_type = match ext.as_str() {
+        "pdf" => "application/pdf",
+        "png" => "image/png",
+        "jpg" | "jpeg" => "image/jpeg",
+        "webp" => "image/webp",
+        "svg" => "image/svg+xml",
+        "mp3" => "audio/mpeg",
+        "ogg" => "audio/ogg",
+        "wav" => "audio/wav",
+        "m4a" => "audio/mp4",
+        _ => "application/octet-stream",
+    };
 
-    // PDF fayllarni brauzer yuklab olib ketmasligi va to'g'ridan to'g'ri o'qishi uchun inline disposition
-    file = file.set_content_disposition(actix_web::http::header::ContentDisposition {
-        disposition: actix_web::http::header::DispositionType::Inline,
-        parameters: vec![actix_web::http::header::DispositionParam::Filename(
-            filename.clone(),
-        )],
-    });
+    // HeaderValue ga o'tkazish: TryFrom<String> orqali owned qiymat hosil qilamiz
+    // shunda builder chain davomida borrow muammosi bo'lmaydi
+    use actix_web::http::header::HeaderValue;
+    let accel_value = HeaderValue::from_str(&internal_path)
+        .unwrap_or_else(|_| HeaderValue::from_static("/internal_uploads/unknown"));
 
-    // Oldin xato keshlanib qolgan "attachment" larni tozalash va har safar tekshirish uchun:
-    file = file.use_last_modified(true).use_etag(true);
-    // Explicit Cache-Control ham qoshib qo'yamiz NamedFile HttpResponse ga o'tganda (uni setot qilib bo'lmasa-da, NamedFile qoidalari bajaradi).
-    // `NamedFile` avtomatik tarzda `Accept-Ranges: bytes` headerini o'rnatadi
-    // va `Range` so'rovlariga `206 Partial Content` bilan javob qaytaradi.
-    Ok(file)
+    Ok(HttpResponse::Ok()
+        .content_type(content_type)
+        .insert_header(("X-Accel-Redirect", accel_value))
+        .finish())
 }
