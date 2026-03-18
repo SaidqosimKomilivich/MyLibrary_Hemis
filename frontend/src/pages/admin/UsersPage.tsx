@@ -4,6 +4,7 @@ import { GraduationCap, Briefcase, BookUser, Search, RefreshCw, X, ArrowDownToLi
 import { CustomSelect } from '../../components/CustomSelect'
 import { api } from '../../services/api'
 import type { UserData } from '../../services/api'
+import { getProxyImageUrl } from '../../utils/fileUrl'
 import { toast } from 'react-toastify'
 import { highlightText } from '../../utils/highlightText'
 
@@ -145,7 +146,7 @@ function UserDetailModal({ user, type, onClose }: { user: UserData; type: 'stude
                 <div className="flex flex-col items-center pt-8 pb-6 px-6 bg-linear-to-b from-indigo-500/15 to-transparent border-b border-border gap-3">
                     <div className="relative p-1.5 rounded-3xl bg-linear-to-br from-indigo-500/30 to-indigo-500/5 shadow-[0_0_40px_rgba(99,102,241,0.25)] mb-2">
                         {user.image_url ? (
-                            <img src={user.image_url} alt={user.full_name} className="w-32 h-32 sm:w-36 sm:h-36 rounded-2xl object-cover shadow-[0_8px_24px_rgba(0,0,0,0.4)]" />
+                            <img src={getProxyImageUrl(user.image_url)} crossOrigin="anonymous" alt={user.full_name} className="w-32 h-32 sm:w-36 sm:h-36 rounded-2xl object-cover shadow-[0_8px_24px_rgba(0,0,0,0.4)]" />
                         ) : (
                             <div className="flex items-center justify-center w-32 h-32 sm:w-36 sm:h-36 rounded-2xl bg-linear-to-br from-indigo-500 to-indigo-600 font-bold text-[2.5rem] tracking-[2px] text-white shadow-[0_8px_24px_rgba(99,102,241,0.4)]">
                                 {getInitials(user.full_name)}
@@ -608,7 +609,7 @@ export default function UsersPage() {
                             <td className="py-3 px-4">
                                 <div className="flex items-center gap-3 font-semibold text-[0.9rem]">
                                     {u.image_url ? (
-                                        <img src={u.image_url} alt={u.full_name} className="w-8 h-8 rounded-full object-cover shrink-0 ring-2 ring-indigo-500/20" />
+                                        <img src={getProxyImageUrl(u.image_url)} crossOrigin="anonymous" alt={u.full_name} className="w-8 h-8 rounded-full object-cover shrink-0 ring-2 ring-indigo-500/20" />
                                     ) : (
                                         <div className="w-8 h-8 rounded-full bg-linear-to-br from-indigo-500 to-indigo-600 text-white flex items-center justify-center font-bold text-[0.85rem] shrink-0 shadow-sm">{u.full_name.charAt(0)}</div>
                                     )}
@@ -1018,7 +1019,7 @@ export default function UsersPage() {
                         <div className="p-6">
                             <div className="flex items-center gap-3 mb-5">
                                 {resetUser.image_url ? (
-                                    <img src={resetUser.image_url} alt={resetUser.full_name} className="w-12 h-12 rounded-full object-cover shrink-0" />
+                                    <img src={getProxyImageUrl(resetUser.image_url)} crossOrigin="anonymous" alt={resetUser.full_name} className="w-12 h-12 rounded-full object-cover shrink-0" />
                                 ) : (
                                     <div className="flex items-center justify-center w-12 h-12 rounded-full bg-linear-to-br from-indigo-500 to-indigo-600 font-bold text-[1.125rem] text-white shrink-0">
                                         {resetUser.full_name.charAt(0)}
@@ -1090,7 +1091,7 @@ export default function UsersPage() {
                         <div className="p-6">
                             <div className="flex items-center gap-3 mb-5">
                                 {roleUser.image_url ? (
-                                    <img src={roleUser.image_url} alt={roleUser.full_name} className="w-12 h-12 rounded-full object-cover shrink-0" />
+                                    <img src={getProxyImageUrl(roleUser.image_url)} crossOrigin="anonymous" alt={roleUser.full_name} className="w-12 h-12 rounded-full object-cover shrink-0" />
                                 ) : (
                                     <div className="flex items-center justify-center w-12 h-12 rounded-full bg-linear-to-br from-indigo-500 to-indigo-600 font-bold text-[1.125rem] text-white shrink-0">
                                         {roleUser.full_name.charAt(0)}
@@ -1170,7 +1171,7 @@ export default function UsersPage() {
                         <div className="p-6">
                             <div className="flex items-center gap-3 mb-5">
                                 {statusUser.image_url ? (
-                                    <img src={statusUser.image_url} alt={statusUser.full_name} className="w-12 h-12 rounded-full object-cover shrink-0" />
+                                    <img src={getProxyImageUrl(statusUser.image_url)} crossOrigin="anonymous" alt={statusUser.full_name} className="w-12 h-12 rounded-full object-cover shrink-0" />
                                 ) : (
                                     <div className="flex items-center justify-center w-12 h-12 rounded-full bg-linear-to-br from-indigo-500 to-indigo-600 font-bold text-[1.125rem] text-white shrink-0">
                                         {statusUser.full_name.charAt(0)}

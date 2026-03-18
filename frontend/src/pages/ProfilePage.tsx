@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { api } from '../services/api'
 import { toPng } from 'html-to-image'
 import { QRCodeSVG } from 'qrcode.react'
+import { getProxyImageUrl } from '../utils/fileUrl'
 
 const roleLabels: Record<string, string> = {
     admin: 'Administrator',
@@ -13,6 +14,7 @@ const roleLabels: Record<string, string> = {
     teacher: "O'qituvchi",
     student: 'Talaba',
 }
+
 
 export default function ProfilePage() {
     const { user, role } = useAuth()
@@ -83,37 +85,6 @@ export default function ProfilePage() {
     }
 
 
-    // Tashqi rasmlarni backend proxy orqali data URL ga aylantirish
-    const convertExternalImages = async (el: HTMLElement) => {
-        const images = el.querySelectorAll('img') as NodeListOf<HTMLImageElement>
-        const originals: { img: HTMLImageElement; src: string }[] = []
-        for (const img of images) {
-            const src = img.src
-            if (src && src.startsWith('http') && !src.includes(window.location.hostname)) {
-                try {
-                    const res = await fetch(`/api/proxy/image?url=${encodeURIComponent(src)}`)
-                    if (res.ok) {
-                        const blob = await res.blob()
-                        const dataUrl = await new Promise<string>((resolve) => {
-                            const reader = new FileReader()
-                            reader.onloadend = () => resolve(reader.result as string)
-                            reader.readAsDataURL(blob)
-                        })
-                        originals.push({ img, src })
-                        img.src = dataUrl
-                    }
-                } catch (e) {
-                    console.warn('Rasmni proxy orqali yuklashda xatolik:', e)
-                }
-            }
-        }
-        return originals
-    }
-
-    const restoreImages = (originals: { img: HTMLImageElement; src: string }[]) => {
-        for (const { img, src } of originals) img.src = src
-    }
-
     const handleDownloadCard = async () => {
         if (!frontRef.current || !backRef.current || downloading) return
         setDownloading(true)
@@ -123,10 +94,7 @@ export default function ProfilePage() {
 
         try {
             // ── Front side ──
-            const frontOriginals = await convertExternalImages(frontRef.current)
-            await new Promise(r => setTimeout(r, 80))
             const frontDataUrl = await toPng(frontRef.current, opts)
-            restoreImages(frontOriginals)
 
             // ── Back side: temporarily make it visible (undo 3D flip) ──
             const backEl = backRef.current
@@ -135,10 +103,7 @@ export default function ProfilePage() {
             backEl.style.transform = 'rotateY(0deg)'
             backEl.style.backfaceVisibility = 'visible'
 
-            const backOriginals = await convertExternalImages(backEl)
-            await new Promise(r => setTimeout(r, 80))
             const backDataUrl = await toPng(backEl, opts)
-            restoreImages(backOriginals)
 
             // Restore back side transform
             backEl.style.transform = prevTransform
@@ -248,7 +213,7 @@ export default function ProfilePage() {
             <div className="bg-surface rounded-2xl mb-8 p-6 md:p-8 flex flex-col md:flex-row items-center md:items-start gap-6 border border-border shadow-soft relative overflow-hidden isolate">
                 <div className="relative z-10 w-24 h-24 md:w-28 md:h-28 rounded-full border-4 border-surface shadow-md shrink-0 bg-background flex items-center justify-center">
                     {user.image_url ? (
-                        <img src={user.image_url} alt={user.full_name} className="w-full h-full rounded-full object-cover" />
+                        <img src={getProxyImageUrl(user.image_url)} crossOrigin="anonymous" alt={user.full_name} className="w-full h-full rounded-full object-cover" />
                     ) : (
                         <span className="text-[2.5rem] font-bold text-primary">
                             {(user.full_name || user.user_id || '?').charAt(0).toUpperCase()}
@@ -493,7 +458,7 @@ export default function ProfilePage() {
                                     <p className='absolute top-3 left-28 uppercase font-medium'>MIRZO ULUG‘BEK NOMIDAGI O‘ZBEKISTON MILLIY UNIVERSITETI JIZZAX FILIALI</p>
                                     <div className='absolute top-27 left-6 bg-white border border-black w-25 h-35 rounded-2xl overflow-hidden flex items-center justify-center'>
                                         {user.image_url ? (
-                                            <img src={user.image_url} alt={user.full_name} className='w-full h-full object-cover' />
+                                            <img src={getProxyImageUrl(user.image_url)} crossOrigin="anonymous" alt={user.full_name} className='w-full h-full object-cover' />
                                         ) : (
                                             <div className='w-full h-full flex flex-col items-center justify-center bg-gray-100'>
                                                 <User size={40} className="text-gray-400 mb-2" />

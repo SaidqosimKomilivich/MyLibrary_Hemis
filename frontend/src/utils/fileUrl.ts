@@ -21,6 +21,17 @@ export function getFileUrl(url: string | null | undefined, fallback = ''): strin
 }
 
 /**
+ * getProxyImageUrl — tashqi rasmlarni backend proxy orqali yuklab CORS xatolarini oldini oladi.
+ */
+export function getProxyImageUrl(url: string | null | undefined, fallback = ''): string {
+    if (!url) return fallback;
+    if (url.startsWith('http') && !url.includes(window.location.hostname)) {
+        return `/api/proxy/image?url=${encodeURIComponent(url)}`;
+    }
+    return getFileUrl(url, fallback);
+}
+
+/**
  * isImageUrl — URL rasm faylga tegishli ekanligini tekshiradi
  */
 export function isImageUrl(url: string | null | undefined): boolean {
