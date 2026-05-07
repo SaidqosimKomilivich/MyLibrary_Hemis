@@ -10,6 +10,8 @@ use crate::errors::AppError;
 use crate::middleware::auth_middleware::Claims;
 use crate::services::auth_service::AuthService;
 use crate::services::captcha_service::CaptchaService;
+use crate::middleware::auth_middleware::require_role;
+use crate::repository::user_repository::UserRepository;
 
 /// Clientning IP manzilini olish
 fn get_client_ip(req: &HttpRequest) -> Option<String> {
@@ -204,6 +206,11 @@ pub async fn change_password(
     let user_id = uuid::Uuid::parse_str(&claims.sub)
         .map_err(|_| AppError::InternalError("UUID noto'g'ri".to_string()))?;
 
+    // XAVFSIZLIK: Talabalar uchun parolni o'zgartirish cheklangan
+    if claims.role == "student" {
+        return Err(AppError::Forbidden("Talabalar uchun parolni o'zgartirish ruxsat etilmagan".to_string()));
+    }
+
     let response = AuthService::change_password(
         pool.get_ref(),
         user_id,
@@ -244,9 +251,6 @@ pub async fn reset_password(
     claims: Claims,
     path: web::Path<String>,
 ) -> Result<HttpResponse, actix_web::Error> {
-    use crate::middleware::auth_middleware::require_role;
-    use crate::repository::user_repository::UserRepository;
-
     // Faqat admin uchun
     if let Err(resp) = require_role(&claims, &["admin"]) {
         return Ok(resp);

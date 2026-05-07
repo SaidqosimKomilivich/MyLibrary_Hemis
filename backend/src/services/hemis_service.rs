@@ -248,7 +248,7 @@ impl HemisService {
                         s.birth_date.and_then(|ts| {
                             chrono::DateTime::from_timestamp(ts, 0).map(|dt| dt.date_naive())
                         }),
-                        s.image.as_deref().filter(|st| !st.is_empty()),
+                        None, // s.image.as_deref().filter(|st| !st.is_empty()),
                         s.email.as_deref().filter(|st| !st.is_empty()),
                         s.department.as_ref().and_then(|d| d.name.as_deref()),
                         s.specialty.as_ref().and_then(|sp| sp.name.as_deref()),
@@ -279,7 +279,7 @@ impl HemisService {
                         s.birth_date.and_then(|ts| {
                             chrono::DateTime::from_timestamp(ts, 0).map(|dt| dt.date_naive())
                         }),
-                        s.image.as_deref().filter(|st| !st.is_empty()),
+                        None, // s.image.as_deref().filter(|st| !st.is_empty()),
                         s.email.as_deref().filter(|st| !st.is_empty()),
                         0i64, // id_card yangi yaratilganda 0 dan boshlanadi (yuklab olish soni)
                         s.department.as_ref().and_then(|d| d.name.as_deref()),
@@ -519,9 +519,6 @@ impl HemisService {
                     chrono::DateTime::from_timestamp(ts, 0).map(|dt| dt.date_naive())
                 });
 
-                let image_url = employee.image.clone().filter(|s| !s.is_empty());
-                let _id_card = employee.id; // no longer used — id_card is now the download counter
-
                 let department_name = employee.department.as_ref().and_then(|d| d.name.clone());
                 let staff_position = employee
                     .staff_position
@@ -550,7 +547,7 @@ impl HemisService {
                         &full_name,
                         short_name.as_deref(),
                         birth_date,
-                        image_url.as_deref(),
+                        image_url,
                         department_name.as_deref(),
                         staff_position.as_deref(),
                     )
@@ -567,7 +564,7 @@ impl HemisService {
                         &full_name,
                         short_name.as_deref(),
                         birth_date,
-                        image_url.as_deref(),
+                        image_url,
                         0i64, // id_card yangi yaratilganda 0 dan boshlanadi (yuklab olish soni)
                         department_name.as_deref(),
                         staff_position.as_deref(),

@@ -247,13 +247,15 @@ export default function ProfilePage() {
                     <User size={16} />
                     <span>Ma'lumotlar</span>
                 </button>
-                <button
-                    className={`flex-1 w-full flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-[0.95rem] font-medium transition-all whitespace-nowrap cursor-pointer border-none outline-none ${activeTab === 'password' ? 'bg-primary text-white shadow-md' : 'bg-transparent text-text-muted hover:text-text hover:bg-white/5'}`}
-                    onClick={() => setActiveTab('password')}
-                >
-                    <Lock size={16} />
-                    <span>Parol</span>
-                </button>
+                {role !== 'student' && (
+                    <button
+                        className={`flex-1 w-full flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-[0.95rem] font-medium transition-all whitespace-nowrap cursor-pointer border-none outline-none ${activeTab === 'password' ? 'bg-primary text-white shadow-md' : 'bg-transparent text-text-muted hover:text-text hover:bg-white/5'}`}
+                        onClick={() => setActiveTab('password')}
+                    >
+                        <Lock size={16} />
+                        <span>Parol</span>
+                    </button>
+                )}
                 <button
                     className={`flex-1 w-full flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-[0.95rem] font-medium transition-all whitespace-nowrap cursor-pointer border-none outline-none ${activeTab === 'card' ? 'bg-primary text-white shadow-md' : 'bg-transparent text-text-muted hover:text-text hover:bg-white/5'}`}
                     onClick={() => setActiveTab('card')}

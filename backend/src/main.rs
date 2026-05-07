@@ -60,6 +60,13 @@ async fn main() -> std::io::Result<()> {
     let pool = db::create_pool(&config.database_url).await;
     tracing::info!("Ma'lumotlar bazasiga ulandi");
 
+    // 3.1 Migratsiyalarni ishga tushirish
+    sqlx::migrate!("./migrations")
+        .run(&pool)
+        .await
+        .expect("❌ Migratsiyalarni bajarib bo'lmadi");
+    tracing::info!("Ma'lumotlar bazasi migratsiyalari muvaffaqiyatli bajarildi");
+
     // 4. Server manzili
     let server_addr = format!("{}:{}", config.server_host, config.server_port);
     tracing::info!(address = %server_addr, "Server ishga tushmoqda");
