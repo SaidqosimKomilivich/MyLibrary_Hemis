@@ -2,7 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
-const BACKEND_URL = process.env.VITE_BACKEND_URL || 'http://localhost:8080'
+const BACKEND_URL = process.env.VITE_BACKEND_URL || 'http://localhost:8087'
 
 // https://vite.dev/config/
 export default defineConfig({

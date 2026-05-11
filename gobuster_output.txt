@@ -1,3 +1,0 @@
-api                 [36m (Status: 301)[0m [Size: 169][34m [--> http://10.42.0.241/api/][0m
-assets              [36m (Status: 301)[0m [Size: 169][34m [--> http://10.42.0.241/assets/][0m
-uploads             [36m (Status: 301)[0m [Size: 169][34m [--> http://10.42.0.241/uploads/][0m

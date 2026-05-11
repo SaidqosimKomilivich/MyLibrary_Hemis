@@ -1,12 +1,13 @@
+# ===================================================
+# MyLibrary — Docker Compose konfiguratsiyasi
+# ===================================================
+
 services:
   db:
     image: postgres:15-alpine
     container_name: kutubxona_db
     env_file:
-      - .env.db              # DB_PASSWORD shu fayldan o'qiladi
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_DB: kutubxona_db
+      - backend/.env
     # XAVFSIZLIK: DB porti tashqariga ochilmaydi (faqat ichki network)
     expose:
       - "5432"
@@ -32,15 +33,11 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    environment:
-      DATABASE_URL: postgres://postgres:Farishtam%40localhost@db:5432/kutubxona_db
-      SERVER_HOST: 0.0.0.0
-      SERVER_PORT: 8080
     env_file:
-      - ./backend/.env
+      - backend/.env
     # XAVFSIZLIK: Backend porti ham faqat ichki network orqali (nginx proksi)
     expose:
-      - "8080"
+      - "8087"
     volumes:
       - app_uploads:/app/uploads
     restart: always
@@ -58,7 +55,7 @@ services:
     depends_on:
       - backend
     ports:
-      - "80:80"
+      - "5176:80"
     volumes:
       - app_uploads:/app/uploads:ro
     restart: always
@@ -78,7 +75,7 @@ services:
       - ./backups:/backups
       - ./backup.sh:/backup.sh
     env_file:
-      - .env.db              # DB_PASSWORD shu fayldan o'qiladi
+      - backend/.env
     environment:
       PGUSER: postgres
       PGHOST: db
@@ -90,4 +87,3 @@ services:
 volumes:
   bdata:
   app_uploads:
-

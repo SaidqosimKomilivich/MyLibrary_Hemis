@@ -8,6 +8,9 @@ DB_NAME=${PGDB:-kutubxona_db}
 DATE=$(date +%Y-%m-%d_%H-%M-%S)
 BACKUP_FILE="${BACKUP_DIR}/${DB_NAME}_${DATE}.dump"
 
+# PGPASSWORD docker-compose environment dan keladi
+export PGPASSWORD="${PGPASSWORD}"
+
 echo "[$(date)] Zaxira nusxalarini yaratish boshlandi..."
 
 # Eski zaxira nusxani o'chirish
