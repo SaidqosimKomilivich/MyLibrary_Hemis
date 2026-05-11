@@ -1,14 +1,12 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { X, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Search } from 'lucide-react'
+import { X, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Search, AlertTriangle } from 'lucide-react'
 import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
 
-// Worker setup for Vite — ?url import ensures Vite bundles the worker as a separate asset
-// with the correct URL and MIME type (application/javascript)
-import pdfjsWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
-pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl
+// Worker setup for guaranteed compatibility
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 // Module-level cache: fileUrl -> blobUrl
 const pdfCache = new Map<string, string>()
@@ -398,6 +396,24 @@ export default function PdfViewerModal({ title, fileUrl, onClose }: PdfViewerMod
                                 console.error("PDF yuklashda xatolik:", error);
                                 setLoading(false);
                             }}
+                            error={
+                                <div className="flex flex-col items-center justify-center p-10 text-center gap-4">
+                                    <AlertTriangle size={48} className="text-rose-500 opacity-50" />
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-rose-400 text-lg font-semibold">PDF faylini ko'rsatib bo'lmadi</span>
+                                        <span className="text-text-muted text-sm max-w-80">
+                                            Fayl formati noto'g'ri yoki render qilishda xatolik yuz berdi.
+                                            Sahifani yangilab qaytadan urinib ko'ring.
+                                        </span>
+                                    </div>
+                                    <button 
+                                        onClick={handleClose}
+                                        className="mt-2 px-6 py-2 rounded-xl bg-white/5 text-text hover:bg-white/10 transition-all border border-white/10 font-medium"
+                                    >
+                                        Yopish
+                                    </button>
+                                </div>
+                            }
                             loading={null}
                             className="flex flex-col items-center w-full"
                         >

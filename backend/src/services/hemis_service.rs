@@ -538,6 +538,8 @@ impl HemisService {
                 };
 
                 let existing = UserRepository::find_by_user_id(pool, &user_id).await?;
+                // HEMIS rasmlarini olmaslik uchun None beramiz
+                let image_url: Option<&str> = None;
 
                 if existing.is_some() {
                     UserRepository::update_employee_info(
@@ -565,7 +567,7 @@ impl HemisService {
                         short_name.as_deref(),
                         birth_date,
                         image_url,
-                        0i64, // id_card yangi yaratilganda 0 dan boshlanadi (yuklab olish soni)
+                        0i64, // id_card yangi yaratilganda 0 dan boshlanadi
                         department_name.as_deref(),
                         staff_position.as_deref(),
                     )

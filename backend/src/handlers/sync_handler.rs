@@ -1,5 +1,7 @@
 use actix_web::{web, HttpResponse};
 use sqlx::PgPool;
+use uuid::Uuid;
+use std::str::FromStr;
 
 use crate::config::Config;
 use crate::dto::user::{PaginatedUsersResponse, UserPaginationInfo, UserPaginationParams};

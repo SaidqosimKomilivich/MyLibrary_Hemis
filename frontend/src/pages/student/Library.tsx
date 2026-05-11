@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { Search, Plus, X, Layers, CheckCircle, XCircle, AlertTriangle, BookOpen } from 'lucide-react'
 import { api, type Book } from '../../services/api'
 import { toast } from 'react-toastify'
@@ -349,9 +350,9 @@ export default function Library() {
             />
 
             {/* Per-book toggle modal */}
-            {toggleBook && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-999 flex items-center justify-center p-4" onClick={() => !isToggling && setToggleBook(null)}>
-                    <div className="bg-surface border border-border rounded-2xl w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+            {toggleBook && createPortal(
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-9999 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => !isToggling && setToggleBook(null)}>
+                    <div className="bg-surface border border-border rounded-2xl w-full max-w-lg flex flex-col shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
                         {/* Header */}
                         <div className={`flex items-center gap-3 p-5 rounded-t-2xl border-b ${toggleBook.is_active
                             ? 'bg-red-500/10 border-red-500/20'
@@ -362,28 +363,28 @@ export default function Library() {
                                 : <CheckCircle size={20} className="text-emerald-400 shrink-0" />
                             }
                             <div>
-                                <h3 className="font-bold text-text text-sm">
+                                <h3 className="font-bold text-text text-[0.95rem]">
                                     {toggleBook.is_active ? 'Kitobni nofaollashtirish' : 'Kitobni faollashtirish'}
                                 </h3>
-                                <p className="text-xs text-text-muted mt-0.5 truncate max-w-55">"{toggleBook.title}"</p>
+                                <p className="text-xs text-text-muted mt-0.5 truncate max-w-[280px]">"{toggleBook.title}"</p>
                             </div>
                         </div>
 
                         {/* Body */}
-                        <div className="p-5 flex gap-3">
+                        <div className="p-6 flex gap-4">
                             {toggleBook.cover_image_url ? (
-                                <img src={toggleBook.cover_image_url} alt="" className="w-12 h-16 object-cover rounded-lg border border-border shrink-0" />
+                                <img src={toggleBook.cover_image_url} alt="" className="w-16 h-22 object-cover rounded-xl border border-border shadow-sm shrink-0" />
                             ) : (
-                                <div className="w-12 h-16 bg-white/5 border border-border rounded-lg flex items-center justify-center shrink-0">
-                                    <BookOpen size={16} className="text-text-muted" />
+                                <div className="w-16 h-22 bg-white/5 border border-border rounded-xl flex items-center justify-center shrink-0">
+                                    <BookOpen size={24} className="text-text-muted opacity-40" />
                                 </div>
                             )}
-                            <div className="min-w-0">
-                                <p className="font-semibold text-sm text-text truncate">{toggleBook.title}</p>
-                                <p className="text-xs text-text-muted">{toggleBook.author}</p>
-                                <p className="text-xs text-text-muted mt-2">
+                            <div className="min-w-0 flex flex-col justify-center">
+                                <p className="font-bold text-lg text-text truncate leading-tight">{toggleBook.title}</p>
+                                <p className="text-sm text-text-muted mt-0.5">{toggleBook.author}</p>
+                                <p className="text-[0.85rem] text-text-muted mt-3 leading-relaxed opacity-80">
                                     {toggleBook.is_active
-                                        ? 'Kitob nofaollashtirilsa foydalanuvchilarga ko\'rinmaydi.'
+                                        ? 'Diqqat! Kitob nofaollashtirilsa foydalanuvchilarga (talabalarga) ko\'rinmaydi.'
                                         : 'Kitob faollashtirilsa barcha foydalanuvchilarga ko\'rinarli bo\'ladi.'
                                     }
                                 </p>
@@ -391,18 +392,18 @@ export default function Library() {
                         </div>
 
                         {/* Footer */}
-                        <div className="flex gap-3 justify-end p-5 border-t border-border">
+                        <div className="flex gap-3 justify-end p-5 border-t border-border bg-slate-500/5 rounded-b-2xl">
                             <button
                                 onClick={() => setToggleBook(null)}
                                 disabled={isToggling}
-                                className="px-4 py-2.5 border border-border rounded-xl text-sm font-medium text-text-muted hover:bg-white/5 transition-colors disabled:opacity-50"
+                                className="px-5 py-2.5 border border-border rounded-xl text-sm font-semibold text-text hover:bg-white/5 transition-all disabled:opacity-50"
                             >
                                 Bekor qilish
                             </button>
                             <button
                                 onClick={handleToggleConfirm}
                                 disabled={isToggling}
-                                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm disabled:opacity-50 ${toggleBook.is_active
+                                className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all shadow-md active:scale-95 disabled:opacity-50 ${toggleBook.is_active
                                     ? 'bg-red-500 hover:bg-red-600 text-white'
                                     : 'bg-emerald-500 hover:bg-emerald-600 text-white'
                                     }`}
@@ -410,31 +411,32 @@ export default function Library() {
                                 {isToggling
                                     ? <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
                                     : toggleBook.is_active
-                                        ? <XCircle size={15} />
-                                        : <CheckCircle size={15} />
+                                        ? <XCircle size={16} />
+                                        : <CheckCircle size={16} />
                                 }
                                 {isToggling ? 'Bajarilmoqda...' : toggleBook.is_active ? 'Nofaollashtirish' : 'Faollashtirish'}
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* ═══════════════════════════════════════════════════════
                 Bulk Toggle Modal — Barcha kitoblarni boshqarish
             ═══════════════════════════════════════════════════════ */}
-            {bulkModal && (
+            {bulkModal && createPortal(
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-999 flex items-center justify-center p-4" onClick={() => !isBulking && setBulkModal(false)}>
-                    <div className="bg-surface border border-border rounded-2xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+                    <div className="bg-surface border border-border rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
 
                         {/* Header */}
-                        <div className="flex items-center justify-between p-5 border-b border-border">
+                        <div className="flex items-center justify-between p-5 border-b border-border bg-slate-500/5">
                             <h3 className="flex items-center gap-2 font-bold text-text text-lg">
                                 <Layers size={20} className="text-primary-light" />
                                 Barcha kitoblarni boshqarish
                             </h3>
                             {!isBulking && (
-                                <button onClick={() => setBulkModal(false)} className="p-1.5 rounded-lg hover:bg-white/10 text-text-muted hover:text-text transition-colors">
+                                <button onClick={() => setBulkModal(false)} className="p-1.5 rounded-lg hover:bg-white/10 text-text-muted hover:text-text transition-colors border-none bg-transparent cursor-pointer">
                                     <X size={18} />
                                 </button>
                             )}
@@ -450,7 +452,7 @@ export default function Library() {
                                 <div className="grid grid-cols-2 gap-3">
                                     <button
                                         onClick={() => setBulkAction('activate')}
-                                        className="flex flex-col items-center gap-3 p-5 bg-emerald-500/10 border-2 border-emerald-500/30 hover:border-emerald-500 rounded-2xl text-emerald-400 transition-all hover:bg-emerald-500/20 group"
+                                        className="flex flex-col items-center gap-3 p-5 bg-emerald-500/10 border-2 border-emerald-500/30 hover:border-emerald-500 rounded-2xl text-emerald-400 transition-all hover:bg-emerald-500/20 group cursor-pointer"
                                     >
                                         <div className="w-14 h-14 rounded-full bg-emerald-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
                                             <CheckCircle size={28} />
@@ -462,7 +464,7 @@ export default function Library() {
                                     </button>
                                     <button
                                         onClick={() => setBulkAction('deactivate')}
-                                        className="flex flex-col items-center gap-3 p-5 bg-red-500/10 border-2 border-red-500/30 hover:border-red-500 rounded-2xl text-red-400 transition-all hover:bg-red-500/20 group"
+                                        className="flex flex-col items-center gap-3 p-5 bg-red-500/10 border-2 border-red-500/30 hover:border-red-500 rounded-2xl text-red-400 transition-all hover:bg-red-500/20 group cursor-pointer"
                                     >
                                         <div className="w-14 h-14 rounded-full bg-red-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
                                             <XCircle size={28} />
@@ -502,11 +504,11 @@ export default function Library() {
                         )}
 
                         {/* Footer */}
-                        <div className="flex items-center justify-between p-5 border-t border-border">
+                        <div className="flex items-center justify-between p-5 border-t border-border bg-slate-500/5">
                             <button
                                 onClick={() => bulkAction ? setBulkAction(null) : setBulkModal(false)}
                                 disabled={isBulking}
-                                className="px-4 py-2.5 border border-border rounded-xl text-sm font-medium text-text-muted hover:bg-white/5 transition-colors disabled:opacity-50"
+                                className="px-4 py-2.5 border border-border rounded-xl text-sm font-medium text-text-muted hover:bg-white/5 transition-colors disabled:opacity-50 cursor-pointer bg-transparent"
                             >
                                 {bulkAction ? '← Orqaga' : 'Bekor qilish'}
                             </button>
@@ -514,7 +516,7 @@ export default function Library() {
                                 <button
                                     onClick={handleBulkConfirm}
                                     disabled={isBulking}
-                                    className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm disabled:opacity-50 ${bulkAction === 'activate'
+                                    className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm disabled:opacity-50 cursor-pointer border-none ${bulkAction === 'activate'
                                         ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
                                         : 'bg-red-500 hover:bg-red-600 text-white'
                                         }`}
@@ -526,67 +528,102 @@ export default function Library() {
                                     ) : (
                                         <XCircle size={16} />
                                     )}
-                                    {isBulking ? 'Bajarilmoqda...' : bulkAction === 'activate' ? 'Barchasini faollashtirish' : 'Barchasini nofaollashtirish'}
+                                    {isBulking ? 'Bajarilmoqda...' : bulkAction === 'activate' ? 'Tasdiqlash' : 'Tasdiqlash'}
                                 </button>
                             )}
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* Request Book Modal */}
-            {requestModalOpen && requestBook && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-999 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => !isRequesting && setRequestModalOpen(false)}>
-                    <div className="w-full max-w-112.5 bg-surface rounded-2xl p-6 shadow-2xl border border-white/10 animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex justify-between items-center pb-4 mb-5 border-b border-white/10">
-                            <h3 className="m-0 text-[1.2rem] font-bold">Kitob so'rash</h3>
-                            <button onClick={() => !isRequesting && setRequestModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 border-none text-text-muted cursor-pointer transition-colors hover:bg-white/10 hover:text-white">
+            {requestModalOpen && requestBook && createPortal(
+                <div
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-999 flex items-center justify-center p-4 animate-in fade-in duration-200"
+                    onClick={() => !isRequesting && setRequestModalOpen(false)}
+                >
+                    <div
+                        className="bg-surface border border-border rounded-2xl w-full max-w-lg flex flex-col shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header - HEMIS Integration Style */}
+                        <div className="flex justify-between items-center p-5 bg-primary text-white shadow-md">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-white/20 rounded-lg">
+                                    <BookOpen size={20} />
+                                </div>
+                                <h3 className="m-0 text-lg font-bold">Kitob so'rash</h3>
+                            </div>
+                            <button
+                                onClick={() => !isRequesting && setRequestModalOpen(false)}
+                                className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/10 border-none text-white/80 cursor-pointer transition-all hover:bg-white/20 hover:text-white hover:rotate-90"
+                            >
                                 <X size={20} />
                             </button>
                         </div>
 
-                        <div className="mb-5">
-                            <div className="font-semibold text-[1.1rem] mb-1">{requestBook.title}</div>
-                            <div className="opacity-70 text-[0.9rem]">{requestBook.author}</div>
-                        </div>
+                        <div className="p-6">
+                            <div className="mb-6 p-4 bg-primary/5 border border-primary/10 rounded-xl">
+                                <div className="font-bold text-lg text-text mb-1 leading-tight">{requestBook.title}</div>
+                                <div className="text-text-muted text-[0.9rem] flex items-center gap-1.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-primary/40" />
+                                    {requestBook.author}
+                                </div>
+                            </div>
 
-                        <div className="mb-6">
-                            <label className="block mb-2 text-[0.9rem] opacity-80">Qanday shaklda kerak?</label>
-                            <CustomSelect
-                                value={requestType}
-                                onChange={(val) => setRequestType(val)}
-                                options={[
-                                    ...(requestBook.available_quantity === 0 ? [{ value: 'physical', label: 'Asl nusxa (kutish)' }] : []),
-                                    { value: 'electronic', label: 'Elektron variant (PDF/Audio)' },
-                                    ...(requestBook.available_quantity !== 0 ? [{ value: 'physical', label: 'Asl nusxa (kutish)' }] : [])
-                                ]}
-                                buttonClassName="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white outline-none text-[1rem] transition-colors focus:border-primary hover:bg-white/10"
-                            />
-                            <p className="mt-2.5 text-[0.8rem] opacity-60 leading-relaxed">
-                                {requestType === 'physical'
-                                    ? "Asl nusxani so'rashda, kitob kutubxonaga qaytganida yoki tayyor bo'lganida sizga xabar beramiz."
-                                    : "Agar kitobning elektron varianti bazamizda mavjud bo'lmasa, mutaxassis uni topib berishi mumkin."}
-                            </p>
-                        </div>
+                            <div className="mb-6">
+                                <label className="block mb-2.5 text-[0.9rem] font-semibold text-text-muted">Qanday shaklda kerak?</label>
+                                <CustomSelect
+                                    value={requestType}
+                                    onChange={(val) => setRequestType(val)}
+                                    options={[
+                                        ...(requestBook.available_quantity === 0 ? [{ value: 'physical', label: 'Asl nusxa (kutish)' }] : []),
+                                        { value: 'electronic', label: 'Elektron variant (PDF/Audio)' },
+                                        ...(requestBook.available_quantity !== 0 ? [{ value: 'physical', label: 'Asl nusxa (kutish)' }] : [])
+                                    ]}
+                                    buttonClassName="w-full p-3.5 rounded-xl bg-surface-hover border border-border text-text outline-none text-[1rem] transition-all focus:border-primary focus:ring-4 focus:ring-primary/10 hover:border-primary/50"
+                                />
+                                <div className="mt-3.5 p-3 rounded-lg bg-slate-500/5 border-l-4 border-primary/40 flex gap-3">
+                                    <AlertTriangle size={18} className="text-primary shrink-0 mt-0.5" />
+                                    <p className="m-0 text-[0.85rem] text-text-muted leading-relaxed italic">
+                                        {requestType === 'physical'
+                                            ? "Asl nusxani so'rashda, kitob kutubxonaga qaytganida yoki tayyor bo'lganida sizga xabar beramiz."
+                                            : "Agar kitobning elektron varianti bazamizda mavjud bo'lmasa, mutaxassis uni topib berishi mumkin."}
+                                    </p>
+                                </div>
+                            </div>
 
-                        <div className="flex gap-3 justify-end">
-                            <button
-                                onClick={() => setRequestModalOpen(false)}
-                                disabled={isRequesting}
-                                className="py-2.5 px-4 rounded-xl bg-transparent border border-white/10 text-white cursor-pointer transition-colors hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                Bekor qilish
-                            </button>
-                            <button
-                                onClick={handleRequestSubmit}
-                                disabled={isRequesting}
-                                className="flex items-center gap-2 py-2.5 px-4 rounded-xl bg-primary border-none text-white font-semibold cursor-pointer transition-colors hover:bg-primary-hover hover:shadow-[0_4px_12px_rgba(99,102,241,0.3)] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none bg-linear-to-br from-indigo-500 to-indigo-600"
-                            >
-                                {isRequesting ? 'Yuborilmoqda...' : "So'rov yuborish"}
-                            </button>
+                            <div className="flex gap-3 justify-end pt-2">
+                                <button
+                                    onClick={() => setRequestModalOpen(false)}
+                                    disabled={isRequesting}
+                                    className="py-3 px-6 rounded-xl bg-transparent border border-border text-text font-semibold cursor-pointer transition-all hover:bg-surface-hover active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    Bekor qilish
+                                </button>
+                                <button
+                                    onClick={handleRequestSubmit}
+                                    disabled={isRequesting}
+                                    className="flex items-center gap-2 py-3 px-6 rounded-xl bg-primary border-none text-white font-bold cursor-pointer transition-all hover:bg-primary-dark hover:shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                                >
+                                    {isRequesting ? (
+                                        <>
+                                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                            <span>Yuborilmoqda...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <CheckCircle size={18} />
+                                            <span>So'rov yuborish</span>
+                                        </>
+                                    )}
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     )
