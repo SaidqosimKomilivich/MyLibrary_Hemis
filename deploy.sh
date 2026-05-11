@@ -19,23 +19,23 @@ git pull origin main
 # 2. Eski konteynerlarni to'xtatish
 echo ""
 echo "[2/5] Eski konteynerlar to'xtatilmoqda..."
-docker compose -f docker-compose.prod.yml down --remove-orphans
+docker compose down --remove-orphans
 
 # 3. Yangi imejlarni build qilish
 echo ""
 echo "[3/5] Docker imejlari build qilinmoqda... (bu biroz vaqt olishi mumkin)"
-docker compose -f docker-compose.prod.yml build --no-cache
+docker compose build --no-cache
 
 # 4. Konteynerlarni ishga tushirish
 echo ""
 echo "[4/5] Konteynerlar ishga tushirilmoqda..."
-docker compose -f docker-compose.prod.yml up -d
+docker compose up -d
 
 # 5. Holat tekshiruvi
 echo ""
 echo "[5/5] Konteynerlar holati:"
 sleep 5
-docker compose -f docker-compose.prod.yml ps
+docker compose ps
 
 echo ""
 echo "======================================"

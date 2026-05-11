@@ -35,10 +35,6 @@ COPY --from=builder /usr/src/app/target/release/backend /usr/local/bin/backend
 RUN mkdir -p /app/uploads
 
 # Port
-EXPOSE 8080
-
-# 0.0.0.0 qilinishi docker container qulog'ini ochish uchun kerak
-ENV SERVER_HOST=0.0.0.0
-ENV SERVER_PORT=8080
+EXPOSE 8087
 
 CMD ["backend"]

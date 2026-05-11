@@ -3,14 +3,17 @@
 # ===================================================
 
 # Environment fayllar (maxfiy ma'lumotlar)
-# backend/.env
-# frontend/.env
-# frontend/.env.production
-# .env
-# .env.db
+.env
+.env.db
+backend/.env
+frontend/.env
+frontend/.env.production
 
 # Docker volumes va kesh
 .docker/
+
+# Zaxira nusxalar
+backups/
 
 # Operatsion sistema fayllar
 .DS_Store
