@@ -41,10 +41,10 @@ services:
         condition: service_healthy
     env_file:
       - backend/.env
-    # Backend port host Nginx uchun ochiladi (apilib.jbnuu.uz proksi uchun)
-    # Faqat loopback orqali — tashqi to'g'ridan kirish mumkin emas
-    ports:
-      - "127.0.0.1:8087:8087"
+    # XAVFSIZLIK: Backend porti tashqariga ochilmaydi
+    # Host Nginx uchun emas — frontend Nginx ichki network orqali proksi qiladi
+    expose:
+      - "8087"
     volumes:
       - kutubxona_uploads:/app/uploads
     networks:
