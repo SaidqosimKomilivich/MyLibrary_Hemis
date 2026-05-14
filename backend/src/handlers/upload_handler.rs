@@ -203,6 +203,7 @@ pub async fn delete_file(
 /// - Rasmlar (images): X-Accel-Redirect orqali Nginx tomonidan keshlangan holda tez qaytariladi
 /// - PDF va Audio: faqat autentifikatsiya bo'lgan foydalanuvchilarga, to'g'ridan-to'g'ri stream qilinadi
 pub async fn serve_file(
+    req: actix_web::HttpRequest,
     claims: Option<Claims>,
     path: web::Path<(String, String)>,
     config: web::Data<Config>,
@@ -231,28 +232,23 @@ pub async fn serve_file(
         return Err(AppError::NotFound("Fayl topilmadi".to_string()));
     }
 
-    // Content-Type aniqlash
-    let ext = file_path
-        .extension()
-        .and_then(|e| e.to_str())
-        .unwrap_or("")
-        .to_lowercase();
-
-    let content_type = match ext.as_str() {
-        "pdf"        => "application/pdf",
-        "png"        => "image/png",
-        "jpg" | "jpeg" => "image/jpeg",
-        "webp"       => "image/webp",
-        "gif"        => "image/gif",
-        "svg"        => "image/svg+xml",
-        "mp3"        => "audio/mpeg",
-        "ogg"        => "audio/ogg",
-        "wav"        => "audio/wav",
-        "m4a"        => "audio/mp4",
-        _            => "application/octet-stream",
-    };
-
     if is_image_subdir(&subdir) {
+        // Content-Type aniqlash (rasmlar uchun)
+        let ext = file_path
+            .extension()
+            .and_then(|e| e.to_str())
+            .unwrap_or("")
+            .to_lowercase();
+
+        let content_type = match ext.as_str() {
+            "png"        => "image/png",
+            "jpg" | "jpeg" => "image/jpeg",
+            "webp"       => "image/webp",
+            "gif"        => "image/gif",
+            "svg"        => "image/svg+xml",
+            _            => "image/jpeg",
+        };
+
         // ── Rasmlar: Nginx X-Accel-Redirect orqali keshlangan holda qaytariladi ──
         use actix_web::http::header::HeaderValue;
         let internal_path = format!("/internal_uploads/{}/{}", subdir, filename);
@@ -265,17 +261,17 @@ pub async fn serve_file(
             .insert_header(("Content-Disposition", "inline"))
             .finish())
     } else {
-        // ── PDF va Audio: To'g'ridan-to'g'ri backenddan stream qilinadi ──
-        // Bu usul JS fetch().blob() to'g'ri ishlashini ta'minlaydi
-        let file_bytes = std::fs::read(&filepath).map_err(|e| {
-            tracing::error!("Fayl o'qishda xatolik: {} — {}", filepath, e);
-            AppError::InternalError("Fayl o'qishda xatolik".to_string())
+        // ── PDF va Audio: True streaming with Range Request support ──
+        let named_file = actix_files::NamedFile::open(&filepath).map_err(|e| {
+            tracing::error!("Fayl ochishda xatolik: {} — {}", filepath, e);
+            AppError::InternalError("Fayl ochishda xatolik".to_string())
         })?;
 
-        Ok(HttpResponse::Ok()
-            .content_type(content_type)
-            .insert_header(("Content-Disposition", "inline"))
-            .insert_header(("Accept-Ranges", "bytes"))
-            .body(file_bytes))
+        Ok(named_file
+            .set_content_disposition(actix_web::http::header::ContentDisposition {
+                disposition: actix_web::http::header::DispositionType::Inline,
+                parameters: vec![],
+            })
+            .into_response(&req))
     }
 }

@@ -8,8 +8,7 @@ import 'react-pdf/dist/Page/TextLayer.css'
 // Worker setup for guaranteed compatibility
 pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
-// Module-level cache: fileUrl -> blobUrl
-const pdfCache = new Map<string, string>()
+// PDF Viewer Modal with Streaming support
 
 interface PdfViewerModalProps {
     title: string
@@ -32,49 +31,39 @@ export default function PdfViewerModal({ title, fileUrl, onClose }: PdfViewerMod
     const [pdfData, setPdfData] = useState<string | null>(null)
     const [fetchError, setFetchError] = useState(false)
     const [pageDimensions, setPageDimensions] = useState<{ [key: number]: { width: number; height: number } }>({})
+    const [loadedPages, setLoadedPages] = useState<Set<number>>(new Set([1, 2]))
     const searchMarkRefs = useRef<HTMLElement[]>([])
 
     const pdfWrapperRef = useRef<HTMLDivElement>(null)
     const pageRefs = useRef<(HTMLDivElement | null)[]>([])
 
-    // PDF faylni credentials bilan yuklaymiz (auth cookie kerak)
+    // PDF faylni to'g'ridan-to'g'ri URL orqali yuklaymiz (Range Request qo'llab-quvvatlanadi)
     useEffect(() => {
-        if (pdfCache.has(fileUrl)) {
-            setPdfData(pdfCache.get(fileUrl)!)
-            return
-        }
         setFetchError(false)
         setLoading(true)
-        fetch(fileUrl, { credentials: 'include' })
-            .then(res => {
-                if (!res.ok) throw new Error(`HTTP ${res.status}`)
-                return res.blob()
-            })
-            .then(blob => {
-                const objectUrl = URL.createObjectURL(blob)
-                pdfCache.set(fileUrl, objectUrl)
-                setPdfData(objectUrl)
-            })
-            .catch(() => {
-                setFetchError(true)
-                setLoading(false)
-            })
+        setPdfData(fileUrl)
     }, [fileUrl])
 
-    // Close handler: blob URL ni tozalaymiz
     const handleClose = () => {
-        const objectUrl = pdfCache.get(fileUrl)
-        if (objectUrl) {
-            URL.revokeObjectURL(objectUrl)
-            pdfCache.delete(fileUrl)
-        }
         onClose()
     }
 
     // Update input when page changes externally (e.g. scrolling, Next/Prev buttons)
+    // Also track which pages have been "loaded" (rendered at least once)
     useEffect(() => {
         setPageInput(pageNumber.toString())
-    }, [pageNumber])
+        
+        // Add current and next 2 pages to loadedPages set
+        setLoadedPages(prev => {
+            const next = new Set(prev)
+            next.add(pageNumber)
+            if (numPages) {
+                if (pageNumber + 1 <= numPages) next.add(pageNumber + 1)
+                if (pageNumber + 2 <= numPages) next.add(pageNumber + 2)
+            }
+            return next.size === prev.size ? prev : next
+        })
+    }, [pageNumber, numPages])
 
     // Intersection Observer to track which page is currently in view
     useEffect(() => {
@@ -237,11 +226,14 @@ export default function PdfViewerModal({ title, fileUrl, onClose }: PdfViewerMod
         }
     }
 
-    // List of pages to render
     const pagesList = useMemo(() => {
         if (!numPages) return []
         return Array.from(new Array(numPages), (_, index) => index + 1)
     }, [numPages])
+
+    const options = useMemo(() => ({
+        withCredentials: true
+    }), [])
 
     return createPortal(
         <div
@@ -391,6 +383,7 @@ export default function PdfViewerModal({ title, fileUrl, onClose }: PdfViewerMod
                     {pdfData && (
                         <Document
                             file={pdfData}
+                            options={options}
                             onLoadSuccess={onDocumentLoadSuccess}
                             onLoadError={(error) => {
                                 console.error("PDF yuklashda xatolik:", error);
@@ -419,7 +412,8 @@ export default function PdfViewerModal({ title, fileUrl, onClose }: PdfViewerMod
                         >
                             <div className="flex flex-col gap-6 pb-12 w-full items-center">
                                 {pagesList.map((page) => {
-                                    const isVisible = page === 1 || Math.abs(page - pageNumber) <= 3;
+                                    // Streaming logic: yuklangan sahifalar o'chirilmaydi, 2 ta oldindan yuklanadi
+                                    const isVisible = loadedPages.has(page);
                                     
                                     // Use known aspect ratio if loaded, otherwise fallback to standard A4 ratio roughly
                                     const dims = pageDimensions[page];
