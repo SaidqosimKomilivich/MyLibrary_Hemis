@@ -101,16 +101,11 @@ async fn main() -> std::io::Result<()> {
     ));
     tracing::info!("Rental-reminder scheduleri fonda ishga tushirildi");
 
+    // CORS ni config.cors_allowed_origins asosida dinamik tuzamiz
+    let cors_origins = config.cors_allowed_origins.clone();
+
     HttpServer::new(move || {
-        let cors = actix_cors::Cors::default()
-            .allowed_origin("http://localhost:5173")
-            .allowed_origin("http://127.0.0.1:5173")
-            .allowed_origin("http://localhost:5176")
-            .allowed_origin("http://127.0.0.1:5176")
-            .allowed_origin("http://10.42.0.241:5176")
-            .allowed_origin("http://10.42.0.241:5173")
-            .allowed_origin("http://10.42.0.241")
-            .allowed_origin("http://localhost")
+        let mut cors = actix_cors::Cors::default()
             .allowed_methods(vec!["GET", "POST", "PUT", "PATCH", "DELETE"])
             .allowed_headers(vec![
                 actix_web::http::header::CONTENT_TYPE,
@@ -118,6 +113,12 @@ async fn main() -> std::io::Result<()> {
                 actix_web::http::header::ACCEPT,
             ])
             .supports_credentials();
+
+        // CORS_ALLOWED_ORIGINS dan kelgan barcha manzillarni qo'shamiz
+        for origin in &cors_origins {
+            cors = cors.allowed_origin(origin.as_str());
+        }
+
         App::new()
             .wrap(cors)
             // Tracing middleware (har bir so'rovni loglash)

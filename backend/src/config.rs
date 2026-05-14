@@ -15,6 +15,9 @@ pub struct Config {
     pub hemis_base_url: String,
     pub hemis_token: String,
     pub hemis_skip_ssl: bool,
+    /// CORS ruxsat etilgan manzillar (vergul bilan ajratilgan)
+    /// Misol: https://yourdomain.uz,https://www.yourdomain.uz
+    pub cors_allowed_origins: Vec<String>,
 }
 
 impl Config {
@@ -48,6 +51,14 @@ impl Config {
                 .unwrap_or_else(|_| "true".to_string())
                 .to_lowercase()
                 == "true",
+            cors_allowed_origins: env::var("CORS_ALLOWED_ORIGINS")
+                .unwrap_or_else(|_| {
+                    "http://localhost:5173,http://localhost:5176,http://localhost".to_string()
+                })
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect(),
         }
     }
 }
