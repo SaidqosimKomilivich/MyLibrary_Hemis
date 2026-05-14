@@ -88,6 +88,9 @@ async fn main() -> std::io::Result<()> {
     tracing::info!(upload_dir = %upload_dir, "Uploads papkasi tayyor");
 
     // 6. HTTP Serverni ishga tushirish
+    // CORS ni config.cors_allowed_origins asosida dinamik tuzamiz
+    // (config moved bo'lishidan OLDIN olinishi kerak!)
+    let cors_origins = config.cors_allowed_origins.clone();
     let config_data = web::Data::new(config);
     let pool_data = web::Data::new(pool.clone());
     let message_service_instance = std::sync::Arc::new(MessageService::new());
@@ -101,8 +104,6 @@ async fn main() -> std::io::Result<()> {
     ));
     tracing::info!("Rental-reminder scheduleri fonda ishga tushirildi");
 
-    // CORS ni config.cors_allowed_origins asosida dinamik tuzamiz
-    let cors_origins = config.cors_allowed_origins.clone();
 
     HttpServer::new(move || {
         let mut cors = actix_cors::Cors::default()
