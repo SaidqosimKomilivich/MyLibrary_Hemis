@@ -80,11 +80,68 @@
     box-sizing: border-box;
     margin: 0;
     padding: 0;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 
   * {
     box-sizing: inherit;
   }
+
+  /* Accessibility Focus Styles */
+  :focus-visible {
+    outline: 3px solid var(--color-primary);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* High Contrast Mode Variables */
+  .high-contrast {
+    --color-bg-base: #000000;
+    --color-canvas-base: #000000;
+    --color-surface-base: #000000;
+    --color-surface-hover-base: #1a1a1a;
+    --color-text-base: #ffffff; /* White text for better readability */
+    --color-text-muted-base: #ffff00; /* Yellow for labels/muted text */
+    --color-border-base: #ffffff;
+    --color-primary-base: #ffff00; /* Yellow for primary accents */
+    --color-primary-light-base: #ffffff;
+    --color-primary-dark-base: #ffffff;
+    --shadow-card-base: none;
+  }
+
+  .high-contrast :focus-visible {
+    outline: 4px solid #ffff00;
+    outline-offset: 4px;
+  }
+
+  /* Screen Reader Skip Link */
+  .skip-link {
+    position: absolute;
+    top: -100px;
+    left: 0;
+    background: #ffff00;
+    color: #000000; /* High contrast: Black on Yellow */
+    padding: 10px 20px;
+    font-weight: bold;
+    z-index: 1000;
+    transition: top 0.3s;
+    border: 2px solid #000000;
+  }
+
+  .skip-link:focus {
+    top: 0;
+  }
+
+  /* Large Text Utility */
+  .large-text {
+    font-size: 1.25rem !important;
+    line-height: 1.6 !important;
+  }
+
+  .large-text h1 { font-size: 2.5rem !important; }
+  .large-text h2 { font-size: 2rem !important; }
+  .large-text h3 { font-size: 1.75rem !important; }
+  .large-text p, .large-text span, .large-text button, .large-text input { font-size: 1.25rem !important; }
 }
 
 @keyframes float {

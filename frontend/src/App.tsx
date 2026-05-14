@@ -4,7 +4,10 @@ import 'react-toastify/dist/ReactToastify.css'
 import { AuthProvider } from './context/AuthContext'
 import { AudioProvider } from './context/AudioContext'
 import { ThemeProvider, useTheme } from './context/ThemeContext'
+import { AccessibilityProvider } from './context/AccessibilityContext'
 import AudioPlayerModal from './components/AudioPlayerModal'
+import AccessibilityToolbar from './components/AccessibilityToolbar'
+import ScreenReaderHover from './components/ScreenReaderHover'
 import Login from './pages/Login'
 import LandingPage from './pages/LandingPage'
 import PublicNewsPage from './pages/PublicNewsPage'
@@ -146,6 +149,8 @@ function AppContent() {
           />
           <AnimatedRoutes />
           <AudioPlayerModal />
+          <AccessibilityToolbar />
+          <ScreenReaderHover />
         </AudioProvider>
       </AuthProvider>
     </BrowserRouter>
@@ -155,7 +160,9 @@ function AppContent() {
 function App() {
   return (
     <ThemeProvider>
-      <AppContent />
+      <AccessibilityProvider>
+        <AppContent />
+      </AccessibilityProvider>
     </ThemeProvider>
   )
 }

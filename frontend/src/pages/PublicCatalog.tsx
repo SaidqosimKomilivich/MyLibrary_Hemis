@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { Search, Loader2, BookOpen, Layers, ArrowLeft } from 'lucide-react';
+import { Search, Loader2, BookOpen, Layers, ArrowLeft, Mic, MicOff } from 'lucide-react';
+import { startVoiceSearch } from '../utils/voiceSearch';
 import { api, type Book } from '../services/api';
 import { highlightText } from '../utils/highlightText';
 import { getFileUrl } from '../utils/fileUrl';
@@ -24,6 +25,7 @@ const PublicCatalog = () => {
     const [totalPages, setTotalPages] = useState(1);
 
     const [searchInput, setSearchInput] = useState(searchQuery);
+    const [isListening, setIsListening] = useState(false);
 
     const fetchBooks = async () => {
         setIsLoading(true);
@@ -96,6 +98,23 @@ const PublicCatalog = () => {
         navigate('/login', { state: { returnToBookId: bookId } });
     };
 
+    const toggleVoiceSearch = () => {
+        if (isListening) {
+            setIsListening(false);
+            return;
+        }
+
+        setIsListening(true);
+        startVoiceSearch(
+            (text) => {
+                setSearchInput(text);
+                setSearchParams({ q: text, category: categoryQuery, page: '1' });
+            },
+            () => setIsListening(false),
+            (err) => toast.error(err)
+        );
+    };
+
     return (
         <div className="w-full flex flex-col">
             {/* Universal Search Bar */}
@@ -111,8 +130,17 @@ const PublicCatalog = () => {
                             value={searchInput}
                             onChange={(e) => setSearchInput(e.target.value)}
                             placeholder="Kitob nomi, muallif yoki qidiring..."
-                            className="w-full bg-surface border border-border/80 text-text rounded-full py-3.5 pl-12 pr-4 focus:outline-none focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/10 transition-all text-[0.95rem]"
+                            aria-label="Kitob qidirish"
+                            className="w-full bg-surface border border-border/80 text-text rounded-full py-3.5 pl-12 pr-14 focus:outline-none focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/10 transition-all text-[0.95rem]"
                         />
+                        <button 
+                            type="button"
+                            onClick={toggleVoiceSearch}
+                            aria-label={isListening ? "Ovozli qidiruvni to'xtatish" : "Ovozli qidiruvni boshlash"}
+                            className={`absolute inset-y-0 right-2 flex items-center px-3 text-text-muted hover:text-emerald-500 transition-colors ${isListening ? 'text-emerald-500 animate-pulse' : ''}`}
+                        >
+                            {isListening ? <MicOff size={20} /> : <Mic size={20} />}
+                        </button>
                         <button type="submit" className="hidden"></button>
                     </form>
                 </div>
@@ -175,6 +203,10 @@ const PublicCatalog = () => {
                                     <div
                                         key={book.id}
                                         onClick={() => handleBookClick(book.id)}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleBookClick(book.id)}
+                                        tabIndex={0}
+                                        role="button"
+                                        aria-label={`${book.title}, muallifi: ${book.author}. Batafsil ma'lumot uchun bosing.`}
                                         className="group bg-surface border border-border/50 rounded-2xl overflow-hidden hover:border-emerald-500/50 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-emerald-500/10 cursor-pointer flex flex-col"
                                     >
                                         <div className="aspect-2/3 bg-surface-hover flex items-center justify-center border-b border-border/50 relative overflow-hidden shrink-0">

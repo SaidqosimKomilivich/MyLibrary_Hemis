@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { BookOpen, Edit, Trash2, FileText, Headphones, Eye, MapPin, PlusCircle, MinusCircle, ToggleLeft, ToggleRight, Clock } from 'lucide-react'
+import { BookOpen, Edit, Trash2, FileText, Headphones, Eye, MapPin, PlusCircle, MinusCircle, ToggleLeft, ToggleRight, Clock, Volume2 } from 'lucide-react'
 import type { Book } from '../services/api'
 import { highlightText } from '../utils/highlightText'
 import { getFileUrl } from '../utils/fileUrl'
+import { speak } from '../utils/speechSynthesis'
 
 interface BookCardProps {
     book: Book
@@ -26,6 +27,12 @@ export default function BookCard({ book, role, onEdit, onDelete, onToggleActive,
     const isAudioFormat = book.format?.toLowerCase() === 'audio'
     const hasPdf = hasDigitalFile && !isAudioFormat  // audio bo'lmasa → PDF/Elektron
     const hasAudio = hasDigitalFile && isAudioFormat
+
+    const handleSpeak = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        const textToSpeak = `${book.title}. Muallifi: ${book.author}. ${book.description || ''}`;
+        speak(textToSpeak);
+    };
 
     return (
         <div className="group relative bg-surface border border-border rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(0,0,0,0.4)] hover:border-white/10 flex flex-col h-full">
@@ -66,6 +73,15 @@ export default function BookCard({ book, role, onEdit, onDelete, onToggleActive,
                             {book.language}
                         </span>
                     )}
+                    {/* Speak Button */}
+                    <button
+                        onClick={handleSpeak}
+                        className="w-8 h-8 rounded-lg bg-primary/80 text-white flex items-center justify-center border-none cursor-pointer shadow-lg transition-transform hover:scale-110 active:scale-95 pointer-events-auto"
+                        aria-label="Tavsifni tinglash"
+                        title="Tavsifni tinglash"
+                    >
+                        <Volume2 size={16} />
+                    </button>
                 </div>
 
                 {/* Add to reading button — faqat fayli bor kitoblar uchun */}
