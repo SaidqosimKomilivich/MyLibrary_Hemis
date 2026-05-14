@@ -1,7 +1,3 @@
-# ===================================================
-# Root .gitignore - Maxfiy va keraksiz fayllar
-# ===================================================
-
 # Environment fayllar (maxfiy ma'lumotlar)
 .env
 .env.db
@@ -29,3 +25,5 @@ Thumbs.db
 *.png
 *.jpg
 *.jpeg
+
+DEPLOYMENT.md

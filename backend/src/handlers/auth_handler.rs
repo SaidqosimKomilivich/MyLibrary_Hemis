@@ -31,7 +31,8 @@ fn create_access_cookie(token: &str, max_age_minutes: i64) -> Cookie<'static> {
     Cookie::build("access_token", token.to_string())
         .path("/")
         .http_only(true)
-        .same_site(SameSite::Lax)
+        .secure(true)                  // HTTPS orqali yuboriladi
+        .same_site(SameSite::None)     // Cross-origin domenlar uchun (lib.jbnuu.uz → apilib.jbnuu.uz)
         .max_age(CookieDuration::minutes(max_age_minutes))
         .finish()
 }
@@ -41,7 +42,8 @@ fn create_refresh_cookie(token: &str, max_age_days: i64) -> Cookie<'static> {
     Cookie::build("refresh_token", token.to_string())
         .path("/api/auth")
         .http_only(true)
-        .same_site(SameSite::Lax)
+        .secure(true)                  // HTTPS orqali yuboriladi
+        .same_site(SameSite::None)     // Cross-origin domenlar uchun (lib.jbnuu.uz → apilib.jbnuu.uz)
         .max_age(CookieDuration::days(max_age_days))
         .finish()
 }
@@ -51,7 +53,8 @@ fn create_removal_cookie(name: &str, path: &str) -> Cookie<'static> {
     Cookie::build(name.to_string(), "".to_string())
         .path(path.to_string())
         .http_only(true)
-        .same_site(SameSite::Lax)
+        .secure(true)                  // HTTPS orqali yuboriladi
+        .same_site(SameSite::None)     // Cross-origin domenlar uchun (lib.jbnuu.uz → apilib.jbnuu.uz)
         .max_age(CookieDuration::ZERO)
         .finish()
 }
