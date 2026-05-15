@@ -85,68 +85,51 @@ export default function ProfilePage() {
     }
 
 
-    const handleDownloadCard = async () => {
+    const handleDownloadCard = async (side: 'front' | 'back') => {
         if (!frontRef.current || !backRef.current || downloading) return
         setDownloading(true)
 
-        // Capture options
-        const opts = { cacheBust: true, pixelRatio: 1, backgroundColor: '#ffffff', skipFonts: true }
+        // Capture options - increased pixelRatio for better quality
+        const opts = { cacheBust: true, pixelRatio: 2, backgroundColor: '#ffffff', skipFonts: false }
 
         try {
-            // ── Front side ──
-            const frontDataUrl = await toPng(frontRef.current, opts)
+            let dataUrl = ''
+            let fileNameSuffix = ''
 
-            // ── Back side: temporarily make it visible (undo 3D flip) ──
-            const backEl = backRef.current
-            const prevTransform = backEl.style.transform
-            const prevBackface = backEl.style.backfaceVisibility
-            backEl.style.transform = 'rotateY(0deg)'
-            backEl.style.backfaceVisibility = 'visible'
+            if (side === 'front') {
+                dataUrl = await toPng(frontRef.current, opts)
+                fileNameSuffix = '_old'
+            } else {
+                // ── Back side: temporarily make it visible (undo 3D flip) ──
+                const backEl = backRef.current
+                const prevTransform = backEl.style.transform
+                const prevBackface = backEl.style.backfaceVisibility
+                backEl.style.transform = 'rotateY(0deg)'
+                backEl.style.backfaceVisibility = 'visible'
 
-            const backDataUrl = await toPng(backEl, opts)
+                dataUrl = await toPng(backEl, opts)
+                fileNameSuffix = '_orqa'
 
-            // Restore back side transform
-            backEl.style.transform = prevTransform
-            backEl.style.backfaceVisibility = prevBackface
+                // Restore back side transform
+                backEl.style.transform = prevTransform
+                backEl.style.backfaceVisibility = prevBackface
+            }
 
-            // ── Stitch front + back vertically on a canvas ──
-            const [frontImg, backImg] = await Promise.all([
-                new Promise<HTMLImageElement>((resolve) => {
-                    const img = new Image(); img.onload = () => resolve(img); img.src = frontDataUrl
-                }),
-                new Promise<HTMLImageElement>((resolve) => {
-                    const img = new Image(); img.onload = () => resolve(img); img.src = backDataUrl
-                }),
-            ])
-
-            const gap = 20 // px between front and back
-            const canvas = document.createElement('canvas')
-            canvas.width = Math.max(frontImg.width, backImg.width)
-            canvas.height = frontImg.height + gap + backImg.height
-            const ctx = canvas.getContext('2d')!
-            ctx.fillStyle = '#f0f0f0'
-            ctx.fillRect(0, 0, canvas.width, canvas.height)
-            ctx.drawImage(frontImg, 0, 0)
-            ctx.drawImage(backImg, 0, frontImg.height + gap)
-
-            const combinedDataUrl = canvas.toDataURL('image/png')
-
-            // ── Increment download counter once ──
+            // ── Increment download counter ──
             api.incrementIdCardDownload().catch(() => { })
 
             // ── Save / share ──
-            const fileName = `${user.full_name || 'id-card'}_id_karta`
+            const fileName = `${user.full_name || 'id-card'}_id_karta${fileNameSuffix}`
             if (navigator.canShare && navigator.canShare({ files: [] })) {
                 try {
-                    const blob = await (await fetch(combinedDataUrl)).blob()
+                    const blob = await (await fetch(dataUrl)).blob()
                     const file = new File([blob], `${fileName}.png`, { type: 'image/png' })
                     await navigator.share({ files: [file], title: fileName })
-                    URL.revokeObjectURL(combinedDataUrl)
                 } catch {
-                    downloadImage(combinedDataUrl, fileName)
+                    downloadImage(dataUrl, fileName)
                 }
             } else {
-                downloadImage(combinedDataUrl, fileName)
+                downloadImage(dataUrl, fileName)
             }
 
         } catch (e) {
@@ -561,16 +544,22 @@ export default function ProfilePage() {
                             </div>
                         </div>
 
-                        <div className='grid grid-cols-2 pt-5 gap-5'>
-                            <button className='flex justify-center items-center gap-3 p-2.5 bg-gray-400 hover:bg-gray-300 hover:text-black rounded-2xl transition-transform duration-150 active:scale-85' onClick={() => setCardFlipped(!cardFlipped)}>
+                        <div className='flex flex-col gap-4 pt-5 w-full'>
+                            <button className='flex justify-center items-center gap-3 p-3 bg-surface-hover hover:bg-white/10 text-text-muted hover:text-text rounded-xl border border-border transition-all active:scale-95 font-medium cursor-pointer' onClick={() => setCardFlipped(!cardFlipped)}>
                                 <RotateCw size={18} />
-                                {cardFlipped ? "Old tomon" : "Orqa tomon"}
+                                {cardFlipped ? "Old tomonni ko'rish" : "Orqa tomonni ko'rish"}
                             </button>
 
-                            <button className='flex justify-center items-center gap-3 p-2.5 bg-green-400 hover:bg-green-300 hover:text-black transition-transform duration-150 active:scale-75 rounded-2xl disabled:opacity-60 disabled:cursor-not-allowed' onClick={handleDownloadCard} disabled={downloading}>
-                                {downloading ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
-                                {downloading ? 'Yuklanmoqda...' : 'Yuklab olish'}
-                            </button>
+                            <div className='grid grid-cols-2 gap-4'>
+                                <button className='flex justify-center items-center gap-3 p-3 bg-primary hover:bg-primary-hover text-white transition-all active:scale-95 rounded-xl disabled:opacity-60 disabled:cursor-not-allowed font-medium shadow-md cursor-pointer' onClick={() => handleDownloadCard('front')} disabled={downloading}>
+                                    {downloading ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
+                                    Old tomon
+                                </button>
+                                <button className='flex justify-center items-center gap-3 p-3 bg-primary hover:bg-primary-hover text-white transition-all active:scale-95 rounded-xl disabled:opacity-60 disabled:cursor-not-allowed font-medium shadow-md cursor-pointer' onClick={() => handleDownloadCard('back')} disabled={downloading}>
+                                    {downloading ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
+                                    Orqa tomon
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )}
