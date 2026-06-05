@@ -113,6 +113,7 @@ export default function AccessControl() {
     // 1. Scanner instance ref
     const scannerRef = useRef<Html5Qrcode | null>(null);
     const [, setScannerActive] = useState(false);
+    const isScanningRef = useRef(false);
 
     // Kamerani ishga tushirish
     const startScanner = useCallback(() => {
@@ -190,6 +191,7 @@ export default function AccessControl() {
         setActiveRentals([])
         setUserIsInside(false)
         setScanInput('')
+        isScanningRef.current = false
         // Kamerani qayta ishga tushirish
         startScanner();
     }, [startScanner]);
@@ -206,8 +208,9 @@ export default function AccessControl() {
         }
 
         // Agar hozir skanerlanayotgan bo'lsa kutamiz
-        if (isScanning) return;
+        if (isScanningRef.current) return;
 
+        isScanningRef.current = true;
         setIsScanning(true)
         setScannedUser(null)
         setActiveRentals([])
@@ -259,8 +262,11 @@ export default function AccessControl() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         catch (err: any) {
             toast.error(err.message || "Foydalanuvchi topilmadi. ID karta raqamini tekshiring.")
+            // Qayta skanerlash uchun 2 soniya kutish (cooldown) orqali takroriy bildirishnomalarni oldini olamiz
+            await new Promise(resolve => setTimeout(resolve, 2000));
         } finally {
             setIsScanning(false)
+            isScanningRef.current = false;
         }
     }
 
