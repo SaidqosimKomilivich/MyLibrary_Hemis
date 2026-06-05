@@ -373,6 +373,10 @@ export default function AccessControl() {
 
     // Kameralar ro'yxatini olish
     const getDevices = async () => {
+        if (!navigator || !navigator.mediaDevices) {
+            toast.error("Brauzer kamerani qo'llab-quvvatlamaydi. Tizimga localhost yoki HTTPS (xavfsiz protokol) orqali kiring!");
+            return;
+        }
         try {
             await navigator.mediaDevices.getUserMedia({ video: true });
             setPermissionGranted(true);
@@ -384,9 +388,18 @@ export default function AccessControl() {
 
             if (videoDevices.length > 0 && !selectedDeviceId) {
                 setSelectedDeviceId(videoDevices[0].deviceId);
+            } else if (videoDevices.length === 0) {
+                toast.warning("Tizimga ulangan kameralar topilmadi!");
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Kamera ruxsati berilmadi:", error);
+            if (error.name === 'NotAllowedError') {
+                toast.error("Kameraga kirishga ruxsat berilmadi! Iltimos, brauzer sozlamalaridan ruxsat bering.");
+            } else if (error.name === 'NotFoundError') {
+                toast.error("Ulangan kamera qurilmasi topilmadi.");
+            } else {
+                toast.error("Kamerani ulashda xatolik: " + (error.message || error));
+            }
         }
     };
 
