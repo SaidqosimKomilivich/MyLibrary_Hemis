@@ -13,7 +13,7 @@ export default function Login() {
 
     // Captcha states
     const [captchaId, setCaptchaId] = useState('')
-    const [captchaText, setCaptchaText] = useState('')
+    const [captchaImage, setCaptchaImage] = useState('')  // base64 SVG rasm
     const [captchaValue, setCaptchaValue] = useState('')
 
     // Block timer states
@@ -37,7 +37,7 @@ export default function Login() {
             const res = await api.getCaptcha()
             if (res.success) {
                 setCaptchaId(res.captcha_id)
-                setCaptchaText(res.text)
+                setCaptchaImage(res.image)  // matn emas, rasm
                 setCaptchaValue('') // reset local input
             }
         } catch {
@@ -233,14 +233,17 @@ export default function Login() {
                     </div>
 
                     {/* Math CAPTCHA */}
-                    {!blockedUntil && captchaText && (
+                    {!blockedUntil && captchaImage && (
                         <div className="flex flex-col gap-1.5 animate-fade-in">
-                            {/* <label htmlFor="captcha" className="text-[0.8rem] font-medium text-text-muted uppercase tracking-[0.06em]">
-                                Matematik hisoblash
-                            </label> */}
                             <div className="flex gap-2">
-                                <div className="flex items-center justify-center min-w-25 shrink-0 bg-surface-hover border border-border rounded-md text-text font-bold font-mono text-[1.2rem] shadow-sm select-none">
-                                    {captchaText} =
+                                <div className="flex items-center justify-center min-w-25 shrink-0 bg-white border border-border rounded-md shadow-sm select-none overflow-hidden">
+                                    <img
+                                        src={captchaImage}
+                                        alt="Captcha"
+                                        className="h-11 w-auto block"
+                                        draggable={false}
+                                        onContextMenu={e => e.preventDefault()}
+                                    />
                                 </div>
                                 <div className="flex items-center justify-center">
                                     <button
@@ -275,7 +278,7 @@ export default function Login() {
                             !!blockedUntil ||
                             !hemisId.trim() ||
                             !password.trim() ||
-                            (!blockedUntil && !!captchaText && !captchaValue.trim())
+                            (!blockedUntil && !!captchaImage && !captchaValue.trim())
                         }
                         className="flex items-center justify-center gap-2 w-full py-3.25 mt-1 font-inherit text-[0.95rem] font-semibold text-white bg-linear-to-br from-primary to-primary-light border-none rounded-md cursor-pointer transition-all duration-250 shadow-[0_4px_16px_rgba(79,70,229,0.35)] hover:not-disabled:-translate-y-px hover:not-disabled:shadow-[0_8px_24px_rgba(79,70,229,0.45)] active:not-disabled:translate-y-0 disabled:opacity-70 disabled:cursor-not-allowed"
                     >

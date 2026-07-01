@@ -8,7 +8,7 @@ export interface LoginPayload {
 export interface CaptchaResponse {
     success: boolean
     captcha_id: string
-    text: string
+    image: string  // base64 SVG: "data:image/svg+xml;base64,..." — matematik misol emas, rasm
 }
 
 export interface UserData {
