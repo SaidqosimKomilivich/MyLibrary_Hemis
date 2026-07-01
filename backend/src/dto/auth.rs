@@ -27,7 +27,7 @@ pub struct UpdateContactsRequest {
 pub struct CaptchaResponse {
     pub success: bool,
     pub captcha_id: String,
-    pub text: String,
+    pub image: String,  // base64 SVG: "data:image/svg+xml;base64,..." — text emas, rasm
 }
 
 #[derive(Debug, Serialize)]

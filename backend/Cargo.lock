@@ -450,6 +450,7 @@ dependencies = [
  "actix-web-lab",
  "argon2",
  "async-stream",
+ "base64",
  "chrono",
  "dotenv",
  "futures",

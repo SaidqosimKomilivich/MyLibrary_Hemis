@@ -65,11 +65,11 @@ fn create_removal_cookie(name: &str, path: &str) -> Cookie<'static> {
 
 /// GET /api/auth/captcha
 pub async fn get_captcha() -> Result<HttpResponse, AppError> {
-    let (captcha_id, text) = CaptchaService::generate_captcha();
+    let (captcha_id, image) = CaptchaService::generate_captcha();
     Ok(HttpResponse::Ok().json(CaptchaResponse {
         success: true,
         captcha_id,
-        text,
+        image,  // base64 SVG — matematik misol matni emas
     }))
 }
 
@@ -81,8 +81,18 @@ pub async fn login(
     body: web::Json<LoginRequest>,
 ) -> Result<HttpResponse, AppError> {
     let user_id = body.user_id.clone();
+    let client_ip = get_client_ip(&req).unwrap_or_else(|| "unknown".to_string());
 
-    // 1. Rate Limiting Check
+    // 0. IP bo'yicha rate limiting — distributed brute-force'dan himoya
+    if let Err(expires_str) = CaptchaService::check_ip_rate_limit(&client_ip) {
+        return Ok(HttpResponse::TooManyRequests().json(serde_json::json!({
+            "success": false,
+            "message": format!("Ushbu IP manzil vaqtinchalik bloklangan. Iltimos {expires_str} dan so'ng urinib ko'ring."),
+            "blocked_until": expires_str
+        })));
+    }
+
+    // 1. Rate Limiting Check (user_id bo'yicha)
     if let Err(expires_str) = CaptchaService::check_rate_limit(&user_id) {
         return Ok(HttpResponse::TooManyRequests().json(serde_json::json!({
             "success": false,
@@ -96,13 +106,13 @@ pub async fn login(
     let captcha_value = body.captcha_value.unwrap_or(-1);
     
     if let Err(e) = CaptchaService::validate_captcha(&captcha_id, captcha_value) {
-        // Increment fail counter for missing/wrong captcha
+        // Noto'g'ri captcha — user va IP hisoblagichlarini oshirish
         CaptchaService::record_failed_attempt(&user_id);
+        CaptchaService::record_ip_attempt(&client_ip);
         return Err(e);
     }
 
     let user_agent = get_user_agent(&req);
-    let client_ip = get_client_ip(&req);
 
     // 3. Authenticate
     match AuthService::login(
@@ -110,11 +120,12 @@ pub async fn login(
         config.get_ref(),
         body.into_inner(),
         user_agent,
-        client_ip,
+        Some(client_ip.clone()),
     ).await {
         Ok((response, access_token, refresh_token)) => {
-            // Success: clear failed attempts
+            // Muvaffaqiyat: barcha urinishlarni tozalash
             CaptchaService::clear_attempts(&user_id);
+            CaptchaService::clear_ip_attempts(&client_ip);
 
             let access_cookie = create_access_cookie(&access_token, config.access_token_expiry_minutes);
             let refresh_cookie = create_refresh_cookie(&refresh_token, config.refresh_token_expiry_days);
@@ -125,8 +136,9 @@ pub async fn login(
                 .json(response))
         },
         Err(e) => {
-            // Failed auth: record attempt
+            // Noto'g'ri parol — user va IP hisoblagichlarini oshirish
             CaptchaService::record_failed_attempt(&user_id);
+            CaptchaService::record_ip_attempt(&client_ip);
             Err(e)
         }
     }

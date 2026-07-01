@@ -457,10 +457,11 @@ pub async fn update_user_status(
 
 /// GET /api/proxy/image?url=...
 /// Tashqi (HEMIS) rasmlarni proxy orqali yuklash — CORS muammosini hal qiladi
+/// Public endpoint — autentifikatsiya talab qilinmaydi (rasmlar hammaga ko'rinadi)
 pub async fn proxy_image(
     query: web::Query<std::collections::HashMap<String, String>>,
 ) -> Result<HttpResponse, actix_web::Error> {
-    let url = match query.get("url") {
+    let url_str = match query.get("url") {
         Some(u) if !u.is_empty() => u.clone(),
         _ => {
             return Ok(HttpResponse::BadRequest().json(serde_json::json!({
@@ -469,38 +470,103 @@ pub async fn proxy_image(
         }
     };
 
-    // Faqat ruxsat etilgan domenlardan rasm olish (xavfsizlik)
-    if !url.contains("hemis.") && !url.contains("jbnuu.uz") {
+    // --- 1. URL ni parse qilish (string contains() o'rniga) ---
+    let parsed_url = match url_str.parse::<reqwest::Url>() {
+        Ok(u) => u,
+        Err(_) => {
+            return Ok(HttpResponse::BadRequest().json(serde_json::json!({
+                "error": "Noto'g'ri URL format"
+            })));
+        }
+    };
+
+    // --- 2. Faqat HTTPS protokoli ruxsat etiladi ---
+    if parsed_url.scheme() != "https" {
+        return Ok(HttpResponse::Forbidden().json(serde_json::json!({
+            "error": "Faqat HTTPS manzillar qabul qilinadi"
+        })));
+    }
+
+    // --- 3. Strict hostname whitelist (to'liq domen solishtirish) ---
+    // url.contains() o'rniga host_str() ishlatiladi — bypass imkonsiz
+    let host = parsed_url.host_str().unwrap_or("");
+    let is_allowed = host == "hemis.jbnuu.uz"
+        || host == "student.jbnuu.uz"
+        || host == "rttm.jbnuu.uz"
+        || host == "kpi.jbnuu.uz"
+        || host == "edu.jbnuu.uz"
+        || host.ends_with(".jbnuu.uz"); // boshqa jbnuu.uz subdomenlari
+
+    if !is_allowed {
+        tracing::warn!(url = %url_str, host = %host, "Rad etilgan proxy so'rovi (whitelist)");
         return Ok(HttpResponse::Forbidden().json(serde_json::json!({
             "error": "Faqat HEMIS serveridan rasm olish mumkin"
         })));
     }
 
+    // --- 4. TLS tekshiruvi yoqilgan, timeout qo'shilgan ---
     let client = reqwest::Client::builder()
-        .danger_accept_invalid_certs(true)
+        .timeout(std::time::Duration::from_secs(10))
         .build()
         .map_err(|e| {
             actix_web::error::ErrorInternalServerError(format!("HTTP client xatosi: {}", e))
         })?;
 
-    let response =
-        client.get(&url).send().await.map_err(|e| {
+    let response = client
+        .get(&url_str)
+        .header("User-Agent", "MyLibrary-Proxy/1.0")
+        .send()
+        .await
+        .map_err(|e| {
             actix_web::error::ErrorBadGateway(format!("Rasmni olishda xatolik: {}", e))
         })?;
 
+    // --- 5. Content-Type tekshiruvi — faqat rasm formatlari ---
     let content_type = response
         .headers()
         .get("content-type")
         .and_then(|v| v.to_str().ok())
-        .unwrap_or("image/jpeg")
+        .unwrap_or("")
         .to_string();
 
+    let allowed_types = [
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "image/gif",
+        "image/svg+xml",
+        "image/avif",
+    ];
+    let is_image = content_type.is_empty()
+        || allowed_types.iter().any(|t| content_type.starts_with(t));
+
+    if !is_image {
+        tracing::warn!(url = %url_str, content_type = %content_type, "Rad etilgan content-type");
+        return Ok(HttpResponse::UnsupportedMediaType().json(serde_json::json!({
+            "error": "Faqat rasm formatlari qabul qilinadi"
+        })));
+    }
+
+    // --- 6. Hajm cheklovi: max 10 MB ---
+    const MAX_SIZE: usize = 10 * 1024 * 1024;
     let bytes = response.bytes().await.map_err(|e| {
         actix_web::error::ErrorBadGateway(format!("Rasmni o'qishda xatolik: {}", e))
     })?;
 
+    if bytes.len() > MAX_SIZE {
+        return Ok(HttpResponse::PayloadTooLarge().json(serde_json::json!({
+            "error": "Rasm hajmi 10 MB dan katta bo'lmasligi kerak"
+        })));
+    }
+
+    let final_content_type = if content_type.is_empty() {
+        "image/jpeg".to_string()
+    } else {
+        content_type
+    };
+
     Ok(HttpResponse::Ok()
-        .content_type(content_type)
+        .content_type(final_content_type)
         .insert_header(("Cache-Control", "public, max-age=86400"))
         .insert_header(("Access-Control-Allow-Origin", "*"))
         .body(bytes))
