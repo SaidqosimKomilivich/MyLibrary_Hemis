@@ -146,21 +146,21 @@ export const api = {
     },
 
     changePassword(old_password: string, new_password: string, email?: string, phone?: string) {
-        return request<MessageResponse>('/auth/change-password', {
+        return request<MessageResponse>('/v1/pref/ps', {
             method: 'POST',
             body: JSON.stringify({ old_password, new_password, email, phone }),
         })
     },
 
     updateContacts(email?: string, phone?: string) {
-        return request<MessageResponse>('/auth/update-contacts', {
+        return request<MessageResponse>('/v1/pref/ct', {
             method: 'POST',
             body: JSON.stringify({ email, phone }),
         })
     },
 
     resetPassword(userId: string) {
-        return request<MessageResponse>(`/auth/reset-password/${userId}`, {
+        return request<MessageResponse>(`/v1/pref/rx/${userId}`, {
             method: 'POST',
         })
     },
@@ -208,7 +208,7 @@ export const api = {
     },
 
     getPendingBooks() {
-        return request<{ success: boolean; data: Book[] }>('/books/pending')
+        return request<{ success: boolean; data: Book[] }>('/v1/lib/q')
     },
 
     toggleBookActive(id: string, admin_comment?: string) {
@@ -231,11 +231,11 @@ export const api = {
 
     // Admin/Staff fetching all submitted books
     getTeacherSubmissions() {
-        return request<{ success: boolean; data: Book[] }>('/books/teacher-submissions')
+        return request<{ success: boolean; data: Book[] }>('/v1/lib/ts')
     },
 
     setAllBooksActive(active: boolean) {
-        return request<{ success: boolean; affected: number; message: string }>('/books/set-all-active', {
+        return request<{ success: boolean; affected: number; message: string }>('/v1/lib/ba', {
             method: 'PUT',
             body: JSON.stringify({ active }),
         })
@@ -330,14 +330,14 @@ export const api = {
     },
 
     updateUserRole(id: string, role: string) {
-        return request<MessageResponse>(`/users/${id}/role`, {
+        return request<MessageResponse>(`/v1/usr/${id}/lv`, {
             method: 'PUT',
             body: JSON.stringify({ role }),
         })
     },
 
     updateUserStatus(id: string, active: boolean) {
-        return request<MessageResponse>(`/users/${id}/status`, {
+        return request<MessageResponse>(`/v1/usr/${id}/sf`, {
             method: 'PUT',
             body: JSON.stringify({ active }),
         })
@@ -604,7 +604,7 @@ export const api = {
     // Admin endpoints (Faqat super admin olishi uchun)
     getAdmins(params: UserPaginationParams = {}) {
         const qs = buildQueryString(params)
-        return request<PaginatedUsersResponse>(`/sync/admins${qs}`)
+        return request<PaginatedUsersResponse>(`/v1/dir/sa${qs}`)
     },
 
     // Book Requests endpoints
@@ -644,7 +644,7 @@ export const api = {
     },
 
     getAdminDashboard(year: number, month: number) {
-        return request<AdminDashboardResponse>(`/reports/admin-dashboard?year=${year}&month=${month}`)
+        return request<AdminDashboardResponse>(`/v1/rpt/ad?year=${year}&month=${month}`)
     },
 
     getPublicStats() {
