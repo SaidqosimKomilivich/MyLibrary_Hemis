@@ -29,6 +29,13 @@ impl RentalService {
             ));
         }
 
+        // Invois raqami bo'sh emasligini tekshirish
+        if req.invoice_number.trim().is_empty() {
+            return Err(AppError::BadRequest(
+                "Invois raqami kiritilishi shart".to_string(),
+            ));
+        }
+
         // Dublikat tekshirish: foydalanuvchida bu kitob allaqachon aktiv ijarada bormi?
         if RentalRepository::find_active_by_user_and_book(pool, &req.user_id, &req.book_id).await? {
             return Err(AppError::BadRequest(
@@ -50,6 +57,7 @@ impl RentalService {
             &req.user_id,
             &req.book_id,
             due_date,
+            &req.invoice_number,
             req.notes.as_deref(),
         )
         .await?;

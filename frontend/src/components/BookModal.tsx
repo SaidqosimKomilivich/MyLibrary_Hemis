@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, type FormEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Loader2, Upload, Check } from 'lucide-react'
+import { X, Loader2, Upload, Check, AlertTriangle, Sparkles } from 'lucide-react'
 import { toast } from 'react-toastify'
 import { api, type CreateBookRequest, type Book } from '../services/api'
 import { CustomSelect } from './CustomSelect'
@@ -68,6 +68,82 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
             setFormData({ ...emptyForm })
         }
     }, [mode, book, isOpen])
+
+    // Duplicate detection states
+    const [duplicateBook, setDuplicateBook] = useState<Book | null>(null)
+    const [duplicateMatchType, setDuplicateMatchType] = useState<'isbn' | 'title_author' | null>(null)
+    const [isCheckingDuplicate, setIsCheckingDuplicate] = useState(false)
+    const [duplicateDismissed, setDuplicateDismissed] = useState(false)
+
+    // Duplicate detection debounce effect
+    useEffect(() => {
+        if (mode !== 'add' || !isOpen) {
+            setDuplicateBook(null)
+            setDuplicateMatchType(null)
+            setDuplicateDismissed(false)
+            return
+        }
+
+        const titleTrimmed = (formData.title || '').trim()
+        const authorTrimmed = (formData.author || '').trim()
+        const isbnTrimmed = (formData.isbn_13 || '').trim()
+
+        const canCheck = isbnTrimmed.length >= 3 || (titleTrimmed.length >= 2 && authorTrimmed.length >= 2)
+
+        if (!canCheck) {
+            setDuplicateBook(null)
+            setDuplicateMatchType(null)
+            return
+        }
+
+        setIsCheckingDuplicate(true)
+        const timer = setTimeout(async () => {
+            try {
+                const res = await api.checkBookDuplicate({
+                    title: titleTrimmed || undefined,
+                    author: authorTrimmed || undefined,
+                    isbn: isbnTrimmed || undefined,
+                })
+                if (res.data && res.data.exists && res.data.book) {
+                    setDuplicateBook(res.data.book)
+                    setDuplicateMatchType(res.data.match_type)
+                    setDuplicateDismissed(false)
+                } else {
+                    setDuplicateBook(null)
+                    setDuplicateMatchType(null)
+                }
+            } catch {
+                setDuplicateBook(null)
+            } finally {
+                setIsCheckingDuplicate(false)
+            }
+        }, 500)
+
+        return () => clearTimeout(timer)
+    }, [formData.title, formData.author, formData.isbn_13, mode, isOpen])
+
+    const handleApplyDuplicateBook = () => {
+        if (!duplicateBook) return
+        setFormData(prev => ({
+            ...prev,
+            title: duplicateBook.title || prev.title,
+            author: duplicateBook.author || prev.author,
+            category: duplicateBook.category || prev.category,
+            isbn_13: duplicateBook.isbn_13 || prev.isbn_13,
+            publisher: duplicateBook.publisher || prev.publisher,
+            publication_date: duplicateBook.publication_date || prev.publication_date,
+            language: duplicateBook.language || prev.language,
+            description: duplicateBook.description || prev.description,
+            page_count: duplicateBook.page_count || prev.page_count,
+            shelf_location: duplicateBook.shelf_location || prev.shelf_location,
+            format: duplicateBook.format || prev.format,
+            cover_image_url: duplicateBook.cover_image_url || prev.cover_image_url,
+            digital_file_url: duplicateBook.digital_file_url || prev.digital_file_url,
+            duration_seconds: duplicateBook.duration_seconds || prev.duration_seconds,
+        }))
+        toast.success("Kitob ma'lumotlari avtomatik to'ldirildi!")
+        setDuplicateDismissed(true)
+    }
 
     if (!isOpen) return null
 
@@ -227,9 +303,72 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
 
                 <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
                     <div className="flex-1 overflow-y-auto p-5 custom-scrollbar grid grid-cols-1 md:grid-cols-2 gap-5 contents-start">
+                        {/* Duplicate Alert Banner */}
+                        {mode === 'add' && duplicateBook && !duplicateDismissed && (
+                            <div 
+                                className="md:col-span-2 bg-linear-to-r from-amber-500/15 to-orange-500/10 border-2 border-amber-500/40 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg animate-in fade-in slide-in-from-top-3 duration-200 transition-all hover:border-amber-500/60"
+                            >
+                                <div className="flex items-start gap-3.5 cursor-pointer flex-1" onClick={handleApplyDuplicateBook}>
+                                    <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-400 mt-0.5 sm:mt-0 shrink-0 shadow-inner">
+                                        <AlertTriangle size={24} />
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <span className="text-[0.95rem] font-bold text-amber-300">
+                                                Tizimda ushbu kitob allaqachon mavjud!
+                                            </span>
+                                            <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-medium">
+                                                {duplicateMatchType === 'isbn' ? 'ISBN mosligi' : 'Nomi va muallif mosligi'}
+                                            </span>
+                                        </div>
+                                        <p className="m-0 text-sm text-text-muted">
+                                            <strong className="text-text font-semibold">"{duplicateBook.title}"</strong> — {duplicateBook.author}
+                                            {duplicateBook.publication_date ? ` (${duplicateBook.publication_date}-yil)` : ''}
+                                            {duplicateBook.total_quantity !== undefined && duplicateBook.total_quantity !== null && (
+                                                <span className="ml-2 text-text font-medium opacity-90">| Fondda: {duplicateBook.total_quantity} dona</span>
+                                            )}
+                                        </p>
+                                        <p className="m-0 text-xs text-amber-300/80 font-medium">
+                                            💡 Shu kitob ma'lumotlarini (muqova, nashriyot, tavsif va h.k.) avtomatik yuklash uchun bosing
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 self-end sm:self-center">
+                                    <button
+                                        type="button"
+                                        onClick={handleApplyDuplicateBook}
+                                        className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-amber-500 text-slate-950 font-bold text-sm hover:bg-amber-400 transition-all shadow-md cursor-pointer border-none active:scale-95"
+                                    >
+                                        <Sparkles size={16} />
+                                        <span>Ma'lumotlarni to'ldirish</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            setDuplicateDismissed(true)
+                                        }}
+                                        title="E'tiborsiz qoldirish (Yangi kitob deb hisoblash)"
+                                        className="p-2.5 rounded-xl text-text-muted hover:text-text hover:bg-white/10 border border-border/50 cursor-pointer transition-colors"
+                                    >
+                                        <X size={18} />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Title */}
                         <div className="flex flex-col gap-1.5 min-w-0">
-                            <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">Kitob nomi *</label>
+                            <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide flex items-center justify-between">
+                                <span>Kitob nomi *</span>
+                                {isCheckingDuplicate && (
+                                    <span className="text-xs font-normal text-amber-400/90 flex items-center gap-1">
+                                        <Loader2 className="animate-spin" size={12} />
+                                        <span>Bazada tekshirilmoqda...</span>
+                                    </span>
+                                )}
+                            </label>
                             <input className="w-full bg-surface/50 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]" required name="title" value={formData.title} onChange={handleChange} placeholder="Masalan: O'tkan kunlar" />
                         </div>
 

@@ -194,7 +194,7 @@ export default function DashboardLayout({ role }: DashboardLayoutProps) {
                         className="w-13 h-13 rounded-full p-0.5 object-contain shrink-0"
                     />
                     <span className="text-sm font-bold leading-snug tracking-tight">
-                        Axborot Resurs Markazi
+                        Axborot-resurs markazi
                     </span>
                     <button
                         className="hidden ml-auto bg-transparent border-none text-text-muted cursor-pointer p-1 max-md:block shrink-0"

@@ -175,6 +175,11 @@ export default function EmployeeRentalsPage() {
                                             </span>
                                         </h3>
                                         <p className="m-0 mt-1.5 text-[0.9rem] text-text-muted font-mono">Ijara raqami: #{r.id.split('-')[0]}</p>
+                                        {r.invoice_number && (
+                                            <p className="m-0 mt-1 text-[0.88rem] text-text-muted font-mono flex items-center gap-1.5">
+                                                🧾 Invois: <span className="text-text font-semibold">{r.invoice_number}</span>
+                                            </p>
+                                        )}
                                         {r.phone && (
                                             <p className="m-0 mt-1.5 text-[0.85rem] text-text-muted flex items-center gap-1.5">
                                                 <Phone size={14} className="opacity-70" /> {highlightText(r.phone, search)}

@@ -97,7 +97,7 @@ export default function LandingPage() {
                             className="w-full bg-surface border-2 border-border/80 text-text rounded-full py-4 pl-14 pr-36 focus:outline-none focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/10 transition-all text-[1rem] placeholder:text-text-muted/50 shadow-sm"
                         />
                         <button type="submit" className="absolute inset-y-2 right-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full px-8 font-medium transition-colors flex items-center gap-2 shadow-md">
-                            Izlash
+                            Izlash...
                         </button>
                     </form>
 

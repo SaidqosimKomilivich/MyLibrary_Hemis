@@ -7,6 +7,7 @@ pub struct CreateRentalRequest {
     pub user_id: String,
     pub book_id: String,
     pub due_date: String, // "YYYY-MM-DD" formatida
+    pub invoice_number: String, // Kitobning fizik nusxasiga berilgan unikal invois raqami
     pub notes: Option<String>,
 }
 
@@ -33,6 +34,7 @@ pub struct RentalResponse {
     pub due_date: String,
     pub return_date: Option<String>,
     pub status: String,
+    pub invoice_number: Option<String>, // Kitobning fizik nusxasiga berilgan unikal invois raqami
     pub notes: Option<String>,
     // Kitob ma'lumotlari
     pub book_title: Option<String>,

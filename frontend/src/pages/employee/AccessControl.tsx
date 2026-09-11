@@ -7,7 +7,8 @@ import {
     RefreshCw,
     Camera,
     Settings2,
-    Loader2
+    Loader2,
+    Hash
 } from 'lucide-react'
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode'
 import { highlightText } from '../../utils/highlightText'
@@ -67,6 +68,7 @@ export default function AccessControl() {
     }, [bookSearch])
     const [selectedBook, setSelectedBook] = useState<Book | null>(null)
     const [dueDate, setDueDate] = useState('')
+    const [invoiceNumber, setInvoiceNumber] = useState('')
     const [assignNotes, setAssignNotes] = useState('')
     const [assignLoading, setAssignLoading] = useState(false)
 
@@ -329,15 +331,20 @@ export default function AccessControl() {
             toast.warning("Barcha maydonlarni to'ldiring")
             return
         }
+        if (!invoiceNumber.trim()) {
+            toast.warning("Invois raqamini kiriting")
+            return
+        }
         setAssignLoading(true)
         try {
-            await api.createRental(scannedUser.user_id, selectedBook.id, dueDate || defaultDue, assignNotes || undefined)
+            await api.createRental(scannedUser.user_id, selectedBook.id, dueDate || defaultDue, invoiceNumber.trim(), assignNotes || undefined)
             toast.success(`"${selectedBook.title}" kitobi ${scannedUser.full_name}ga berildi`)
             setAssignModalOpen(false)
             setSelectedBook(null)
             setBookSearch('')
             setSearchResults([])
             setDueDate('')
+            setInvoiceNumber('')
             setAssignNotes('')
             loadUserRentals(scannedUser.user_id)
         } catch (error: any) {
@@ -750,11 +757,11 @@ export default function AccessControl() {
                ═══════════════════════════════════════ */}
             {
                 assignModalOpen && createPortal(
-                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-999 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => { setAssignModalOpen(false); setBookSearch(''); setSearchResults([]); setSelectedBook(null); }}>
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-999 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => { setAssignModalOpen(false); setBookSearch(''); setSearchResults([]); setSelectedBook(null); setInvoiceNumber(''); }}>
                         <div className="bg-surface border border-border rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
                             <div className="flex items-center justify-between p-5 border-b border-border bg-surface-hover/40">
                                 <h3 className="flex items-center gap-2 text-lg font-bold text-text m-0"><BookPlus size={20} className="text-primary-light" /> Kitob biriktirish</h3>
-                                <button className="p-1.5 rounded-lg text-text-muted hover:bg-surface-hover hover:text-rose-400 transition-colors" onClick={() => { setAssignModalOpen(false); setBookSearch(''); setSearchResults([]); setSelectedBook(null); }}>
+                                <button className="p-1.5 rounded-lg text-text-muted hover:bg-surface-hover hover:text-rose-400 transition-colors" onClick={() => { setAssignModalOpen(false); setBookSearch(''); setSearchResults([]); setSelectedBook(null); setInvoiceNumber(''); }}>
                                     <X size={20} />
                                 </button>
                             </div>
@@ -830,7 +837,7 @@ export default function AccessControl() {
                                     </div>
                                 )}
 
-                                {/* Due date */}
+                                {/* Invoice number + Notes */}
                                 <div className="grid grid-cols-1 gap-4 mt-2">
                                     <div className="flex flex-col gap-1.5">
                                         <label className="flex items-center gap-1.5 text-[0.8rem] font-semibold text-text-muted uppercase tracking-wider">
@@ -845,7 +852,24 @@ export default function AccessControl() {
                                             className="w-full"
                                         />
                                     </div>
-                                    
+
+                                    {/* Invois raqami */}
+                                    <div className="flex flex-col gap-1.5">
+                                        <label className="flex items-center gap-1.5 text-[0.8rem] font-semibold text-text-muted uppercase tracking-wider">
+                                            <Hash size={14} /> Invois raqami <span className="text-rose-400">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            className="bg-surface-hover/30 border border-border px-3 py-2.5 rounded-xl text-sm text-text outline-none font-mono focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)] transition-all placeholder:font-sans"
+                                            placeholder="Masalan: КТ-0043"
+                                            value={invoiceNumber}
+                                            onChange={e => setInvoiceNumber(e.target.value)}
+                                        />
+                                        <p className="text-[0.72rem] text-text-muted leading-snug">
+                                            Kitobning jismoniy nusxasidagi unikal raqam
+                                        </p>
+                                    </div>
+
                                     {/* Notes */}
                                     <div className="flex flex-col gap-1.5">
                                         <label className="text-[0.8rem] font-semibold text-text-muted uppercase tracking-wider">
@@ -863,13 +887,13 @@ export default function AccessControl() {
                             </div>
 
                             <div className="flex items-center justify-end gap-3 p-5 border-t border-border bg-surface-hover/40 shrink-0">
-                                <button className="px-5 py-2.5 rounded-xl text-sm font-semibold text-text bg-transparent hover:bg-surface-hover transition-colors" onClick={() => { setAssignModalOpen(false); setBookSearch(''); setSearchResults([]); setSelectedBook(null); }}>
+                                <button className="px-5 py-2.5 rounded-xl text-sm font-semibold text-text bg-transparent hover:bg-surface-hover transition-colors" onClick={() => { setAssignModalOpen(false); setBookSearch(''); setSearchResults([]); setSelectedBook(null); setInvoiceNumber(''); }}>
                                     Bekor qilish
                                 </button>
                                 <button
                                     className="flex items-center justify-center gap-2 px-6 py-2.5 bg-primary text-white border-none rounded-xl text-sm font-bold hover:bg-primary-hover shadow-lg shadow-primary/25 hover:-translate-y-0.5 transition-all active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                                     onClick={handleAssignBook}
-                                    disabled={!selectedBook || (!(dueDate || defaultDue)) || assignLoading}
+                                    disabled={!selectedBook || (!(dueDate || defaultDue)) || !invoiceNumber.trim() || assignLoading}
                                 >
                                     {assignLoading ? <Loader2 size={18} className="animate-spin" /> : <><BookPlus size={18} /> Berish</>}
                                 </button>

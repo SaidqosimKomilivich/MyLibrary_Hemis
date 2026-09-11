@@ -2,7 +2,7 @@ use actix_web::{web, HttpResponse};
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::dto::book::{CreateBookRequest, PaginationParams, UpdateBookRequest};
+use crate::dto::book::{CheckDuplicateQuery, CreateBookRequest, PaginationParams, UpdateBookRequest};
 use crate::errors::AppError;
 use crate::middleware::auth_middleware::{self, Claims};
 use crate::services::book_service::BookService;
@@ -213,5 +213,22 @@ pub async fn set_all_active(
         "success": true,
         "affected": count,
         "message": if active { "Barcha kitoblar faollashtirildi" } else { "Barcha kitoblar nofaollashtirildi" }
+    })))
+}
+
+/// GET /api/books/check-duplicate — Admin, staff va teacher uchun dublikat tekshirish
+pub async fn check_duplicate(
+    pool: web::Data<PgPool>,
+    claims: Claims,
+    query: web::Query<CheckDuplicateQuery>,
+) -> Result<HttpResponse, AppError> {
+    if let Err(resp) = auth_middleware::require_role(&claims, &["admin", "staff", "teacher"]) {
+        return Ok(resp);
+    }
+
+    let result = BookService::check_duplicate(pool.get_ref(), query.into_inner()).await?;
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "success": true,
+        "data": result
     })))
 }

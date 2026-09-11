@@ -127,4 +127,32 @@ impl BookService {
         tracing::info!(count = count, active = active, "Barcha kitoblar holati o'zgartirildi");
         Ok(count)
     }
+
+    /// Dublikat kitobni tekshirish
+    pub async fn check_duplicate(
+        pool: &PgPool,
+        params: CheckDuplicateQuery,
+    ) -> Result<CheckDuplicateResponse, AppError> {
+        let (book, match_type) = BookRepository::check_duplicate(
+            pool,
+            params.title.as_deref(),
+            params.author.as_deref(),
+            params.isbn.as_deref(),
+        )
+        .await?;
+
+        if let Some(b) = book {
+            Ok(CheckDuplicateResponse {
+                exists: true,
+                match_type: match_type.map(|s| s.to_string()),
+                book: Some(BookResponse::from(b)),
+            })
+        } else {
+            Ok(CheckDuplicateResponse {
+                exists: false,
+                match_type: None,
+                book: None,
+            })
+        }
+    }
 }

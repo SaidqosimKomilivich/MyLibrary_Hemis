@@ -160,7 +160,7 @@ export default function Login() {
                         Mirzo Ulug'bek nomidagi O'zbekiston Milliy universitetining Jizzax filiali
                     </h1>
                     <p className="text-[0.9rem] text-emerald-400 font-semibold mt-1">
-                        "Axborot Resurs Markazi"
+                        "Axborot-resurs markazi"
                     </p>
                 </div>
 

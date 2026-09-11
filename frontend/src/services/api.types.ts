@@ -97,6 +97,12 @@ export interface Book {
     isbn_13?: string | null
 }
 
+export interface CheckDuplicateResponse {
+    exists: boolean
+    match_type: 'isbn' | 'title_author' | null
+    book: Book | null
+}
+
 export interface PopularBook {
     title: string;
     author: string;
@@ -215,6 +221,7 @@ export interface Rental {
     due_date: string
     return_date: string | null
     status: 'active' | 'returned' | 'overdue' | 'lost'
+    invoice_number: string | null
     notes: string | null
     book_title: string | null
     book_author: string | null

@@ -26,29 +26,28 @@ impl ReportRepository {
         pool: &PgPool,
         limit: i64,
     ) -> Result<Vec<RentalResponse>, AppError> {
-        let records = sqlx::query_as!(
-            crate::repository::rental_repository::RentalWithDetails,
+        let records = sqlx::query_as::<_, crate::repository::rental_repository::RentalWithDetails>(
             r#"SELECT
                 r."id", r."user_id", r."book_id",
                 r."loan_date", r."due_date", r."return_date",
-                r."status" as "status: crate::models::rental::RentalStatus", r."notes",
-                b."title" as "book_title?",
-                b."author" as "book_author?",
-                b."cover_image_url" as "book_cover?",
-                u."full_name" as "user_full_name?",
-                u."role" as "role?",
-                u."email" as "email?",
-                u."phone" as "phone?",
-                u."department_name" as "department_name?",
-                u."group_name" as "group_name?",
-                u."staff_position" as "staff_position?"
+                r."status", r."invoice_number", r."notes",
+                b."title" as book_title,
+                b."author" as book_author,
+                b."cover_image_url" as book_cover,
+                u."full_name" as user_full_name,
+                u."role" as role,
+                u."email" as email,
+                u."phone" as phone,
+                u."department_name" as department_name,
+                u."group_name" as group_name,
+                u."staff_position" as staff_position
             FROM "book_rentals" r
             LEFT JOIN "book" b ON b."id"::text = r."book_id"
             LEFT JOIN "users" u ON u."user_id" = r."user_id"
             ORDER BY r."loan_date" DESC
             LIMIT $1"#,
-            limit
         )
+        .bind(limit)
         .fetch_all(pool)
         .await?;
 
@@ -100,30 +99,29 @@ impl ReportRepository {
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<Vec<RentalResponse>, AppError> {
-        let records = sqlx::query_as!(
-            crate::repository::rental_repository::RentalWithDetails,
+        let records = sqlx::query_as::<_, crate::repository::rental_repository::RentalWithDetails>(
             r#"SELECT
                 r."id", r."user_id", r."book_id",
                 r."loan_date", r."due_date", r."return_date",
-                r."status" as "status: crate::models::rental::RentalStatus", r."notes",
-                b."title" as "book_title?",
-                b."author" as "book_author?",
-                b."cover_image_url" as "book_cover?",
-                u."full_name" as "user_full_name?",
-                u."role" as "role?",
-                u."email" as "email?",
-                u."phone" as "phone?",
-                u."department_name" as "department_name?",
-                u."group_name" as "group_name?",
-                u."staff_position" as "staff_position?"
+                r."status", r."invoice_number", r."notes",
+                b."title" as book_title,
+                b."author" as book_author,
+                b."cover_image_url" as book_cover,
+                u."full_name" as user_full_name,
+                u."role" as role,
+                u."email" as email,
+                u."phone" as phone,
+                u."department_name" as department_name,
+                u."group_name" as group_name,
+                u."staff_position" as staff_position
             FROM "book_rentals" r
             LEFT JOIN "book" b ON b."id"::text = r."book_id"
             LEFT JOIN "users" u ON u."user_id" = r."user_id"
             WHERE r."loan_date" >= $1 AND r."loan_date" <= $2
             ORDER BY r."loan_date" DESC"#,
-            start_date,
-            end_date
         )
+        .bind(start_date)
+        .bind(end_date)
         .fetch_all(pool)
         .await?;
 

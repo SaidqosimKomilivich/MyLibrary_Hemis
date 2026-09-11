@@ -314,4 +314,60 @@ impl BookRepository {
             .await?;
         Ok(result.rows_affected())
     }
+
+    /// Dublikat kitobni tekshirish (ISBN yoki Sarlavha+Muallif bo'yicha)
+    pub async fn check_duplicate(
+        pool: &PgPool,
+        title: Option<&str>,
+        author: Option<&str>,
+        isbn: Option<&str>,
+    ) -> Result<(Option<Book>, Option<&'static str>), AppError> {
+        // 1. Agar ISBN kiritilgan bo'lsa, avvalo ISBN bo'yicha qidiramiz
+        if let Some(isbn_raw) = isbn {
+            let clean_isbn: String = isbn_raw.chars().filter(|c| !c.is_whitespace() && *c != '-').collect();
+            if !clean_isbn.is_empty() {
+                let book = sqlx::query_as::<_, Book>(
+                    r#"SELECT * FROM "book"
+                    WHERE "is_active" = true
+                      AND (
+                        replace(replace(COALESCE("isbn_13", ''), '-', ''), ' ', '') = $1
+                        OR replace(replace(COALESCE("isbn_10", ''), '-', ''), ' ', '') = $1
+                      )
+                    LIMIT 1"#
+                )
+                .bind(&clean_isbn)
+                .fetch_optional(pool)
+                .await?;
+
+                if let Some(b) = book {
+                    return Ok((Some(b), Some("isbn")));
+                }
+            }
+        }
+
+        // 2. Agar Nomi va Muallifi kiritilgan bo'lsa, probellarni normallashtirib qidiramiz
+        if let (Some(t), Some(a)) = (title, author) {
+            let trimmed_t = t.trim();
+            let trimmed_a = a.trim();
+            if !trimmed_t.is_empty() && !trimmed_a.is_empty() {
+                let book = sqlx::query_as::<_, Book>(
+                    r#"SELECT * FROM "book"
+                    WHERE "is_active" = true
+                      AND regexp_replace(trim(lower("title")), '\s+', ' ', 'g') = regexp_replace(trim(lower($1)), '\s+', ' ', 'g')
+                      AND regexp_replace(trim(lower("author")), '\s+', ' ', 'g') = regexp_replace(trim(lower($2)), '\s+', ' ', 'g')
+                    LIMIT 1"#
+                )
+                .bind(trimmed_t)
+                .bind(trimmed_a)
+                .fetch_optional(pool)
+                .await?;
+
+                if let Some(b) = book {
+                    return Ok((Some(b), Some("title_author")));
+                }
+            }
+        }
+
+        Ok((None, None))
+    }
 }

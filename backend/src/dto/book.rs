@@ -145,3 +145,19 @@ impl From<crate::models::book::Book> for BookResponse {
         }
     }
 }
+
+/// Dublikat tekshirish uchun query parametrlari
+#[derive(Debug, Deserialize)]
+pub struct CheckDuplicateQuery {
+    pub title: Option<String>,
+    pub author: Option<String>,
+    pub isbn: Option<String>,
+}
+
+/// Dublikat tekshiruvi natijasi
+#[derive(Debug, Serialize)]
+pub struct CheckDuplicateResponse {
+    pub exists: bool,
+    pub match_type: Option<String>,
+    pub book: Option<BookResponse>,
+}

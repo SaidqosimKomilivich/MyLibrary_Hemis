@@ -15,6 +15,7 @@ pub struct RentalWithDetails {
     pub due_date: NaiveDate,
     pub return_date: Option<NaiveDate>,
     pub status: crate::models::rental::RentalStatus,
+    pub invoice_number: Option<String>,
     pub notes: Option<String>,
     // Kitob ma'lumotlari
     pub book_title: Option<String>,
@@ -40,6 +41,7 @@ impl RentalWithDetails {
             due_date: self.due_date.format("%Y-%m-%d").to_string(),
             return_date: self.return_date.map(|d| d.format("%Y-%m-%d").to_string()),
             status: self.status.to_string(),
+            invoice_number: self.invoice_number,
             notes: self.notes,
             book_title: self.book_title,
             book_author: self.book_author,
@@ -64,16 +66,18 @@ impl RentalRepository {
         user_id: &str,
         book_id: &str,
         due_date: NaiveDate,
+        invoice_number: &str,
         notes: Option<&str>,
     ) -> Result<Uuid, AppError> {
         let row: (Uuid,) = sqlx::query_as(
-            r#"INSERT INTO "book_rentals" ("user_id", "book_id", "due_date", "notes")
-               VALUES ($1, $2, $3, $4)
+            r#"INSERT INTO "book_rentals" ("user_id", "book_id", "due_date", "invoice_number", "notes")
+               VALUES ($1, $2, $3, $4, $5)
                RETURNING "id""#,
         )
         .bind(user_id)
         .bind(book_id)
         .bind(due_date)
+        .bind(invoice_number)
         .bind(notes)
         .fetch_one(pool)
         .await?;
@@ -129,7 +133,7 @@ impl RentalRepository {
             r#"SELECT
                 r."id", r."user_id", r."book_id",
                 r."loan_date", r."due_date", r."return_date",
-                r."status", r."notes",
+                r."status", r."invoice_number", r."notes",
                 b."title" as book_title,
                 b."author" as book_author,
                 b."cover_image_url" as book_cover,
@@ -162,7 +166,7 @@ impl RentalRepository {
             r#"SELECT
                 r."id", r."user_id", r."book_id",
                 r."loan_date", r."due_date", r."return_date",
-                r."status", r."notes",
+                r."status", r."invoice_number", r."notes",
                 b."title" as book_title,
                 b."author" as book_author,
                 b."cover_image_url" as book_cover,

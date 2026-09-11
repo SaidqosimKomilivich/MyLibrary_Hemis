@@ -34,7 +34,7 @@ import type {
     PaginatedMessageResponse,
     AnnouncementWithStatus,
     AnnouncementReadStatusResponse,
-    
+    CheckDuplicateResponse,
 } from './api.types'
 
 export * from './api.types'
@@ -178,6 +178,11 @@ export const api = {
 
     getBookById(id: string) {
         return request<SingleBookResponse>(`/books/${id}`)
+    },
+
+    checkBookDuplicate(params: { title?: string; author?: string; isbn?: string }) {
+        const qs = buildQueryString(params)
+        return request<{ success: boolean; data: CheckDuplicateResponse }>(`/books/check-duplicate${qs}`)
     },
 
     createBook(data: CreateBookRequest) {
@@ -357,10 +362,10 @@ export const api = {
         return request<RentalListResponse>('/rentals/my')
     },
 
-    createRental(user_id: string, book_id: string, due_date: string, notes?: string) {
+    createRental(user_id: string, book_id: string, due_date: string, invoice_number: string, notes?: string) {
         return request<{ success: boolean; message: string; id: string }>('/rentals', {
             method: 'POST',
-            body: JSON.stringify({ user_id, book_id, due_date, notes }),
+            body: JSON.stringify({ user_id, book_id, due_date, invoice_number, notes }),
         })
     },
 

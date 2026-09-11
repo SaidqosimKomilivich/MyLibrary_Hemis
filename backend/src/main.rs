@@ -176,6 +176,10 @@ async fn main() -> std::io::Result<()> {
                         "/set-all-active",
                         web::put().to(book_handler::set_all_active),
                     )
+                    .route(
+                        "/check-duplicate",
+                        web::get().to(book_handler::check_duplicate),
+                    )
                     // /{id} routelari — eng oxirida
                     .route("/{id}", web::get().to(book_handler::get_book))
                     .route("/{id}", web::put().to(book_handler::update_book))
