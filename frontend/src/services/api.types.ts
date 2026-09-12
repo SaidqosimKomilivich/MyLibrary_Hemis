@@ -44,6 +44,23 @@ export interface MessageResponse {
     message: string
 }
 
+export interface UnblockPayload {
+    user_id?: string
+    ip?: string
+    clear_all?: boolean
+}
+
+export interface BlockedItem {
+    target: string
+    blocked_until: number
+}
+
+export interface BlockedSummaryResponse {
+    success: boolean
+    users: BlockedItem[]
+    ips: BlockedItem[]
+}
+
 export interface MeResponse {
     success: boolean
     user: UserData
@@ -54,6 +71,10 @@ export type PaginationParams = {
     limit?: number
     search?: string
     category?: string
+    genre?: string
+    target_audience?: string
+    format?: string
+    language?: string
     published_only?: boolean
 }
 
@@ -69,6 +90,8 @@ export interface Book {
     title: string
     author: string
     category: string
+    genre?: string | null
+    target_audience?: string | null
     isbn: string | null
     published_year: number | null
     total_pages: number | null
@@ -117,6 +140,7 @@ export interface CreateBookRequest {
     translator?: string
     edition?: string
     genre?: string
+    target_audience?: string
     isbn_10?: string
     category?: string
     isbn_13?: string
@@ -140,6 +164,15 @@ export interface UploadedFile {
     url: string
     size: number
     extension: string
+}
+
+export interface UploadProgress {
+    percent: number
+    loaded: number
+    total: number
+    formattedLoaded: string
+    formattedTotal: string
+    speed: string
 }
 
 export interface UploadResponse {

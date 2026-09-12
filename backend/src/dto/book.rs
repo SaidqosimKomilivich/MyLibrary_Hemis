@@ -16,6 +16,7 @@ pub struct CreateBookRequest {
     pub language: Option<String>,
     pub category: Option<String>,
     pub genre: Option<String>,
+    pub target_audience: Option<String>,
     pub description: Option<String>,
     pub page_count: Option<i32>,
     pub duration_seconds: Option<i32>,
@@ -42,6 +43,7 @@ pub struct UpdateBookRequest {
     pub language: Option<String>,
     pub category: Option<String>,
     pub genre: Option<String>,
+    pub target_audience: Option<String>,
     pub description: Option<String>,
     pub page_count: Option<i32>,
     pub duration_seconds: Option<i32>,
@@ -59,6 +61,10 @@ pub struct PaginationParams {
     pub page: Option<i64>,
     pub search: Option<String>,
     pub category: Option<String>,
+    pub genre: Option<String>,
+    pub target_audience: Option<String>,
+    pub format: Option<String>,
+    pub language: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -98,6 +104,7 @@ pub struct BookResponse {
     pub language: Option<String>,
     pub category: Option<String>,
     pub genre: Option<String>,
+    pub target_audience: Option<String>,
     pub description: Option<String>,
     pub page_count: Option<i32>,
     pub duration_seconds: Option<i32>,
@@ -129,6 +136,7 @@ impl From<crate::models::book::Book> for BookResponse {
             language: book.language,
             category: book.category,
             genre: book.genre,
+            target_audience: book.target_audience,
             description: book.description,
             page_count: book.page_count,
             duration_seconds: book.duration_seconds,

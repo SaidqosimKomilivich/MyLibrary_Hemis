@@ -173,21 +173,55 @@ impl CaptchaService {
     }
 
     // ========================
-    // User-ID bo'yicha rate limiting (3 urinish → 30 daqiqa blok)
+    // Konstantalar
+    // ========================
+    pub const USER_MAX_ATTEMPTS: u8 = 5;
+    pub const USER_BLOCK_DURATION_SECS: i64 = 15 * 60; // 15 daqiqa
+    pub const USER_WINDOW_SECS: i64 = 15 * 60;         // 15 daqiqa xato xotirasi
+
+    pub const IP_MAX_ATTEMPTS: u8 = 25;
+    pub const IP_BLOCK_DURATION_SECS: i64 = 10 * 60;   // 10 daqiqa
+    pub const IP_WINDOW_SECS: i64 = 15 * 60;           // 15 daqiqa xato xotirasi
+
+    /// Lokal va xavfsiz IP larni tekshirish (hech qachon global IP bloklanmasligi uchun)
+    pub fn is_trusted_or_local_ip(ip: &str) -> bool {
+        let trimmed = ip.trim();
+        trimmed == "127.0.0.1"
+            || trimmed == "::1"
+            || trimmed == "localhost"
+            || trimmed == "unknown"
+            || trimmed.is_empty()
+    }
+
+    // ========================
+    // User-ID bo'yicha rate limiting (5 urinish → 15 daqiqa blok, 15 min sliding window)
     // ========================
 
     pub fn check_rate_limit(user_id: &str) -> Result<(), String> {
         let mut attempts = Self::get_attempts().lock().unwrap();
         let now = Utc::now().timestamp();
 
-        if attempts.len() > 500 {
-            attempts.retain(|_, v| v.0 < 3 || v.1 > now);
+        // Katta xotira tozalash
+        if attempts.len() > 1000 {
+            attempts.retain(|_, v| {
+                if v.0 >= Self::USER_MAX_ATTEMPTS {
+                    v.1 > now // Hali blok muddati tugamaganlar
+                } else {
+                    now - v.1 < Self::USER_WINDOW_SECS // Hali oynasi eskirib ulgurmaganlar
+                }
+            });
         }
 
-        if let Some((count, expires_at)) = attempts.get(user_id) {
-            if *count >= 3 && *expires_at > now {
-                return Err(format!("{}", *expires_at));
-            } else if *count >= 3 && *expires_at <= now {
+        if let Some((count, timestamp)) = attempts.get(user_id) {
+            if *count >= Self::USER_MAX_ATTEMPTS {
+                if *timestamp > now {
+                    return Err(format!("{}", *timestamp));
+                } else {
+                    // Blok muddati tugagan — tozalaymiz
+                    attempts.remove(user_id);
+                }
+            } else if now - *timestamp > Self::USER_WINDOW_SECS {
+                // Urinishlar oynasi eskirgan — hisoblagichni tozalaymiz
                 attempts.remove(user_id);
             }
         }
@@ -198,12 +232,21 @@ impl CaptchaService {
         let mut attempts = Self::get_attempts().lock().unwrap();
         let now = Utc::now().timestamp();
 
-        let entry = attempts.entry(user_id.to_string()).or_insert((0, 0));
-        entry.0 += 1;
-
-        if entry.0 >= 3 {
-            // 30 daqiqa blok
-            entry.1 = now + 1800;
+        let entry = attempts.entry(user_id.to_string()).or_insert((0, now));
+        
+        // Agar avvalgi xatodan beri vaqt darchasi (window) o'tib ketgan bo'lsa va bloklanmagan bo'lsa — qayta 1 dan boshlaymiz
+        if entry.0 < Self::USER_MAX_ATTEMPTS && now - entry.1 > Self::USER_WINDOW_SECS {
+            entry.0 = 1;
+            entry.1 = now;
+        } else {
+            entry.0 += 1;
+            if entry.0 >= Self::USER_MAX_ATTEMPTS {
+                // 15 daqiqaga blok qo'yamiz
+                entry.1 = now + Self::USER_BLOCK_DURATION_SECS;
+            } else {
+                // Oxirgi urinish vaqtini yangilaymiz
+                entry.1 = now;
+            }
         }
     }
 
@@ -213,22 +256,36 @@ impl CaptchaService {
     }
 
     // ========================
-    // IP manzil bo'yicha rate limiting (10 urinish → 15 daqiqa blok)
+    // IP manzil bo'yicha rate limiting (25 urinish → 10 daqiqa blok)
     // ========================
 
     /// IP manzil bo'yicha tekshirish — distributed brute-force'dan himoya
     pub fn check_ip_rate_limit(ip: &str) -> Result<(), String> {
+        if Self::is_trusted_or_local_ip(ip) {
+            return Ok(());
+        }
+
         let mut attempts = Self::get_ip_attempts().lock().unwrap();
         let now = Utc::now().timestamp();
 
         if attempts.len() > 1000 {
-            attempts.retain(|_, v| v.0 < 10 || v.1 > now);
+            attempts.retain(|_, v| {
+                if v.0 >= Self::IP_MAX_ATTEMPTS {
+                    v.1 > now
+                } else {
+                    now - v.1 < Self::IP_WINDOW_SECS
+                }
+            });
         }
 
-        if let Some((count, expires_at)) = attempts.get(ip) {
-            if *count >= 3 && *expires_at > now {
-                return Err(format!("{}", *expires_at));
-            } else if *count >= 3 && *expires_at <= now {
+        if let Some((count, timestamp)) = attempts.get(ip) {
+            if *count >= Self::IP_MAX_ATTEMPTS {
+                if *timestamp > now {
+                    return Err(format!("{}", *timestamp));
+                } else {
+                    attempts.remove(ip);
+                }
+            } else if now - *timestamp > Self::IP_WINDOW_SECS {
                 attempts.remove(ip);
             }
         }
@@ -236,20 +293,65 @@ impl CaptchaService {
     }
 
     pub fn record_ip_attempt(ip: &str) {
+        if Self::is_trusted_or_local_ip(ip) {
+            return;
+        }
+
         let mut attempts = Self::get_ip_attempts().lock().unwrap();
         let now = Utc::now().timestamp();
 
-        let entry = attempts.entry(ip.to_string()).or_insert((0, 0));
-        entry.0 += 1;
+        let entry = attempts.entry(ip.to_string()).or_insert((0, now));
 
-        if entry.0 >= 3 {
-            // 30 daqiqa blok
-            entry.1 = now + 1800;
+        if entry.0 < Self::IP_MAX_ATTEMPTS && now - entry.1 > Self::IP_WINDOW_SECS {
+            entry.0 = 1;
+            entry.1 = now;
+        } else {
+            entry.0 += 1;
+            if entry.0 >= Self::IP_MAX_ATTEMPTS {
+                // 10 daqiqaga blok
+                entry.1 = now + Self::IP_BLOCK_DURATION_SECS;
+            } else {
+                entry.1 = now;
+            }
         }
     }
 
     pub fn clear_ip_attempts(ip: &str) {
         let mut attempts = Self::get_ip_attempts().lock().unwrap();
         attempts.remove(ip);
+    }
+
+    // ========================
+    // Admin boshqaruv funksiyalari (Unblock va statistika)
+    // ========================
+
+    pub fn clear_all_blocks() -> (usize, usize) {
+        let mut user_attempts = Self::get_attempts().lock().unwrap();
+        let mut ip_attempts = Self::get_ip_attempts().lock().unwrap();
+        let user_count = user_attempts.len();
+        let ip_count = ip_attempts.len();
+        user_attempts.clear();
+        ip_attempts.clear();
+        (user_count, ip_count)
+    }
+
+    pub fn get_blocked_summary() -> (Vec<(String, i64)>, Vec<(String, i64)>) {
+        let user_attempts = Self::get_attempts().lock().unwrap();
+        let ip_attempts = Self::get_ip_attempts().lock().unwrap();
+        let now = Utc::now().timestamp();
+
+        let blocked_users: Vec<(String, i64)> = user_attempts
+            .iter()
+            .filter(|(_, v)| v.0 >= Self::USER_MAX_ATTEMPTS && v.1 > now)
+            .map(|(k, v)| (k.clone(), v.1))
+            .collect();
+
+        let blocked_ips: Vec<(String, i64)> = ip_attempts
+            .iter()
+            .filter(|(_, v)| v.0 >= Self::IP_MAX_ATTEMPTS && v.1 > now)
+            .map(|(k, v)| (k.clone(), v.1))
+            .collect();
+
+        (blocked_users, blocked_ips)
     }
 }

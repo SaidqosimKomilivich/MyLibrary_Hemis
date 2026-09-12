@@ -13,6 +13,10 @@ impl BookRepository {
         pool: &PgPool,
         search: Option<&str>,
         category: Option<&str>,
+        genre: Option<&str>,
+        target_audience: Option<&str>,
+        format: Option<&str>,
+        language: Option<&str>,
         include_inactive: bool,
     ) -> Result<i64, AppError> {
         let active_filter = if include_inactive { String::new() } else { r#" AND "is_active" = true"#.to_string() };
@@ -28,6 +32,22 @@ impl BookRepository {
         }
         if category.is_some() {
             query.push_str(&format!(r#" AND "category" = ${}"#, param_idx));
+            param_idx += 1;
+        }
+        if genre.is_some() {
+            query.push_str(&format!(r#" AND "genre" = ${}"#, param_idx));
+            param_idx += 1;
+        }
+        if target_audience.is_some() {
+            query.push_str(&format!(r#" AND "target_audience" = ${}"#, param_idx));
+            param_idx += 1;
+        }
+        if format.is_some() {
+            query.push_str(&format!(r#" AND "format" = ${}"#, param_idx));
+            param_idx += 1;
+        }
+        if language.is_some() {
+            query.push_str(&format!(r#" AND "language" = ${}"#, param_idx));
         }
 
         let mut q = sqlx::query_scalar::<_, i64>(&query);
@@ -37,6 +57,18 @@ impl BookRepository {
         }
         if let Some(c) = category {
             q = q.bind(c.to_string());
+        }
+        if let Some(g) = genre {
+            q = q.bind(g.to_string());
+        }
+        if let Some(ta) = target_audience {
+            q = q.bind(ta.to_string());
+        }
+        if let Some(f) = format {
+            q = q.bind(f.to_string());
+        }
+        if let Some(l) = language {
+            q = q.bind(l.to_string());
         }
 
         let count = q.fetch_one(pool).await?;
@@ -50,6 +82,10 @@ impl BookRepository {
         per_page: i64,
         search: Option<&str>,
         category: Option<&str>,
+        genre: Option<&str>,
+        target_audience: Option<&str>,
+        format: Option<&str>,
+        language: Option<&str>,
         include_inactive: bool,
     ) -> Result<Vec<Book>, AppError> {
         let offset = (page - 1) * per_page;
@@ -68,6 +104,22 @@ impl BookRepository {
             query.push_str(&format!(r#" AND "category" = ${}"#, param_idx));
             param_idx += 1;
         }
+        if genre.is_some() {
+            query.push_str(&format!(r#" AND "genre" = ${}"#, param_idx));
+            param_idx += 1;
+        }
+        if target_audience.is_some() {
+            query.push_str(&format!(r#" AND "target_audience" = ${}"#, param_idx));
+            param_idx += 1;
+        }
+        if format.is_some() {
+            query.push_str(&format!(r#" AND "format" = ${}"#, param_idx));
+            param_idx += 1;
+        }
+        if language.is_some() {
+            query.push_str(&format!(r#" AND "language" = ${}"#, param_idx));
+            param_idx += 1;
+        }
 
         query.push_str(&format!(
             r#" ORDER BY "created_at" DESC LIMIT ${} OFFSET ${}"#,
@@ -82,6 +134,18 @@ impl BookRepository {
         }
         if let Some(c) = category {
             q = q.bind(c.to_string());
+        }
+        if let Some(g) = genre {
+            q = q.bind(g.to_string());
+        }
+        if let Some(ta) = target_audience {
+            q = q.bind(ta.to_string());
+        }
+        if let Some(f) = format {
+            q = q.bind(f.to_string());
+        }
+        if let Some(l) = language {
+            q = q.bind(l.to_string());
         }
 
         q = q.bind(per_page).bind(offset);
@@ -119,13 +183,13 @@ impl BookRepository {
             INSERT INTO "book" (
                 "title", "author", "subtitle", "translator",
                 "isbn_13", "isbn_10", "publisher", "publication_date",
-                "edition", "language", "category", "genre",
+                "edition", "language", "category", "genre", "target_audience",
                 "description", "page_count", "duration_seconds", "format",
                 "cover_image_url", "digital_file_url", "shelf_location",
                 "total_quantity", "available_quantity", "is_active", "submitted_by"
             ) VALUES (
                 $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-                $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, false, $22
+                $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, false, $23
             ) RETURNING *
             "#,
         )
@@ -141,6 +205,7 @@ impl BookRepository {
         .bind(&req.language)
         .bind(&req.category)
         .bind(&req.genre)
+        .bind(&req.target_audience)
         .bind(&req.description)
         .bind(req.page_count)
         .bind(req.duration_seconds)
@@ -194,13 +259,13 @@ impl BookRepository {
             INSERT INTO "book" (
                 "title", "author", "subtitle", "translator",
                 "isbn_13", "isbn_10", "publisher", "publication_date",
-                "edition", "language", "category", "genre",
+                "edition", "language", "category", "genre", "target_audience",
                 "description", "page_count", "duration_seconds", "format",
                 "cover_image_url", "digital_file_url", "shelf_location",
                 "total_quantity", "available_quantity", "added_by"
             ) VALUES (
                 $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-                $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22
+                $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23
             ) RETURNING *
             "#,
         )
@@ -216,6 +281,7 @@ impl BookRepository {
         .bind(&req.language)
         .bind(&req.category)
         .bind(&req.genre)
+        .bind(&req.target_audience)
         .bind(&req.description)
         .bind(req.page_count)
         .bind(req.duration_seconds)
@@ -253,15 +319,16 @@ impl BookRepository {
                 "language" = COALESCE($11, "language"),
                 "category" = COALESCE($12, "category"),
                 "genre" = COALESCE($13, "genre"),
-                "description" = COALESCE($14, "description"),
-                "page_count" = COALESCE($15, "page_count"),
-                "duration_seconds" = COALESCE($16, "duration_seconds"),
-                "format" = COALESCE($17, "format"),
-                "cover_image_url" = COALESCE($18, "cover_image_url"),
-                "digital_file_url" = COALESCE($19, "digital_file_url"),
-                "shelf_location" = COALESCE($20, "shelf_location"),
-                "total_quantity" = COALESCE($21, "total_quantity"),
-                "available_quantity" = COALESCE($22, "available_quantity")
+                "target_audience" = COALESCE($14, "target_audience"),
+                "description" = COALESCE($15, "description"),
+                "page_count" = COALESCE($16, "page_count"),
+                "duration_seconds" = COALESCE($17, "duration_seconds"),
+                "format" = COALESCE($18, "format"),
+                "cover_image_url" = COALESCE($19, "cover_image_url"),
+                "digital_file_url" = COALESCE($20, "digital_file_url"),
+                "shelf_location" = COALESCE($21, "shelf_location"),
+                "total_quantity" = COALESCE($22, "total_quantity"),
+                "available_quantity" = COALESCE($23, "available_quantity")
             WHERE "id" = $1
             RETURNING *
             "#,
@@ -279,6 +346,7 @@ impl BookRepository {
         .bind(&req.language)
         .bind(&req.category)
         .bind(&req.genre)
+        .bind(&req.target_audience)
         .bind(&req.description)
         .bind(req.page_count)
         .bind(req.duration_seconds)

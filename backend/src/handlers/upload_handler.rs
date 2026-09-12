@@ -50,6 +50,56 @@ fn get_subdir(extension: &str) -> &'static str {
     }
 }
 
+/// Faylning birinchi baytlarini (magic bytes) tekshirib, uning haqiqiy turini aniqlash
+fn validate_magic_bytes(header: &[u8], extension: &str) -> bool {
+    if header.is_empty() {
+        return false;
+    }
+
+    match extension {
+        "jpg" | "jpeg" => {
+            header.len() >= 3 && header[0] == 0xFF && header[1] == 0xD8 && header[2] == 0xFF
+        }
+        "png" => {
+            header.len() >= 4 && &header[0..4] == &[0x89, b'P', b'N', b'G']
+        }
+        "gif" => {
+            header.len() >= 6 && (&header[0..6] == b"GIF87a" || &header[0..6] == b"GIF89a")
+        }
+        "webp" => {
+            header.len() >= 12 && &header[0..4] == b"RIFF" && &header[8..12] == b"WEBP"
+        }
+        "svg" => {
+            let sample_len = header.len().min(512);
+            let s = String::from_utf8_lossy(&header[..sample_len]);
+            let trimmed = s.trim_start_matches('\u{feff}').trim_start();
+            trimmed.starts_with("<?xml") || trimmed.starts_with("<svg")
+        }
+        "pdf" => {
+            header.len() >= 4 && &header[0..4] == b"%PDF"
+        }
+        "mp3" => {
+            if header.len() >= 3 && &header[0..3] == b"ID3" {
+                true
+            } else if header.len() >= 2 && header[0] == 0xFF && (header[1] & 0xE0) == 0xE0 {
+                true
+            } else {
+                false
+            }
+        }
+        "ogg" => {
+            header.len() >= 4 && &header[0..4] == b"OggS"
+        }
+        "wav" => {
+            header.len() >= 12 && &header[0..4] == b"RIFF" && &header[8..12] == b"WAVE"
+        }
+        "m4a" => {
+            header.len() >= 8 && &header[4..8] == b"ftyp"
+        }
+        _ => false,
+    }
+}
+
 /// POST /api/upload — Fayl yuklash (faqat autentifikatsiya qilingan foydalanuvchilar)
 pub async fn upload_file(
     config: web::Data<Config>,
@@ -94,23 +144,21 @@ pub async fn upload_file(
         let unique_filename = format!("{}.{}", Uuid::new_v4(), extension);
         let filepath = format!("{}/{}/{}", upload_dir, subdir, unique_filename);
 
-        let mut file = std::fs::File::create(&filepath).map_err(|e| {
-            tracing::error!("Fayl yaratib bo'lmadi: {}", e);
-            actix_web::error::ErrorInternalServerError("Fayl saqlashda xatolik")
-        })?;
-
         let max_file_size = if subdir == "images" {
             MAX_IMAGE_SIZE
         } else {
             MAX_DOC_AUDIO_SIZE
         };
 
+        let mut file_opt: Option<std::fs::File> = None;
         let mut total_size: usize = 0;
+        let mut magic_checked = false;
 
         while let Ok(Some(chunk)) = field.try_next().await {
             total_size += chunk.len();
 
             if total_size > max_file_size {
+                drop(file_opt);
                 let _ = std::fs::remove_file(&filepath);
                 return Err(actix_web::error::ErrorBadRequest(format!(
                     "Fayl hajmi {} MB dan oshmasligi kerak",
@@ -118,10 +166,32 @@ pub async fn upload_file(
                 )));
             }
 
-            file.write_all(&chunk).map_err(|e| {
-                tracing::error!("Faylga yozishda xatolik: {}", e);
-                actix_web::error::ErrorInternalServerError("Fayl saqlashda xatolik")
-            })?;
+            if !magic_checked {
+                if !validate_magic_bytes(&chunk, &extension) {
+                    return Err(actix_web::error::ErrorBadRequest(format!(
+                        "Fayl mazmuni uning kengaytmasiga (.{}) mos kelmadi yoki xavfli format!",
+                        extension
+                    )));
+                }
+                magic_checked = true;
+
+                let f = std::fs::File::create(&filepath).map_err(|e| {
+                    tracing::error!("Fayl yaratib bo'lmadi: {}", e);
+                    actix_web::error::ErrorInternalServerError("Fayl saqlashda xatolik")
+                })?;
+                file_opt = Some(f);
+            }
+
+            if let Some(ref mut file) = file_opt {
+                file.write_all(&chunk).map_err(|e| {
+                    tracing::error!("Faylga yozishda xatolik: {}", e);
+                    actix_web::error::ErrorInternalServerError("Fayl saqlashda xatolik")
+                })?;
+            }
+        }
+
+        if file_opt.is_none() {
+            return Err(actix_web::error::ErrorBadRequest("Fayl bo'sh bo'lishi mumkin emas"));
         }
 
         let file_url = format!("/uploads/{}/{}", subdir, unique_filename);

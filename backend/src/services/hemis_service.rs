@@ -69,11 +69,30 @@ impl HemisService {
             let status = response.status();
             let body = response.text().await.unwrap_or_else(|_| "Noma'lum xato".to_string());
             tracing::warn!("HEMIS auth xatosi: {} - {}", status, body);
-            // 401 Unauthorized for bad credentials typically
-            if status.as_u16() == 401 || status.as_u16() == 400 || status.as_u16() == 403 {
-               return Err(AppError::Unauthorized("Login yoki parol noto'g'ri (HEMIS)".to_string()));
+            
+            match status.as_u16() {
+                401 => {
+                    return Err(AppError::Unauthorized("Login yoki parol noto'g'ri (HEMIS)".to_string()));
+                }
+                403 => {
+                    return Err(AppError::Forbidden(
+                        "HEMIS tizimi so'rovni rad etdi (403 Forbidden). Server IP manzili cheklangan bo'lishi mumkin. Iltimos ma'muriyatga murojaat qiling.".to_string()
+                    ));
+                }
+                429 => {
+                    return Err(AppError::Forbidden(
+                        "HEMIS tizimida so'rovlar chegarasi oshdi (429 Too Many Requests). Iltimos, bir necha daqiqadan so'ng qayta urinib ko'ring.".to_string()
+                    ));
+                }
+                400 => {
+                    return Err(AppError::BadRequest(
+                        "HEMIS so'rov xatosi (400 Bad Request). Login yoki parol formati mos kelmadi.".to_string()
+                    ));
+                }
+                _ => {
+                    return Err(AppError::InternalError("HEMIS serveri bilan ulanishda xatolik yuz berdi".to_string()));
+                }
             }
-            return Err(AppError::InternalError("HEMIS tizimi bilan ulanishda xatolik".to_string()));
         }
 
         let hemis_response: HemisStudentAuthResponse = response.json().await.map_err(|e| {

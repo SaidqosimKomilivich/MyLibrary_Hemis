@@ -42,3 +42,23 @@ pub struct MessageResponse {
     pub success: bool,
     pub message: String,
 }
+
+#[derive(Debug, Deserialize)]
+pub struct UnblockRequest {
+    pub user_id: Option<String>,
+    pub ip: Option<String>,
+    pub clear_all: Option<bool>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct BlockedItem {
+    pub target: String,
+    pub blocked_until: i64,
+}
+
+#[derive(Debug, Serialize)]
+pub struct BlockedSummaryResponse {
+    pub success: bool,
+    pub users: Vec<BlockedItem>,
+    pub ips: Vec<BlockedItem>,
+}

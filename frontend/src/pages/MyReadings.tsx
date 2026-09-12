@@ -151,6 +151,7 @@ export default function MyReadings() {
                 <PdfViewerModal
                     title={pdfBook.title}
                     fileUrl={pdfBook.digital_file_url || ''}
+                    bookId={pdfBook.id}
                     onClose={() => setPdfBook(null)}
                 />
             )}

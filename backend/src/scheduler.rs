@@ -11,7 +11,10 @@ use crate::repository::control_repository::ControlRepository;
 use crate::repository::message_repository::MessageRepository;
 use crate::services::message_service::MessageService;
 use crate::dto::message::SendMessageDto;
+use std::collections::HashSet;
+use std::path::Path;
 use std::sync::Arc;
+use std::time::SystemTime;
 
 /// Avtomatik chiqish schedulerini fonda ishga tushiradi.
 ///
@@ -169,6 +172,129 @@ pub async fn start_rental_reminder_scheduler(pool: PgPool, message_service: Arc<
                 tracing::error!("❌ Rental-reminder xatoligi: DB so'rovida muammo - {}", e);
             }
         }
+
+        sleep(Duration::from_secs(60)).await;
+    }
+}
+
+/// Diskdagi yetim (hech qaysi ma'lumotlar bazasi yozuviga bog'lanmagan) fayllarni tozalash scheduleri.
+///
+/// Har kuni tungi soat **03:00** da bir marta ishlaydi:
+/// 1. `uploads/images`, `uploads/pdf`, `uploads/audio` papkalaridagi barcha fayllarni ko'rib chiqadi.
+/// 2. Oxirgi 24 soat ichida yuklangan yangi fayllarga tegmaydi (in-progress uploadlar uchun grace period).
+/// 3. Baza jadvallaridagi (`book`, `users`, `news`, `announcements`) barcha faol URL larni to'playdi.
+/// 4. Agar fayl 24 soatdan eski bo'lsa va bazada unga havola mavjud bo'lmasa, uni diskdan o'chirib tashlaydi.
+pub async fn start_orphan_files_cleanup_scheduler(pool: PgPool, upload_dir: String) {
+    tracing::info!("🧹 Orphan-files tozalash scheduleri ishga tushdi (har kuni 03:00 da ishlaydi)");
+
+    let target_time = NaiveTime::from_hms_opt(3, 0, 0).expect("03:00:00 vaqtini yaratib bo'lmadi");
+
+    loop {
+        let now = Local::now();
+        let today_target = now.date_naive().and_time(target_time);
+
+        let wait_secs = if now.naive_local() < today_target {
+            (today_target - now.naive_local()).num_seconds()
+        } else {
+            let tomorrow_target = today_target + chrono::Duration::hours(24);
+            (tomorrow_target - now.naive_local()).num_seconds()
+        };
+
+        tracing::info!(
+            wait_seconds = wait_secs,
+            "⏳ Orphan-files tozalash: {:.1} soatdan keyin ishlaydi",
+            wait_secs as f64 / 3600.0
+        );
+
+        sleep(Duration::from_secs(wait_secs.max(0) as u64)).await;
+
+        tracing::info!("🧹 Orphan-files tozalash jarayoni boshlandi...");
+
+        // 1. Bazadagi barcha havolalarni olish
+        let active_urls_res = sqlx::query_scalar::<_, String>(
+            r#"
+            SELECT cover_image_url FROM "book" WHERE cover_image_url IS NOT NULL AND cover_image_url != ''
+            UNION
+            SELECT digital_file_url FROM "book" WHERE digital_file_url IS NOT NULL AND digital_file_url != ''
+            UNION
+            SELECT image_url FROM "users" WHERE image_url IS NOT NULL AND image_url != ''
+            UNION
+            SELECT unnest(images) FROM "news" WHERE images IS NOT NULL
+            UNION
+            SELECT unnest(images) FROM "announcements" WHERE images IS NOT NULL
+            "#
+        )
+        .fetch_all(&pool)
+        .await;
+
+        let active_urls: HashSet<String> = match active_urls_res {
+            Ok(urls) => urls.into_iter().collect(),
+            Err(e) => {
+                tracing::error!("❌ Orphan-files: Bazadan havolalarni olishda xatolik: {}", e);
+                sleep(Duration::from_secs(60)).await;
+                continue;
+            }
+        };
+
+        let subdirs = ["images", "audio", "pdf"];
+        let now_system = SystemTime::now();
+        let grace_duration = std::time::Duration::from_secs(24 * 3600); // 24 soat grace period
+        let mut deleted_count = 0;
+        let mut freed_bytes: u64 = 0;
+
+        for subdir in &subdirs {
+            let dir_path = format!("{}/{}", upload_dir, subdir);
+            let path = Path::new(&dir_path);
+            if !path.exists() || !path.is_dir() {
+                continue;
+            }
+
+            if let Ok(entries) = std::fs::read_dir(path) {
+                for entry in entries.flatten() {
+                    let file_path = entry.path();
+                    if !file_path.is_file() {
+                        continue;
+                    }
+
+                    // Fayl yoshi (grace period) tekshiruvi
+                    if let Ok(metadata) = entry.metadata() {
+                        let is_old_enough = metadata
+                            .modified()
+                            .or_else(|_| metadata.created())
+                            .map(|t| now_system.duration_since(t).unwrap_or_default() >= grace_duration)
+                            .unwrap_or(false);
+
+                        if !is_old_enough {
+                            continue;
+                        }
+
+                        if let Some(file_name) = file_path.file_name().and_then(|n| n.to_str()) {
+                            let rel_url = format!("/uploads/{}/{}", subdir, file_name);
+
+                            let is_referenced = active_urls.contains(&rel_url)
+                                || active_urls.iter().any(|u| u.ends_with(&rel_url));
+
+                            if !is_referenced {
+                                let size = metadata.len();
+                                if let Err(e) = std::fs::remove_file(&file_path) {
+                                    tracing::warn!("Yetim faylni o'chirib bo'lmadi {:?}: {}", file_path, e);
+                                } else {
+                                    deleted_count += 1;
+                                    freed_bytes += size;
+                                    tracing::info!(file = %rel_url, size_bytes = size, "🗑️ Yetim fayl diskdan tozalandi");
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        tracing::info!(
+            deleted_files = deleted_count,
+            freed_mb = (freed_bytes as f64) / (1024.0 * 1024.0),
+            "✅ Orphan-files tozalash yakunlandi"
+        );
 
         sleep(Duration::from_secs(60)).await;
     }

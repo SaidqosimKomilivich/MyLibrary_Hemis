@@ -6,12 +6,23 @@ import {
     Eye, Download, ExternalLink, Calendar, Globe, Hash, Layers,
     Loader2, Check
 } from 'lucide-react'
-import { api, type Book } from '../../services/api'
+import { api, type Book, type UploadProgress } from '../../services/api'
+import { compressImage } from '../../utils/imageCompressor'
 import { toast } from 'react-toastify'
 import { getFileUrl } from '../../utils/fileUrl'
 import { CustomSelect } from '../../components/CustomSelect'
 import { useAuth } from '../../context/AuthContext'
 import PdfViewerModal from '../../components/PdfViewerModal'
+import {
+    BOOK_CATEGORIES,
+    BOOK_GENRES,
+    BOOK_AUDIENCES,
+    BOOK_FORMATS,
+    BOOK_LANGUAGES,
+    getCategoryLabel,
+    getGenreLabel,
+    getAudienceLabel
+} from '../../constants/bookClassification'
 
 interface BookFormData {
     title: string
@@ -20,6 +31,9 @@ interface BookFormData {
     publication_date: string
     language: string
     category: string
+    genre: string
+    target_audience: string
+    format: string
     description: string
     page_count: string
     cover_image_url: string
@@ -32,8 +46,11 @@ const EMPTY_FORM: BookFormData = {
     author: '',
     publisher: '',
     publication_date: '',
-    language: "O'zbek",
+    language: 'uz',
     category: '',
+    genre: '',
+    target_audience: '',
+    format: 'bosma',
     description: '',
     page_count: '',
     cover_image_url: '',
@@ -53,13 +70,16 @@ export default function TeacherBookSubmit() {
 
     // Cover image upload
     const [coverUploading, setCoverUploading] = useState(false)
-    const [coverProgress, setCoverProgress] = useState(0)
+    const [coverProgress, setCoverProgress] = useState<UploadProgress | null>(null)
+    const [localCoverPreview, setLocalCoverPreview] = useState<string | null>(null)
+    const [isDraggingCover, setIsDraggingCover] = useState(false)
     const coverXhrRef = useRef<XMLHttpRequest | null>(null)
     const coverInputRef = useRef<HTMLInputElement>(null)
 
     // Digital file upload
     const [fileUploading, setFileUploading] = useState(false)
-    const [fileProgress, setFileProgress] = useState(0)
+    const [fileProgress, setFileProgress] = useState<UploadProgress | null>(null)
+    const [isDraggingFile, setIsDraggingFile] = useState(false)
     const fileXhrRef = useRef<XMLHttpRequest | null>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -77,34 +97,98 @@ export default function TeacherBookSubmit() {
     const handleChange = (field: keyof BookFormData, value: string) =>
         setForm(prev => ({ ...prev, [field]: value }))
 
+    const processCoverFile = async (file: File) => {
+        if (!file.type.startsWith('image/')) {
+            toast.error("Faqat rasm fayllari (JPG, PNG, WEBP) qabul qilinadi")
+            return
+        }
+        if (file.size > 15 * 1024 * 1024) {
+            toast.error("Rasm hajmi 15 MB dan oshmasligi kerak")
+            return
+        }
+
+        const previewUrl = URL.createObjectURL(file)
+        setLocalCoverPreview(previewUrl)
+        setCoverUploading(true)
+        setCoverProgress(null)
+
+        try {
+            const compressed = await compressImage(file, { maxWidth: 1200, maxHeight: 1600, quality: 0.82 })
+            const { promise, xhr } = api.uploadFile(compressed, p => setCoverProgress(p))
+            coverXhrRef.current = xhr
+            const res = await promise
+            const url = res.files?.[0]?.url || ''
+            setForm(prev => ({ ...prev, cover_image_url: url }))
+            toast.success("Muqova rasmi yuklandi")
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : "Muqova yuklanmadi"
+            if (msg !== 'Yuklash bekor qilindi') toast.error(msg)
+            setLocalCoverPreview(null)
+        } finally {
+            setCoverUploading(false)
+            setCoverProgress(null)
+            coverXhrRef.current = null
+        }
+    }
+
     const handleCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
-        if (!file) return
-        setCoverUploading(true); setCoverProgress(0)
-        const { promise, xhr } = api.uploadFile(file, p => setCoverProgress(p))
-        coverXhrRef.current = xhr
-        promise
-            .then(res => setForm(prev => ({ ...prev, cover_image_url: res.files?.[0]?.url || '' })))
-            .catch(() => toast.error('Muqova yuklanmadi'))
-            .finally(() => { setCoverUploading(false); setCoverProgress(0) })
+        if (file) processCoverFile(file)
+        e.target.value = ''
+    }
+
+    const processDigitalFile = async (file: File) => {
+        if (file.size > 150 * 1024 * 1024) {
+            toast.error("Fayl hajmi 150 MB dan oshmasligi kerak")
+            return
+        }
+        setFileUploading(true)
+        setFileProgress(null)
+        try {
+            const { promise, xhr } = api.uploadFile(file, p => setFileProgress(p))
+            fileXhrRef.current = xhr
+            const res = await promise
+            const uploaded = res.files?.[0]
+            if (uploaded?.url) {
+                setForm(prev => ({ ...prev, digital_file_url: uploaded.url }))
+                toast.success(`Fayl yuklandi: ${uploaded.original_name}`)
+            }
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : "Fayl yuklanmadi"
+            if (msg !== 'Yuklash bekor qilindi') toast.error(msg)
+        } finally {
+            setFileUploading(false)
+            setFileProgress(null)
+            fileXhrRef.current = null
+        }
     }
 
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
-        if (!file) return
-        setFileUploading(true); setFileProgress(0)
-        const { promise, xhr } = api.uploadFile(file, p => setFileProgress(p))
-        fileXhrRef.current = xhr
-        promise
-            .then(res => { setForm(prev => ({ ...prev, digital_file_url: res.files?.[0]?.url || '' })); toast.success('Fayl yuklandi') })
-            .catch(() => toast.error('Fayl yuklanmadi'))
-            .finally(() => { setFileUploading(false); setFileProgress(0) })
+        if (file) processDigitalFile(file)
+        e.target.value = ''
+    }
+
+    const handleCancelCoverUpload = () => {
+        coverXhrRef.current?.abort()
+        if (localCoverPreview) {
+            URL.revokeObjectURL(localCoverPreview)
+            setLocalCoverPreview(null)
+        }
+    }
+
+    const handleCancelFileUpload = () => {
+        fileXhrRef.current?.abort()
     }
 
     const handleCloseModal = () => {
         if (coverUploading || fileUploading) return
         coverXhrRef.current?.abort()
         fileXhrRef.current?.abort()
+        if (localCoverPreview) {
+            URL.revokeObjectURL(localCoverPreview)
+            setLocalCoverPreview(null)
+        }
         setForm({ ...EMPTY_FORM, author: user?.full_name || '' })
         setModalOpen(false)
     }
@@ -123,6 +207,9 @@ export default function TeacherBookSubmit() {
                 publication_date: form.publication_date ? parseInt(form.publication_date) : undefined,
                 language: form.language || undefined,
                 category: form.category || undefined,
+                genre: form.genre || undefined,
+                target_audience: form.target_audience || undefined,
+                format: form.format || 'bosma',
                 description: form.description || undefined,
                 page_count: form.page_count ? parseInt(form.page_count) : undefined,
                 cover_image_url: form.cover_image_url || undefined,
@@ -213,7 +300,10 @@ export default function TeacherBookSubmit() {
                                 <div className="flex flex-col min-w-0 flex-1">
                                     <span className="font-semibold text-sm text-text truncate">{book.title}</span>
                                     <span className="text-xs text-text-muted">{book.author}</span>
-                                    {book.category && <span className="text-xs text-primary-light mt-0.5">{book.category}</span>}
+                                    <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                                        {book.genre && <span className="text-[11px] bg-indigo-500/15 text-indigo-300 px-1.5 py-0.5 rounded-md font-medium">{getGenreLabel(book.genre)}</span>}
+                                        {book.category && <span className="text-[11px] text-primary-light font-medium">{getCategoryLabel(book.category)}</span>}
+                                    </div>
                                 </div>
                                 <div className="flex items-center gap-2 shrink-0">
                                     {book.is_active ? (
@@ -291,36 +381,55 @@ export default function TeacherBookSubmit() {
                                     />
                                 </div>
 
-                                {/* Kategoriya */}
+                                {/* Fan va soha */}
                                 <div className="flex flex-col gap-1.5 min-w-0">
-                                    <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">Kategoriya</label>
+                                    <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">Fan va soha</label>
                                     <CustomSelect
                                         value={form.category}
                                         onChange={(val) => handleChange('category', val)}
                                         options={[
-                                            { value: '', label: 'Tanlang' },
-                                            // --- 1-BAND: ASOSIY JANR VA FORMAT ---
-                                            { value: 'badiiy_adabiyot', label: 'Badiiy adabiyot' },
-                                            { value: 'ilmiy_ommabop', label: 'Ilmiy-ommabop' },
-                                            { value: 'darslik_metodik', label: 'Darslik va metodik qo‘llanma' },
-                                            { value: 'monografiya', label: 'Ilmiy monografiya' },
-                                            { value: 'lugat_entsiklopediya', label: 'Lug‘at va entsiklopediya' },
-
-                                            // --- 2-BAND: MAVZU VA SOHA (SUBJECT) ---
-                                            { value: 'it_texnologiya', label: 'IT va Texnologiyalar' },
-                                            { value: 'tarix_falsafa', label: 'Tarix va Falsafa' },
-                                            { value: 'iqtisodiyot_siyosat', label: 'Iqtisodiyot va Siyosat' },
-                                            { value: 'psixologiya_shaxsiy_rivojlanish', label: 'Psixologiya va Shaxsiy rivojlanish' },
-                                            { value: 'tabiiy_fanlar', label: 'Tabiiy fanlar (Fizika, Kimyo, Biologiya)' },
-                                            { value: 'tibbiyot', label: 'Tibbiyot va Sog‘liqni saqlash' },
-                                            { value: 'huquqshunoslik', label: 'Huquqshunoslik' },
-                                            { value: 'xorijiy_tillar', label: 'Xorijiy tillarni o‘rganish' },
-
-                                            // --- 3-BAND: AUDITORIYA (TARGET AUDIENCE) ---
-                                            { value: 'bolalar_uchun', label: 'Bolalar adabiyoti' },
-                                            { value: 'osmirlar_uchun', label: 'O‘smirlar adabiyoti' },
-                                            { value: 'mutaxassislar_uchun', label: 'Mutaxassislar va tadqiqotchilar' }
+                                            { value: '', label: 'Sohani tanlang' },
+                                            ...BOOK_CATEGORIES
                                         ]}
+                                        buttonClassName="w-full bg-surface-hover border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
+                                    />
+                                </div>
+
+                                {/* Nashr turi / Janr */}
+                                <div className="flex flex-col gap-1.5 min-w-0">
+                                    <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">Nashr / Adabiyot turi</label>
+                                    <CustomSelect
+                                        value={form.genre}
+                                        onChange={(val) => handleChange('genre', val)}
+                                        options={[
+                                            { value: '', label: 'Nashr turini tanlang' },
+                                            ...BOOK_GENRES
+                                        ]}
+                                        buttonClassName="w-full bg-surface-hover border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
+                                    />
+                                </div>
+
+                                {/* Kitobxon auditoriyasi */}
+                                <div className="flex flex-col gap-1.5 min-w-0">
+                                    <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">Kitobxon auditoriyasi</label>
+                                    <CustomSelect
+                                        value={form.target_audience}
+                                        onChange={(val) => handleChange('target_audience', val)}
+                                        options={[
+                                            { value: '', label: 'Auditoriyani tanlang' },
+                                            ...BOOK_AUDIENCES
+                                        ]}
+                                        buttonClassName="w-full bg-surface-hover border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
+                                    />
+                                </div>
+
+                                {/* Format */}
+                                <div className="flex flex-col gap-1.5 min-w-0">
+                                    <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">Format</label>
+                                    <CustomSelect
+                                        value={form.format}
+                                        onChange={(val) => handleChange('format', val)}
+                                        options={BOOK_FORMATS}
                                         buttonClassName="w-full bg-surface-hover border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
                                     />
                                 </div>
@@ -331,24 +440,7 @@ export default function TeacherBookSubmit() {
                                     <CustomSelect
                                         value={form.language}
                                         onChange={(val) => handleChange('language', val)}
-                                        options={[
-                                            { value: '', label: 'Tanlang' },
-                                            { value: 'uz', label: 'O\'zbek' },
-                                            { value: 'ru', label: 'Rus' },
-                                            { value: 'en', label: 'Ingliz' },
-                                            { value: 'tr', label: 'Turk' },
-                                            { value: 'ar', label: 'Arab' },
-                                            { value: 'de', label: 'Nemis' },
-                                            { value: 'fr', label: 'Fransuz' },
-                                            { value: 'es', label: 'Ispan' },
-                                            { value: 'zh', label: 'Xitoy' },
-                                            { value: 'ja', label: 'Yapon' },
-                                            { value: 'ko', label: 'Koreys' },
-                                            { value: 'kk', label: 'Qozoq' },
-                                            { value: 'tg', label: 'Tojik' },
-                                            { value: 'ky', label: 'Qirg\'iz' },
-                                            { value: 'tk', label: 'Turkman' }
-                                        ]}
+                                        options={BOOK_LANGUAGES}
                                         buttonClassName="w-full bg-surface-hover border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
                                     />
                                 </div>
@@ -405,20 +497,56 @@ export default function TeacherBookSubmit() {
                                     {/* Muqova rasm yuklash */}
                                     <div className="flex flex-col gap-2">
                                         <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">Muqova rasmi</label>
-                                        <div className="flex items-center gap-4">
-                                            {form.cover_image_url ? (
-                                                <div className="relative w-20 h-28 rounded-lg overflow-hidden border border-border group shrink-0 shadow-md">
-                                                    <img src={form.cover_image_url} alt="Cover preview" className="w-full h-full object-cover" />
-                                                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                        <button
-                                                            type="button"
-                                                            onClick={e => { e.preventDefault(); setForm(p => ({ ...p, cover_image_url: '' })) }}
-                                                            className="w-8 h-8 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-colors"
-                                                            title="O'chirish"
-                                                        >
-                                                            <X size={16} />
-                                                        </button>
-                                                    </div>
+                                        <div
+                                            onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDraggingCover(true) }}
+                                            onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setIsDraggingCover(true) }}
+                                            onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDraggingCover(false) }}
+                                            onDrop={(e) => {
+                                                e.preventDefault()
+                                                e.stopPropagation()
+                                                setIsDraggingCover(false)
+                                                const f = e.dataTransfer.files?.[0]
+                                                if (f) processCoverFile(f)
+                                            }}
+                                            className={`border-2 border-dashed rounded-xl p-3 bg-surface-hover transition-all flex items-center gap-4 ${
+                                                isDraggingCover ? 'border-primary bg-primary/10 scale-[1.01]' : 'border-border'
+                                            }`}
+                                        >
+                                            {localCoverPreview || form.cover_image_url ? (
+                                                <div className="relative w-20 h-28 rounded-lg overflow-hidden border border-border group shrink-0 shadow-md bg-surface">
+                                                    <img src={localCoverPreview || form.cover_image_url} alt="Cover preview" className="w-full h-full object-cover" />
+                                                    {coverUploading ? (
+                                                        <div className="absolute inset-0 bg-black/75 backdrop-blur-xs flex flex-col items-center justify-center p-1 text-center">
+                                                            <Loader2 size={18} className="animate-spin text-primary mb-1" />
+                                                            <span className="text-[0.7rem] font-bold text-white">{coverProgress?.percent || 0}%</span>
+                                                            {coverProgress?.speed && <span className="text-[0.62rem] text-emerald-400">{coverProgress.speed}</span>}
+                                                            <button
+                                                                type="button"
+                                                                onClick={handleCancelCoverUpload}
+                                                                className="text-[0.65rem] text-rose-400 hover:underline mt-1"
+                                                            >
+                                                                Bekor
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                            <button
+                                                                type="button"
+                                                                onClick={e => {
+                                                                    e.preventDefault()
+                                                                    if (localCoverPreview) {
+                                                                        URL.revokeObjectURL(localCoverPreview)
+                                                                        setLocalCoverPreview(null)
+                                                                    }
+                                                                    setForm(p => ({ ...p, cover_image_url: '' }))
+                                                                }}
+                                                                className="w-8 h-8 rounded-full bg-rose-500/80 text-white flex items-center justify-center hover:bg-rose-500 transition-colors"
+                                                                title="O'chirish"
+                                                            >
+                                                                <X size={16} />
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             ) : (
                                                 <div className="w-20 h-28 rounded-lg border-2 border-dashed border-border/60 bg-white/5 flex flex-col items-center justify-center text-text-muted shrink-0 gap-1.5">
@@ -436,15 +564,18 @@ export default function TeacherBookSubmit() {
                                                     className="flex items-center justify-center gap-2 py-2 px-4 rounded-xl border border-border bg-white/5 hover:bg-white/10 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-text"
                                                 >
                                                     {coverUploading ? (
-                                                        <><Loader2 size={16} className="animate-spin" /> {coverProgress}%</>
+                                                        <><Loader2 size={16} className="animate-spin" /> {coverProgress?.percent || 0}% {coverProgress?.speed ? `(${coverProgress.speed})` : ''}</>
                                                     ) : (
-                                                        <><Upload size={16} /> Rasm tanlash</>
+                                                        <><Upload size={16} /> {isDraggingCover ? 'Shu yerga tashlang' : 'Rasm tanlash yoki tashlash'}</>
                                                     )}
                                                 </button>
-                                                {coverUploading && (
-                                                    <button type="button" onClick={() => coverXhrRef.current?.abort()} className="text-xs text-rose-400 hover:text-rose-300 transition-colors font-medium">Bekoq qilish</button>
+                                                {coverUploading && coverProgress && (
+                                                    <div className="flex justify-between items-center text-[0.72rem] text-text-muted px-1">
+                                                        <span>{coverProgress.formattedLoaded} / {coverProgress.formattedTotal}</span>
+                                                        <button type="button" onClick={handleCancelCoverUpload} className="text-rose-400 hover:text-rose-300 font-medium">Bekor qilish</button>
+                                                    </div>
                                                 )}
-                                                <p className="text-xs text-text-muted mt-1 leading-relaxed">Tavsiya qilingan o'lcham: 800x1200 px. Faqat JPG, PNG, WEBP fayllar.</p>
+                                                <p className="text-xs text-text-muted mt-0.5 leading-relaxed">JPG, PNG, WEBP. Avtomatik siqiladi (~150-250 KB).</p>
                                             </div>
                                         </div>
                                     </div>
@@ -452,7 +583,23 @@ export default function TeacherBookSubmit() {
                                     {/* Elektron fayl */}
                                     <div className="flex flex-col gap-2">
                                         <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">Elektron nusxasi (ixtiyoriy)</label>
-                                        <div className="bg-surface-hover border border-border p-4 rounded-xl flex flex-col items-center justify-center gap-3 text-center min-h-28">
+                                        <div
+                                            onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDraggingFile(true) }}
+                                            onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setIsDraggingFile(true) }}
+                                            onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDraggingFile(false) }}
+                                            onDrop={(e) => {
+                                                e.preventDefault()
+                                                e.stopPropagation()
+                                                setIsDraggingFile(false)
+                                                const f = e.dataTransfer.files?.[0]
+                                                if (f) processDigitalFile(f)
+                                            }}
+                                            className={`border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center gap-3 text-center min-h-28 transition-all ${
+                                                isDraggingFile
+                                                    ? 'border-primary bg-primary/10 scale-[1.01]'
+                                                    : 'border-border bg-surface-hover'
+                                            }`}
+                                        >
                                             <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".pdf,.epub,.doc,.docx,.mp3,.m4a" className="hidden" />
 
                                             {form.digital_file_url ? (
@@ -461,7 +608,7 @@ export default function TeacherBookSubmit() {
                                                         <Check size={20} />
                                                     </div>
                                                     <div className="flex items-center gap-2 overflow-hidden w-full px-2">
-                                                        <span className="text-sm font-medium truncate flex-1 leading-none text-emerald-400 text-center">Yuklandi</span>
+                                                        <span className="text-sm font-medium truncate flex-1 leading-none text-emerald-400 text-center">Fayl yuklandi</span>
                                                     </div>
                                                     <button
                                                         type="button"
@@ -476,16 +623,36 @@ export default function TeacherBookSubmit() {
                                                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 text-primary-light shrink-0">
                                                         <FileText size={20} />
                                                     </div>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => !fileUploading && fileInputRef.current?.click()}
-                                                        disabled={fileUploading}
-                                                        className="w-full py-2 rounded-lg bg-primary hover:bg-primary-hover text-white text-sm font-semibold transition-colors disabled:opacity-50"
-                                                    >
-                                                        {fileUploading ? `Yuklanmoqda... ${fileProgress}%` : 'Fayl tanlash'}
-                                                    </button>
-                                                    {fileUploading && (
-                                                        <button type="button" onClick={() => fileXhrRef.current?.abort()} className="text-xs text-rose-400 font-medium">Bekor qilish</button>
+                                                    {fileUploading ? (
+                                                        <div className="w-[85%] flex flex-col gap-1.5">
+                                                            <div className="h-1.5 w-full bg-black/30 rounded-full overflow-hidden">
+                                                                <div
+                                                                    className="h-full bg-primary transition-all duration-200"
+                                                                    style={{ width: `${fileProgress?.percent || 0}%` }}
+                                                                />
+                                                            </div>
+                                                            <div className="flex justify-between items-center text-[0.75rem]">
+                                                                <span className="font-semibold text-primary">{fileProgress?.percent || 0}%</span>
+                                                                {fileProgress?.speed && <span className="text-emerald-400 font-mono text-[0.7rem]">{fileProgress.speed}</span>}
+                                                                <button type="button" onClick={handleCancelFileUpload} className="text-rose-400 text-xs hover:underline">Bekor qilish</button>
+                                                            </div>
+                                                            {fileProgress && (
+                                                                <span className="text-[0.68rem] text-text-muted">
+                                                                    {fileProgress.formattedLoaded} / {fileProgress.formattedTotal}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => fileInputRef.current?.click()}
+                                                                className="w-full py-2 px-4 rounded-lg bg-primary hover:bg-primary-hover text-white text-sm font-semibold transition-colors shadow-sm"
+                                                            >
+                                                                {isDraggingFile ? 'Faylni shu yerga tashlang' : 'Fayl tanlash yoki tashlash'}
+                                                            </button>
+                                                            <span className="text-[0.72rem] text-text-muted">PDF, DOC, DOCX, MP3, M4A (150 MB gacha)</span>
+                                                        </>
                                                     )}
                                                 </>
                                             )}
@@ -547,11 +714,23 @@ export default function TeacherBookSubmit() {
                                     <h2 className="text-lg font-bold text-text leading-tight">{selectedBook.title}</h2>
                                     <p className="text-sm text-text-muted">{selectedBook.author}</p>
                                     {selectedBook.translator && <p className="text-xs text-text-muted">Tarjimon: {selectedBook.translator}</p>}
-                                    {selectedBook.category && (
-                                        <span className="text-xs bg-primary/15 text-primary-light px-2.5 py-1 rounded-full w-fit border border-primary/20">
-                                            {selectedBook.category}
-                                        </span>
-                                    )}
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        {selectedBook.genre && (
+                                            <span className="text-xs bg-indigo-500/15 text-indigo-300 px-2.5 py-1 rounded-full border border-indigo-500/20 font-medium">
+                                                {getGenreLabel(selectedBook.genre)}
+                                            </span>
+                                        )}
+                                        {selectedBook.category && (
+                                            <span className="text-xs bg-primary/15 text-primary-light px-2.5 py-1 rounded-full border border-primary/20 font-medium">
+                                                {getCategoryLabel(selectedBook.category)}
+                                            </span>
+                                        )}
+                                        {selectedBook.target_audience && (
+                                            <span className="text-xs bg-emerald-500/15 text-emerald-300 px-2.5 py-1 rounded-full border border-emerald-500/20 font-medium">
+                                                {getAudienceLabel(selectedBook.target_audience)}
+                                            </span>
+                                        )}
+                                    </div>
                                     <div className="mt-auto flex flex-col gap-2">
                                         <div>
                                             {selectedBook.is_active ? (
@@ -635,6 +814,7 @@ export default function TeacherBookSubmit() {
                 <PdfViewerModal
                     title={pdfBook.title}
                     fileUrl={pdfBook.digital_file_url || ''}
+                    bookId={pdfBook.id}
                     onClose={() => setPdfBook(null)}
                 />
             )}

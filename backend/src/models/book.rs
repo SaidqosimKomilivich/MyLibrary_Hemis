@@ -17,6 +17,7 @@ pub struct Book {
     pub language: Option<String>,
     pub category: Option<String>,
     pub genre: Option<String>,
+    pub target_audience: Option<String>,
     pub description: Option<String>,
     pub page_count: Option<i32>,
     pub duration_seconds: Option<i32>,

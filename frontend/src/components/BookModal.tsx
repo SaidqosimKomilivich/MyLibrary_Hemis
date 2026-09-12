@@ -1,9 +1,17 @@
 import { useState, useEffect, useRef, type FormEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Loader2, Upload, Check, AlertTriangle, Sparkles } from 'lucide-react'
+import { X, Loader2, Upload, Check, AlertTriangle, Sparkles, FileText, Image as ImageIcon } from 'lucide-react'
 import { toast } from 'react-toastify'
-import { api, type CreateBookRequest, type Book } from '../services/api'
+import { api, type CreateBookRequest, type Book, type UploadProgress } from '../services/api'
+import { compressImage } from '../utils/imageCompressor'
 import { CustomSelect } from './CustomSelect'
+import {
+    BOOK_CATEGORIES,
+    BOOK_GENRES,
+    BOOK_AUDIENCES,
+    BOOK_FORMATS,
+    BOOK_LANGUAGES
+} from '../constants/bookClassification'
 
 interface BookModalProps {
     isOpen: boolean
@@ -17,6 +25,8 @@ const emptyForm: CreateBookRequest = {
     title: '',
     author: '',
     category: '',
+    genre: '',
+    target_audience: '',
     isbn_13: '',
     total_quantity: 1,
     available_quantity: 1,
@@ -26,7 +36,7 @@ const emptyForm: CreateBookRequest = {
     description: '',
     page_count: 0,
     shelf_location: '',
-    format: '',
+    format: 'bosma',
     cover_image_url: '',
     digital_file_url: '',
     duration_seconds: 0,
@@ -36,8 +46,11 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
     const [isLoading, setIsLoading] = useState(false)
     const [isUploadingCover, setIsUploadingCover] = useState(false)
     const [isUploadingFile, setIsUploadingFile] = useState(false)
-    const [coverProgress, setCoverProgress] = useState(0)
-    const [fileProgress, setFileProgress] = useState(0)
+    const [coverProgress, setCoverProgress] = useState<UploadProgress | null>(null)
+    const [fileProgress, setFileProgress] = useState<UploadProgress | null>(null)
+    const [localCoverPreview, setLocalCoverPreview] = useState<string | null>(null)
+    const [isDraggingCover, setIsDraggingCover] = useState(false)
+    const [isDraggingFile, setIsDraggingFile] = useState(false)
     const [formData, setFormData] = useState<CreateBookRequest>({ ...emptyForm })
 
     // XHR refs for abort support
@@ -50,6 +63,8 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
                 title: book.title,
                 author: book.author,
                 category: book.category || '',
+                genre: book.genre || '',
+                target_audience: book.target_audience || '',
                 isbn_13: book.isbn_13 || '',
                 total_quantity: book.total_quantity || 1,
                 available_quantity: book.available_quantity || 1,
@@ -59,13 +74,17 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
                 description: book.description || '',
                 page_count: book.page_count || 0,
                 shelf_location: book.shelf_location || '',
-                format: book.format || '',
+                format: book.format || 'bosma',
                 cover_image_url: book.cover_image_url || '',
                 digital_file_url: book.digital_file_url || '',
                 duration_seconds: book.duration_seconds || 0,
             })
         } else {
             setFormData({ ...emptyForm })
+        }
+        if (localCoverPreview) {
+            URL.revokeObjectURL(localCoverPreview)
+            setLocalCoverPreview(null)
         }
     }, [mode, book, isOpen])
 
@@ -129,6 +148,8 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
             title: duplicateBook.title || prev.title,
             author: duplicateBook.author || prev.author,
             category: duplicateBook.category || prev.category,
+            genre: duplicateBook.genre || prev.genre,
+            target_audience: duplicateBook.target_audience || prev.target_audience,
             isbn_13: duplicateBook.isbn_13 || prev.isbn_13,
             publisher: duplicateBook.publisher || prev.publisher,
             publication_date: duplicateBook.publication_date || prev.publication_date,
@@ -155,20 +176,27 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
         }))
     }
 
-    const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0]
-        if (!file) return
-
-        if (file.size > 5 * 1024 * 1024) {
-            toast.error("Rasm hajmi 5 MB dan oshmasligi kerak");
-            e.target.value = '';
-            return;
+    const processCoverFile = async (file: File) => {
+        if (!file.type.startsWith('image/')) {
+            toast.error("Faqat rasm fayllari (JPG, PNG, WEBP) qabul qilinadi")
+            return
         }
 
+        if (file.size > 15 * 1024 * 1024) {
+            toast.error("Rasm hajmi 15 MB dan oshmasligi kerak")
+            return
+        }
+
+        // Instant local preview
+        const previewUrl = URL.createObjectURL(file)
+        setLocalCoverPreview(previewUrl)
         setIsUploadingCover(true)
-        setCoverProgress(0)
+        setCoverProgress(null)
+
         try {
-            const { promise, xhr } = api.uploadFile(file, (p) => setCoverProgress(p))
+            // Client-side WebP compression
+            const compressed = await compressImage(file, { maxWidth: 1200, maxHeight: 1600, quality: 0.82 })
+            const { promise, xhr } = api.uploadFile(compressed, (p) => setCoverProgress(p))
             coverXhrRef.current = xhr
             const res = await promise
             const url = res.files[0]?.url
@@ -179,25 +207,28 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : "Rasm yuklashda xatolik"
             if (message !== 'Yuklash bekor qilindi') toast.error(message)
+            setLocalCoverPreview(null)
         } finally {
             setIsUploadingCover(false)
-            setCoverProgress(0)
+            setCoverProgress(null)
             coverXhrRef.current = null
         }
     }
 
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
-        if (!file) return
+        if (file) processCoverFile(file)
+        e.target.value = ''
+    }
 
-        if (file.size > 100 * 1024 * 1024) {
-            toast.error("Fayl hajmi 100 MB dan oshmasligi kerak");
-            e.target.value = '';
-            return;
+    const processDigitalFile = async (file: File) => {
+        if (file.size > 150 * 1024 * 1024) {
+            toast.error("Fayl hajmi 150 MB dan oshmasligi kerak")
+            return
         }
 
         setIsUploadingFile(true)
-        setFileProgress(0)
+        setFileProgress(null)
         try {
             const { promise, xhr } = api.uploadFile(file, (p) => setFileProgress(p))
             fileXhrRef.current = xhr
@@ -212,13 +243,23 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
             if (message !== 'Yuklash bekor qilindi') toast.error(message)
         } finally {
             setIsUploadingFile(false)
-            setFileProgress(0)
+            setFileProgress(null)
             fileXhrRef.current = null
         }
     }
 
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (file) processDigitalFile(file)
+        e.target.value = ''
+    }
+
     const handleCancelCoverUpload = () => {
         coverXhrRef.current?.abort()
+        if (localCoverPreview) {
+            URL.revokeObjectURL(localCoverPreview)
+            setLocalCoverPreview(null)
+        }
     }
 
     const handleCancelFileUpload = () => {
@@ -229,6 +270,10 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
         const url = formData.cover_image_url
         if (url) {
             try { await api.deleteFile(url) } catch { /* ignore */ }
+        }
+        if (localCoverPreview) {
+            URL.revokeObjectURL(localCoverPreview)
+            setLocalCoverPreview(null)
         }
         setFormData(prev => ({ ...prev, cover_image_url: '' }))
     }
@@ -378,36 +423,43 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
                             <input className="w-full bg-surface/50 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]" required name="author" value={formData.author} onChange={handleChange} placeholder="Masalan: Abdulla Qodiriy" />
                         </div>
 
-                        {/* Category */}
+                        {/* Category (Soha / Fan) */}
                         <div className="flex flex-col gap-1.5 min-w-0">
-                            <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">Kategoriya</label>
+                            <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">Fan va soha</label>
                             <CustomSelect
                                 value={formData.category || ''}
                                 onChange={(val) => setFormData({ ...formData, category: val })}
                                 options={[
-                                    { value: '', label: 'Kategoriyani tanlang' },
-    
-                                    // --- 1-BAND: ASOSIY JANR VA FORMAT ---
-                                    { value: 'badiiy_adabiyot', label: 'Badiiy adabiyot' },
-                                    { value: 'ilmiy_ommabop', label: 'Ilmiy-ommabop' },
-                                    { value: 'darslik_metodik', label: 'Darslik va metodik qo‘llanma' },
-                                    { value: 'monografiya', label: 'Ilmiy monografiya' },
-                                    { value: 'lugat_entsiklopediya', label: 'Lug‘at va entsiklopediya' },
+                                    { value: '', label: 'Sohani tanlang' },
+                                    ...BOOK_CATEGORIES
+                                ]}
+                                buttonClassName="w-full bg-surface/50 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
+                            />
+                        </div>
 
-                                    // --- 2-BAND: MAVZU VA SOHA (SUBJECT) ---
-                                    { value: 'it_texnologiya', label: 'IT va Texnologiyalar' },
-                                    { value: 'tarix_falsafa', label: 'Tarix va Falsafa' },
-                                    { value: 'iqtisodiyot_siyosat', label: 'Iqtisodiyot va Siyosat' },
-                                    { value: 'psixologiya_shaxsiy_rivojlanish', label: 'Psixologiya va Shaxsiy rivojlanish' },
-                                    { value: 'tabiiy_fanlar', label: 'Tabiiy fanlar (Fizika, Kimyo, Biologiya)' },
-                                    { value: 'tibbiyot', label: 'Tibbiyot va Sog‘liqni saqlash' },
-                                    { value: 'huquqshunoslik', label: 'Huquqshunoslik' },
-                                    { value: 'xorijiy_tillar', label: 'Xorijiy tillarni o‘rganish' },
+                        {/* Genre (Nashr / Adabiyot turi) */}
+                        <div className="flex flex-col gap-1.5 min-w-0">
+                            <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">Nashr / Adabiyot turi</label>
+                            <CustomSelect
+                                value={formData.genre || ''}
+                                onChange={(val) => setFormData({ ...formData, genre: val })}
+                                options={[
+                                    { value: '', label: 'Nashr turini tanlang' },
+                                    ...BOOK_GENRES
+                                ]}
+                                buttonClassName="w-full bg-surface/50 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
+                            />
+                        </div>
 
-                                    // --- 3-BAND: AUDITORIYA (TARGET AUDIENCE) ---
-                                    { value: 'bolalar_uchun', label: 'Bolalar adabiyoti' },
-                                    { value: 'osmirlar_uchun', label: 'O‘smirlar adabiyoti' },
-                                    { value: 'mutaxassislar_uchun', label: 'Mutaxassislar va tadqiqotchilar' }
+                        {/* Target Audience (Kitobxon auditoriyasi) */}
+                        <div className="flex flex-col gap-1.5 min-w-0">
+                            <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">Kitobxon auditoriyasi</label>
+                            <CustomSelect
+                                value={formData.target_audience || ''}
+                                onChange={(val) => setFormData({ ...formData, target_audience: val })}
+                                options={[
+                                    { value: '', label: 'Auditoriyani tanlang' },
+                                    ...BOOK_AUDIENCES
                                 ]}
                                 buttonClassName="w-full bg-surface/50 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
                             />
@@ -417,13 +469,9 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
                         <div className="flex flex-col gap-1.5 min-w-0">
                             <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">Format</label>
                             <CustomSelect
-                                value={formData.format || ''}
+                                value={formData.format || 'bosma'}
                                 onChange={(val) => setFormData({ ...formData, format: val })}
-                                options={[
-                                    // { value: '', label: 'Oddiy kitob' },
-                                    { value: 'pdf', label: 'PDF' },
-                                    { value: 'audio', label: 'Audio' }
-                                ]}
+                                options={BOOK_FORMATS}
                                 buttonClassName="w-full bg-surface/50 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
                             />
                         </div>
@@ -458,23 +506,7 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
                             <CustomSelect
                                 value={formData.language || 'uz'}
                                 onChange={(val) => setFormData({ ...formData, language: val })}
-                                options={[
-                                    { value: 'uz', label: 'O\'zbek' },
-                                    { value: 'ru', label: 'Rus' },
-                                    { value: 'en', label: 'Ingliz' },
-                                    { value: 'tr', label: 'Turk' },
-                                    { value: 'ar', label: 'Arab' },
-                                    { value: 'de', label: 'Nemis' },
-                                    { value: 'fr', label: 'Fransuz' },
-                                    { value: 'es', label: 'Ispan' },
-                                    { value: 'zh', label: 'Xitoy' },
-                                    { value: 'ja', label: 'Yapon' },
-                                    { value: 'ko', label: 'Koreys' },
-                                    { value: 'kk', label: 'Qozoq' },
-                                    { value: 'tg', label: 'Tojik' },
-                                    { value: 'ky', label: 'Qirg\'iz' },
-                                    { value: 'tk', label: 'Turkman' }
-                                ]}
+                                options={BOOK_LANGUAGES}
                                 buttonClassName="w-full bg-surface/50 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
                             />
                         </div>
@@ -510,35 +542,89 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
                             {/* Cover image upload */}
                             <div className="flex-1 flex flex-col gap-2">
                                 <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">Muqova rasmi</label>
-                                <div className="border border-dashed border-border rounded-xl p-2 bg-surface/50 transition-colors hover:border-border/80 flex-1 flex flex-col items-center justify-center min-h-35 relative overflow-hidden">
-                                    {formData.cover_image_url ? (
+                                <div
+                                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDraggingCover(true) }}
+                                    onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setIsDraggingCover(true) }}
+                                    onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDraggingCover(false) }}
+                                    onDrop={(e) => {
+                                        e.preventDefault()
+                                        e.stopPropagation()
+                                        setIsDraggingCover(false)
+                                        const f = e.dataTransfer.files?.[0]
+                                        if (f) processCoverFile(f)
+                                    }}
+                                    className={`border-2 border-dashed rounded-xl p-3 bg-surface/50 transition-all flex-1 flex flex-col items-center justify-center min-h-36 relative overflow-hidden ${
+                                        isDraggingCover
+                                            ? 'border-primary bg-primary/10 shadow-lg scale-[1.01]'
+                                            : 'border-border hover:border-border/80'
+                                    }`}
+                                >
+                                    {localCoverPreview || formData.cover_image_url ? (
                                         <div className="flex flex-col items-center justify-center gap-2 group w-full h-full relative">
-                                            <img src={formData.cover_image_url} alt="Muqova" className="max-h-27.5 w-auto rounded object-cover shadow-sm bg-white" />
-                                            <button type="button" onClick={handleRemoveCover} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-rose-500/90 text-white flex items-center justify-center border-none cursor-pointer opacity-0 transition-all scale-90 group-hover:opacity-100 group-hover:scale-100 hover:bg-rose-500 shadow-md">
-                                                <X size={20} />
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <label className="flex flex-col items-center justify-center gap-2 text-text-muted cursor-pointer w-full h-full">
-                                            {isUploadingCover ? (
-                                                <div className="w-[80%] flex flex-col gap-2">
-                                                    <div className="h-2 w-full bg-black/30 rounded-full overflow-hidden">
-                                                        <div className="h-full bg-primary transition-all duration-300" style={{ width: `${coverProgress}%` }} />
-                                                    </div>
-                                                    <div className="flex justify-between items-center text-[0.8rem]">
-                                                        <span className="font-semibold text-primary">{coverProgress}%</span>
-                                                        <button type="button" className="text-rose-400 bg-transparent border-none cursor-pointer hover:underline" onClick={(e) => { e.preventDefault(); handleCancelCoverUpload() }}>
+                                            <img
+                                                src={localCoverPreview || formData.cover_image_url}
+                                                alt="Muqova"
+                                                className="max-h-28 w-auto rounded object-cover shadow-sm bg-surface"
+                                            />
+                                            {isUploadingCover && (
+                                                <div className="absolute inset-0 bg-black/75 backdrop-blur-xs rounded-xl flex flex-col items-center justify-center p-3 text-center">
+                                                    <div className="w-[90%] flex flex-col gap-1.5">
+                                                        <div className="h-1.5 w-full bg-white/20 rounded-full overflow-hidden">
+                                                            <div
+                                                                className="h-full bg-primary transition-all duration-200"
+                                                                style={{ width: `${coverProgress?.percent || 0}%` }}
+                                                            />
+                                                        </div>
+                                                        <div className="flex justify-between items-center text-[0.75rem] text-white">
+                                                            <span className="font-semibold text-primary">{coverProgress?.percent || 0}%</span>
+                                                            {coverProgress?.speed && (
+                                                                <span className="text-[0.7rem] text-emerald-400 font-mono">{coverProgress.speed}</span>
+                                                            )}
+                                                        </div>
+                                                        {coverProgress && (
+                                                            <span className="text-[0.68rem] text-white/70">
+                                                                {coverProgress.formattedLoaded} / {coverProgress.formattedTotal}
+                                                            </span>
+                                                        )}
+                                                        <button
+                                                            type="button"
+                                                            onClick={handleCancelCoverUpload}
+                                                            className="text-rose-400 hover:text-rose-300 text-[0.75rem] underline mt-1"
+                                                        >
                                                             Bekor qilish
                                                         </button>
                                                     </div>
                                                 </div>
-                                            ) : (
-                                                <>
-                                                    <Upload size={28} className="opacity-50 group-hover:opacity-100 group-hover:-translate-y-1 transition-all" />
-                                                    <span className="text-[0.9rem] font-medium">Rasm yuklash</span>
-                                                </>
                                             )}
-                                            <input type="file" accept="image/*" onChange={handleCoverUpload} hidden disabled={isUploadingCover} />
+                                            {!isUploadingCover && (
+                                                <button
+                                                    type="button"
+                                                    onClick={handleRemoveCover}
+                                                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-rose-500/90 text-white flex items-center justify-center border-none cursor-pointer opacity-0 transition-all scale-90 group-hover:opacity-100 group-hover:scale-100 hover:bg-rose-500 shadow-md"
+                                                    title="O'chirish"
+                                                >
+                                                    <X size={20} />
+                                                </button>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <label className="flex flex-col items-center justify-center gap-1.5 text-text-muted cursor-pointer w-full h-full p-2 text-center">
+                                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-0.5">
+                                                <ImageIcon size={20} />
+                                            </div>
+                                            <span className="text-[0.88rem] font-medium text-text">
+                                                {isDraggingCover ? 'Faylni shu yerga tashlang' : 'Rasm tanlash yoki sudrab tashlash'}
+                                            </span>
+                                            <span className="text-[0.72rem] text-text-muted">
+                                                JPG, PNG, WEBP (Avtomatik siqiladi)
+                                            </span>
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={handleCoverUpload}
+                                                hidden
+                                                disabled={isUploadingCover}
+                                            />
                                         </label>
                                     )}
                                 </div>
@@ -547,41 +633,88 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
                             {/* Digital file upload (PDF/Audio) */}
                             {formData.format && (
                                 <div className="flex-1 flex flex-col gap-2">
-                                    <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">{formData.format === 'pdf' ? 'PDF fayl' : 'Audio fayl'}</label>
-                                    <div className="border border-dashed border-border rounded-xl p-2 bg-surface/50 transition-colors hover:border-border/80 flex-1 flex flex-col items-center justify-center min-h-35 relative overflow-hidden">
+                                    <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">
+                                        {formData.format === 'pdf' ? 'PDF fayl' : 'Audio fayl'}
+                                    </label>
+                                    <div
+                                        onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDraggingFile(true) }}
+                                        onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setIsDraggingFile(true) }}
+                                        onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDraggingFile(false) }}
+                                        onDrop={(e) => {
+                                            e.preventDefault()
+                                            e.stopPropagation()
+                                            setIsDraggingFile(false)
+                                            const f = e.dataTransfer.files?.[0]
+                                            if (f) processDigitalFile(f)
+                                        }}
+                                        className={`border-2 border-dashed rounded-xl p-3 bg-surface/50 transition-all flex-1 flex flex-col items-center justify-center min-h-36 relative overflow-hidden ${
+                                            isDraggingFile
+                                                ? 'border-primary bg-primary/10 shadow-lg scale-[1.01]'
+                                                : 'border-border hover:border-border/80'
+                                        }`}
+                                    >
                                         {formData.digital_file_url ? (
-                                            <div className="flex flex-col items-center justify-center gap-3 w-full h-full text-emerald-400">
-                                                <div className="w-12 h-12 bg-emerald-500/20 rounded-full flex items-center justify-center">
-                                                    <Check size={28} />
+                                            <div className="flex flex-col items-center justify-center gap-2 w-full h-full text-emerald-400">
+                                                <div className="w-11 h-11 bg-emerald-500/20 rounded-full flex items-center justify-center">
+                                                    <Check size={24} />
                                                 </div>
-                                                <span className="text-[0.9rem] font-semibold">Fayl yuklangan</span>
-                                                <button type="button" onClick={handleRemoveDigitalFile} className="absolute top-2 right-2 w-8 h-8 rounded-lg bg-black/20 text-text-muted flex items-center justify-center border-none cursor-pointer transition-colors hover:bg-rose-500 hover:text-white">
-                                                    <X size={16} />
+                                                <span className="text-[0.85rem] font-semibold">Fayl yuklangan</span>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleRemoveDigitalFile}
+                                                    className="absolute top-2 right-2 w-7 h-7 rounded-lg bg-black/30 text-text-muted flex items-center justify-center border-none cursor-pointer transition-colors hover:bg-rose-500 hover:text-white"
+                                                    title="O'chirish"
+                                                >
+                                                    <X size={15} />
                                                 </button>
                                             </div>
                                         ) : (
-                                            <label className="flex flex-col items-center justify-center gap-2 text-text-muted cursor-pointer w-full h-full">
+                                            <label className="flex flex-col items-center justify-center gap-1.5 text-text-muted cursor-pointer w-full h-full p-2 text-center">
                                                 {isUploadingFile ? (
-                                                    <div className="w-[80%] flex flex-col gap-2">
+                                                    <div className="w-[85%] flex flex-col gap-1.5">
                                                         <div className="h-2 w-full bg-black/30 rounded-full overflow-hidden">
-                                                            <div className="h-full bg-primary transition-all duration-300" style={{ width: `${fileProgress}%` }} />
+                                                            <div
+                                                                className="h-full bg-primary transition-all duration-200"
+                                                                style={{ width: `${fileProgress?.percent || 0}%` }}
+                                                            />
                                                         </div>
-                                                        <div className="flex justify-between items-center text-[0.8rem]">
-                                                            <span className="font-semibold text-primary">{fileProgress}%</span>
-                                                            <button type="button" className="text-rose-400 bg-transparent border-none cursor-pointer hover:underline" onClick={(e) => { e.preventDefault(); handleCancelFileUpload() }}>
+                                                        <div className="flex justify-between items-center text-[0.75rem]">
+                                                            <span className="font-semibold text-primary">{fileProgress?.percent || 0}%</span>
+                                                            {fileProgress?.speed && (
+                                                                <span className="text-[0.7rem] text-emerald-400 font-mono">{fileProgress.speed}</span>
+                                                            )}
+                                                            <button
+                                                                type="button"
+                                                                className="text-rose-400 bg-transparent border-none cursor-pointer hover:underline"
+                                                                onClick={(e) => { e.preventDefault(); handleCancelFileUpload() }}
+                                                            >
                                                                 Bekor qilish
                                                             </button>
                                                         </div>
+                                                        {fileProgress && (
+                                                            <div className="text-[0.68rem] text-text-muted">
+                                                                {fileProgress.formattedLoaded} / {fileProgress.formattedTotal}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 ) : (
                                                     <>
-                                                        <Upload size={28} className="opacity-50 group-hover:opacity-100 group-hover:-translate-y-1 transition-all" />
-                                                        <span className="text-[0.9rem] font-medium">{formData.format === 'pdf' ? 'PDF yuklash' : 'Audio yuklash'}</span>
+                                                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-0.5">
+                                                            {formData.format === 'pdf' ? <FileText size={20} /> : <Upload size={20} />}
+                                                        </div>
+                                                        <span className="text-[0.88rem] font-medium text-text">
+                                                            {isDraggingFile
+                                                                ? 'Faylni shu yerga tashlang'
+                                                                : formData.format === 'pdf' ? 'PDF tanlash yoki tashlash' : 'Audio tanlash yoki tashlash'}
+                                                        </span>
+                                                        <span className="text-[0.72rem] text-text-muted">
+                                                            {formData.format === 'pdf' ? 'Maksimal 150 MB (.pdf)' : 'Maksimal 150 MB (.mp3, .m4a)'}
+                                                        </span>
                                                     </>
                                                 )}
                                                 <input
                                                     type="file"
-                                                    accept={formData.format === 'pdf' ? '.pdf' : 'audio/*'}
+                                                    accept={formData.format === 'pdf' ? '.pdf,application/pdf' : 'audio/*,.mp3,.m4a,.wav,.ogg'}
                                                     onChange={handleFileUpload}
                                                     hidden
                                                     disabled={isUploadingFile}

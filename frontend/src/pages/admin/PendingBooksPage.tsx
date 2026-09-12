@@ -4,6 +4,7 @@ import { api, type Book } from '../../services/api'
 import { toast } from 'react-toastify'
 import PdfViewerModal from '../../components/PdfViewerModal'
 import { highlightText } from '../../utils/highlightText'
+import { getCategoryLabel, getGenreLabel, getAudienceLabel } from '../../constants/bookClassification'
 
 type ActionType = 'approve' | 'reject' | 'deactivate'
 
@@ -245,7 +246,12 @@ export default function PendingBooksPage() {
                                             </div>
                                         </td>
                                         <td className="p-4 text-text-muted">{highlightText(book.author, searchTerm)}</td>
-                                        <td className="p-4 text-text-muted hidden md:table-cell">{book.category || '—'}</td>
+                                        <td className="p-4 text-text-muted hidden md:table-cell">
+                                            <div className="flex flex-col gap-1">
+                                                {book.genre && <span className="text-xs text-indigo-400 font-medium">{getGenreLabel(book.genre)}</span>}
+                                                <span className="text-xs text-text-muted">{getCategoryLabel(book.category)}</span>
+                                            </div>
+                                        </td>
                                         <td className="p-4 text-text-muted hidden lg:table-cell">{book.total_quantity ?? 1}</td>
                                         <td className="p-4 text-center">
                                             {book.is_active ? (
@@ -337,7 +343,11 @@ export default function PendingBooksPage() {
                                 <p className="font-bold text-text text-lg leading-tight">{detailBook.title}</p>
                                 {detailBook.subtitle && <p className="text-sm text-text-muted italic">{detailBook.subtitle}</p>}
                                 <p className="text-sm text-text-muted">{detailBook.author}</p>
-                                {detailBook.category && <span className="text-xs bg-primary/15 text-primary-light px-2 py-0.5 rounded-full w-fit">{detailBook.category}</span>}
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                    {detailBook.genre && <span className="text-xs bg-indigo-500/15 text-indigo-300 px-2 py-0.5 rounded-full font-medium border border-indigo-500/20">{getGenreLabel(detailBook.genre)}</span>}
+                                    {detailBook.category && <span className="text-xs bg-primary/15 text-primary-light px-2 py-0.5 rounded-full font-medium border border-primary/20">{getCategoryLabel(detailBook.category)}</span>}
+                                    {detailBook.target_audience && <span className="text-xs bg-emerald-500/15 text-emerald-300 px-2 py-0.5 rounded-full font-medium border border-emerald-500/20">{getAudienceLabel(detailBook.target_audience)}</span>}
+                                </div>
                                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-1 text-xs text-text-muted">
                                     {detailBook.publisher && <p>Nashriyot: <span className="text-text">{detailBook.publisher}</span></p>}
                                     {detailBook.publication_date && <p>Yil: <span className="text-text">{detailBook.publication_date}</span></p>}
@@ -431,7 +441,10 @@ export default function PendingBooksPage() {
                                     <div className="min-w-0">
                                         <p className="font-semibold text-sm text-text truncate">{confirm.book.title}</p>
                                         <p className="text-xs text-text-muted truncate">{confirm.book.author}</p>
-                                        {confirm.book.category && <span className="text-xs text-primary-light">{confirm.book.category}</span>}
+                                        <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+                                            {confirm.book.genre && <span className="text-[11px] text-indigo-400 font-medium">{getGenreLabel(confirm.book.genre)}</span>}
+                                            {confirm.book.category && <span className="text-[11px] text-primary-light">{getCategoryLabel(confirm.book.category)}</span>}
+                                        </div>
                                     </div>
                                 </div>
 
@@ -480,6 +493,7 @@ export default function PendingBooksPage() {
                 <PdfViewerModal
                     title={pdfBook.title}
                     fileUrl={pdfBook.digital_file_url || ''}
+                    bookId={pdfBook.id}
                     onClose={() => setPdfBook(null)}
                 />
             )}

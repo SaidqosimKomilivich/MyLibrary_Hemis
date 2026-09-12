@@ -82,6 +82,16 @@ async fn main() -> std::io::Result<()> {
     tokio::spawn(scheduler::start_auto_checkout_scheduler(scheduler_pool));
     tracing::info!("Auto-checkout scheduleri fonda ishga tushirildi");
 
+    // ORPHAN-FILES CLEANUP SCHEDULER: fonda ishga tushirish
+    // Har kuni 03:00 da yetim fayllarni avtomatik tozalaydi
+    let orphan_pool = pool.clone();
+    let orphan_upload_dir = config.upload_dir.clone();
+    tokio::spawn(scheduler::start_orphan_files_cleanup_scheduler(
+        orphan_pool,
+        orphan_upload_dir,
+    ));
+    tracing::info!("Orphan-files tozalash scheduleri fonda ishga tushirildi");
+
     // 5. Uploads papkasini yaratish
     let upload_dir = config.upload_dir.clone();
     std::fs::create_dir_all(&upload_dir).expect("Uploads papkasini yaratib bo'lmadi");
@@ -154,7 +164,9 @@ async fn main() -> std::io::Result<()> {
                     .route(
                         "/reset-password/{user_id}",
                         web::post().to(auth_handler::reset_password),
-                    ),
+                    )
+                    .route("/unblock", web::post().to(auth_handler::unblock))
+                    .route("/blocked-list", web::get().to(auth_handler::get_blocked_list)),
             )
             // Book routes
             .service(

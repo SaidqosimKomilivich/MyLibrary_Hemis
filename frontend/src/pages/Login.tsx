@@ -71,6 +71,8 @@ export default function Login() {
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault()
 
+        if (isLoading) return
+
         if (blockedUntil) {
             toast.warning(`Siz bloklangansiz. Qolgan vaqt: ${timeLeft}`)
             return

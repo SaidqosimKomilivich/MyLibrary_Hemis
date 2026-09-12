@@ -20,11 +20,35 @@ impl BookService {
         let page = params.page.unwrap_or(1).max(1);
         let search = params.search.as_deref();
         let category = params.category.as_deref();
+        let genre = params.genre.as_deref();
+        let target_audience = params.target_audience.as_deref();
+        let format = params.format.as_deref();
+        let language = params.language.as_deref();
 
-        let total_items = BookRepository::count(pool, search, category, is_staff).await?;
+        let total_items = BookRepository::count(
+            pool,
+            search,
+            category,
+            genre,
+            target_audience,
+            format,
+            language,
+            is_staff,
+        ).await?;
         let total_pages = ((total_items as f64 / PER_PAGE as f64).ceil() as i64).max(1);
 
-        let books = BookRepository::find_all(pool, page, PER_PAGE, search, category, is_staff).await?;
+        let books = BookRepository::find_all(
+            pool,
+            page,
+            PER_PAGE,
+            search,
+            category,
+            genre,
+            target_audience,
+            format,
+            language,
+            is_staff,
+        ).await?;
 
         let data: Vec<BookResponse> = books.into_iter().map(BookResponse::from).collect();
 

@@ -867,6 +867,22 @@ pub async fn get_book_filter_options(
     .fetch_all(p)
     .await?;
 
+    let genre_rows = sqlx::query_scalar::<_, Option<String>>(
+        r#"SELECT DISTINCT "genre" FROM "book" 
+           WHERE "genre" IS NOT NULL AND "genre" <> ''
+           ORDER BY "genre""#,
+    )
+    .fetch_all(p)
+    .await?;
+
+    let target_audience_rows = sqlx::query_scalar::<_, Option<String>>(
+        r#"SELECT DISTINCT "target_audience" FROM "book" 
+           WHERE "target_audience" IS NOT NULL AND "target_audience" <> ''
+           ORDER BY "target_audience""#,
+    )
+    .fetch_all(p)
+    .await?;
+
     let language_rows = sqlx::query_scalar::<_, Option<String>>(
         r#"SELECT DISTINCT "language" FROM "book" 
            WHERE "language" IS NOT NULL AND "language" <> ''
@@ -901,6 +917,8 @@ pub async fn get_book_filter_options(
     .await?;
 
     let categories: Vec<String> = category_rows.into_iter().flatten().collect();
+    let genres: Vec<String> = genre_rows.into_iter().flatten().collect();
+    let target_audiences: Vec<String> = target_audience_rows.into_iter().flatten().collect();
     let languages: Vec<String> = language_rows.into_iter().flatten().collect();
     let formats: Vec<String> = format_rows.into_iter().flatten().collect();
 
@@ -908,6 +926,8 @@ pub async fn get_book_filter_options(
         "success": true,
         "data": {
             "categories": categories,
+            "genres": genres,
+            "target_audiences": target_audiences,
             "languages": languages,
             "formats": formats,
             "teachers": teachers
@@ -916,7 +936,7 @@ pub async fn get_book_filter_options(
 }
 
 /// GET /api/public/book-filter-options
-/// Ommaviy sahifa uchun faqat kategoriya ro'yxatini qaytarish (Avtorizatsiyasiz)
+/// Ommaviy sahifa uchun kategoriya, janr va format ro'yxatini qaytarish (Avtorizatsiyasiz)
 pub async fn get_public_book_filter_options(
     pool: web::Data<PgPool>,
 ) -> Result<HttpResponse, AppError> {
@@ -930,12 +950,42 @@ pub async fn get_public_book_filter_options(
     .fetch_all(p)
     .await?;
 
+    let genre_rows = sqlx::query_scalar::<_, Option<String>>(
+        r#"SELECT DISTINCT "genre" FROM "book" 
+           WHERE "genre" IS NOT NULL AND "genre" <> ''
+           ORDER BY "genre""#,
+    )
+    .fetch_all(p)
+    .await?;
+
+    let target_audience_rows = sqlx::query_scalar::<_, Option<String>>(
+        r#"SELECT DISTINCT "target_audience" FROM "book" 
+           WHERE "target_audience" IS NOT NULL AND "target_audience" <> ''
+           ORDER BY "target_audience""#,
+    )
+    .fetch_all(p)
+    .await?;
+
+    let format_rows = sqlx::query_scalar::<_, Option<String>>(
+        r#"SELECT DISTINCT "format" FROM "book" 
+           WHERE "format" IS NOT NULL AND "format" <> ''
+           ORDER BY "format""#,
+    )
+    .fetch_all(p)
+    .await?;
+
     let categories: Vec<String> = category_rows.into_iter().flatten().collect();
+    let genres: Vec<String> = genre_rows.into_iter().flatten().collect();
+    let target_audiences: Vec<String> = target_audience_rows.into_iter().flatten().collect();
+    let formats: Vec<String> = format_rows.into_iter().flatten().collect();
 
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "success": true,
         "data": {
             "categories": categories,
+            "genres": genres,
+            "target_audiences": target_audiences,
+            "formats": formats
         }
     })))
 }

@@ -1,13 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { Search, Loader2, BookOpen, Layers, ArrowLeft, Mic, MicOff } from 'lucide-react';
+import { Search, Loader2, BookOpen, Layers, ArrowLeft, Mic, MicOff, Bookmark, FileText } from 'lucide-react';
 import { startVoiceSearch } from '../utils/voiceSearch';
 import { api, type Book } from '../services/api';
 import { highlightText } from '../utils/highlightText';
 import { getFileUrl } from '../utils/fileUrl';
+import { getCategoryLabel, getGenreLabel, getFormatLabel } from '../constants/bookClassification';
+
 const DEFAULT_CATEGORIES = [
     { id: 'all', name: 'Barchasi', icon: Layers },
+];
+
+const DEFAULT_GENRES = [
+    { id: 'all', name: 'Barcha turlar' },
 ];
 
 const PublicCatalog = () => {
@@ -17,10 +23,12 @@ const PublicCatalog = () => {
     const [books, setBooks] = useState<Book[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [categories, setCategories] = useState<{ id: string, name: string, icon: any }[]>(DEFAULT_CATEGORIES);
+    const [genres, setGenres] = useState<{ id: string, name: string }[]>(DEFAULT_GENRES);
 
     // Pagination and Filters from URL
     const searchQuery = searchParams.get('q') || '';
     const categoryQuery = searchParams.get('category') || 'all';
+    const genreQuery = searchParams.get('genre') || 'all';
     const pageQuery = parseInt(searchParams.get('page') || '1');
     const [totalPages, setTotalPages] = useState(1);
 
@@ -34,6 +42,7 @@ const PublicCatalog = () => {
             const params: any = { page: pageQuery, limit: 12 };
             if (searchQuery) params.search = searchQuery;
             if (categoryQuery !== 'all') params.category = categoryQuery;
+            if (genreQuery !== 'all') params.genre = genreQuery;
 
             const res = await api.getPublicBooks(params);
             if (res.success) {
@@ -55,13 +64,22 @@ const PublicCatalog = () => {
     const fetchCategories = async () => {
         try {
             const res = await api.getPublicBookFilterOptions();
-            if (res.success && res.data && res.data.categories) {
-                const dynamicCategories = res.data.categories.map(catName => ({
-                    id: catName,
-                    name: catName,
-                    icon: BookOpen
-                }));
-                setCategories([...DEFAULT_CATEGORIES, ...dynamicCategories]);
+            if (res.success && res.data) {
+                if (res.data.categories) {
+                    const dynamicCategories = res.data.categories.map((catName: string) => ({
+                        id: catName,
+                        name: getCategoryLabel(catName),
+                        icon: BookOpen
+                    }));
+                    setCategories([...DEFAULT_CATEGORIES, ...dynamicCategories]);
+                }
+                if (res.data.genres) {
+                    const dynamicGenres = res.data.genres.map((gName: string) => ({
+                        id: gName,
+                        name: getGenreLabel(gName),
+                    }));
+                    setGenres([...DEFAULT_GENRES, ...dynamicGenres]);
+                }
             }
         } catch (error) {
             console.error("Kategoriyalarni yuklashda xatolik:", error);
@@ -72,7 +90,7 @@ const PublicCatalog = () => {
         fetchBooks();
         setSearchInput(searchQuery);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [searchQuery, categoryQuery, pageQuery]);
+    }, [searchQuery, categoryQuery, genreQuery, pageQuery]);
 
     useEffect(() => {
         fetchCategories();
@@ -80,16 +98,35 @@ const PublicCatalog = () => {
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
-        setSearchParams({ q: searchInput, category: categoryQuery, page: '1' });
+        const next: Record<string, string> = { q: searchInput, page: '1' };
+        if (categoryQuery !== 'all') next.category = categoryQuery;
+        if (genreQuery !== 'all') next.genre = genreQuery;
+        setSearchParams(next);
     };
 
     const handleCategoryClick = (categoryId: string) => {
-        setSearchParams({ q: searchQuery, category: categoryId, page: '1' });
+        const next: Record<string, string> = { page: '1' };
+        if (searchQuery) next.q = searchQuery;
+        if (categoryId !== 'all') next.category = categoryId;
+        if (genreQuery !== 'all') next.genre = genreQuery;
+        setSearchParams(next);
+    };
+
+    const handleGenreClick = (genreId: string) => {
+        const next: Record<string, string> = { page: '1' };
+        if (searchQuery) next.q = searchQuery;
+        if (categoryQuery !== 'all') next.category = categoryQuery;
+        if (genreId !== 'all') next.genre = genreId;
+        setSearchParams(next);
     };
 
     const handlePageChange = (newPage: number) => {
         if (newPage >= 1 && newPage <= totalPages) {
-            setSearchParams({ q: searchQuery, category: categoryQuery, page: newPage.toString() });
+            const next: Record<string, string> = { page: newPage.toString() };
+            if (searchQuery) next.q = searchQuery;
+            if (categoryQuery !== 'all') next.category = categoryQuery;
+            if (genreQuery !== 'all') next.genre = genreQuery;
+            setSearchParams(next);
         }
     };
 
@@ -149,10 +186,41 @@ const PublicCatalog = () => {
             <main className="flex-1 max-w-7xl mx-auto px-6 py-8 w-full flex flex-col md:flex-row gap-8">
                 {/* Sidebar Filters */}
                 <aside className="w-full md:w-64 shrink-0">
-                    <div className="sticky top-28 space-y-8">
+                    <div className="sticky top-28 space-y-6">
+                        {/* Nashr / Adabiyot turi */}
+                        {genres.length > 1 && (
+                            <div>
+                                <h3 className="text-sm font-semibold text-text-muted uppercase tracking-wider mb-3 px-2 flex items-center gap-2">
+                                    <Bookmark size={14} className="text-indigo-400" />
+                                    <span>Nashr turi</span>
+                                </h3>
+                                <div className="space-y-1">
+                                    {genres.map(g => {
+                                        const isActive = genreQuery === g.id;
+                                        return (
+                                            <button
+                                                key={g.id}
+                                                onClick={() => handleGenreClick(g.id)}
+                                                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${isActive
+                                                    ? 'bg-indigo-500/15 text-indigo-400 font-bold border border-indigo-500/30'
+                                                    : 'text-text-muted hover:bg-surface hover:text-text'
+                                                    }`}
+                                            >
+                                                <span>{g.name}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Fan va soha (Kategoriyalar) */}
                         <div>
-                            <h3 className="text-sm font-semibold text-text-muted uppercase tracking-wider mb-4 px-2">Kategoriyalar</h3>
-                            <div className="space-y-1">
+                            <h3 className="text-sm font-semibold text-text-muted uppercase tracking-wider mb-3 px-2 flex items-center gap-2">
+                                <FileText size={14} className="text-emerald-400" />
+                                <span>Fan va sohalar</span>
+                            </h3>
+                            <div className="space-y-1 max-h-[60vh] overflow-y-auto custom-scrollbar pr-1">
                                 {categories.map(cat => {
                                     const Icon = cat.icon;
                                     const isActive = categoryQuery === cat.id;
@@ -160,13 +228,13 @@ const PublicCatalog = () => {
                                         <button
                                             key={cat.id}
                                             onClick={() => handleCategoryClick(cat.id)}
-                                            className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${isActive
-                                                ? 'bg-emerald-500/10 text-emerald-500'
+                                            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${isActive
+                                                ? 'bg-emerald-500/10 text-emerald-500 font-bold border border-emerald-500/30'
                                                 : 'text-text-muted hover:bg-surface hover:text-text'
                                                 }`}
                                         >
-                                            <Icon size={18} className={isActive ? 'text-emerald-500' : 'opacity-70'} />
-                                            {cat.name}
+                                            <Icon size={15} className={isActive ? 'text-emerald-500' : 'opacity-70'} />
+                                            <span className="truncate text-left">{cat.name}</span>
                                         </button>
                                     );
                                 })}
@@ -179,14 +247,18 @@ const PublicCatalog = () => {
                 <div className="flex-1 min-w-0">
                     <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
                         <h1 className="text-2xl font-bold">
-                            {searchQuery ? `"${searchQuery}" so'roviga natijalar` : (categoryQuery === 'all' ? 'Barcha kitoblar' : `${categoryQuery} bo'yicha`)}
+                            {searchQuery 
+                                ? `"${searchQuery}" so'roviga natijalar` 
+                                : (categoryQuery !== 'all' 
+                                    ? `${getCategoryLabel(categoryQuery)} kitoblari` 
+                                    : (genreQuery !== 'all' ? `${getGenreLabel(genreQuery)} nashrlari` : 'Barcha kitoblar'))}
                         </h1>
-                        {searchQuery && (
+                        {(searchQuery || categoryQuery !== 'all' || genreQuery !== 'all') && (
                             <button
-                                onClick={() => setSearchParams({ category: categoryQuery, page: '1' })}
-                                className="text-sm text-text-muted hover:text-emerald-500 flex items-center gap-1 transition-colors"
+                                onClick={() => setSearchParams({ page: '1' })}
+                                className="text-sm text-text-muted hover:text-emerald-500 flex items-center gap-1 transition-colors cursor-pointer"
                             >
-                                <ArrowLeft size={16} /> Qidiruvni bekor qilish
+                                <ArrowLeft size={16} /> Barcha filtrlarni tozalash
                             </button>
                         )}
                     </div>
@@ -217,16 +289,31 @@ const PublicCatalog = () => {
                                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                                     onError={(e) => {
                                                         (e.target as HTMLImageElement).src = 'https://via.placeholder.com/150?text=No+Image';
-                                                    }}
+                                                     }}
                                                 />
                                             ) : (
                                                 <BookOpen size={48} className="text-border group-hover:text-emerald-500/50 transition-colors duration-500" />
                                             )}
+                                            {/* Format Badge */}
+                                            {book.format && book.format !== 'bosma' && (
+                                                <span className="absolute top-2 right-2 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-slate-900/80 text-white backdrop-blur-xs border border-white/10 shadow-sm">
+                                                    {book.format}
+                                                </span>
+                                            )}
                                         </div>
                                         <div className="p-4 flex flex-col flex-1">
-                                            <span className="text-[0.65rem] font-bold tracking-wider text-emerald-500 uppercase mb-1.5 line-clamp-1">
-                                                {book.category || 'Kitob'}
-                                            </span>
+                                            <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
+                                                {book.genre && (
+                                                    <span className="text-[10px] font-semibold bg-indigo-500/15 text-indigo-400 px-1.5 py-0.5 rounded-md">
+                                                        {getGenreLabel(book.genre)}
+                                                    </span>
+                                                )}
+                                                {book.category && (
+                                                    <span className="text-[10px] font-semibold text-emerald-500 line-clamp-1">
+                                                        {getCategoryLabel(book.category)}
+                                                    </span>
+                                                )}
+                                            </div>
                                             <h3 className="font-semibold text-[0.95rem] leading-tight mb-1 group-hover:text-emerald-400 transition-colors line-clamp-2">
                                                 {highlightText(book.title, searchQuery)}
                                             </h3>
@@ -235,7 +322,7 @@ const PublicCatalog = () => {
                                             <div className="mt-auto pt-3 border-t border-border/50 flex items-center justify-between text-[0.75rem] font-medium text-text-muted">
                                                 <span className="flex items-center gap-1.5">
                                                     <Layers size={14} />
-                                                    <span>Kutubxonada mavjud</span>
+                                                    <span>{book.format ? getFormatLabel(book.format) : 'Mavjud'}</span>
                                                 </span>
                                             </div>
                                         </div>

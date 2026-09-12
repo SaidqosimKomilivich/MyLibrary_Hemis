@@ -35,7 +35,9 @@ import type {
     AnnouncementWithStatus,
     AnnouncementReadStatusResponse,
     CheckDuplicateResponse,
+    UploadProgress,
 } from './api.types'
+import { formatBytes, formatSpeed } from '../utils/formatBytes'
 
 export * from './api.types'
 
@@ -72,7 +74,26 @@ export const buildQueryString = (params: Record<string, string | number | boolea
     return qs ? `?${qs}` : ''
 }
 
-async function request<T>(url: string, options?: RequestInit): Promise<T> {
+// Parallel 401 so'rovlar yuz berganda bitta umumiy refresh chaqiruvini ulashish uchun (Promise sharing / mutex)
+let refreshPromise: Promise<boolean> | null = null
+
+async function performTokenRefresh(): Promise<boolean> {
+    try {
+        const res = await fetch(`${API_BASE}/auth/refresh`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        })
+
+        return res.ok
+    } catch {
+        return false
+    }
+}
+
+async function request<T>(url: string, options?: RequestInit, isRetry = false): Promise<T> {
     const res = await fetch(`${API_BASE}${url}`, {
         credentials: 'include',
         headers: {
@@ -81,16 +102,44 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
         ...options,
     })
 
-    // Token muddati tugagan — avtomatik logout
-    // /auth/me va /auth/login uchun toast chiqmasin — faqat konsolga yozilsin
-    if (res.status === 401 && !url.includes('/auth/login') && !url.includes('/auth/me')) {
-        window.dispatchEvent(new CustomEvent('auth:unauthorized'))
-        throw new ApiError('Sessiya muddati tugagan. Qayta kiring.', 401)
-    }
+    // 401 Unauthorized holatini interceptor orqali ushlab, tokenni yangilash va qayta so'rash
+    if (res.status === 401) {
+        const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/captcha') || url.includes('/auth/refresh')
 
-    if (res.status === 401 && url.includes('/auth/me')) {
-        console.warn('[Auth] Foydalanuvchi tizimga kirmagan (401 /auth/me)')
-        throw new ApiError('Avtorizatsiya talab qilinadi', 401)
+        // Agar bu auth endpoint bo'lmasa va hali qayta urinilmagan bo'lsa (isRetry === false)
+        if (!isAuthEndpoint && !isRetry) {
+            // Agar boshqa parallel so'rov allaqachon refresh boshlagan bo'lsa, o'shaning natijasini kutamiz
+            if (!refreshPromise) {
+                refreshPromise = performTokenRefresh().finally(() => {
+                    refreshPromise = null
+                })
+            }
+
+            const refreshSuccess = await refreshPromise
+
+            if (refreshSuccess) {
+                // Token muvaffaqiyatli yangilandi! Dastlabki so'rovni takrorlaymiz (isRetry = true)
+                return request<T>(url, options, true)
+            } else {
+                // Refresh token ham eskirgan (7 kun o'tgan) yoki bekor qilingan
+                if (!url.includes('/auth/me')) {
+                    window.dispatchEvent(new CustomEvent('auth:unauthorized'))
+                    throw new ApiError('Sessiya muddati tugagan. Qayta kiring.', 401)
+                } else {
+                    throw new ApiError('Avtorizatsiya talab qilinadi', 401)
+                }
+            }
+        }
+
+        // Agar qayta urinilgandan keyin ham 401 kelsa yoki auth endpoint bo'lsa:
+        if (!url.includes('/auth/login') && !url.includes('/auth/me')) {
+            window.dispatchEvent(new CustomEvent('auth:unauthorized'))
+            throw new ApiError('Sessiya muddati tugagan. Qayta kiring.', 401)
+        }
+
+        if (url.includes('/auth/me')) {
+            throw new ApiError('Avtorizatsiya talab qilinadi', 401)
+        }
     }
 
     let data: unknown
@@ -163,6 +212,17 @@ export const api = {
         return request<MessageResponse>(`/v1/pref/rx/${userId}`, {
             method: 'POST',
         })
+    },
+
+    unblock(payload: import('./api.types').UnblockPayload) {
+        return request<MessageResponse>('/auth/unblock', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        })
+    },
+
+    getBlockedList() {
+        return request<import('./api.types').BlockedSummaryResponse>('/auth/blocked-list')
     },
 
     // Book endpoints
@@ -246,25 +306,53 @@ export const api = {
         })
     },
 
-    uploadFile(file: File, onProgress?: (percent: number) => void): { promise: Promise<UploadResponse>, xhr: XMLHttpRequest } {
+    uploadFile(file: File, onProgress?: (progress: UploadProgress) => void): { promise: Promise<UploadResponse>, xhr: XMLHttpRequest } {
         const xhr = new XMLHttpRequest()
         const formData = new FormData()
         formData.append('file', file)
+
+        let lastTime = Date.now()
+        let lastLoaded = 0
+        let currentSpeed = 0
 
         const promise = new Promise<UploadResponse>((resolve, reject) => {
             // Upload progress
             xhr.upload.onprogress = (e) => {
                 if (e.lengthComputable && onProgress) {
-                    const percent = Math.round((e.loaded / e.total) * 100)
-                    onProgress(percent)
+                    const now = Date.now()
+                    const timeDiff = (now - lastTime) / 1000
+                    if (timeDiff >= 0.2 || e.loaded === e.total) {
+                        const bytesDiff = e.loaded - lastLoaded
+                        currentSpeed = timeDiff > 0 ? bytesDiff / timeDiff : 0
+                        lastTime = now
+                        lastLoaded = e.loaded
+                    }
+
+                    const percent = Math.min(100, Math.round((e.loaded / e.total) * 100))
+                    onProgress({
+                        percent,
+                        loaded: e.loaded,
+                        total: e.total,
+                        formattedLoaded: formatBytes(e.loaded),
+                        formattedTotal: formatBytes(e.total),
+                        speed: formatSpeed(currentSpeed),
+                    })
                 }
             }
 
-            xhr.onload = () => {
+            xhr.onload = async () => {
                 try {
                     const data = JSON.parse(xhr.responseText)
                     if (xhr.status >= 200 && xhr.status < 300) {
                         resolve(data as UploadResponse)
+                    } else if (xhr.status === 401) {
+                        const refreshed = await performTokenRefresh()
+                        if (refreshed) {
+                            reject(new ApiError('Sessiya yangilandi. Iltimos, faylni qayta yuklang.', 401))
+                        } else {
+                            window.dispatchEvent(new CustomEvent('auth:unauthorized'))
+                            reject(new ApiError('Sessiya muddati tugagan. Qayta kiring.', 401))
+                        }
                     } else {
                         reject(new ApiError(data.message || 'Fayl yuklashda xatolik', xhr.status))
                     }
@@ -669,11 +757,11 @@ export const api = {
     },
 
     getBookFilterOptions() {
-        return request<{ success: boolean, data: { categories: string[], languages: string[], formats: string[], teachers: { id: string, full_name: string }[] } }>('/reports/book-filter-options')
+        return request<{ success: boolean, data: { categories: string[], genres?: string[], target_audiences?: string[], languages: string[], formats: string[], teachers: { id: string, full_name: string }[] } }>('/reports/book-filter-options')
     },
 
     getPublicBookFilterOptions() {
-        return request<{ success: boolean, data: { categories: string[] } }>('/public/book-filter-options')
+        return request<{ success: boolean, data: { categories: string[], genres?: string[], target_audiences?: string[], formats?: string[] } }>('/public/book-filter-options')
     },
 
     getReportPreview(type: 'rentals' | 'controls' | 'submissions' | 'users_statistics' | 'book_inventory' | 'overdue_rentals' | 'book_requests' | 'gate_control' | 'books_added' | 'staff_book_counts', startDate?: string, endDate?: string, userFilters?: { status?: string, department?: string, group_name?: string, role?: string }, bookFilters?: { category?: string, language?: string, format?: string, teacher_id?: string, staff_id?: string }) {
