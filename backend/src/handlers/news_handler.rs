@@ -2,15 +2,16 @@ use actix_web::{web, HttpResponse};
 use sqlx::PgPool;
 
 use crate::dto::news::{
-    CreateNewsRequest, NewsListParams, PaginatedPublicNewsResponse, PublicNewsResponse,
-    UpdateNewsRequest,
+    AttachmentResponse, CreateNewsRequest, NewsListParams, PaginatedPublicNewsResponse,
+    PublicNewsResponse, UpdateNewsRequest,
 };
 use crate::errors::AppError;
 use crate::middleware::auth_middleware::{self, Claims};
-use crate::services::news_service::NewsService;
-use crate::services::message_service::MessageService;
-use crate::repository::announcement_repository::AnnouncementRepository;
 use crate::models::announcement::AnnouncementWithStatus;
+use crate::repository::announcement_repository::AnnouncementRepository;
+use crate::repository::news_repository::NewsRepository;
+use crate::services::message_service::MessageService;
+use crate::services::news_service::NewsService;
 
 // ─────────────────────────────────────────────────────────────
 // PUBLIC endpoints (no auth required)
@@ -42,6 +43,9 @@ pub async fn list_public_news(
             tags: n.tags,
             is_published: n.is_published,
             published_at: n.published_at,
+            views: n.views,
+            is_pinned: n.is_pinned,
+            attachments: vec![],
             created_at: n.created_at,
             updated_at: n.updated_at,
         })
@@ -61,17 +65,31 @@ pub async fn get_public_news(
     path: web::Path<String>,
 ) -> Result<HttpResponse, AppError> {
     let id_or_slug = path.into_inner();
-    let news = NewsService::get_by_id_or_slug(pool.get_ref(), &id_or_slug).await?;
+    let news = NewsService::get_by_id_or_slug(pool.get_ref(), &id_or_slug, true).await?;
 
     // Public endpointda faqat nashr qilinganlar ko'rinadi
     if !news.is_published {
         return Err(AppError::NotFound("Yangilik topilmadi".to_string()));
     }
 
-    // author_id ni oshkor qilmaymiz
+    let attachments = NewsRepository::find_attachments(pool.get_ref(), news.id).await?;
+    let att_responses: Vec<AttachmentResponse> = attachments
+        .into_iter()
+        .map(|a| AttachmentResponse {
+            id: a.id,
+            file_url: a.file_url,
+            file_name: a.file_name,
+            file_size: a.file_size,
+            file_type: a.file_type,
+        })
+        .collect();
+
+    let mut response = PublicNewsResponse::from(news);
+    response.attachments = att_responses;
+
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "success": true,
-        "data": PublicNewsResponse::from(news)
+        "data": response
     })))
 }
 
@@ -104,11 +122,26 @@ pub async fn get_news(
     }
 
     let id_or_slug = path.into_inner();
-    let news = NewsService::get_by_id_or_slug(pool.get_ref(), &id_or_slug).await?;
+    let news = NewsService::get_by_id_or_slug(pool.get_ref(), &id_or_slug, false).await?;
+
+    let attachments = NewsRepository::find_attachments(pool.get_ref(), news.id).await?;
+    let att_responses: Vec<AttachmentResponse> = attachments
+        .into_iter()
+        .map(|a| AttachmentResponse {
+            id: a.id,
+            file_url: a.file_url,
+            file_name: a.file_name,
+            file_size: a.file_size,
+            file_type: a.file_type,
+        })
+        .collect();
+
+    let mut response = crate::dto::news::NewsResponse::from(news);
+    response.attachments = att_responses;
 
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "success": true,
-        "data": crate::dto::news::NewsResponse::from(news)
+        "data": response
     })))
 }
 
@@ -128,7 +161,6 @@ pub async fn create_news(
 
     // Yangilik darhol nashr qilingan bo'lsa — guruhli e'lon yaratish
     if news.is_published {
-        // Individual xabar o'rniga Announcement yaratamiz
         if let Ok(announcement) = AnnouncementRepository::create(
             pool.get_ref(),
             author_id,
@@ -136,13 +168,14 @@ pub async fn create_news(
             &news.content,
             news.category.clone(),
             Some(news.images.clone()),
-
-        ).await {
+        )
+        .await
+        {
             // Real-time broadcast
             message_service.broadcast_announcement(AnnouncementWithStatus {
                 id: announcement.id,
                 sender_id: announcement.sender_id,
-                sender_name: None, 
+                sender_name: None,
                 title: announcement.title,
                 message: announcement.message,
                 category: announcement.category,
@@ -155,10 +188,23 @@ pub async fn create_news(
 
     tracing::info!(news_id = %news.id, slug = %news.slug, "Yangilik yaratildi");
 
+    let attachments = NewsRepository::find_attachments(pool.get_ref(), news.id).await?;
+    let mut response = crate::dto::news::NewsResponse::from(news);
+    response.attachments = attachments
+        .into_iter()
+        .map(|a| AttachmentResponse {
+            id: a.id,
+            file_url: a.file_url,
+            file_name: a.file_name,
+            file_size: a.file_size,
+            file_type: a.file_type,
+        })
+        .collect();
+
     Ok(HttpResponse::Created().json(serde_json::json!({
         "success": true,
         "message": "Yangilik muvaffaqiyatli yaratildi",
-        "data": crate::dto::news::NewsResponse::from(news)
+        "data": response
     })))
 }
 
@@ -176,10 +222,23 @@ pub async fn update_news(
     let id = path.into_inner();
     let news = NewsService::update(pool.get_ref(), id, body.into_inner()).await?;
 
+    let attachments = NewsRepository::find_attachments(pool.get_ref(), news.id).await?;
+    let mut response = crate::dto::news::NewsResponse::from(news);
+    response.attachments = attachments
+        .into_iter()
+        .map(|a| AttachmentResponse {
+            id: a.id,
+            file_url: a.file_url,
+            file_name: a.file_name,
+            file_size: a.file_size,
+            file_type: a.file_type,
+        })
+        .collect();
+
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "success": true,
         "message": "Yangilik muvaffaqiyatli yangilandi",
-        "data": crate::dto::news::NewsResponse::from(news)
+        "data": response
     })))
 }
 
@@ -196,12 +255,16 @@ pub async fn toggle_publish(
 
     let id = path.into_inner();
     let news = NewsService::toggle_publish(pool.get_ref(), id).await?;
-    let status = if news.is_published { "nashr qilindi" } else { "qoralama qilindi" };
+    let status = if news.is_published {
+        "nashr qilindi"
+    } else {
+        "qoralama qilindi"
+    };
 
     // Agar hozir nashr qilingan bo'lsa — guruhli e'lon yaratish
     if news.is_published {
         let author_id = uuid::Uuid::parse_str(&claims.sub).ok();
-        
+
         if let Ok(announcement) = AnnouncementRepository::create(
             pool.get_ref(),
             author_id,
@@ -209,8 +272,9 @@ pub async fn toggle_publish(
             &news.content,
             news.category.clone(),
             Some(news.images.clone()),
-
-        ).await {
+        )
+        .await
+        {
             message_service.broadcast_announcement(AnnouncementWithStatus {
                 id: announcement.id,
                 sender_id: announcement.sender_id,
@@ -224,6 +288,31 @@ pub async fn toggle_publish(
             });
         }
     }
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "success": true,
+        "message": format!("Yangilik {}", status),
+        "data": crate::dto::news::NewsResponse::from(news)
+    })))
+}
+
+/// PUT /api/news/{id}/pin — qadab qo'yish holatini almashtirish (admin only)
+pub async fn toggle_pin(
+    pool: web::Data<PgPool>,
+    claims: Claims,
+    path: web::Path<uuid::Uuid>,
+) -> Result<HttpResponse, AppError> {
+    if let Err(resp) = auth_middleware::require_role(&claims, &["admin", "staff"]) {
+        return Ok(resp);
+    }
+
+    let id = path.into_inner();
+    let news = NewsService::toggle_pin(pool.get_ref(), id).await?;
+    let status = if news.is_pinned {
+        "qadab qo'yildi"
+    } else {
+        "qadab qo'yishdan chiqarildi"
+    };
 
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "success": true,

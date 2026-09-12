@@ -18,6 +18,7 @@ fn is_image_subdir(subdir: &str) -> bool {
 /// Ruxsat berilgan fayl turlari
 const ALLOWED_EXTENSIONS: &[&str] = &[
     "jpg", "jpeg", "png", "gif", "webp", "pdf", "svg", "mp3", "ogg", "wav", "m4a",
+    "doc", "docx",
 ];
 
 /// Rasm kengaytmalari
@@ -96,6 +97,10 @@ fn validate_magic_bytes(header: &[u8], extension: &str) -> bool {
         }
         "m4a" => {
             header.len() >= 8 && &header[4..8] == b"ftyp"
+        }
+        "doc" | "docx" => {
+            // DOCX = ZIP formatida (PK magic bytes)
+            header.len() >= 4 && &header[0..4] == &[0x50, 0x4B, 0x03, 0x04]
         }
         _ => false,
     }

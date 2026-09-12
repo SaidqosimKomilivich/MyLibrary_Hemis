@@ -371,6 +371,21 @@ export interface PublicDashboardResponse {
     }[]
 }
 
+export interface NewsAttachment {
+    id: string
+    file_url: string
+    file_name: string
+    file_size: number
+    file_type: string
+}
+
+export interface AttachmentInput {
+    file_url: string
+    file_name: string
+    file_size: number
+    file_type: string
+}
+
 export interface News {
     id: string
     title: string
@@ -380,9 +395,12 @@ export interface News {
     images: string[]
     category: string | null
     tags: string[]
-    author_id: string | null
+    author_id?: string | null
     is_published: boolean
     published_at: string | null
+    views: number
+    is_pinned: boolean
+    attachments?: NewsAttachment[]
     created_at: string
     updated_at: string
 }
@@ -395,6 +413,31 @@ export interface CreateNewsRequest {
     category?: string
     tags?: string[]
     is_published?: boolean
+    is_pinned?: boolean
+    attachments?: AttachmentInput[]
+}
+
+export interface UpdateNewsRequest {
+    title?: string
+    summary?: string
+    content?: string
+    images?: string[]
+    category?: string
+    tags?: string[]
+    is_published?: boolean
+    is_pinned?: boolean
+    attachments?: AttachmentInput[]
+}
+
+export interface NewsListParams {
+    page?: number
+    limit?: number
+    search?: string
+    category?: string
+    published_only?: boolean
+    date_from?: string
+    date_to?: string
+    sort_by?: string
 }
 
 export interface PaginatedNewsResponse {

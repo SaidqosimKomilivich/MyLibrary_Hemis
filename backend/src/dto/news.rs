@@ -6,6 +6,15 @@ use uuid::Uuid;
 // Request DTOs
 // ─────────────────────────────────────────────────────────────
 
+/// Hujjat biriktirish uchun input ma'lumotlari
+#[derive(Debug, Clone, Deserialize)]
+pub struct AttachmentInput {
+    pub file_url: String,
+    pub file_name: String,
+    pub file_size: i64,
+    pub file_type: String,
+}
+
 /// POST /api/news — yangilik yaratish
 #[derive(Debug, Deserialize)]
 pub struct CreateNewsRequest {
@@ -19,6 +28,10 @@ pub struct CreateNewsRequest {
     pub tags: Vec<String>,
     #[serde(default)]
     pub is_published: bool,
+    #[serde(default)]
+    pub is_pinned: bool,
+    #[serde(default)]
+    pub attachments: Vec<AttachmentInput>,
 }
 
 /// PUT /api/news/{id} — yangilikni tahrirlash (barcha maydonlar ixtiyoriy)
@@ -31,6 +44,8 @@ pub struct UpdateNewsRequest {
     pub category: Option<String>,
     pub tags: Option<Vec<String>>,
     pub is_published: Option<bool>,
+    pub is_pinned: Option<bool>,
+    pub attachments: Option<Vec<AttachmentInput>>,
 }
 
 /// GET /api/news — ro'yxat so'rovi parametrlari
@@ -42,11 +57,24 @@ pub struct NewsListParams {
     pub limit: Option<i64>,
     /// Faqat nashr qilinganlarni qaytarish (public endpoint uchun)
     pub published_only: Option<bool>,
+    pub date_from: Option<String>,
+    pub date_to: Option<String>,
+    pub sort_by: Option<String>,
 }
 
 // ─────────────────────────────────────────────────────────────
 // Response DTOs
 // ─────────────────────────────────────────────────────────────
+
+/// Biriktirilgan hujjat javob DTO si
+#[derive(Debug, Serialize)]
+pub struct AttachmentResponse {
+    pub id: Uuid,
+    pub file_url: String,
+    pub file_name: String,
+    pub file_size: i64,
+    pub file_type: String,
+}
 
 /// Admin uchun yangilik javobi (author_id bilan — faqat autentifikatsiya qilinganlar)
 #[derive(Debug, Serialize)]
@@ -62,6 +90,9 @@ pub struct NewsResponse {
     pub author_id: Option<Uuid>,
     pub is_published: bool,
     pub published_at: Option<DateTime<Utc>>,
+    pub views: i64,
+    pub is_pinned: bool,
+    pub attachments: Vec<AttachmentResponse>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -80,6 +111,9 @@ impl From<crate::models::news::News> for NewsResponse {
             author_id: n.author_id,
             is_published: n.is_published,
             published_at: n.published_at,
+            views: n.views,
+            is_pinned: n.is_pinned,
+            attachments: vec![], // List da bo'sh, detail da handler to'ldiradi
             created_at: n.created_at,
             updated_at: n.updated_at,
         }
@@ -101,6 +135,9 @@ pub struct PublicNewsResponse {
     // author_id intentionally omitted for security
     pub is_published: bool,
     pub published_at: Option<DateTime<Utc>>,
+    pub views: i64,
+    pub is_pinned: bool,
+    pub attachments: Vec<AttachmentResponse>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -118,6 +155,9 @@ impl From<crate::models::news::News> for PublicNewsResponse {
             tags: n.tags,
             is_published: n.is_published,
             published_at: n.published_at,
+            views: n.views,
+            is_pinned: n.is_pinned,
+            attachments: vec![], // List da bo'sh, detail da handler to'ldiradi
             created_at: n.created_at,
             updated_at: n.updated_at,
         }

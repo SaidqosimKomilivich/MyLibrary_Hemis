@@ -28,6 +28,10 @@ pub struct News {
     pub is_published: bool,
     pub published_at: Option<DateTime<Utc>>,
 
+    // Statistika va pinning
+    pub views: i64,
+    pub is_pinned: bool,
+
     // Vaqt tamg'alari
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,

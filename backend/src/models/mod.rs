@@ -2,6 +2,7 @@ pub mod book;
 pub mod control;
 pub mod message;
 pub mod news;
+pub mod news_attachment;
 pub mod reading;
 pub mod rental;
 pub mod token;

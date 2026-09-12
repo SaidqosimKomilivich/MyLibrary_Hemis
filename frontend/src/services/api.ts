@@ -23,6 +23,8 @@ import type {
     EmployeeDashboardResponse,
     PublicDashboardResponse,
     CreateNewsRequest,
+    UpdateNewsRequest,
+    NewsListParams,
     PaginatedNewsResponse,
     SingleNewsResponse,
     ReportDashboardResponse,
@@ -811,18 +813,13 @@ export const api = {
 
 
     // News endpoints (Admin CRUD)
-    getNewsList(params: PaginationParams = {}) {
-        const qs = buildQueryString(params)
+    getNewsList(params: NewsListParams = {}) {
+        const qs = buildQueryString(params as unknown as Record<string, unknown>)
         return request<PaginatedNewsResponse>(`/news${qs}`)
     },
 
-    getPublicNewsList(params: PaginationParams = {}) {
-        const qs = buildQueryString({
-            page: params.page,
-            search: params.search,
-            category: params.category,
-            limit: params.limit
-        })
+    getPublicNewsList(params: NewsListParams = {}) {
+        const qs = buildQueryString(params as unknown as Record<string, unknown>)
         return request<PaginatedNewsResponse>(`/public/news${qs}`)
     },
 
@@ -838,7 +835,7 @@ export const api = {
         })
     },
 
-    updateNews(id: string, data: Partial<CreateNewsRequest>) {
+    updateNews(id: string, data: UpdateNewsRequest) {
         return request<SingleNewsResponse>(`/news/${id}`, {
             method: 'PUT',
             body: JSON.stringify(data),
@@ -853,6 +850,12 @@ export const api = {
 
     toggleNewsPublish(id: string) {
         return request<SingleNewsResponse>(`/news/${id}/publish`, {
+            method: 'PUT',
+        })
+    },
+
+    toggleNewsPin(id: string) {
+        return request<SingleNewsResponse>(`/news/${id}/pin`, {
             method: 'PUT',
         })
     },

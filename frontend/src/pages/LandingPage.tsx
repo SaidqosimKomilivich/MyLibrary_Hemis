@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { BookOpen, Users, Search, ChevronRight, TrendingUp, Megaphone, Calendar, Info, ShieldCheck, Clock, Phone, Mail, MapPin, ChevronDown } from 'lucide-react'
+import { BookOpen, Users, Search, ChevronRight, TrendingUp, Megaphone, Calendar, Info, ShieldCheck, Clock, Phone, Mail, MapPin, ChevronDown, Pin, Eye } from 'lucide-react'
 import { api, type PublicDashboardResponse, type News, type Book } from '../services/api'
 import { getFileUrl } from '../utils/fileUrl'
+import NewsCoverImage from '../components/NewsCoverImage'
 
 export default function LandingPage() {
     const [stats, setStats] = useState<PublicDashboardResponse | null>(null)
@@ -307,16 +308,18 @@ export default function LandingPage() {
                         ) : news && news.length > 0 ? (
                             news.map((item, i) => (
                                 <Link to={`/news/${item.slug}`} key={i} className="group bg-surface border border-border/50 rounded-2xl overflow-hidden hover:border-blue-500/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-500/10 flex flex-col h-full">
-                                    {item.images && item.images.length > 0 ? (
-                                        <div className="h-40 bg-surface/50 border-b border-border/50 overflow-hidden shrink-0">
-                                            <img src={getFileUrl(item.images[0])} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                                        </div>
-                                    ) : (
-                                        <div className="h-40 bg-surface/50 border-b border-border/50 flex flex-col justify-center items-center shrink-0">
-                                            <Megaphone size={36} className="text-blue-500/50 mb-2 group-hover:scale-110 transition-transform duration-500" />
-                                            <span className="text-blue-500/50 font-bold tracking-wider text-xs uppercase">{item.category || "E'lon"}</span>
-                                        </div>
-                                    )}
+                                    <div className="h-44 bg-surface/50 border-b border-border/50 overflow-hidden shrink-0 relative">
+                                        {item.is_pinned && (
+                                            <div className="absolute top-2.5 left-2.5 z-10 flex items-center gap-1 bg-amber-500/95 text-white text-[0.65rem] font-bold px-2 py-0.5 rounded-full shadow-md backdrop-blur-sm">
+                                                <Pin size={10} className="fill-white" /> Qadalgan
+                                            </div>
+                                        )}
+                                        <NewsCoverImage
+                                            images={item.images}
+                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                            fallbackClassName="w-16 h-16 object-contain opacity-35 filter grayscale group-hover:grayscale-0 group-hover:opacity-75 group-hover:scale-110 transition-all duration-500"
+                                        />
+                                    </div>
                                     <div className="p-5 flex-1 flex flex-col">
                                         <div className="flex items-center gap-2 mb-3">
                                             {item.category && (
@@ -324,10 +327,16 @@ export default function LandingPage() {
                                                     {item.category}
                                                 </span>
                                             )}
-                                            <span className="text-text-muted flex items-center gap-1 text-[0.7rem] ml-auto font-medium">
-                                                <Calendar size={12} />
-                                                {new Date(item.published_at || item.created_at).toLocaleDateString()}
-                                            </span>
+                                            <div className="flex items-center gap-2 text-text-muted text-[0.7rem] ml-auto font-medium">
+                                                <span className="flex items-center gap-0.5">
+                                                    <Eye size={11} /> {item.views ?? 0}
+                                                </span>
+                                                <span>•</span>
+                                                <span className="flex items-center gap-1">
+                                                    <Calendar size={11} />
+                                                    {new Date(item.published_at || item.created_at).toLocaleDateString()}
+                                                </span>
+                                            </div>
                                         </div>
                                         <h3 className="font-bold text-[1.05rem] mb-2 line-clamp-2 leading-snug group-hover:text-blue-400 transition-colors">
                                             {item.title}

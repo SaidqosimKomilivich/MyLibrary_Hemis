@@ -291,7 +291,8 @@ async fn main() -> std::io::Result<()> {
                     .route("/{id}", web::get().to(news_handler::get_news))
                     .route("/{id}", web::put().to(news_handler::update_news))
                     .route("/{id}", web::delete().to(news_handler::delete_news))
-                    .route("/{id}/publish", web::put().to(news_handler::toggle_publish)),
+                    .route("/{id}/publish", web::put().to(news_handler::toggle_publish))
+                    .route("/{id}/pin", web::put().to(news_handler::toggle_pin)),
             )
             // Public routes
             .service(

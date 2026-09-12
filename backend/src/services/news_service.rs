@@ -2,8 +2,8 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::dto::news::{
-    CreateNewsRequest, NewsListParams, PaginatedNewsResponse, NewsPagination,
-    NewsResponse, UpdateNewsRequest,
+    CreateNewsRequest, NewsListParams, NewsPagination, NewsResponse, PaginatedNewsResponse,
+    UpdateNewsRequest,
 };
 use crate::errors::AppError;
 use crate::models::news::News;
@@ -130,19 +130,40 @@ impl NewsService {
     ) -> Result<News, AppError> {
         Self::validate_create(&req)?;
         let slug = Self::make_unique_slug(pool, &req.title).await?;
+        let attachments = req.attachments.clone();
 
         tracing::info!(title = %req.title, slug = %slug, "Yangilik yaratilmoqda");
 
-        NewsRepository::create(pool, &req, &slug, author_id).await
+        let news = NewsRepository::create(pool, &req, &slug, author_id).await?;
+
+        if !attachments.is_empty() {
+            NewsRepository::save_attachments(pool, news.id, &attachments).await?;
+        }
+
+        Ok(news)
     }
 
     /// ID yoki slug bo'yicha yangilikni olish
-    pub async fn get_by_id_or_slug(pool: &PgPool, id_or_slug: &str) -> Result<News, AppError> {
-        // UUID formatini tekshirish
-        if let Ok(id) = Uuid::parse_str(id_or_slug) {
-            return NewsRepository::find_by_id(pool, id).await;
+    pub async fn get_by_id_or_slug(
+        pool: &PgPool,
+        id_or_slug: &str,
+        increment_view: bool,
+    ) -> Result<News, AppError> {
+        let news = if let Ok(id) = Uuid::parse_str(id_or_slug) {
+            NewsRepository::find_by_id(pool, id).await?
+        } else {
+            NewsRepository::find_by_slug(pool, id_or_slug).await?
+        };
+
+        if increment_view {
+            let pool_clone = pool.clone();
+            let news_id = news.id;
+            tokio::spawn(async move {
+                let _ = NewsRepository::increment_views(&pool_clone, news_id).await;
+            });
         }
-        NewsRepository::find_by_slug(pool, id_or_slug).await
+
+        Ok(news)
     }
 
     /// Paginatsiyali ro'yxat
@@ -181,12 +202,23 @@ impl NewsService {
             None
         };
 
-        NewsRepository::update(pool, id, &req, new_slug.as_deref()).await
+        let news = NewsRepository::update(pool, id, &req, new_slug.as_deref()).await?;
+
+        if let Some(ref attachments) = req.attachments {
+            NewsRepository::save_attachments(pool, news.id, attachments).await?;
+        }
+
+        Ok(news)
     }
 
     /// Nashr holatini almashtirish
     pub async fn toggle_publish(pool: &PgPool, id: Uuid) -> Result<News, AppError> {
         NewsRepository::toggle_publish(pool, id).await
+    }
+
+    /// Qadab qo'yish holatini almashtirish
+    pub async fn toggle_pin(pool: &PgPool, id: Uuid) -> Result<News, AppError> {
+        NewsRepository::toggle_pin(pool, id).await
     }
 
     /// Yangilikni o'chirish

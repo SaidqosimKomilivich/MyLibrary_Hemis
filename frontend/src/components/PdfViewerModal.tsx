@@ -417,7 +417,7 @@ export default function PdfViewerModal({ title, fileUrl, bookId, onClose }: PdfV
                 {/* Toolbar */}
                 <div className="flex flex-wrap items-center justify-between p-2.5 sm:p-3 border-b border-border bg-surface/70 shrink-0 gap-2 sm:gap-3">
                     {/* Search */}
-                    <div className="flex items-center gap-2 flex-1 min-w-[180px] sm:min-w-[240px]">
+                    <div className="flex items-center gap-2 flex-1 min-w-45 sm:min-w-60">
                         <div className="relative flex-1">
                             <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
                             <input
@@ -581,7 +581,7 @@ export default function PdfViewerModal({ title, fileUrl, bookId, onClose }: PdfV
 
                     {/* Dastlabki yuklanish jarayoni va progress indikatori */}
                     {!fetchError && loading && (
-                        <div className="my-auto flex flex-col items-center justify-center p-6 bg-surface/90 border border-border rounded-2xl shadow-2xl min-w-[280px] max-w-sm gap-3">
+                        <div className="my-auto flex flex-col items-center justify-center p-6 bg-surface/90 border border-border rounded-2xl shadow-2xl min-w-70 max-w-sm gap-3">
                             <div className="animate-spin rounded-full h-9 w-9 border-b-2 border-primary"></div>
                             <div className="flex flex-col items-center gap-1.5 w-full text-center">
                                 <span className="text-text text-sm font-semibold">PDF oqimi o'rnatilmoqda...</span>

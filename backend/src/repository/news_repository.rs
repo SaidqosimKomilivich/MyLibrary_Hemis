@@ -2,9 +2,10 @@ use chrono::Utc;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::dto::news::{CreateNewsRequest, NewsListParams, UpdateNewsRequest};
+use crate::dto::news::{AttachmentInput, CreateNewsRequest, NewsListParams, UpdateNewsRequest};
 use crate::errors::AppError;
 use crate::models::news::News;
+use crate::models::news_attachment::NewsAttachment;
 
 const PER_PAGE: i64 = 20;
 
@@ -31,8 +32,8 @@ impl NewsRepository {
             r#"
             INSERT INTO news
                 (title, slug, summary, content, images, category, tags,
-                 author_id, is_published, published_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                 author_id, is_published, published_at, is_pinned)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             RETURNING *
             "#,
         )
@@ -46,6 +47,7 @@ impl NewsRepository {
         .bind(author_id)
         .bind(req.is_published)
         .bind(published_at)
+        .bind(req.is_pinned)
         .fetch_one(pool)
         .await?;
 
@@ -81,7 +83,7 @@ impl NewsRepository {
     }
 
     // ─────────────────────────────────────────────────────────
-    // READ — paginated list
+    // READ — paginated list (kengaytirilgan qidiruv va filtrlash)
     // ─────────────────────────────────────────────────────────
 
     pub async fn list(
@@ -99,14 +101,24 @@ impl NewsRepository {
             .as_deref()
             .map(|s| format!("%{}%", s.to_lowercase()));
 
+        let date_from = params.date_from.as_deref();
+        let date_to = params.date_to.as_deref();
+        let sort_by = params.sort_by.as_deref();
+
         let rows = sqlx::query_as::<_, News>(
             r#"
             SELECT * FROM news
             WHERE
                 ($1::BOOLEAN = FALSE OR is_published = TRUE)
-                AND ($2::TEXT IS NULL OR LOWER(title) LIKE $2)
+                AND ($2::TEXT IS NULL OR LOWER(title) LIKE $2 OR LOWER(content) LIKE $2)
                 AND ($3::TEXT IS NULL OR category = $3)
-            ORDER BY created_at DESC
+                AND ($6::TEXT IS NULL OR created_at >= $6::DATE)
+                AND ($7::TEXT IS NULL OR created_at < ($7::DATE + INTERVAL '1 day'))
+            ORDER BY
+                is_pinned DESC,
+                CASE WHEN $8 = 'views' THEN views ELSE NULL END DESC NULLS LAST,
+                CASE WHEN $8 = 'published_at' THEN EXTRACT(EPOCH FROM published_at) ELSE NULL END DESC NULLS LAST,
+                created_at DESC
             LIMIT $4 OFFSET $5
             "#,
         )
@@ -115,6 +127,9 @@ impl NewsRepository {
         .bind(&params.category)
         .bind(per_page)
         .bind(offset)
+        .bind(date_from)
+        .bind(date_to)
+        .bind(sort_by)
         .fetch_all(pool)
         .await?;
 
@@ -123,13 +138,17 @@ impl NewsRepository {
             SELECT COUNT(*) FROM news
             WHERE
                 ($1::BOOLEAN = FALSE OR is_published = TRUE)
-                AND ($2::TEXT IS NULL OR LOWER(title) LIKE $2)
+                AND ($2::TEXT IS NULL OR LOWER(title) LIKE $2 OR LOWER(content) LIKE $2)
                 AND ($3::TEXT IS NULL OR category = $3)
+                AND ($4::TEXT IS NULL OR created_at >= $4::DATE)
+                AND ($5::TEXT IS NULL OR created_at < ($5::DATE + INTERVAL '1 day'))
             "#,
         )
         .bind(published_only)
         .bind(&search)
         .bind(&params.category)
+        .bind(date_from)
+        .bind(date_to)
         .fetch_one(pool)
         .await?;
 
@@ -156,6 +175,7 @@ impl NewsRepository {
         let images = req.images.as_deref().unwrap_or(&existing.images);
         let category = req.category.as_deref().or(existing.category.as_deref());
         let tags = req.tags.as_deref().unwrap_or(&existing.tags);
+        let is_pinned = req.is_pinned.unwrap_or(existing.is_pinned);
 
         // Handle publish state change
         let is_published = req.is_published.unwrap_or(existing.is_published);
@@ -181,8 +201,9 @@ impl NewsRepository {
                 category        = $6,
                 tags            = $7,
                 is_published    = $8,
-                published_at    = $9
-            WHERE id = $10
+                published_at    = $9,
+                is_pinned       = $10
+            WHERE id = $11
             RETURNING *
             "#,
         )
@@ -195,6 +216,7 @@ impl NewsRepository {
         .bind(tags)
         .bind(is_published)
         .bind(published_at)
+        .bind(is_pinned)
         .bind(id)
         .fetch_one(pool)
         .await?;
@@ -228,6 +250,34 @@ impl NewsRepository {
     }
 
     // ─────────────────────────────────────────────────────────
+    // TOGGLE PIN
+    // ─────────────────────────────────────────────────────────
+
+    pub async fn toggle_pin(pool: &PgPool, id: Uuid) -> Result<News, AppError> {
+        let news = sqlx::query_as::<_, News>(
+            "UPDATE news SET is_pinned = NOT is_pinned WHERE id = $1 RETURNING *",
+        )
+        .bind(id)
+        .fetch_optional(pool)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Yangilik topilmadi".to_string()))?;
+
+        Ok(news)
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // INCREMENT VIEWS
+    // ─────────────────────────────────────────────────────────
+
+    pub async fn increment_views(pool: &PgPool, id: Uuid) -> Result<(), AppError> {
+        sqlx::query("UPDATE news SET views = views + 1 WHERE id = $1")
+            .bind(id)
+            .execute(pool)
+            .await?;
+        Ok(())
+    }
+
+    // ─────────────────────────────────────────────────────────
     // DELETE
     // ─────────────────────────────────────────────────────────
 
@@ -256,5 +306,54 @@ impl NewsRepository {
                 .await?;
 
         Ok(count > 0)
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // ATTACHMENTS
+    // ─────────────────────────────────────────────────────────
+
+    /// Yangilikka biriktirilgan hujjatlarni olish
+    pub async fn find_attachments(
+        pool: &PgPool,
+        news_id: Uuid,
+    ) -> Result<Vec<NewsAttachment>, AppError> {
+        let rows = sqlx::query_as::<_, NewsAttachment>(
+            "SELECT * FROM news_attachments WHERE news_id = $1 ORDER BY sort_order ASC",
+        )
+        .bind(news_id)
+        .fetch_all(pool)
+        .await?;
+        Ok(rows)
+    }
+
+    /// Yangilikka hujjatlar biriktirish (avvalgilarini o'chirib, yangilarini qo'shish)
+    pub async fn save_attachments(
+        pool: &PgPool,
+        news_id: Uuid,
+        attachments: &[AttachmentInput],
+    ) -> Result<(), AppError> {
+        // Avvalgi attachmentlarni tozalash
+        sqlx::query("DELETE FROM news_attachments WHERE news_id = $1")
+            .bind(news_id)
+            .execute(pool)
+            .await?;
+
+        // Yangilarini qo'shish
+        for (i, att) in attachments.iter().enumerate() {
+            sqlx::query(
+                r#"INSERT INTO news_attachments
+                    (news_id, file_url, file_name, file_size, file_type, sort_order)
+                   VALUES ($1, $2, $3, $4, $5, $6)"#,
+            )
+            .bind(news_id)
+            .bind(&att.file_url)
+            .bind(&att.file_name)
+            .bind(att.file_size)
+            .bind(&att.file_type)
+            .bind(i as i32)
+            .execute(pool)
+            .await?;
+        }
+        Ok(())
     }
 }
