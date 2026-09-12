@@ -62,6 +62,8 @@ pub struct HemisStudentItem {
     pub group: Option<HemisGroup>,
     #[serde(rename = "educationForm")]
     pub education_form: Option<HemisCodeName>,
+    #[serde(rename = "studentStatus")]
+    pub student_status: Option<HemisCodeName>,
 }
 
 // ========================
@@ -127,4 +129,38 @@ pub struct HemisStudentAuthResponse {
 #[derive(Debug, Deserialize)]
 pub struct HemisStudentAuthData {
     pub token: String,
+}
+
+// ========================
+// Haftalik Status Sinxronlash DTO lari
+// ========================
+
+#[derive(Debug, Serialize, Clone)]
+pub struct BookDebtInfo {
+    pub title: String,
+    pub loan_date: String,
+    pub due_date: String,
+    pub invoice_number: Option<String>,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct UserDebtSummary {
+    pub user_id: String,
+    pub full_name: String,
+    pub role: String,
+    pub department: Option<String>,
+    pub group_or_position: Option<String>,
+    pub phone: Option<String>,
+    pub books: Vec<BookDebtInfo>,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct WeeklySyncReportResponse {
+    pub success: bool,
+    pub message: String,
+    pub checked_students: i64,
+    pub checked_employees: i64,
+    pub deactivated_count: i64,
+    pub users_with_debt: Vec<UserDebtSummary>,
+    pub alerts_sent_to_staff: usize,
 }

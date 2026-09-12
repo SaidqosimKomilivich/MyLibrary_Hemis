@@ -11,6 +11,7 @@ import DeleteConfirmModal from '../../components/DeleteConfirmModal'
 import { CustomSelect } from '../../components/CustomSelect'
 import PdfViewerModal from '../../components/PdfViewerModal'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { useDebounce } from '../../hooks/useDebounce'
 
 export default function Library() {
     const { role } = useAuth()
@@ -25,6 +26,7 @@ export default function Library() {
     const [books, setBooks] = useState<Book[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [search, setSearch] = useState('')
+    const debouncedSearch = useDebounce(search, 350)
     const [page, setPage] = useState(1)
     const [totalPages, setTotalPages] = useState(1)
 
@@ -62,7 +64,7 @@ export default function Library() {
     const fetchBooks = async () => {
         setIsLoading(true)
         try {
-            const res = await api.getBooks({ page, search })
+            const res = await api.getBooks({ page, search: debouncedSearch.trim() || undefined })
             setBooks(res.data)
             setTotalPages(res.pagination.total_pages)
         } catch {
@@ -75,7 +77,7 @@ export default function Library() {
     useEffect(() => {
         fetchBooks()
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [page, search])
+    }, [page, debouncedSearch])
 
     // Auto-open kitobi agar login ga katalogdan o'tilgan bo'lsa
     useEffect(() => {
@@ -367,7 +369,7 @@ export default function Library() {
                                 <h3 className="font-bold text-text text-[0.95rem]">
                                     {toggleBook.is_active ? 'Kitobni nofaollashtirish' : 'Kitobni faollashtirish'}
                                 </h3>
-                                <p className="text-xs text-text-muted mt-0.5 truncate max-w-[280px]">"{toggleBook.title}"</p>
+                                <p className="text-xs text-text-muted mt-0.5 truncate max-w-70">"{toggleBook.title}"</p>
                             </div>
                         </div>
 

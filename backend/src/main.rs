@@ -110,9 +110,20 @@ async fn main() -> std::io::Result<()> {
     let reminder_pool = pool.clone();
     tokio::spawn(scheduler::start_rental_reminder_scheduler(
         reminder_pool,
-        message_service_instance,
+        message_service_instance.clone(),
     ));
     tracing::info!("Rental-reminder scheduleri fonda ishga tushirildi");
+
+    // WEEKLY STATUS SYNC SCHEDULER: fonda ishga tushirish (har yakshanba 02:00 da)
+    let weekly_sync_pool = pool.clone();
+    let weekly_sync_config = config_data.get_ref().clone();
+    let weekly_sync_messages = message_service_instance.clone();
+    tokio::spawn(scheduler::start_weekly_status_sync_scheduler(
+        weekly_sync_pool,
+        weekly_sync_config,
+        weekly_sync_messages,
+    ));
+    tracing::info!("Haftalik status sinxronlash scheduleri fonda ishga tushirildi");
 
 
     HttpServer::new(move || {
@@ -312,7 +323,12 @@ async fn main() -> std::io::Result<()> {
                     .route("/employees", web::post().to(sync_handler::sync_employees))
                     .route("/employees", web::get().to(sync_handler::get_employees))
                     // Adminlar
-                    .route("/admins", web::get().to(sync_handler::get_admins)),
+                    .route("/admins", web::get().to(sync_handler::get_admins))
+                    // Haftalik status tekshiruvi (qo'lda chaqirish)
+                    .route(
+                        "/weekly-status-check",
+                        web::post().to(sync_handler::trigger_weekly_status_check),
+                    ),
             )
             // Users routes
             .service(

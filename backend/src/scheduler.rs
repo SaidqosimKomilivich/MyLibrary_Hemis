@@ -3,7 +3,7 @@
 //! Bu modul har kuni soat 20:00 da kutubxonadan chiqmay ketib qolgan
 //! foydalanuvchilarni avtomatik ravishda chiqib ketdi deb belgilaydi.
 
-use chrono::{Local, NaiveTime};
+use chrono::{Datelike, Local, NaiveTime};
 use sqlx::PgPool;
 use tokio::time::{sleep, Duration};
 
@@ -299,3 +299,67 @@ pub async fn start_orphan_files_cleanup_scheduler(pool: PgPool, upload_dir: Stri
         sleep(Duration::from_secs(60)).await;
     }
 }
+
+/// Har haftaning yakshanba kuni soat 02:00 da ishlaydigan HEMIS status tekshiruvi scheduleri
+pub async fn start_weekly_status_sync_scheduler(
+    pool: PgPool,
+    config: crate::config::Config,
+    message_service: Arc<MessageService>,
+) {
+    tracing::info!("🗓️ Haftalik HEMIS status sinxronlash scheduleri ishga tushdi (har yakshanba 02:00 da)");
+
+    let target_time = NaiveTime::from_hms_opt(2, 0, 0).expect("02:00:00 vaqtini yaratib bo'lmadi");
+
+    loop {
+        let now = Local::now();
+        // Hozirgi haftaning yakshanba kunini topamiz:
+        let mut days_until_sunday = (7 + chrono::Weekday::Sun.num_days_from_monday() as i64
+            - now.weekday().num_days_from_monday() as i64) % 7;
+
+        let today_target = now.date_naive().and_time(target_time);
+
+        if days_until_sunday == 0 && now.naive_local() >= today_target {
+            // Bugun yakshanba, lekin 02:00 o'tib ketgan — keyingi yakshanbagacha 7 kun
+            days_until_sunday = 7;
+        }
+
+        let next_sunday_date = now.date_naive() + chrono::Duration::days(days_until_sunday);
+        let next_target = next_sunday_date.and_time(target_time);
+        let wait_secs = (next_target - now.naive_local()).num_seconds().max(0);
+
+        tracing::info!(
+            wait_hours = wait_secs as f64 / 3600.0,
+            target = %next_target,
+            "⏳ Haftalik HEMIS status tekshiruvi: {:.1} soatdan keyin ishlaydi",
+            wait_secs as f64 / 3600.0
+        );
+
+        sleep(Duration::from_secs(wait_secs as u64)).await;
+
+        tracing::info!("🔔 Haftalik HEMIS status tekshiruvi boshlandi...");
+        match crate::services::hemis_service::HemisService::run_weekly_status_check(
+            &pool,
+            &config,
+            Some(message_service.clone()),
+        )
+        .await
+        {
+            Ok(report) => {
+                tracing::info!(
+                    message = %report.message,
+                    deactivated = report.deactivated_count,
+                    debts = report.users_with_debt.len(),
+                    alerts = report.alerts_sent_to_staff,
+                    "✅ Haftalik HEMIS status tekshiruvi muvaffaqiyatli yakunlandi"
+                );
+            }
+            Err(e) => {
+                tracing::error!(error = %e, "❌ Haftalik status tekshiruvida xatolik yuz berdi");
+            }
+        }
+
+        // Qayta ishga tushib ketmasligi uchun 5 daqiqa kutish
+        sleep(Duration::from_secs(300)).await;
+    }
+}
+

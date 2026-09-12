@@ -383,19 +383,47 @@ pub async fn increment_id_card(
     })))
 }
 
+/// Yordamchi: Admin ekanligini yoki favqulodda kalit (X-Emergency-Key) to'g'riligini tekshirish
+fn check_admin_or_emergency(req: &HttpRequest, config: &Config) -> Result<String, HttpResponse> {
+    // 1. Favqulodda kalit tekshiruvi (tizimga kirmasdan unblock qilish uchun)
+    if let Some(emergency_key) = req.headers().get("X-Emergency-Key") {
+        if let Ok(key_str) = emergency_key.to_str() {
+            if key_str == config.jwt_secret || key_str == config.admin_parol {
+                return Ok("emergency_key".to_string());
+            }
+        }
+    }
+
+    // 2. Cookie orqali admin sessiyasini tekshirish
+    if let Some(token_cookie) = req.cookie("access_token") {
+        if let Ok(claims) = AuthService::validate_token(token_cookie.value(), config) {
+            if claims.role == "admin" && claims.token_type == "access" {
+                return Ok(claims.sub);
+            }
+        }
+    }
+
+    Err(HttpResponse::Forbidden().json(serde_json::json!({
+        "error": true,
+        "message": "Ushbu amalni bajarish uchun admin huquqi yoki to'g'ri X-Emergency-Key talab qilinadi"
+    })))
+}
+
 /// POST /api/auth/unblock
-/// Faqat admin uchun: bloklangan akkaunt yoki IP manzilni blokdan chiqarish
+/// Admin yoki Favqulodda kalit (X-Emergency-Key) uchun: bloklangan akkaunt yoki IP manzilni ochish
 pub async fn unblock(
-    claims: Claims,
+    req: HttpRequest,
+    config: web::Data<Config>,
     body: web::Json<UnblockRequest>,
 ) -> Result<HttpResponse, actix_web::Error> {
-    if let Err(resp) = require_role(&claims, &["admin"]) {
-        return Ok(resp);
-    }
+    let caller_identity = match check_admin_or_emergency(&req, config.get_ref()) {
+        Ok(sub) => sub,
+        Err(resp) => return Ok(resp),
+    };
 
     if body.clear_all.unwrap_or(false) {
         let (users, ips) = CaptchaService::clear_all_blocks();
-        tracing::info!(admin = %claims.sub, users, ips, "Admin barcha bloklarni tozaladi");
+        tracing::warn!(caller = %caller_identity, users, ips, "Barcha bloklar tozalandi (Unblock all)");
         return Ok(HttpResponse::Ok().json(serde_json::json!({
             "success": true,
             "message": format!("Barcha bloklar tozalandi. Foydalanuvchilar: {}, IP manzillar: {}", users, ips)
@@ -427,7 +455,7 @@ pub async fn unblock(
         })));
     }
 
-    tracing::info!(admin = %claims.sub, items = ?unblocked_items, "Admin blokdan chiqardi");
+    tracing::info!(caller = %caller_identity, items = ?unblocked_items, "Blokdan chiqarildi");
 
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "success": true,
@@ -436,11 +464,12 @@ pub async fn unblock(
 }
 
 /// GET /api/auth/blocked-list
-/// Faqat admin uchun: hozirgi bloklangan foydalanuvchilar va IP manzillar ro'yxati
+/// Admin yoki Favqulodda kalit (X-Emergency-Key) uchun: hozirgi bloklangan foydalanuvchilar va IP manzillar ro'yxati
 pub async fn get_blocked_list(
-    claims: Claims,
+    req: HttpRequest,
+    config: web::Data<Config>,
 ) -> Result<HttpResponse, actix_web::Error> {
-    if let Err(resp) = require_role(&claims, &["admin"]) {
+    if let Err(resp) = check_admin_or_emergency(&req, config.get_ref()) {
         return Ok(resp);
     }
 

@@ -498,3 +498,30 @@ export interface AnnouncementReadStatusResponse {
         total_pages: number
     }
 }
+
+export interface BookDebtInfo {
+    title: string
+    loan_date: string
+    due_date: string
+    invoice_number?: string | null
+}
+
+export interface UserDebtSummary {
+    user_id: string
+    full_name: string
+    role: string
+    department?: string | null
+    group_or_position?: string | null
+    phone?: string | null
+    books: BookDebtInfo[]
+}
+
+export interface WeeklySyncReportResponse {
+    success: boolean
+    message: string
+    checked_students: number
+    checked_employees: number
+    deactivated_count: number
+    users_with_debt: UserDebtSummary[]
+    alerts_sent_to_staff: number
+}

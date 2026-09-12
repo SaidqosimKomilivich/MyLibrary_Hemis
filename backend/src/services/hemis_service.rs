@@ -1,13 +1,19 @@
 use sqlx::PgPool;
+use std::sync::Arc;
 use tokio::sync::mpsc;
 
 use crate::config::Config;
 use crate::dto::hemis::{
-    HemisApiResponse, HemisEmployeeApiResponse, SyncResponse, HemisStudentAuthResponse
+    HemisApiResponse, HemisEmployeeApiResponse, SyncResponse, HemisStudentAuthResponse,
+    UserDebtSummary, WeeklySyncReportResponse,
 };
+use crate::dto::message::SendMessageDto;
 use crate::errors::AppError;
+use crate::repository::message_repository::MessageRepository;
+use crate::repository::rental_repository::RentalRepository;
 use crate::repository::user_repository::UserRepository;
 use crate::services::auth_service::AuthService;
+use crate::services::message_service::MessageService;
 
 /// SSE orqali frontendga yuboriladigan progress xabari
 #[derive(serde::Serialize, Clone, Debug)]
@@ -44,6 +50,8 @@ impl HemisService {
         let client = reqwest::Client::builder()
             .danger_accept_invalid_certs(config.hemis_skip_ssl)
             .user_agent("MyLibrary-Backend/1.0")
+            .timeout(std::time::Duration::from_secs(15))
+            .connect_timeout(std::time::Duration::from_secs(5))
             .build()
             .map_err(|e| {
                 AppError::InternalError(format!("HTTP client yaratishda xatolik: {}", e))
@@ -119,6 +127,8 @@ impl HemisService {
     ) -> Result<SyncResponse, AppError> {
         let client = reqwest::Client::builder()
             .danger_accept_invalid_certs(config.hemis_skip_ssl)
+            .timeout(std::time::Duration::from_secs(30))
+            .connect_timeout(std::time::Duration::from_secs(10))
             .build()
             .map_err(|e| {
                 AppError::InternalError(format!("HTTP client yaratishda xatolik: {}", e))
@@ -260,6 +270,11 @@ impl HemisService {
             let updated_in_page = to_update.len() as i64;
             for chunk_slice in to_update.chunks(500) {
                 let update_data = chunk_slice.iter().map(|s| {
+                    let is_active = s.student_status
+                        .as_ref()
+                        .and_then(|st| st.code.as_deref())
+                        .map(|code| code == "11")
+                        .unwrap_or(true);
                     (
                         s.student_id_number.as_deref().unwrap(),
                         s.full_name.as_deref().unwrap_or("Noma'lum"),
@@ -273,6 +288,7 @@ impl HemisService {
                         s.specialty.as_ref().and_then(|sp| sp.name.as_deref()),
                         s.group.as_ref().and_then(|g| g.name.as_deref()),
                         s.education_form.as_ref().and_then(|e| e.name.as_deref()),
+                        is_active,
                     )
                 });
                 UserRepository::bulk_update_students(pool, update_data).await?;
@@ -290,6 +306,11 @@ impl HemisService {
             if !batch_to_insert.is_empty() {
                 // Bulk insert
                 let insert_data = batch_to_insert.iter().map(|(s, hash)| {
+                    let is_active = s.student_status
+                        .as_ref()
+                        .and_then(|st| st.code.as_deref())
+                        .map(|code| code == "11")
+                        .unwrap_or(true);
                     (
                         s.student_id_number.as_deref().unwrap(),
                         hash.as_str(),
@@ -305,6 +326,7 @@ impl HemisService {
                         s.specialty.as_ref().and_then(|sp| sp.name.as_deref()),
                         s.group.as_ref().and_then(|g| g.name.as_deref()),
                         s.education_form.as_ref().and_then(|e| e.name.as_deref()),
+                        is_active,
                     )
                 });
                 UserRepository::bulk_create_students(pool, insert_data).await?;
@@ -399,6 +421,8 @@ impl HemisService {
     ) -> Result<SyncResponse, AppError> {
         let client = reqwest::Client::builder()
             .danger_accept_invalid_certs(config.hemis_skip_ssl)
+            .timeout(std::time::Duration::from_secs(30))
+            .connect_timeout(std::time::Duration::from_secs(10))
             .build()
             .map_err(|e| {
                 AppError::InternalError(format!("HTTP client yaratishda xatolik: {}", e))
@@ -511,17 +535,12 @@ impl HemisService {
             let mut updated_in_page: i64 = 0;
 
             for employee in &employees {
-                // Faqat ishlayotgan xodimlarni olish (employeeStatus.code = "11")
                 let is_active = employee
                     .employee_status
                     .as_ref()
                     .and_then(|s| s.code.as_deref())
                     .map(|code| code == "11")
                     .unwrap_or(false);
-
-                if !is_active {
-                    continue;
-                }
 
                 let user_id = match &employee.employee_id_number {
                     Some(id) if !id.is_empty() && id != "0" => id.clone(),
@@ -556,7 +575,7 @@ impl HemisService {
                     role
                 };
 
-                let existing = UserRepository::find_by_user_id(pool, &user_id).await?;
+                let existing = UserRepository::find_by_user_id_any(pool, &user_id).await?;
                 // HEMIS rasmlarini olmaslik uchun None beramiz
                 let image_url: Option<&str> = None;
 
@@ -571,6 +590,7 @@ impl HemisService {
                         image_url,
                         department_name.as_deref(),
                         staff_position.as_deref(),
+                        is_active,
                     )
                     .await?;
                     updated_in_page += 1;
@@ -589,6 +609,7 @@ impl HemisService {
                         0i64, // id_card yangi yaratilganda 0 dan boshlanadi
                         department_name.as_deref(),
                         staff_position.as_deref(),
+                        is_active,
                     )
                     .await?;
                     created_in_page += 1;
@@ -667,6 +688,244 @@ impl HemisService {
             created: global_created,
             updated: global_updated,
             total: global_processed,
+        })
+    }
+
+    /// ═══════════════════════════════════════════════════════════════
+    /// HAFTALIK: Barcha talaba va xodimlar statusini tekshirish
+    /// - Statusi o'zgargan (o'qishdan ketgan/bo'shagan) larni nofaol (active=false) qilish
+    /// - Agar nomida qaytarilmagan kitob bo'lsa, barcha admin va kutubxonachilarga ogohlantirish yuborish
+    /// ═══════════════════════════════════════════════════════════════
+    pub async fn run_weekly_status_check(
+        pool: &PgPool,
+        config: &Config,
+        message_service: Option<Arc<MessageService>>,
+    ) -> Result<WeeklySyncReportResponse, AppError> {
+        tracing::info!("🔍 Haftalik HEMIS status tekshiruvi boshlandi...");
+
+        let client = reqwest::Client::builder()
+            .danger_accept_invalid_certs(config.hemis_skip_ssl)
+            .timeout(std::time::Duration::from_secs(30))
+            .connect_timeout(std::time::Duration::from_secs(10))
+            .build()
+            .map_err(|e| AppError::InternalError(format!("HTTP client yaratishda xatolik: {}", e)))?;
+
+        let page_size = 200;
+        let mut checked_students: i64 = 0;
+        let mut checked_employees: i64 = 0;
+        let mut deactivated_count: i64 = 0;
+        let mut users_with_debt: Vec<UserDebtSummary> = Vec::new();
+
+        // 1. TALABALAR STATUSINI TEKSHIRISH
+        let mut page: i64 = 1;
+        let mut total_pages: i64 = 1;
+
+        loop {
+            let url = format!(
+                "{}/rest/v1/data/student-list?page={}&limit={}",
+                config.hemis_base_url, page, page_size
+            );
+
+            let res = client
+                .get(&url)
+                .header("Authorization", format!("Bearer {}", config.hemis_token))
+                .send()
+                .await;
+
+            match res {
+                Ok(response) if response.status().is_success() => {
+                    if let Ok(api_res) = response.json::<HemisApiResponse>().await {
+                        total_pages = api_res.data.pagination.page_count;
+                        for student in api_res.data.items {
+                            if let Some(uid) = student.student_id_number.as_deref().filter(|s| !s.is_empty()) {
+                                checked_students += 1;
+                                
+                                // studentStatus tekshiruvi: "11" = Faol (o'qimoqda)
+                                let is_active_in_hemis = student.student_status
+                                    .as_ref()
+                                    .and_then(|s| s.code.as_deref())
+                                    .map(|code| code == "11")
+                                    .unwrap_or(true);
+
+                                if !is_active_in_hemis {
+                                    if let Ok(was_changed) = UserRepository::set_user_active(pool, uid, false).await {
+                                        if was_changed {
+                                            deactivated_count += 1;
+                                            tracing::warn!(student_id = %uid, "Talaba HEMIS da nofaol bo'lgani sababli nofaol qilindi");
+
+                                            if let Ok(unreturned_books) = RentalRepository::get_unreturned_books_by_user_id(pool, uid).await {
+                                                if !unreturned_books.is_empty() {
+                                                    users_with_debt.push(UserDebtSummary {
+                                                        user_id: uid.to_string(),
+                                                        full_name: student.full_name.clone().unwrap_or_else(|| "Noma'lum".to_string()),
+                                                        role: "student".to_string(),
+                                                        department: student.department.as_ref().and_then(|d| d.name.clone()),
+                                                        group_or_position: student.group.as_ref().and_then(|g| g.name.clone()),
+                                                        phone: None,
+                                                        books: unreturned_books,
+                                                    });
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    // HEMIS da faol bo'lsa (masalan qayta tiklangan bo'lsa), faol holatga keltirish
+                                    let _ = UserRepository::set_user_active(pool, uid, true).await;
+                                }
+                            }
+                        }
+                    }
+                }
+                _ => {
+                    tracing::error!(page = page, "Talabalar sahifasini tekshirishda xatolik yuz berdi");
+                    break;
+                }
+            }
+
+            if page >= total_pages {
+                break;
+            }
+            page += 1;
+        }
+
+        // 2. XODIMLAR VA O'QITUVCHILAR STATUSINI TEKSHIRISH
+        let mut emp_page: i64 = 1;
+        let mut emp_total_pages: i64 = 1;
+
+        loop {
+            let url = format!(
+                "{}/rest/v1/data/employee-list?page={}&limit={}",
+                config.hemis_base_url, emp_page, page_size
+            );
+
+            let res = client
+                .get(&url)
+                .header("Authorization", format!("Bearer {}", config.hemis_token))
+                .send()
+                .await;
+
+            match res {
+                Ok(response) if response.status().is_success() => {
+                    if let Ok(api_res) = response.json::<HemisEmployeeApiResponse>().await {
+                        emp_total_pages = api_res.data.pagination.page_count;
+                        for emp in api_res.data.items {
+                            if let Some(uid) = emp.employee_id_number.as_deref().filter(|s| !s.is_empty()) {
+                                checked_employees += 1;
+
+                                // employeeStatus tekshiruvi: "11" = Ishlamoqda
+                                let is_active_in_hemis = emp.employee_status
+                                    .as_ref()
+                                    .and_then(|s| s.code.as_deref())
+                                    .map(|code| code == "11")
+                                    .unwrap_or(true);
+
+                                if !is_active_in_hemis {
+                                    if let Ok(was_changed) = UserRepository::set_user_active(pool, uid, false).await {
+                                        if was_changed {
+                                            deactivated_count += 1;
+                                            tracing::warn!(employee_id = %uid, "Xodim HEMIS da ishdan bo'shagani sababli nofaol qilindi");
+
+                                            if let Ok(unreturned_books) = RentalRepository::get_unreturned_books_by_user_id(pool, uid).await {
+                                                if !unreturned_books.is_empty() {
+                                                    users_with_debt.push(UserDebtSummary {
+                                                        user_id: uid.to_string(),
+                                                        full_name: emp.full_name.clone().unwrap_or_else(|| "Noma'lum".to_string()),
+                                                        role: "employee".to_string(),
+                                                        department: emp.department.as_ref().and_then(|d| d.name.clone()),
+                                                        group_or_position: emp.staff_position.as_ref().and_then(|s| s.name.clone()),
+                                                        phone: None,
+                                                        books: unreturned_books,
+                                                    });
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    // HEMIS da faol bo'lsa (ishga qaytgan bo'lsa), faol holatga keltirish
+                                    let _ = UserRepository::set_user_active(pool, uid, true).await;
+                                }
+                            }
+                        }
+                    }
+                }
+                _ => {
+                    tracing::error!(page = emp_page, "Xodimlar sahifasini tekshirishda xatolik yuz berdi");
+                    break;
+                }
+            }
+
+            if emp_page >= emp_total_pages {
+                break;
+            }
+            emp_page += 1;
+        }
+
+        // 3. ADMIN VA KUTUBXONA XODIMLARIGA OGOHLANTIRISH XABARI YUBORISH
+        let mut alerts_sent: usize = 0;
+        if !users_with_debt.is_empty() {
+            if let Ok(staff_ids) = UserRepository::get_staff_and_admin_ids(pool).await {
+                for user_debt in &users_with_debt {
+                    let mut books_list = String::new();
+                    for (idx, b) in user_debt.books.iter().enumerate() {
+                        let inv_str = b.invoice_number.as_deref().unwrap_or("-");
+                        books_list.push_str(&format!(
+                            "\n{}. \"{}\" (Invoys: {}) — Topshirish muddati: {}",
+                            idx + 1, b.title, inv_str, b.due_date
+                        ));
+                    }
+
+                    let dept_info = user_debt.department.as_deref().unwrap_or("Mavjud emas");
+                    let group_info = user_debt.group_or_position.as_deref().unwrap_or("-");
+
+                    let msg_text = format!(
+                        "⚠️ DIQQAT: Nofaol foydalanuvchida qaytarilmagan kitob(lar) mavjud!\n\n\
+                        Foydalanuvchi: {} (ID: {}, Roli: {})\n\
+                        Bo'lim/Fakultet: {}\n\
+                        Guruh/Lavozim: {}\n\
+                        Qaytarilmagan kitoblar soni: {} ta:{}\n\n\
+                        Iltimos, ushbu shaxs bilan zudlik bilan bog'lanib, kitoblar kutubxonaga qaytarilishini ta'minlang!",
+                        user_debt.full_name, user_debt.user_id, user_debt.role,
+                        dept_info, group_info, user_debt.books.len(), books_list
+                    );
+
+                    for staff_id in &staff_ids {
+                        let payload = SendMessageDto {
+                            receiver_id: *staff_id,
+                            title: format!("Qarzdorlik: {} (HEMIS nofaol)", user_debt.full_name),
+                            message: msg_text.clone(),
+                        };
+
+                        if let Ok(saved_msg) = MessageRepository::create(pool, None, &payload).await {
+                            if let Some(ref ms) = message_service {
+                                ms.send_message(*staff_id, saved_msg);
+                            }
+                            alerts_sent += 1;
+                        }
+                    }
+                }
+            }
+        }
+
+        tracing::info!(
+            checked_students,
+            checked_employees,
+            deactivated_count,
+            debts = users_with_debt.len(),
+            alerts_sent,
+            "✅ Haftalik status tekshiruvi muvaffaqiyatli yakunlandi"
+        );
+
+        Ok(WeeklySyncReportResponse {
+            success: true,
+            message: format!(
+                "Haftalik status tekshiruvi yakunlandi. Tekshirildi: {} talaba, {} xodim. Nofaol qilindi: {} kishi. Kitobi borlar: {} kishi.",
+                checked_students, checked_employees, deactivated_count, users_with_debt.len()
+            ),
+            checked_students,
+            checked_employees,
+            deactivated_count,
+            users_with_debt,
+            alerts_sent_to_staff: alerts_sent,
         })
     }
 }

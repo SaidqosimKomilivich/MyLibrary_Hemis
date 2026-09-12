@@ -655,3 +655,36 @@ pub async fn search_users(
         }
     })))
 }
+
+/// POST /api/sync/weekly-status-check
+/// Faqat admin uchun: barcha talaba va xodimlar statusini HEMIS bilan tekshirish va qarzdorlik haqida ogohlantirish
+pub async fn trigger_weekly_status_check(
+    claims: Claims,
+    pool: web::Data<PgPool>,
+    config: web::Data<Config>,
+    message_service: web::Data<std::sync::Arc<crate::services::message_service::MessageService>>,
+) -> Result<HttpResponse, actix_web::Error> {
+    if let Err(resp) = require_role(&claims, &["admin"]) {
+        return Ok(resp);
+    }
+
+    tracing::info!(admin = %claims.sub, "Admin qo'lda haftalik status tekshiruvini ishga tushirdi");
+
+    match crate::services::hemis_service::HemisService::run_weekly_status_check(
+        pool.get_ref(),
+        config.get_ref(),
+        Some(message_service.get_ref().clone()),
+    )
+    .await
+    {
+        Ok(report) => Ok(HttpResponse::Ok().json(report)),
+        Err(e) => {
+            tracing::error!("Haftalik status tekshiruvida xatolik: {}", e);
+            Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                "success": false,
+                "message": format!("Sinxronlash xatosi: {}", e)
+            })))
+        }
+    }
+}
+

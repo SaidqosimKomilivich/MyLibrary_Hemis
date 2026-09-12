@@ -57,6 +57,14 @@ impl RentalWithDetails {
     }
 }
 
+#[derive(Debug, sqlx::FromRow)]
+pub struct UnreturnedBookRow {
+    pub book_title: String,
+    pub loan_date: NaiveDate,
+    pub due_date: NaiveDate,
+    pub invoice_number: Option<String>,
+}
+
 pub struct RentalRepository;
 
 impl RentalRepository {
@@ -238,5 +246,39 @@ impl RentalRepository {
         .await?;
 
         Ok(())
+    }
+
+    /// Foydalanuvchining qaytarilmagan barcha kitoblari ro'yxatini olish (status != 'returned')
+    pub async fn get_unreturned_books_by_user_id(
+        pool: &PgPool,
+        user_id: &str,
+    ) -> Result<Vec<crate::dto::hemis::BookDebtInfo>, AppError> {
+        let rows = sqlx::query_as::<_, UnreturnedBookRow>(
+            r#"
+            SELECT b."title" as "book_title", 
+                   r."loan_date" as "loan_date", 
+                   r."due_date" as "due_date", 
+                   r."invoice_number"
+            FROM "book_rentals" r
+            JOIN "book" b ON b."id"::text = r."book_id"
+            WHERE r."user_id" = $1 AND r."status" != 'returned'
+            ORDER BY r."due_date" ASC
+            "#,
+        )
+        .bind(user_id)
+        .fetch_all(pool)
+        .await?;
+
+        let items = rows
+            .into_iter()
+            .map(|r| crate::dto::hemis::BookDebtInfo {
+                title: r.book_title,
+                loan_date: r.loan_date.format("%Y-%m-%d").to_string(),
+                due_date: r.due_date.format("%Y-%m-%d").to_string(),
+                invoice_number: r.invoice_number,
+            })
+            .collect();
+
+        Ok(items)
     }
 }

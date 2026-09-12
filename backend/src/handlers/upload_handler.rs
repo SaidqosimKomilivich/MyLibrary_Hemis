@@ -1,8 +1,9 @@
 use actix_multipart::Multipart;
 use actix_web::{web, HttpResponse};
 use futures_util::TryStreamExt;
-use std::io::Write;
 use std::path::Path;
+use tokio::fs::File as AsyncFile;
+use tokio::io::AsyncWriteExt;
 use uuid::Uuid;
 
 use crate::config::Config;
@@ -112,10 +113,10 @@ pub async fn upload_file(
 
     let upload_dir = &config.upload_dir;
 
-    // Subdirectorylarni yaratish
+    // Subdirectorylarni yaratish (asinxron)
     for subdir in &["images", "audio", "pdf"] {
         let dir_path = format!("{}/{}", upload_dir, subdir);
-        std::fs::create_dir_all(&dir_path).map_err(|e| {
+        tokio::fs::create_dir_all(&dir_path).await.map_err(|e| {
             tracing::error!("Papkani yaratib bo'lmadi: {} — {}", dir_path, e);
             actix_web::error::ErrorInternalServerError("Fayl tizimi xatosi")
         })?;
@@ -150,7 +151,7 @@ pub async fn upload_file(
             MAX_DOC_AUDIO_SIZE
         };
 
-        let mut file_opt: Option<std::fs::File> = None;
+        let mut file_opt: Option<AsyncFile> = None;
         let mut total_size: usize = 0;
         let mut magic_checked = false;
 
@@ -159,7 +160,7 @@ pub async fn upload_file(
 
             if total_size > max_file_size {
                 drop(file_opt);
-                let _ = std::fs::remove_file(&filepath);
+                let _ = tokio::fs::remove_file(&filepath).await;
                 return Err(actix_web::error::ErrorBadRequest(format!(
                     "Fayl hajmi {} MB dan oshmasligi kerak",
                     max_file_size / (1024 * 1024)
@@ -175,7 +176,7 @@ pub async fn upload_file(
                 }
                 magic_checked = true;
 
-                let f = std::fs::File::create(&filepath).map_err(|e| {
+                let f = AsyncFile::create(&filepath).await.map_err(|e| {
                     tracing::error!("Fayl yaratib bo'lmadi: {}", e);
                     actix_web::error::ErrorInternalServerError("Fayl saqlashda xatolik")
                 })?;
@@ -183,11 +184,15 @@ pub async fn upload_file(
             }
 
             if let Some(ref mut file) = file_opt {
-                file.write_all(&chunk).map_err(|e| {
+                file.write_all(&chunk).await.map_err(|e| {
                     tracing::error!("Faylga yozishda xatolik: {}", e);
                     actix_web::error::ErrorInternalServerError("Fayl saqlashda xatolik")
                 })?;
             }
+        }
+
+        if let Some(ref mut file) = file_opt {
+            let _ = file.flush().await;
         }
 
         if file_opt.is_none() {

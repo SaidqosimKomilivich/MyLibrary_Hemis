@@ -146,7 +146,7 @@ export default function AdminEmployeesPage() {
     const [search, setSearch] = useState('')
     const [debouncedSearch, setDebouncedSearch] = useState('')
     const [syncModalOpen, setSyncModalOpen] = useState(false)
-    const [statusFilter, setStatusFilter] = useState<string>('all')
+    const [statusFilter, setStatusFilter] = useState<string>('active')
     const [subTab, setSubTab] = useState<'staff' | 'admins'>('staff')
 
     const [staff, setStaff] = useState<UserData[]>([])

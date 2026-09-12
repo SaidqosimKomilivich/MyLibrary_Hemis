@@ -333,11 +333,11 @@ impl ReportRepository {
             .and_hms_opt(0, 0, 0)
             .unwrap();
 
-        // Jami foydalanuvchilar (filtrlanmaydi oygacha)
-        let total_users: i64 = sqlx::query_scalar!(r#"SELECT COUNT(*) FROM "users""#)
-            .fetch_one(pool)
-            .await?
-            .unwrap_or(0);
+        // Jami foydalanuvchilar (faqat faollar, statusi false lar sanalmaydi)
+        let total_users: i64 =
+            sqlx::query_scalar::<_, i64>(r#"SELECT COUNT(*) FROM "users" WHERE "active" = true"#)
+                .fetch_one(pool)
+                .await?;
 
         // Jami aktiv kitoblar (filtrlanmaydi)
         let total_books: i64 =
@@ -822,11 +822,11 @@ impl ReportRepository {
             .await?
             .unwrap_or(0);
 
-        // 2. Jami foydalanuvchilar (O'quvchilar va O'qituvchilar/Xodimlar)
-        let total_users: i64 = sqlx::query_scalar!(r#"SELECT COUNT(*)::bigint FROM "users""#)
-            .fetch_one(pool)
-            .await?
-            .unwrap_or(0);
+        // 2. Jami foydalanuvchilar (faqat faol o'quvchilar va xodimlar)
+        let total_users: i64 =
+            sqlx::query_scalar::<_, i64>(r#"SELECT COUNT(*)::bigint FROM "users" WHERE "active" = true"#)
+                .fetch_one(pool)
+                .await?;
 
         // 3. Jami qilingan ijaralar (O'qib bo'lingan yoki faol kutubxona jarayonlari)
         let total_rentals: i64 =

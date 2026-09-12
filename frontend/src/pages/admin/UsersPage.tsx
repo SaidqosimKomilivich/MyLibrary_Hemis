@@ -1,9 +1,9 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { GraduationCap, Briefcase, BookUser, Search, RefreshCw, X, ArrowDownToLine, CheckCircle2, Eye, Mail, Phone, Calendar, MapPin, Hash, AlertCircle, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, KeyRound, ShieldAlert, UserCog, Power, Download } from 'lucide-react'
+import { GraduationCap, Briefcase, BookUser, Search, RefreshCw, X, ArrowDownToLine, CheckCircle2, Eye, Mail, Phone, Calendar, MapPin, Hash, AlertCircle, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, KeyRound, ShieldAlert, UserCog, Power, Download, ShieldCheck, AlertTriangle, Clock, BookOpen } from 'lucide-react'
 import { CustomSelect } from '../../components/CustomSelect'
 import { api } from '../../services/api'
-import type { UserData } from '../../services/api'
+import type { UserData, WeeklySyncReportResponse } from '../../services/api'
 import { getProxyImageUrl } from '../../utils/fileUrl'
 import { toast } from 'react-toastify'
 import { highlightText } from '../../utils/highlightText'
@@ -262,7 +262,10 @@ export default function UsersPage() {
     const [debouncedSearch, setDebouncedSearch] = useState({ students: '', teachers: '', employees: '' })
     const [activeTab, setActiveTab] = useState<'students' | 'teachers' | 'employees'>('students')
     const [syncModalOpen, setSyncModalOpen] = useState(false)
-    const [statusFilter, setStatusFilter] = useState({ students: 'all', teachers: 'all', employees: 'all' })
+    const [syncModalTab, setSyncModalTab] = useState<'users' | 'weekly_status'>('users')
+    const [weeklySyncLoading, setWeeklySyncLoading] = useState(false)
+    const [weeklySyncReport, setWeeklySyncReport] = useState<WeeklySyncReportResponse | null>(null)
+    const [statusFilter, setStatusFilter] = useState({ students: 'active', teachers: 'active', employees: 'active' })
 
     // Data from API
     const [students, setStudents] = useState<UserData[]>([])
@@ -335,7 +338,9 @@ export default function UsersPage() {
                     totalItems: resp.pagination.total_items,
                     totalPages: resp.pagination.total_pages,
                 }))
-                setTotalCounts(prev => ({ ...prev, students: resp.pagination.total_items }))
+                if (statusFilter.students === 'active' && !debouncedSearch.students) {
+                    setTotalCounts(prev => ({ ...prev, students: resp.pagination.total_items }))
+                }
             }
         } catch (e) { console.error('Talabalarni yuklashda xato:', e) }
         finally { setLoading(prev => ({ ...prev, students: false })) }
@@ -357,7 +362,9 @@ export default function UsersPage() {
                     totalItems: resp.pagination.total_items,
                     totalPages: resp.pagination.total_pages,
                 }))
-                setTotalCounts(prev => ({ ...prev, teachers: resp.pagination.total_items }))
+                if (statusFilter.teachers === 'active' && !debouncedSearch.teachers) {
+                    setTotalCounts(prev => ({ ...prev, teachers: resp.pagination.total_items }))
+                }
             }
         } catch (e) { console.error("O'qituvchilarni yuklashda xato:", e) }
         finally { setLoading(prev => ({ ...prev, teachers: false })) }
@@ -379,7 +386,9 @@ export default function UsersPage() {
                     totalItems: resp.pagination.total_items,
                     totalPages: resp.pagination.total_pages,
                 }))
-                setTotalCounts(prev => ({ ...prev, employees: resp.pagination.total_items }))
+                if (statusFilter.employees === 'active' && !debouncedSearch.employees) {
+                    setTotalCounts(prev => ({ ...prev, employees: resp.pagination.total_items }))
+                }
             }
         } catch (e) { console.error('Xodimlarni yuklashda xato:', e) }
         finally { setLoading(prev => ({ ...prev, employees: false })) }
@@ -398,7 +407,25 @@ export default function UsersPage() {
         studentSync.reset()
         teacherSync.reset()
         employeeSync.reset()
+        setSyncModalTab('users')
         setSyncModalOpen(true)
+    }
+
+    const handleRunWeeklyStatusCheck = async () => {
+        try {
+            setWeeklySyncLoading(true)
+            const res = await api.triggerWeeklyStatusCheck()
+            setWeeklySyncReport(res)
+            toast.success(res.message || "Haftalik status tekshiruvi muvaffaqiyatli yakunlandi!")
+            loadStudents()
+            loadTeachers()
+            loadEmployees()
+        } catch (err: unknown) {
+            const error = err as { message?: string }
+            toast.error(error.message || "Haftalik statusni tekshirishda xatolik yuz berdi")
+        } finally {
+            setWeeklySyncLoading(false)
+        }
     }
 
     // View user
@@ -893,15 +920,16 @@ export default function UsersPage() {
             {/* HEMIS Sync Modal */}
             {syncModalOpen && createPortal(
                 <div className="fixed inset-0 z-999 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in" >
-                    <div className="relative w-full max-w-140 bg-surface border border-border rounded-2xl overflow-hidden animate-modal-scale shadow-2xl" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-between p-6 pb-5 border-b border-border">
+                    <div className="relative w-full max-w-2xl max-h-[90vh] flex flex-col bg-surface border border-border rounded-2xl overflow-hidden animate-modal-scale shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                        {/* Modal Header */}
+                        <div className="flex items-center justify-between p-6 pb-4 border-b border-border">
                             <div className="flex items-center gap-3.5">
                                 <div className="flex items-center justify-center w-11 h-11 rounded-xl bg-linear-to-br from-indigo-500 to-indigo-600 text-white shadow-sm">
-                                    <RefreshCw size={22} className={loading.students || loading.teachers || loading.employees ? 'animate-spin' : ''} />
+                                    <RefreshCw size={22} className={loading.students || loading.teachers || loading.employees || weeklySyncLoading ? 'animate-spin' : ''} />
                                 </div>
                                 <div>
-                                    <h2 className="text-[1.1rem] font-bold text-text">HEMIS Sinxronlash</h2>
-                                    {/* <p className="text-[0.82rem] text-text-muted mt-0.5">Foydalanuvchilarni HEMIS platformasidan yangilash</p> */}
+                                    <h2 className="text-[1.1rem] font-bold text-text">HEMIS Boshqaruvi va Sinxronlash</h2>
+                                    <p className="text-[0.8rem] text-text-muted mt-0.5">Foydalanuvchilarni yangilash va statuslar auditi</p>
                                 </div>
                             </div>
                             <button className="flex items-center justify-center w-8 h-8 rounded-lg border-none bg-transparent text-text-muted hover:bg-surface-hover hover:text-text transition-colors" onClick={() => setSyncModalOpen(false)}>
@@ -909,41 +937,214 @@ export default function UsersPage() {
                             </button>
                         </div>
 
-                        <div className="flex flex-col gap-4 p-5 px-6">
-                            <SyncSection
-                                title="Talabalar"
-                                icon={<GraduationCap size={20} />}
-                                color="var(--stat-blue)"
-                                count={totalCounts.students}
-                                progress={studentSync.progress}
-                                onSync={studentSync.handleSync}
-                                syncResult={studentSync.syncResult}
-                                streamMessage={studentSync.streamMessage}
-                            />
-                            <SyncSection
-                                title="O'qituvchilar"
-                                icon={<BookUser size={20} />}
-                                color="var(--stat-green)"
-                                count={totalCounts.teachers}
-                                progress={teacherSync.progress}
-                                onSync={teacherSync.handleSync}
-                                syncResult={teacherSync.syncResult}
-                                streamMessage={teacherSync.streamMessage}
-                            />
-                            <SyncSection
-                                title="Xodimlar"
-                                icon={<Briefcase size={20} />}
-                                color="var(--stat-purple)"
-                                count={totalCounts.employees}
-                                progress={employeeSync.progress}
-                                onSync={employeeSync.handleSync}
-                                syncResult={employeeSync.syncResult}
-                                streamMessage={employeeSync.streamMessage}
-                            />
+                        {/* Navigation Tabs */}
+                        <div className="flex border-b border-border bg-surface-hover/30 px-6 pt-2">
+                            <button
+                                onClick={() => setSyncModalTab('users')}
+                                className={`flex items-center gap-2 py-2.5 px-4 font-semibold text-xs border-b-2 transition-colors cursor-pointer ${
+                                    syncModalTab === 'users'
+                                        ? 'border-indigo-500 text-indigo-500'
+                                        : 'border-transparent text-text-muted hover:text-text'
+                                }`}
+                            >
+                                <RefreshCw size={14} className={studentSync.progress > 0 && studentSync.progress < 100 ? 'animate-spin' : ''} />
+                                Foydalanuvchilarni sinxronlash
+                            </button>
+                            <button
+                                onClick={() => setSyncModalTab('weekly_status')}
+                                className={`flex items-center gap-2 py-2.5 px-4 font-semibold text-xs border-b-2 transition-colors cursor-pointer relative ${
+                                    syncModalTab === 'weekly_status'
+                                        ? 'border-amber-500 text-amber-500'
+                                        : 'border-transparent text-text-muted hover:text-text'
+                                }`}
+                            >
+                                <ShieldCheck size={15} />
+                                Haftalik Status & Qarzdorlik Auditi
+                                {weeklySyncReport && weeklySyncReport.users_with_debt.length > 0 && (
+                                    <span className="inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold rounded-full bg-rose-500 text-white">
+                                        {weeklySyncReport.users_with_debt.length}
+                                    </span>
+                                )}
+                            </button>
                         </div>
 
+                        {/* Modal Body */}
+                        <div className="flex-1 overflow-y-auto p-5 px-6 space-y-4">
+                            {syncModalTab === 'users' ? (
+                                <div className="flex flex-col gap-4">
+                                    <SyncSection
+                                        title="Talabalar"
+                                        icon={<GraduationCap size={20} />}
+                                        color="var(--stat-blue)"
+                                        count={totalCounts.students}
+                                        progress={studentSync.progress}
+                                        onSync={studentSync.handleSync}
+                                        syncResult={studentSync.syncResult}
+                                        streamMessage={studentSync.streamMessage}
+                                    />
+                                    <SyncSection
+                                        title="O'qituvchilar"
+                                        icon={<BookUser size={20} />}
+                                        color="var(--stat-green)"
+                                        count={totalCounts.teachers}
+                                        progress={teacherSync.progress}
+                                        onSync={teacherSync.handleSync}
+                                        syncResult={teacherSync.syncResult}
+                                        streamMessage={teacherSync.streamMessage}
+                                    />
+                                    <SyncSection
+                                        title="Xodimlar"
+                                        icon={<Briefcase size={20} />}
+                                        color="var(--stat-purple)"
+                                        count={totalCounts.employees}
+                                        progress={employeeSync.progress}
+                                        onSync={employeeSync.handleSync}
+                                        syncResult={employeeSync.syncResult}
+                                        streamMessage={employeeSync.streamMessage}
+                                    />
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {/* Info box */}
+                                    <div className="p-4 rounded-xl border border-indigo-500/20 bg-indigo-500/5 text-xs text-text-muted space-y-2">
+                                        <div className="flex items-center gap-2 text-indigo-400 font-semibold text-sm">
+                                            <ShieldCheck size={18} />
+                                            Haftalik HEMIS Status Auditi qanday ishlaydi?
+                                        </div>
+                                        <p className="leading-relaxed">
+                                            Ushbu mexanizm HEMIS platformasi orqali barcha talabalar va xodimlarning joriy faoliyat statusini tekshiradi.
+                                            O'qishdan chetlatilgan, bitirgan yoki ishdan bo'shagan shaxslar avtomatik tarzda tizimda <strong>nofaol (bloklangan)</strong> holatga o'tkaziladi.
+                                        </p>
+                                        <div className="flex items-center gap-2 pt-1 text-text">
+                                            <AlertTriangle size={14} className="text-amber-500" />
+                                            <span>Agar nofaol qilingan foydalanuvchida qaytarilmagan kitoblar bo'lsa, barcha admin va kutubxona xodimlariga ogohlantirish xabari yuboriladi.</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-[11px] text-text-muted/80">
+                                            <Clock size={13} />
+                                            Avtomatik reja: Har yakshanba soat 02:00 da fon rejimida ishlaydi.
+                                        </div>
+                                    </div>
+
+                                    {/* Action Trigger */}
+                                    <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-surface-hover/20">
+                                        <div>
+                                            <h4 className="text-sm font-semibold text-text">Qo'lda tekshiruvni ishga tushirish</h4>
+                                            <p className="text-xs text-text-muted">Joriy statuslarni zudlik bilan tekshirish va qarzdorlikni aniqlash</p>
+                                        </div>
+                                        <button
+                                            onClick={handleRunWeeklyStatusCheck}
+                                            disabled={weeklySyncLoading}
+                                            className="flex items-center gap-2 py-2 px-4 rounded-lg bg-linear-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-medium text-xs shadow-md transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {weeklySyncLoading ? (
+                                                <>
+                                                    <Loader2 size={15} className="animate-spin" />
+                                                    Tekshirilmoqda...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <RefreshCw size={15} />
+                                                    Statusni tekshirish
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+
+                                    {/* Report Results */}
+                                    {weeklySyncReport && (
+                                        <div className="space-y-4 pt-2 animate-fade-in">
+                                            <h4 className="text-xs font-bold uppercase tracking-wider text-text-muted">Tekshiruv Natijasi</h4>
+                                            
+                                            {/* Stat badges */}
+                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                                                <div className="p-3 rounded-lg border border-border bg-surface-hover/30 text-center">
+                                                    <span className="text-[11px] text-text-muted block">Talabalar</span>
+                                                    <span className="text-base font-bold text-text">{weeklySyncReport.checked_students}</span>
+                                                </div>
+                                                <div className="p-3 rounded-lg border border-border bg-surface-hover/30 text-center">
+                                                    <span className="text-[11px] text-text-muted block">Xodimlar</span>
+                                                    <span className="text-base font-bold text-text">{weeklySyncReport.checked_employees}</span>
+                                                </div>
+                                                <div className="p-3 rounded-lg border border-border bg-surface-hover/30 text-center">
+                                                    <span className="text-[11px] text-text-muted block">Nofaol qilindi</span>
+                                                    <span className={`text-base font-bold ${weeklySyncReport.deactivated_count > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
+                                                        {weeklySyncReport.deactivated_count}
+                                                    </span>
+                                                </div>
+                                                <div className="p-3 rounded-lg border border-border bg-surface-hover/30 text-center">
+                                                    <span className="text-[11px] text-text-muted block">Qarzdorlar</span>
+                                                    <span className={`text-base font-bold ${weeklySyncReport.users_with_debt.length > 0 ? 'text-amber-500' : 'text-emerald-500'}`}>
+                                                        {weeklySyncReport.users_with_debt.length}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {/* Staff alert feedback */}
+                                            {weeklySyncReport.alerts_sent_to_staff > 0 && (
+                                                <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2">
+                                                    <CheckCircle2 size={16} />
+                                                    Qarzdorlik haqida {weeklySyncReport.alerts_sent_to_staff} ta kutubxonachi va adminga tizimli xabarnoma yuborildi.
+                                                </div>
+                                            )}
+
+                                            {/* Debtor List */}
+                                            {weeklySyncReport.users_with_debt.length > 0 ? (
+                                                <div className="space-y-3">
+                                                    <h5 className="text-xs font-semibold text-rose-400 flex items-center gap-1.5">
+                                                        <AlertTriangle size={14} />
+                                                        Kitob qarzdorligi bor sobiq foydalanuvchilar:
+                                                    </h5>
+                                                    <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+                                                        {weeklySyncReport.users_with_debt.map((user) => (
+                                                            <div key={user.user_id} className="p-3 rounded-xl border border-rose-500/20 bg-rose-500/5 space-y-2">
+                                                                <div className="flex items-center justify-between">
+                                                                    <div>
+                                                                        <span className="text-xs font-bold text-text">{user.full_name}</span>
+                                                                        <span className="text-[11px] text-text-muted ml-2">({user.user_id})</span>
+                                                                    </div>
+                                                                    <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-500/20 text-rose-400">
+                                                                        {user.role}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-text-muted">
+                                                                    {user.department && <span>Bo'lim: {user.department}</span>}
+                                                                    {user.group_or_position && <span>Guruh/Lavozim: {user.group_or_position}</span>}
+                                                                    {user.phone && <span>Tel: {user.phone}</span>}
+                                                                </div>
+                                                                {/* Books */}
+                                                                <div className="pt-1 border-t border-rose-500/10 space-y-1">
+                                                                    <span className="text-[10px] font-semibold text-text-muted block">Topshirilmagan kitoblar:</span>
+                                                                    {user.books.map((b, idx) => (
+                                                                        <div key={idx} className="flex items-center justify-between text-[11px] bg-surface/60 px-2.5 py-1.5 rounded-lg border border-border">
+                                                                            <div className="flex items-center gap-2 truncate mr-2">
+                                                                                <BookOpen size={12} className="text-rose-400 shrink-0" />
+                                                                                <span className="truncate font-medium text-text">{b.title}</span>
+                                                                            </div>
+                                                                            <span className="text-[10px] text-amber-400 shrink-0">
+                                                                                Muddati: {b.due_date}
+                                                                            </span>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2">
+                                                    <CheckCircle2 size={16} />
+                                                    Statusi o'zgargan foydalanuvchilarda qaytarilmagan kitoblar mavjud emas. Barcha kitoblar o'z vaqtida topshirilgan!
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Modal Footer */}
                         <div className="flex items-center justify-end py-4 px-6 border-t border-border bg-white/5">
-                            <button className="py-2 px-5 rounded-lg border border-border bg-white/5 text-text font-medium text-[0.85rem] hover:bg-white/10 transition-colors" onClick={() => setSyncModalOpen(false)}>
+                            <button className="py-2 px-5 rounded-lg border border-border bg-white/5 text-text font-medium text-[0.85rem] hover:bg-white/10 transition-colors cursor-pointer" onClick={() => setSyncModalOpen(false)}>
                                 Yopish
                             </button>
                         </div>

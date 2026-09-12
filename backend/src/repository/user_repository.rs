@@ -39,6 +39,18 @@ impl UserRepository {
         Ok(user)
     }
 
+    /// user_id bo'yicha foydalanuvchini topish (faol/nofaol farqi yo'q — sinxronlash va admin uchun)
+    pub async fn find_by_user_id_any(pool: &PgPool, user_id: &str) -> Result<Option<User>, AppError> {
+        let user = sqlx::query_as::<_, User>(
+            r#"SELECT * FROM "users" WHERE "user_id" = $1"#,
+        )
+        .bind(user_id)
+        .fetch_optional(pool)
+        .await?;
+
+        Ok(user)
+    }
+
     /// UUID bo'yicha foydalanuvchini topish (faqat faol)
     pub async fn find_by_id(pool: &PgPool, id: Uuid) -> Result<Option<User>, AppError> {
         let user = sqlx::query_as::<_, User>(
@@ -230,6 +242,7 @@ impl UserRepository {
                 Option<&'a str>,   // specialty_name
                 Option<&'a str>,   // group_name
                 Option<&'a str>,   // education_form
+                bool,              // active
             ),
         >,
     ) -> Result<(), AppError> {
@@ -245,6 +258,7 @@ impl UserRepository {
         let mut specialty_names = Vec::new();
         let mut group_names = Vec::new();
         let mut education_forms = Vec::new();
+        let mut actives = Vec::new();
 
         for s in students {
             user_ids.push(s.0);
@@ -259,6 +273,7 @@ impl UserRepository {
             specialty_names.push(s.9);
             group_names.push(s.10);
             education_forms.push(s.11);
+            actives.push(s.12);
         }
 
         if user_ids.is_empty() {
@@ -270,12 +285,12 @@ impl UserRepository {
             INSERT INTO "users" (
                 "user_id", "password", "role", "full_name", "short_name",
                 "birth_date", "image_url", "email", "id_card",
-                "department_name", "specialty_name", "group_name", "education_form"
+                "department_name", "specialty_name", "group_name", "education_form", "active"
             )
             SELECT * FROM UNNEST (
                 $1::text[], $2::text[], array_fill('student'::text, ARRAY[array_length($1::text[], 1)]), $3::text[], $4::text[],
                 $5::date[], $6::text[], $7::text[], $8::bigint[],
-                $9::text[], $10::text[], $11::text[], $12::text[]
+                $9::text[], $10::text[], $11::text[], $12::text[], $13::boolean[]
             )
             "#,
         )
@@ -291,13 +306,14 @@ impl UserRepository {
         .bind(&specialty_names)
         .bind(&group_names)
         .bind(&education_forms)
+        .bind(&actives)
         .execute(pool)
         .await?;
 
         Ok(())
     }
 
-    /// Ommaviy tarzda talabalarni yangilash
+    /// Ommaviy tarzda talabalarni yangilash (HEMIS dagi statusi bilan birgalikda)
     pub async fn bulk_update_students<'a>(
         pool: &PgPool,
         students: impl Iterator<
@@ -312,6 +328,7 @@ impl UserRepository {
                 Option<&'a str>,   // specialty_name
                 Option<&'a str>,   // group_name
                 Option<&'a str>,   // education_form
+                bool,              // active
             ),
         >,
     ) -> Result<(), AppError> {
@@ -325,6 +342,7 @@ impl UserRepository {
         let mut specialty_names = Vec::new();
         let mut group_names = Vec::new();
         let mut education_forms = Vec::new();
+        let mut actives = Vec::new();
 
         for s in students {
             user_ids.push(s.0);
@@ -337,6 +355,7 @@ impl UserRepository {
             specialty_names.push(s.7);
             group_names.push(s.8);
             education_forms.push(s.9);
+            actives.push(s.10);
         }
 
         if user_ids.is_empty() {
@@ -354,13 +373,14 @@ impl UserRepository {
                 "department_name" = c.department_name,
                 "specialty_name" = c.specialty_name,
                 "group_name" = c.group_name,
-                "education_form" = c.education_form
+                "education_form" = c.education_form,
+                "active" = c.active
             FROM (
                 SELECT * FROM UNNEST (
                     $1::text[], $2::text[], $3::text[], $4::date[],
                     $5::text[], $6::text[], $7::text[],
-                    $8::text[], $9::text[], $10::text[]
-                ) AS t(user_id, full_name, short_name, birth_date, image_url, email, department_name, specialty_name, group_name, education_form)
+                    $8::text[], $9::text[], $10::text[], $11::boolean[]
+                ) AS t(user_id, full_name, short_name, birth_date, image_url, email, department_name, specialty_name, group_name, education_form, active)
             ) AS c
             WHERE u."user_id" = c.user_id
             "#,
@@ -375,6 +395,7 @@ impl UserRepository {
         .bind(&specialty_names)
         .bind(&group_names)
         .bind(&education_forms)
+        .bind(&actives)
         .execute(pool)
         .await?;
 
@@ -403,9 +424,9 @@ impl UserRepository {
         }
 
         match status {
-            Some("active") => query.push_str(r#" AND "active" = true"#),
             Some("inactive") => query.push_str(r#" AND "active" = false"#),
-            _ => {} // all — filter yo'q
+            Some("all") => {} // Faqat aniq "all" ko'rsatilgandagina filtrsiz olinadi
+            _ => query.push_str(r#" AND "active" = true"#), // Default (None yoki "active"): statusi false lar sanalmaydi!
         }
         let _ = param_idx; // suppress unused warning
 
@@ -443,9 +464,9 @@ impl UserRepository {
         }
 
         match status {
-            Some("active") => query.push_str(r#" AND "active" = true"#),
             Some("inactive") => query.push_str(r#" AND "active" = false"#),
-            _ => {}
+            Some("all") => {} // Faqat aniq "all" ko'rsatilgandagina filtrsiz olinadi
+            _ => query.push_str(r#" AND "active" = true"#), // Default (None yoki "active"): faqat faol foydalanuvchilar olinadi!
         }
 
         query.push_str(&format!(
@@ -481,14 +502,15 @@ impl UserRepository {
         id_card: i64,
         department_name: Option<&str>,
         staff_position: Option<&str>,
+        active: bool,
     ) -> Result<(), AppError> {
         sqlx::query(
             r#"
             INSERT INTO "users" (
                 "user_id", "password", "role", "full_name", "short_name",
                 "birth_date", "image_url", "id_card",
-                "department_name", "staff_position"
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                "department_name", "staff_position", "active"
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             "#,
         )
         .bind(user_id)
@@ -501,13 +523,14 @@ impl UserRepository {
         .bind(id_card)
         .bind(department_name)
         .bind(staff_position)
+        .bind(active)
         .execute(pool)
         .await?;
 
         Ok(())
     }
 
-    /// Xodim/o'qituvchi ma'lumotlarini yangilash (parol o'zgarmaydi)
+    /// Xodim/o'qituvchi ma'lumotlarini yangilash (HEMIS dagi statusi bilan birgalikda)
     #[allow(clippy::too_many_arguments)]
     pub async fn update_employee_info(
         pool: &PgPool,
@@ -519,6 +542,7 @@ impl UserRepository {
         image_url: Option<&str>,
         department_name: Option<&str>,
         staff_position: Option<&str>,
+        active: bool,
     ) -> Result<(), AppError> {
         sqlx::query(
             r#"
@@ -529,8 +553,9 @@ impl UserRepository {
                 "birth_date" = $4,
                 "image_url" = $5,
                 "department_name" = $6,
-                "staff_position" = $7
-            WHERE "user_id" = $8
+                "staff_position" = $7,
+                "active" = $8
+            WHERE "user_id" = $9
             "#,
         )
         .bind(role)
@@ -540,10 +565,48 @@ impl UserRepository {
         .bind(image_url)
         .bind(department_name)
         .bind(staff_position)
+        .bind(active)
         .bind(user_id)
         .execute(pool)
         .await?;
 
         Ok(())
+    }
+
+    /// Foydalanuvchining faollik holatini (active: true/false) o'zgartirish
+    pub async fn set_user_active(pool: &PgPool, user_id: &str, active: bool) -> Result<bool, AppError> {
+        let rows = sqlx::query(
+            r#"UPDATE "users" SET "active" = $1, "updated_at" = NOW() WHERE "user_id" = $2 AND "active" != $1"#,
+        )
+        .bind(active)
+        .bind(user_id)
+        .execute(pool)
+        .await?
+        .rows_affected();
+
+        Ok(rows > 0)
+    }
+
+    /// Barcha faol admin va kutubxona xodimlarining (staff) UUID ro'yxatini olish
+    pub async fn get_staff_and_admin_ids(pool: &PgPool) -> Result<Vec<Uuid>, AppError> {
+        let records = sqlx::query_scalar::<_, Uuid>(
+            r#"SELECT "id" FROM "users" WHERE "role" IN ('admin', 'staff') AND "active" = true"#,
+        )
+        .fetch_all(pool)
+        .await?;
+
+        Ok(records)
+    }
+
+    /// Muayyan rol bo'yicha barcha faol foydalanuvchilarning user_id ro'yxatini olish
+    pub async fn find_active_user_ids_by_role(pool: &PgPool, role: &str) -> Result<Vec<String>, AppError> {
+        let records = sqlx::query_scalar::<_, String>(
+            r#"SELECT "user_id" FROM "users" WHERE "role" = $1 AND "active" = true"#,
+        )
+        .bind(role)
+        .fetch_all(pool)
+        .await?;
+
+        Ok(records)
     }
 }

@@ -36,6 +36,7 @@ import type {
     AnnouncementReadStatusResponse,
     CheckDuplicateResponse,
     UploadProgress,
+    WeeklySyncReportResponse,
 } from './api.types'
 import { formatBytes, formatSpeed } from '../utils/formatBytes'
 
@@ -682,6 +683,12 @@ export const api = {
         return { promise, abort: () => controller.abort() }
     },
 
+    // HEMIS haftalik status tekshiruvi (o'qishdan/ishdan ketganlarni nofaol qilish va qarzdorlikni xabar berish)
+    triggerWeeklyStatusCheck() {
+        return request<WeeklySyncReportResponse>('/sync/weekly-status-check', {
+            method: 'POST'
+        })
+    },
 
     getEmployees(params: UserPaginationParams = {}) {
         const qs = buildQueryString(params)
