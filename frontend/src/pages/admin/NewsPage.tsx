@@ -307,7 +307,7 @@ export default function NewsPage() {
                                     <tr
                                         key={item.id}
                                         className={`hover:bg-surface-hover/50 transition-colors group ${
-                                            item.is_pinned ? "bg-amber-500/[0.03]" : ""
+                                            item.is_pinned ? "bg-amber-500/3" : ""
                                         }`}
                                     >
                                         <td className="px-6 py-4">

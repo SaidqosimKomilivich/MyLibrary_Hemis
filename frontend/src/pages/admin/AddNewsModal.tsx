@@ -528,7 +528,7 @@ export default function AdminNewsModal({
                                         >
                                             <Heading2 size={15} />
                                         </button>
-                                        <div className="w-[1px] h-4 bg-border mx-1" />
+                                        <div className="w-px h-4 bg-border mx-1" />
                                         <button
                                             type="button"
                                             onClick={() => insertMarkdown("**", "**", "qalin matn")}
@@ -545,7 +545,7 @@ export default function AdminNewsModal({
                                         >
                                             <Italic size={14} />
                                         </button>
-                                        <div className="w-[1px] h-4 bg-border mx-1" />
+                                        <div className="w-px h-4 bg-border mx-1" />
                                         <button
                                             type="button"
                                             onClick={() => insertMarkdown("- ", "", "Ro'yxat elementi")}

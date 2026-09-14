@@ -78,7 +78,7 @@ export default function ContactInfoPage() {
             <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-primary/20 rounded-full blur-[100px] mix-blend-multiply opacity-70 pointer-events-none" />
             <div className="absolute bottom-[-10%] right-[-10%] w-120 h-120 bg-indigo-500/20 rounded-full blur-[120px] mix-blend-multiply opacity-70 pointer-events-none" />
 
-            <div className="w-full max-w-[420px] px-6 relative z-10">
+            <div className="w-full max-w-105 px-6 relative z-10">
                 <div className="bg-surface/80 backdrop-blur-xl rounded-4xl shadow-[0_8px_32px_-12px_rgba(0,0,0,0.1)] border border-white/20 p-8 flex flex-col items-center">
 
                     {/* Header */}
@@ -88,7 +88,7 @@ export default function ContactInfoPage() {
                             <img src={logo} alt="Logo" className="w-full h-full object-contain relative z-10 drop-shadow-sm" />
                         </div>
                         <h1 className="text-2xl font-bold text-text text-center tracking-tight">Xush kelibsiz!</h1>
-                        <p className="text-[0.95rem] text-text-muted text-center leading-relaxed mt-2.5 max-w-[290px]">
+                        <p className="text-[0.95rem] text-text-muted text-center leading-relaxed mt-2.5 max-w-72.5">
                             Tizimdan foydalanish uchun aloqa ma'lumotlaringizni to'ldiring.
                         </p>
                     </div>

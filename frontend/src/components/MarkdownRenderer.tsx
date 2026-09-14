@@ -99,7 +99,7 @@ export default function MarkdownRenderer({ content, className = '' }: MarkdownRe
                             <img
                                 src={src}
                                 alt={alt || 'Rasm'}
-                                className="w-full max-h-[500px] object-cover"
+                                className="w-full max-h-125 object-cover"
                                 loading="lazy"
                             />
                             {alt && (

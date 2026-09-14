@@ -129,7 +129,7 @@ export default function NewsDetailPage() {
                                 }`}
                             />
                         ))}
-                        <div className="absolute inset-0 bg-gradient-to-t from-surface via-surface/30 to-transparent z-10 pointer-events-none" />
+                        <div className="absolute inset-0 bg-linear-to-t from-surface via-surface/30 to-transparent z-10 pointer-events-none" />
 
                         {/* Fullscreen Button */}
                         <button
@@ -180,7 +180,7 @@ export default function NewsDetailPage() {
                     </div>
                 ) : (
                     /* Default banner when no images */
-                    <div className="w-full h-44 bg-gradient-to-r from-surface via-surface-hover to-surface border-b border-border/50 flex items-center justify-center relative overflow-hidden select-none">
+                    <div className="w-full h-44 bg-linear-to-r from-surface via-surface-hover to-surface border-b border-border/50 flex items-center justify-center relative overflow-hidden select-none">
                         <img
                             src="/icon_arm.png"
                             alt="ARM Kutubxona"

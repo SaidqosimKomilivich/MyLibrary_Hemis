@@ -164,7 +164,7 @@ export default function PublicNewsPage() {
                                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-in-out"
                                         fallbackClassName="w-18 h-18 object-contain opacity-35 filter grayscale group-hover:grayscale-0 group-hover:opacity-75 group-hover:scale-110 transition-all duration-500"
                                     />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                                    <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                                 </div>
 
                                 {/* Body */}

@@ -579,11 +579,24 @@ impl HemisService {
                 // HEMIS rasmlarini olmaslik uchun None beramiz
                 let image_url: Option<&str> = None;
 
-                if existing.is_some() {
+                if let Some(user) = existing {
+                    // Agar mavjud foydalanuvchi tizimda 'admin' deb belgilangan bo'lsa, uning administratorlik rolini
+                    // hech qachon o'zgartirmaymiz. Faqat statusi (active), lavozimi, bo'limi va shaxsiy ma'lumotlari yangilanadi.
+                    let role_to_save = if user.role == "admin" {
+                        tracing::info!(
+                            user_id = %user_id,
+                            is_active = is_active,
+                            "Admin foydalanuvchi sinxronlandi: roli 'admin' saqlab qolindi, statusi yangilandi"
+                        );
+                        "admin"
+                    } else {
+                        actual_role
+                    };
+
                     UserRepository::update_employee_info(
                         pool,
                         &user_id,
-                        actual_role,
+                        role_to_save,
                         &full_name,
                         short_name.as_deref(),
                         birth_date,
@@ -738,6 +751,9 @@ impl HemisService {
                         total_pages = api_res.data.pagination.page_count;
                         for student in api_res.data.items {
                             if let Some(uid) = student.student_id_number.as_deref().filter(|s| !s.is_empty()) {
+                                if uid == config.admin_login || uid == "admin" || uid == "superadmin" {
+                                    continue;
+                                }
                                 checked_students += 1;
                                 
                                 // studentStatus tekshiruvi: "11" = Faol (o'qimoqda)
@@ -751,14 +767,22 @@ impl HemisService {
                                     if let Ok(was_changed) = UserRepository::set_user_active(pool, uid, false).await {
                                         if was_changed {
                                             deactivated_count += 1;
-                                            tracing::warn!(student_id = %uid, "Talaba HEMIS da nofaol bo'lgani sababli nofaol qilindi");
+                                            let actual_role = if let Ok(Some(u)) = UserRepository::find_by_user_id_any(pool, uid).await {
+                                                if u.role == "admin" {
+                                                    tracing::info!(student_id = %uid, "Admin sifatida belgilangan talaba HEMIS bo'yicha nofaol qilindi (roli 'admin' saqlab qolindi)");
+                                                }
+                                                u.role
+                                            } else {
+                                                "student".to_string()
+                                            };
+                                            tracing::warn!(student_id = %uid, role = %actual_role, "Talaba HEMIS da nofaol bo'lgani sababli nofaol qilindi");
 
                                             if let Ok(unreturned_books) = RentalRepository::get_unreturned_books_by_user_id(pool, uid).await {
                                                 if !unreturned_books.is_empty() {
                                                     users_with_debt.push(UserDebtSummary {
                                                         user_id: uid.to_string(),
                                                         full_name: student.full_name.clone().unwrap_or_else(|| "Noma'lum".to_string()),
-                                                        role: "student".to_string(),
+                                                        role: actual_role,
                                                         department: student.department.as_ref().and_then(|d| d.name.clone()),
                                                         group_or_position: student.group.as_ref().and_then(|g| g.name.clone()),
                                                         phone: None,
@@ -810,6 +834,9 @@ impl HemisService {
                         emp_total_pages = api_res.data.pagination.page_count;
                         for emp in api_res.data.items {
                             if let Some(uid) = emp.employee_id_number.as_deref().filter(|s| !s.is_empty()) {
+                                if uid == config.admin_login || uid == "admin" || uid == "superadmin" {
+                                    continue;
+                                }
                                 checked_employees += 1;
 
                                 // employeeStatus tekshiruvi: "11" = Ishlamoqda
@@ -823,14 +850,22 @@ impl HemisService {
                                     if let Ok(was_changed) = UserRepository::set_user_active(pool, uid, false).await {
                                         if was_changed {
                                             deactivated_count += 1;
-                                            tracing::warn!(employee_id = %uid, "Xodim HEMIS da ishdan bo'shagani sababli nofaol qilindi");
+                                            let actual_role = if let Ok(Some(u)) = UserRepository::find_by_user_id_any(pool, uid).await {
+                                                if u.role == "admin" {
+                                                    tracing::info!(employee_id = %uid, "Admin sifatida belgilangan xodim HEMIS bo'yicha nofaol qilindi (roli 'admin' saqlab qolindi)");
+                                                }
+                                                u.role
+                                            } else {
+                                                "employee".to_string()
+                                            };
+                                            tracing::warn!(employee_id = %uid, role = %actual_role, "Xodim HEMIS da ishdan bo'shagani sababli nofaol qilindi");
 
                                             if let Ok(unreturned_books) = RentalRepository::get_unreturned_books_by_user_id(pool, uid).await {
                                                 if !unreturned_books.is_empty() {
                                                     users_with_debt.push(UserDebtSummary {
                                                         user_id: uid.to_string(),
                                                         full_name: emp.full_name.clone().unwrap_or_else(|| "Noma'lum".to_string()),
-                                                        role: "employee".to_string(),
+                                                        role: actual_role,
                                                         department: emp.department.as_ref().and_then(|d| d.name.clone()),
                                                         group_or_position: emp.staff_position.as_ref().and_then(|s| s.name.clone()),
                                                         phone: None,

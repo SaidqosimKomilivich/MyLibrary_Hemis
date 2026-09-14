@@ -29,7 +29,7 @@ export default function NewsCoverImage({
     }
 
     return (
-        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-surface to-surface-hover/50 p-6 select-none">
+        <div className="w-full h-full flex items-center justify-center bg-linear-to-br from-surface to-surface-hover/50 p-6 select-none">
             <img
                 src="/icon_arm.png"
                 alt="ARM Kutubxona"

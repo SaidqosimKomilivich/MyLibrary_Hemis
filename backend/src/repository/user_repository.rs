@@ -547,7 +547,7 @@ impl UserRepository {
         sqlx::query(
             r#"
             UPDATE "users" SET
-                "role" = $1,
+                "role" = CASE WHEN "role" = 'admin' THEN 'admin' ELSE $1 END,
                 "full_name" = $2,
                 "short_name" = $3,
                 "birth_date" = $4,
