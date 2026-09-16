@@ -236,6 +236,114 @@ pub async fn upload_file(
     })))
 }
 
+/// POST /api/tinymce-upload (va /api/upload/tinymce)
+/// TinyMCE uchun xotirani tejovchi (streaming), 10MB limitli va magic-bytes tekshiruvli rasm yuklash
+/// - Xotira tejamkorligi: Multipart oqimi chunk-by-chunk yoziladi
+/// - Maksimal hajm: 10 MB
+/// - Magic bytes: `infer` orqali MIME type tekshiriladi (faqat jpeg, png, webp, gif)
+/// - SVG qat'iy bloklanadi (XSS xavfini oldini olish uchun)
+/// - Javob: {"location": "/uploads/images/<uuid>.<ext>"}
+pub async fn upload_tinymce_image(
+    config: web::Data<Config>,
+    claims: Claims,
+    mut payload: Multipart,
+) -> Result<HttpResponse, actix_web::Error> {
+    if let Err(resp) = require_role(&claims, &["admin", "staff"]) {
+        return Ok(resp);
+    }
+
+    let upload_dir = &config.upload_dir;
+    let images_dir = format!("{}/images", upload_dir);
+    tokio::fs::create_dir_all(&images_dir).await.map_err(|e| {
+        tracing::error!("Images papkasini yaratib bo'lmadi: {} — {}", images_dir, e);
+        actix_web::error::ErrorInternalServerError("Fayl tizimi xatosi")
+    })?;
+
+    const MAX_TINYMCE_IMAGE_SIZE: usize = 10 * 1024 * 1024; // 10 MB
+
+    while let Ok(Some(mut field)) = payload.try_next().await {
+        let mut file_opt: Option<AsyncFile> = None;
+        let mut total_size: usize = 0;
+        let mut magic_checked = false;
+        let mut saved_extension = String::new();
+        let mut filepath = String::new();
+        let mut unique_filename = String::new();
+
+        while let Ok(Some(chunk)) = field.try_next().await {
+            total_size += chunk.len();
+
+            if total_size > MAX_TINYMCE_IMAGE_SIZE {
+                drop(file_opt);
+                if !filepath.is_empty() {
+                    let _ = tokio::fs::remove_file(&filepath).await;
+                }
+                return Err(actix_web::error::ErrorBadRequest(
+                    "Rasm hajmi 10 MB dan oshmasligi kerak",
+                ));
+            }
+
+            if !magic_checked {
+                // Determine mime type from magic bytes using `infer`
+                let kind = infer::get(&chunk);
+                let mime = kind.map(|k| k.mime_type()).unwrap_or("");
+                let ext = kind.map(|k| k.extension()).unwrap_or("");
+
+                // Safe image formats whitelist
+                let is_safe = matches!(mime, "image/jpeg" | "image/png" | "image/webp" | "image/gif");
+
+                // Explicitly check for SVG or any non-whitelisted type
+                if !is_safe || mime == "image/svg+xml" || ext == "svg" {
+                    return Err(actix_web::error::ErrorBadRequest(
+                        "Faqat xavfsiz rasm formatlariga (JPEG, PNG, WebP, GIF) ruxsat beriladi. SVG taqiqlangan!",
+                    ));
+                }
+
+                saved_extension = ext.to_string();
+                unique_filename = format!("{}.{}", Uuid::new_v4(), saved_extension);
+                filepath = format!("{}/{}", images_dir, unique_filename);
+
+                let f = AsyncFile::create(&filepath).await.map_err(|e| {
+                    tracing::error!("TinyMCE rasm fayli yaratib bo'lmadi: {}", e);
+                    actix_web::error::ErrorInternalServerError("Fayl saqlashda xatolik")
+                })?;
+                file_opt = Some(f);
+                magic_checked = true;
+            }
+
+            if let Some(ref mut file) = file_opt {
+                file.write_all(&chunk).await.map_err(|e| {
+                    tracing::error!("Faylga yozishda xatolik: {}", e);
+                    actix_web::error::ErrorInternalServerError("Fayl saqlashda xatolik")
+                })?;
+            }
+        }
+
+        if let Some(ref mut file) = file_opt {
+            let _ = file.flush().await;
+        }
+
+        if file_opt.is_none() {
+            return Err(actix_web::error::ErrorBadRequest("Fayl bo'sh bo'lishi mumkin emas"));
+        }
+
+        let location = format!("/uploads/images/{}", unique_filename);
+
+        tracing::info!(
+            filename = %unique_filename,
+            size_bytes = total_size,
+            ext = %saved_extension,
+            "TinyMCE rasmi muvaffaqiyatli yuklandi"
+        );
+
+        // TinyMCE expects: { "location": "url" }
+        return Ok(HttpResponse::Ok().json(serde_json::json!({
+            "location": location
+        })));
+    }
+
+    Err(actix_web::error::ErrorBadRequest("Yuklash uchun fayl topilmadi"))
+}
+
 /// DELETE /api/upload — Faylni diskdan o'chirish
 /// Body: { "url": "/uploads/images/uuid.jpg" }
 pub async fn delete_file(

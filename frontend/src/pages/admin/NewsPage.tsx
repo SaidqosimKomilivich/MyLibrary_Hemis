@@ -21,12 +21,6 @@ import {
 } from "lucide-react"
 import { CustomSelect } from "../../components/CustomSelect"
 
-const CATEGORIES = [
-    { value: "", label: "Barcha ruknlar" },
-    { value: "E'lon", label: "E'lon" },
-    { value: "Yangilik", label: "Yangilik" },
-]
-
 const SORT_OPTIONS = [
     { value: "", label: "Standart (Eng yangilar)" },
     { value: "views", label: "Ko'rishlar soni bo'yicha" },
@@ -43,7 +37,6 @@ export default function NewsPage() {
 
     // Filters
     const [search, setSearch] = useState("")
-    const [category, setCategory] = useState("")
     const [sortBy, setSortBy] = useState("")
     const [dateFrom, setDateFrom] = useState("")
     const [dateTo, setDateTo] = useState("")
@@ -62,7 +55,6 @@ export default function NewsPage() {
                 page,
                 limit,
                 search: search.trim() || undefined,
-                category: category || undefined,
                 sort_by: sortBy || undefined,
                 date_from: dateFrom || undefined,
                 date_to: dateTo || undefined,
@@ -83,7 +75,7 @@ export default function NewsPage() {
     useEffect(() => {
         fetchNews()
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [page, limit, category, sortBy, dateFrom, dateTo])
+    }, [page, limit, sortBy, dateFrom, dateTo])
 
     const handleSearchSubmit = (e: React.FormEvent) => {
         e.preventDefault()
@@ -93,7 +85,6 @@ export default function NewsPage() {
 
     const resetFilters = () => {
         setSearch("")
-        setCategory("")
         setSortBy("")
         setDateFrom("")
         setDateTo("")
@@ -213,19 +204,6 @@ export default function NewsPage() {
                     />
                 </form>
 
-                {/* Category select */}
-                <div className="w-45 min-w-35">
-                    <CustomSelect
-                        value={category}
-                        onChange={(val) => {
-                            setCategory(val)
-                            setPage(1)
-                        }}
-                        options={CATEGORIES}
-                        buttonClassName="w-full bg-surface-hover/50 border border-border text-text py-2 px-3 rounded-xl text-sm outline-none"
-                    />
-                </div>
-
                 {/* Sort select */}
                 <div className="w-55 min-w-45">
                     <CustomSelect
@@ -265,7 +243,7 @@ export default function NewsPage() {
                 </div>
 
                 {/* Reset button if filters active */}
-                {(search || category || sortBy || dateFrom || dateTo) && (
+                {(search || sortBy || dateFrom || dateTo) && (
                     <button
                         onClick={resetFilters}
                         className="px-3 py-2 text-xs font-medium text-text-muted hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors"
@@ -282,7 +260,6 @@ export default function NewsPage() {
                         <thead>
                             <tr className="bg-surface-hover/50 border-b border-border text-text-muted text-sm">
                                 <th className="px-6 py-4 font-medium">Sarlavha & Muqova</th>
-                                <th className="px-4 py-4 font-medium">Rukn</th>
                                 <th className="px-4 py-4 font-medium">Ko'rishlar</th>
                                 <th className="px-4 py-4 font-medium">Holat</th>
                                 <th className="px-4 py-4 font-medium">Sana</th>
@@ -292,13 +269,13 @@ export default function NewsPage() {
                         <tbody className="divide-y divide-border">
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-12 text-center text-text-muted">
+                                    <td colSpan={5} className="px-6 py-12 text-center text-text-muted">
                                         Yuklanmoqda...
                                     </td>
                                 </tr>
                             ) : news.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-12 text-center text-text-muted">
+                                    <td colSpan={5} className="px-6 py-12 text-center text-text-muted">
                                         Yangiliklar topilmadi
                                     </td>
                                 </tr>
@@ -312,10 +289,11 @@ export default function NewsPage() {
                                     >
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
-                                                {/* News Cover Image with /icon_arm.png fallback */}
+                                                {/* News Cover Image with content fallback */}
                                                 <div className="w-12 h-12 rounded-xl overflow-hidden border border-border shrink-0 bg-surface">
                                                     <NewsCoverImage
                                                         images={item.images}
+                                                        content={item.content}
                                                         className="w-full h-full object-cover"
                                                         fallbackClassName="w-7 h-7 object-contain opacity-35 filter grayscale"
                                                     />
@@ -353,11 +331,6 @@ export default function NewsPage() {
                                                     </div>
                                                 </div>
                                             </div>
-                                        </td>
-                                        <td className="px-4 py-4 whitespace-nowrap">
-                                            <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-surface-hover text-text border border-border">
-                                                {item.category || "Boshqa"}
-                                            </span>
                                         </td>
                                         <td className="px-4 py-4 whitespace-nowrap text-text-muted text-sm">
                                             <div className="flex items-center gap-1.5">

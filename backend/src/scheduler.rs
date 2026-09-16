@@ -177,12 +177,43 @@ pub async fn start_rental_reminder_scheduler(pool: PgPool, message_service: Arc<
     }
 }
 
+/// Matn (HTML, markdown va h.k.) ichidan barcha `/uploads/...` bilan boshlanuvchi fayl yo'llarini ajratib oladi
+fn extract_upload_urls(text: &str) -> Vec<String> {
+    let mut urls = Vec::new();
+    let mut rest = text;
+    while let Some(idx) = rest.find("/uploads/") {
+        let after = &rest[idx..];
+        // Havola oxirini aniqlash: bo'sh joy, qo'shtirnoq, qavslar, teg belgilari, query parametrlar
+        let len = after
+            .find(|c: char| {
+                c.is_whitespace()
+                    || c == '"'
+                    || c == '\''
+                    || c == '<'
+                    || c == '>'
+                    || c == ')'
+                    || c == '('
+                    || c == '\\'
+                    || c == '?'
+                    || c == '#'
+            })
+            .unwrap_or(after.len());
+        let url = &after[..len];
+        if url.len() > "/uploads/".len() {
+            urls.push(url.to_string());
+        }
+        rest = &after[len.max(1)..];
+    }
+    urls
+}
+
 /// Diskdagi yetim (hech qaysi ma'lumotlar bazasi yozuviga bog'lanmagan) fayllarni tozalash scheduleri.
 ///
 /// Har kuni tungi soat **03:00** da bir marta ishlaydi:
 /// 1. `uploads/images`, `uploads/pdf`, `uploads/audio` papkalaridagi barcha fayllarni ko'rib chiqadi.
 /// 2. Oxirgi 24 soat ichida yuklangan yangi fayllarga tegmaydi (in-progress uploadlar uchun grace period).
-/// 3. Baza jadvallaridagi (`book`, `users`, `news`, `announcements`) barcha faol URL larni to'playdi.
+/// 3. Baza jadvallaridagi (`book`, `users`, `news`, `announcements`, `news_attachments`) barcha faol URL larni to'playdi,
+///    shuningdek `news.content` va `announcements.message` dagi inline fayl va rasmlarni ham tahlil qiladi.
 /// 4. Agar fayl 24 soatdan eski bo'lsa va bazada unga havola mavjud bo'lmasa, uni diskdan o'chirib tashlaydi.
 pub async fn start_orphan_files_cleanup_scheduler(pool: PgPool, upload_dir: String) {
     tracing::info!("🧹 Orphan-files tozalash scheduleri ishga tushdi (har kuni 03:00 da ishlaydi)");
@@ -210,7 +241,7 @@ pub async fn start_orphan_files_cleanup_scheduler(pool: PgPool, upload_dir: Stri
 
         tracing::info!("🧹 Orphan-files tozalash jarayoni boshlandi...");
 
-        // 1. Bazadagi barcha havolalarni olish
+        // 1. Bazadagi barcha havolalarni olish (ustunlar va massivlar)
         let active_urls_res = sqlx::query_scalar::<_, String>(
             r#"
             SELECT cover_image_url FROM "book" WHERE cover_image_url IS NOT NULL AND cover_image_url != ''
@@ -222,12 +253,14 @@ pub async fn start_orphan_files_cleanup_scheduler(pool: PgPool, upload_dir: Stri
             SELECT unnest(images) FROM "news" WHERE images IS NOT NULL
             UNION
             SELECT unnest(images) FROM "announcements" WHERE images IS NOT NULL
+            UNION
+            SELECT file_url FROM "news_attachments" WHERE file_url IS NOT NULL AND file_url != ''
             "#
         )
         .fetch_all(&pool)
         .await;
 
-        let active_urls: HashSet<String> = match active_urls_res {
+        let mut active_urls: HashSet<String> = match active_urls_res {
             Ok(urls) => urls.into_iter().collect(),
             Err(e) => {
                 tracing::error!("❌ Orphan-files: Bazadan havolalarni olishda xatolik: {}", e);
@@ -235,6 +268,38 @@ pub async fn start_orphan_files_cleanup_scheduler(pool: PgPool, upload_dir: Stri
                 continue;
             }
         };
+
+        // 2. HTML va matnli kontentlar (news.content, announcements.message) ichidagi /uploads/... havolalarini ajratib olish
+        let content_texts_res = sqlx::query_scalar::<_, String>(
+            r#"
+            SELECT content FROM "news" WHERE content LIKE '%/uploads/%'
+            UNION ALL
+            SELECT message FROM "announcements" WHERE message LIKE '%/uploads/%'
+            "#
+        )
+        .fetch_all(&pool)
+        .await;
+
+        match content_texts_res {
+            Ok(texts) => {
+                let mut inline_count = 0;
+                for text in texts {
+                    for url in extract_upload_urls(&text) {
+                        active_urls.insert(url);
+                        inline_count += 1;
+                    }
+                }
+                if inline_count > 0 {
+                    tracing::debug!(
+                        count = inline_count,
+                        "📰 Kontentlar ichidan inline fayl/rasm havolalari topildi va ro'yxatga qo'shildi"
+                    );
+                }
+            }
+            Err(e) => {
+                tracing::warn!("⚠️ Kontentlardan inline havolalarni olishda xatolik: {}", e);
+            }
+        }
 
         let subdirs = ["images", "audio", "pdf"];
         let now_system = SystemTime::now();
@@ -272,7 +337,8 @@ pub async fn start_orphan_files_cleanup_scheduler(pool: PgPool, upload_dir: Stri
                             let rel_url = format!("/uploads/{}/{}", subdir, file_name);
 
                             let is_referenced = active_urls.contains(&rel_url)
-                                || active_urls.iter().any(|u| u.ends_with(&rel_url));
+                                || (rel_url.len() > 1 && active_urls.contains(&rel_url[1..]))
+                                || active_urls.iter().any(|u| u.ends_with(&rel_url) || rel_url.ends_with(u.as_str()));
 
                             if !is_referenced {
                                 let size = metadata.len();
@@ -362,4 +428,27 @@ pub async fn start_weekly_status_sync_scheduler(
         sleep(Duration::from_secs(300)).await;
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_extract_upload_urls() {
+        let html = r#"
+            <p>Salom dunyo!</p>
+            <img src="/uploads/images/abc-123.webp" alt="Rasm" />
+            <a href="/uploads/pdf/hujjat-456.pdf">Yuklab olish</a>
+            <p>Full URL: <img src="https://example.com/uploads/images/def-789.jpg?v=1#header" /></p>
+            <div style="background-image: url('/uploads/images/bg.png')"></div>
+        "#;
+
+        let urls = extract_upload_urls(html);
+        assert!(urls.contains(&"/uploads/images/abc-123.webp".to_string()));
+        assert!(urls.contains(&"/uploads/pdf/hujjat-456.pdf".to_string()));
+        assert!(urls.contains(&"/uploads/images/def-789.jpg".to_string()));
+        assert!(urls.contains(&"/uploads/images/bg.png".to_string()));
+    }
+}
+
 

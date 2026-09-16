@@ -11,9 +11,12 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.18",
+    "@tinymce/tinymce-react": "^6.3.0",
     "@tsparticles/react": "^3.0.0",
     "@tsparticles/slim": "^3.9.1",
+    "@types/dompurify": "^3.0.5",
     "@types/react-pdf": "^7.0.0",
+    "dompurify": "^3.4.15",
     "html-to-image": "^1.11.13",
     "html2canvas": "^1.4.1",
     "html5-qrcode": "^2.3.8",

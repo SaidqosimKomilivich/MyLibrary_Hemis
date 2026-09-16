@@ -609,4 +609,60 @@ impl UserRepository {
 
         Ok(records)
     }
+
+    /// Bir nechta rol bo'yicha barcha faol foydalanuvchilarning user_id ro'yxatini olish
+    pub async fn find_active_user_ids_by_roles(
+        pool: &PgPool,
+        roles: &[&str],
+    ) -> Result<Vec<String>, AppError> {
+        let records = sqlx::query_scalar::<_, String>(
+            r#"SELECT "user_id" FROM "users" WHERE "role" = ANY($1) AND "active" = true"#,
+        )
+        .bind(roles)
+        .fetch_all(pool)
+        .await?;
+
+        Ok(records)
+    }
+
+    /// Ommaviy tarzda foydalanuvchilarning faollik holatini (active: true/false) o'zgartirish
+    pub async fn bulk_set_users_active(
+        pool: &PgPool,
+        user_ids: &[String],
+        active: bool,
+    ) -> Result<u64, AppError> {
+        if user_ids.is_empty() {
+            return Ok(0);
+        }
+
+        let rows = sqlx::query(
+            r#"UPDATE "users" SET "active" = $1, "updated_at" = NOW() WHERE "user_id" = ANY($2) AND "active" != $1"#,
+        )
+        .bind(active)
+        .bind(user_ids)
+        .execute(pool)
+        .await?
+        .rows_affected();
+
+        Ok(rows)
+    }
+
+    /// user_id lar ro'yxati bo'yicha foydalanuvchilarni olish
+    pub async fn find_users_by_user_ids(
+        pool: &PgPool,
+        user_ids: &[String],
+    ) -> Result<Vec<User>, AppError> {
+        if user_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let users = sqlx::query_as::<_, User>(
+            r#"SELECT * FROM "users" WHERE "user_id" = ANY($1)"#,
+        )
+        .bind(user_ids)
+        .fetch_all(pool)
+        .await?;
+
+        Ok(users)
+    }
 }

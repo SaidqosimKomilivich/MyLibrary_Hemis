@@ -45,7 +45,7 @@ pub async fn list_public_news(
             published_at: n.published_at,
             views: n.views,
             is_pinned: n.is_pinned,
-            attachments: vec![],
+            attachments: n.attachments,
             created_at: n.created_at,
             updated_at: n.updated_at,
         })

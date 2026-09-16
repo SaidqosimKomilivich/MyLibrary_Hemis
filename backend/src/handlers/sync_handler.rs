@@ -117,6 +117,7 @@ pub async fn sync_students(
                     total: 0,
                     created: 0,
                     updated: 0,
+                    deactivated: 0,
                     current_page: 0,
                     total_pages: 0,
                 })
@@ -197,6 +198,7 @@ pub async fn sync_teachers(
                     total: 0,
                     created: 0,
                     updated: 0,
+                    deactivated: 0,
                     current_page: 0,
                     total_pages: 0,
                 })
@@ -289,6 +291,7 @@ pub async fn sync_employees(
                     total: 0,
                     created: 0,
                     updated: 0,
+                    deactivated: 0,
                     current_page: 0,
                     total_pages: 0,
                 })

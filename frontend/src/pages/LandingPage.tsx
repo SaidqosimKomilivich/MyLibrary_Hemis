@@ -316,6 +316,7 @@ export default function LandingPage() {
                                         )}
                                         <NewsCoverImage
                                             images={item.images}
+                                            content={item.content}
                                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                             fallbackClassName="w-16 h-16 object-contain opacity-35 filter grayscale group-hover:grayscale-0 group-hover:opacity-75 group-hover:scale-110 transition-all duration-500"
                                         />
@@ -341,11 +342,9 @@ export default function LandingPage() {
                                         <h3 className="font-bold text-[1.05rem] mb-2 line-clamp-2 leading-snug group-hover:text-blue-400 transition-colors">
                                             {item.title}
                                         </h3>
-                                        {item.summary && (
-                                            <p className="text-[0.85rem] text-text-muted line-clamp-2 leading-relaxed mt-auto">
-                                                {item.summary}
-                                            </p>
-                                        )}
+                                        <p className="text-[0.85rem] text-text-muted line-clamp-2 leading-relaxed mt-auto">
+                                            {item.summary || item.content?.replace(/<[^>]*>?/gm, "").slice(0, 120).trim()}
+                                        </p>
                                     </div>
                                 </Link>
                             ))

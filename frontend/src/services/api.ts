@@ -39,6 +39,7 @@ import type {
     CheckDuplicateResponse,
     UploadProgress,
     WeeklySyncReportResponse,
+    SyncProgressEvent,
 } from './api.types'
 import { formatBytes, formatSpeed } from '../utils/formatBytes'
 
@@ -469,7 +470,7 @@ export const api = {
 
     // HEMIS sync endpoints — Talabalar (SSE Streaming)
     syncHemisStudentsStream(
-        onEvent: (event: { stage: string; message: string; processed: number; total: number; created: number; updated: number; current_page: number; total_pages: number }) => void
+        onEvent: (event: SyncProgressEvent) => void
     ): { promise: Promise<void>; abort: () => void } {
         const controller = new AbortController()
         // XAVFSIZLIK: localStorage token ishlatilmaydi — faqat cookie (credentials: 'include')
@@ -543,7 +544,7 @@ export const api = {
 
     // Teacher sync endpoints — O'qituvchilar (SSE Streaming)
     syncHemisTeachersStream(
-        onEvent: (event: { stage: string; message: string; processed: number; total: number; created: number; updated: number; current_page: number; total_pages: number }) => void
+        onEvent: (event: SyncProgressEvent) => void
     ): { promise: Promise<void>; abort: () => void } {
         const controller = new AbortController()
         // XAVFSIZLIK: localStorage token ishlatilmaydi — faqat cookie
@@ -620,7 +621,7 @@ export const api = {
 
     // Employee sync endpoints — Xodimlar (SSE Streaming)
     syncHemisEmployeesStream(
-        onEvent: (event: { stage: string; message: string; processed: number; total: number; created: number; updated: number; current_page: number; total_pages: number }) => void
+        onEvent: (event: SyncProgressEvent) => void
     ): { promise: Promise<void>; abort: () => void } {
         const controller = new AbortController()
         // XAVFSIZLIK: localStorage token ishlatilmaydi — faqat cookie

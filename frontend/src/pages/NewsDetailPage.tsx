@@ -18,7 +18,7 @@ import {
     FileText,
     ArrowLeft,
 } from "lucide-react"
-import MarkdownRenderer from "../components/MarkdownRenderer"
+import DOMPurify from "dompurify"
 import { formatBytes } from "../utils/formatBytes"
 
 export default function NewsDetailPage() {
@@ -197,11 +197,6 @@ export default function NewsDetailPage() {
                                 <Pin size={12} className="fill-white" /> QADALGAN
                             </span>
                         )}
-                        {news.category && (
-                            <span className="bg-blue-600 px-3.5 py-1 rounded-full text-xs font-bold text-white tracking-wider uppercase shadow-md">
-                                {news.category}
-                            </span>
-                        )}
                         <span className="text-text-muted text-xs sm:text-sm font-medium border border-border/50 bg-surface-hover/80 px-3 py-1 rounded-full flex items-center gap-1.5">
                             <Calendar size={13} className="text-blue-400" />
                             {new Date(news.published_at || news.created_at).toLocaleDateString("uz-UZ", {
@@ -221,16 +216,12 @@ export default function NewsDetailPage() {
                         {news.title}
                     </h1>
 
-                    {/* Summary */}
-                    {news.summary && (
-                        <div className="text-lg text-text-muted font-medium mb-8 leading-relaxed border-l-4 border-blue-500 pl-5 py-1 bg-blue-500/5 rounded-r-xl">
-                            {news.summary}
-                        </div>
-                    )}
-
-                    {/* Content (Rendered with MarkdownRenderer) */}
+                    {/* Content (Rendered with DOMPurify double-layer XSS protection) */}
                     <div className="border-t border-border/50 pt-8">
-                        <MarkdownRenderer content={news.content} />
+                        <div
+                            className="rich-text-content text-text leading-relaxed text-base sm:text-lg space-y-4 [&>p]:mb-4 [&>ul]:list-disc [&>ul]:pl-6 [&>ol]:list-decimal [&>ol]:pl-6 [&>img]:rounded-2xl [&>img]:max-w-full [&>img]:h-auto [&>img]:my-6 [&>img]:shadow-md [&>table]:w-full [&>table]:border-collapse [&>table]:my-6 [&>table_th]:border [&>table_th]:border-border [&>table_th]:p-3 [&>table_th]:bg-surface-hover [&>table_td]:border [&>table_td]:border-border [&>table_td]:p-3 [&>blockquote]:border-l-4 [&>blockquote]:border-blue-500 [&>blockquote]:pl-4 [&>blockquote]:italic [&>blockquote]:text-text-muted [&>a]:text-blue-500 [&>a]:underline hover:[&>a]:text-blue-400"
+                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(news.content) }}
+                        />
                     </div>
 
                     {/* Attached Documents (Attachments) */}
@@ -272,20 +263,6 @@ export default function NewsDetailPage() {
                                     </div>
                                 ))}
                             </div>
-                        </div>
-                    )}
-
-                    {/* Tags */}
-                    {news.tags && news.tags.length > 0 && (
-                        <div className="mt-10 pt-6 border-t border-border/50 flex flex-wrap gap-2">
-                            {news.tags.map((tag) => (
-                                <span
-                                    key={tag}
-                                    className="bg-surface-hover border border-border text-text-muted px-3 py-1 rounded-lg text-xs font-medium"
-                                >
-                                    #{tag}
-                                </span>
-                            ))}
                         </div>
                     )}
                 </div>

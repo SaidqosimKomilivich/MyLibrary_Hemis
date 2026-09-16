@@ -568,3 +568,23 @@ export interface WeeklySyncReportResponse {
     users_with_debt: UserDebtSummary[]
     alerts_sent_to_staff: number
 }
+
+export interface SyncProgressEvent {
+    stage: string
+    message: string
+    processed: number
+    total: number
+    created: number
+    updated: number
+    deactivated: number
+    current_page: number
+    total_pages: number
+}
+
+export interface SyncResult {
+    created: number
+    updated: number
+    deactivated?: number
+    total: number
+}
+

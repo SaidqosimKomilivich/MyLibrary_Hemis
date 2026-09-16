@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { GraduationCap, Briefcase, BookUser, Search, RefreshCw, X, ArrowDownToLine, CheckCircle2, Eye, Mail, Phone, Calendar, MapPin, Hash, AlertCircle, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, KeyRound, ShieldAlert, UserCog, Power, Download, ShieldCheck, AlertTriangle, Clock, BookOpen } from 'lucide-react'
 import { CustomSelect } from '../../components/CustomSelect'
 import { api } from '../../services/api'
-import type { UserData, WeeklySyncReportResponse } from '../../services/api'
+import type { UserData, WeeklySyncReportResponse, SyncProgressEvent, SyncResult } from '../../services/api'
 import { getProxyImageUrl } from '../../utils/fileUrl'
 import { toast } from 'react-toastify'
 import { highlightText } from '../../utils/highlightText'
@@ -25,7 +25,7 @@ interface SyncSectionProps {
     count: number
     progress: number
     onSync: () => void
-    syncResult?: { created: number; updated: number; total: number } | null
+    syncResult?: SyncResult | null
     streamMessage?: string
 }
 
@@ -77,7 +77,7 @@ function SyncSection({ title, icon, color, count, progress, onSync, syncResult, 
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-[0.8rem] font-medium text-text-muted">
                             {isDone && syncResult
-                                ? `${syncResult.created} ta yangi, ${syncResult.updated} ta yangilandi (jami: ${syncResult.total})`
+                                ? `${syncResult.created} ta yangi, ${syncResult.updated} ta yangilandi${syncResult.deactivated ? `, ${syncResult.deactivated} ta nofaol qilindi` : ''} (jami: ${syncResult.total})`
                                 : streamMessage || getSyncLabel(progress)}
                         </span>
                         <span className={`text-[0.85rem] font-bold tabular-nums ${isDone ? 'text-emerald-400' : 'text-indigo-400'}`}>
@@ -186,11 +186,11 @@ function UserDetailModal({ user, type, onClose }: { user: UserData; type: 'stude
 
 
 // SSE (Server-Sent Events) orqali haqiqiy progress oluvchi hook — universal
-type StreamFn = (onEvent: (event: { stage: string; message: string; processed: number; total: number; created: number; updated: number; current_page: number; total_pages: number }) => void) => { promise: Promise<void>; abort: () => void }
+type StreamFn = (onEvent: (event: SyncProgressEvent) => void) => { promise: Promise<void>; abort: () => void }
 
 function useHemisStreamSync(streamFn: StreamFn, reloadFn: () => Promise<void>) {
     const [progress, setProgress] = useState(0)
-    const [syncResult, setSyncResult] = useState<{ created: number; updated: number; total: number } | null>(null)
+    const [syncResult, setSyncResult] = useState<SyncResult | null>(null)
     const [streamMessage, setStreamMessage] = useState('')
 
     const handleSync = useCallback(async () => {
@@ -203,7 +203,7 @@ function useHemisStreamSync(streamFn: StreamFn, reloadFn: () => Promise<void>) {
                 // Haqiqiy progress foizini hisoblash
                 if (event.stage === 'complete') {
                     setProgress(100)
-                    setSyncResult({ created: event.created, updated: event.updated, total: event.processed })
+                    setSyncResult({ created: event.created, updated: event.updated, deactivated: event.deactivated, total: event.processed })
                     setStreamMessage(event.message)
                     toast.success(event.message)
                 } else if (event.stage === 'error') {

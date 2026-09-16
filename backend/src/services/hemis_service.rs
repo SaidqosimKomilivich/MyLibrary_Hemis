@@ -30,6 +30,8 @@ pub struct SyncProgressEvent {
     pub created: i64,
     /// Yangilangan foydalanuvchilar
     pub updated: i64,
+    /// Nofaol qilingan foydalanuvchilar (bitirganlar/bo'shaganlar)
+    pub deactivated: i64,
     /// Hozirgi sahifa raqami
     pub current_page: i64,
     /// Jami sahifalar soni
@@ -141,7 +143,9 @@ impl HemisService {
 
         let mut global_created: i64 = 0;
         let mut global_updated: i64 = 0;
+        let mut global_deactivated: i64 = 0;
         let mut global_processed: i64 = 0;
+        let mut all_hemis_active_student_ids = std::collections::HashSet::new();
 
         // ── 1-bosqich: Sahifama-sahifa yuklash va darhol qayta ishlash ──
         loop {
@@ -159,6 +163,7 @@ impl HemisService {
                     total: total_items,
                     created: global_created,
                     updated: global_updated,
+                    deactivated: global_deactivated,
                     current_page: page,
                     total_pages,
                 })
@@ -190,6 +195,7 @@ impl HemisService {
                         total: total_items,
                         created: global_created,
                         updated: global_updated,
+                        deactivated: global_deactivated,
                         current_page: page,
                         total_pages,
                     })
@@ -211,6 +217,7 @@ impl HemisService {
                         total: total_items,
                         created: global_created,
                         updated: global_updated,
+                        deactivated: global_deactivated,
                         current_page: page,
                         total_pages,
                     })
@@ -236,6 +243,20 @@ impl HemisService {
                     false
                 }
             });
+
+            // Faol talabalar ID larini reconciliation (taqqoslash) uchun yig'ish
+            for s in &students {
+                if let Some(ref id) = s.student_id_number {
+                    let is_active = s.student_status
+                        .as_ref()
+                        .and_then(|st| st.code.as_deref())
+                        .map(|code| code == "11")
+                        .unwrap_or(true);
+                    if is_active {
+                        all_hemis_active_student_ids.insert(id.clone());
+                    }
+                }
+            }
 
             if students.is_empty() {
                 // Bu sahifada hech narsa yo'q, keyingisiga o'tamiz
@@ -350,6 +371,7 @@ impl HemisService {
                     total: total_items,
                     created: global_created,
                     updated: global_updated,
+                    deactivated: global_deactivated,
                     current_page: page,
                     total_pages,
                 })
@@ -370,18 +392,68 @@ impl HemisService {
             page += 1;
         }
 
+        // ── 2-bosqich: Solishtirish (Reconciliation) ──
+        // HEMIS ro'yxatida bo'lmagan (o'qishni bitirgan, chetlashtirilgan) talabalarni nofaol qilish
+        let _ = tx
+            .send(SyncProgressEvent {
+                stage: "processing".into(),
+                message: "Bitirgan va o'qishdan ketgan talabalar tekshirilmoqda...".into(),
+                processed: global_processed,
+                total: total_items,
+                created: global_created,
+                updated: global_updated,
+                deactivated: global_deactivated,
+                current_page: total_pages,
+                total_pages,
+            })
+            .await;
+
+        let db_active_students = UserRepository::find_active_user_ids_by_role(pool, "student").await?;
+        let missing_student_ids: Vec<String> = db_active_students
+            .into_iter()
+            .filter(|id| {
+                !all_hemis_active_student_ids.contains(id)
+                    && id != &config.admin_login
+                    && id != "admin"
+                    && id != "superadmin"
+            })
+            .collect();
+
+        if !missing_student_ids.is_empty() {
+            tracing::info!(
+                count = missing_student_ids.len(),
+                "HEMIS ro'yxatida yo'q bo'lgan talabalar nofaol (active=false) qilinmoqda..."
+            );
+            let deactivated = UserRepository::bulk_set_users_active(pool, &missing_student_ids, false).await?;
+            global_deactivated = deactivated as i64;
+            tracing::warn!(
+                deactivated = global_deactivated,
+                "Bitirgan yoki o'qishdan ketgan talabalar muvaffaqiyatli nofaol qilindi"
+            );
+        }
+
         // ── Yakuniy xabar ──
+        let final_message = if global_deactivated > 0 {
+            format!(
+                "Talabalar sinxronlash muvaffaqiyatli! {} ta yangi, {} ta yangilandi, {} ta nofaol qilindi (bitirganlar/ketganlar)",
+                global_created, global_updated, global_deactivated
+            )
+        } else {
+            format!(
+                "Talabalar sinxronlash muvaffaqiyatli! {} ta yangi, {} ta yangilandi",
+                global_created, global_updated
+            )
+        };
+
         let _ = tx
             .send(SyncProgressEvent {
                 stage: "complete".into(),
-                message: format!(
-                    "Sinxronlash tugadi! {} ta yangi, {} ta yangilandi",
-                    global_created, global_updated
-                ),
+                message: final_message.clone(),
                 processed: global_processed,
                 total: global_processed, // haqiqiy raqam
                 created: global_created,
                 updated: global_updated,
+                deactivated: global_deactivated,
                 current_page: total_pages,
                 total_pages,
             })
@@ -390,18 +462,17 @@ impl HemisService {
         tracing::info!(
             created = global_created,
             updated = global_updated,
+            deactivated = global_deactivated,
             processed = global_processed,
             "Talabalar sinxronlash (streaming pipeline) tugadi"
         );
 
         Ok(SyncResponse {
             success: true,
-            message: format!(
-                "Talabalar sinxronlash muvaffaqiyatli! {} ta yangi, {} ta yangilandi",
-                global_created, global_updated
-            ),
+            message: final_message,
             created: global_created,
             updated: global_updated,
+            deactivated: global_deactivated,
             total: global_processed,
         })
     }
@@ -441,7 +512,9 @@ impl HemisService {
 
         let mut global_created: i64 = 0;
         let mut global_updated: i64 = 0;
+        let mut global_deactivated: i64 = 0;
         let mut global_processed: i64 = 0;
+        let mut all_hemis_active_emp_ids = std::collections::HashSet::new();
 
         loop {
             let url = format!(
@@ -458,6 +531,7 @@ impl HemisService {
                     total: total_items,
                     created: global_created,
                     updated: global_updated,
+                    deactivated: global_deactivated,
                     current_page: page,
                     total_pages,
                 })
@@ -493,6 +567,7 @@ impl HemisService {
                         total: total_items,
                         created: global_created,
                         updated: global_updated,
+                        deactivated: global_deactivated,
                         current_page: page,
                         total_pages,
                     })
@@ -517,6 +592,7 @@ impl HemisService {
                         total: total_items,
                         created: global_created,
                         updated: global_updated,
+                        deactivated: global_deactivated,
                         current_page: page,
                         total_pages,
                     })
@@ -546,6 +622,10 @@ impl HemisService {
                     Some(id) if !id.is_empty() && id != "0" => id.clone(),
                     _ => continue,
                 };
+
+                if is_active {
+                    all_hemis_active_emp_ids.insert(user_id.clone());
+                }
 
                 let full_name = employee
                     .full_name
@@ -646,6 +726,7 @@ impl HemisService {
                     total: total_items,
                     created: global_created,
                     updated: global_updated,
+                    deactivated: global_deactivated,
                     current_page: page,
                     total_pages,
                 })
@@ -656,6 +737,7 @@ impl HemisService {
                 total_pages = total_pages,
                 created_in_page = created_in_page,
                 updated_in_page = updated_in_page,
+                global_processed = global_processed,
                 role = role,
                 "Xodimlar sahifasi qayta ishlandi (stream)"
             );
@@ -666,18 +748,76 @@ impl HemisService {
             page += 1;
         }
 
+        // ── 2-bosqich: Solishtirish (Reconciliation) ──
+        // HEMIS ro'yxatida bo'lmagan (ishdan bo'shagan) o'qituvchi yoki xodimlarni nofaol qilish
+        let _ = tx
+            .send(SyncProgressEvent {
+                stage: "processing".into(),
+                message: format!("{}: Ishdan bo'shagan xodimlar tekshirilmoqda...", label),
+                processed: global_processed,
+                total: total_items,
+                created: global_created,
+                updated: global_updated,
+                deactivated: global_deactivated,
+                current_page: total_pages,
+                total_pages,
+            })
+            .await;
+
+        let target_roles: &[&str] = if role == "teacher" {
+            &["teacher"]
+        } else {
+            &["employee", "staff"]
+        };
+
+        let db_active_emps = UserRepository::find_active_user_ids_by_roles(pool, target_roles).await?;
+        let missing_emp_ids: Vec<String> = db_active_emps
+            .into_iter()
+            .filter(|id| {
+                !all_hemis_active_emp_ids.contains(id)
+                    && id != &config.admin_login
+                    && id != "admin"
+                    && id != "superadmin"
+            })
+            .collect();
+
+        if !missing_emp_ids.is_empty() {
+            tracing::info!(
+                count = missing_emp_ids.len(),
+                role = role,
+                "HEMIS ro'yxatida yo'q bo'lgan xodimlar nofaol (active=false) qilinmoqda..."
+            );
+            let deactivated = UserRepository::bulk_set_users_active(pool, &missing_emp_ids, false).await?;
+            global_deactivated = deactivated as i64;
+            tracing::warn!(
+                deactivated = global_deactivated,
+                role = role,
+                "Ishdan bo'shagan xodimlar muvaffaqiyatli nofaol qilindi"
+            );
+        }
+
         // Yakuniy xabar
+        let final_message = if global_deactivated > 0 {
+            format!(
+                "{} sinxronlash muvaffaqiyatli! {} ta yangi, {} ta yangilandi, {} ta nofaol qilindi (bo'shaganlar)",
+                label, global_created, global_updated, global_deactivated
+            )
+        } else {
+            format!(
+                "{} sinxronlash muvaffaqiyatli! {} ta yangi, {} ta yangilandi",
+                label, global_created, global_updated
+            )
+        };
+
         let _ = tx
             .send(SyncProgressEvent {
                 stage: "complete".into(),
-                message: format!(
-                    "{} sinxronlash tugadi! {} ta yangi, {} ta yangilandi",
-                    label, global_created, global_updated
-                ),
+                message: final_message.clone(),
                 processed: global_processed,
                 total: global_processed,
                 created: global_created,
                 updated: global_updated,
+                deactivated: global_deactivated,
                 current_page: total_pages,
                 total_pages,
             })
@@ -686,6 +826,7 @@ impl HemisService {
         tracing::info!(
             created = global_created,
             updated = global_updated,
+            deactivated = global_deactivated,
             processed = global_processed,
             role = role,
             "{} sinxronlash (streaming pipeline) tugadi",
@@ -694,12 +835,10 @@ impl HemisService {
 
         Ok(SyncResponse {
             success: true,
-            message: format!(
-                "{} sinxronlash muvaffaqiyatli! {} ta yangi, {} ta yangilandi",
-                label, global_created, global_updated
-            ),
+            message: final_message,
             created: global_created,
             updated: global_updated,
+            deactivated: global_deactivated,
             total: global_processed,
         })
     }
@@ -732,6 +871,7 @@ impl HemisService {
         // 1. TALABALAR STATUSINI TEKSHIRISH
         let mut page: i64 = 1;
         let mut total_pages: i64 = 1;
+        let mut hemis_active_student_ids = std::collections::HashSet::new();
 
         loop {
             let url = format!(
@@ -794,6 +934,7 @@ impl HemisService {
                                     }
                                 } else {
                                     // HEMIS da faol bo'lsa (masalan qayta tiklangan bo'lsa), faol holatga keltirish
+                                    hemis_active_student_ids.insert(uid.to_string());
                                     let _ = UserRepository::set_user_active(pool, uid, true).await;
                                 }
                             }
@@ -812,9 +953,59 @@ impl HemisService {
             page += 1;
         }
 
+        // 1.1. HEMIS ro'yxatida umuman bo'lmagan (bitirgan / ketgan) talabalarni aniqlash va nofaol qilish
+        if let Ok(db_active_students) = UserRepository::find_active_user_ids_by_role(pool, "student").await {
+            let missing_students: Vec<String> = db_active_students
+                .into_iter()
+                .filter(|id| {
+                    !hemis_active_student_ids.contains(id)
+                        && id != &config.admin_login
+                        && id != "admin"
+                        && id != "superadmin"
+                })
+                .collect();
+
+            if !missing_students.is_empty() {
+                tracing::info!(
+                    count = missing_students.len(),
+                    "Haftalik tekshiruv: HEMIS ro'yxatida yo'q bo'lgan talabalar (bitiruvchilar) tekshirilmoqda..."
+                );
+
+                for uid in &missing_students {
+                    if let Ok(was_changed) = UserRepository::set_user_active(pool, uid, false).await {
+                        if was_changed {
+                            deactivated_count += 1;
+                            let user_opt = UserRepository::find_by_user_id_any(pool, uid).await.unwrap_or(None);
+                            let full_name = user_opt.as_ref().map(|u| u.full_name.clone()).unwrap_or_else(|| "Noma'lum".to_string());
+                            let dept = user_opt.as_ref().and_then(|u| u.department_name.clone());
+                            let group = user_opt.as_ref().and_then(|u| u.group_name.clone());
+                            let phone = user_opt.as_ref().and_then(|u| u.phone.clone());
+
+                            tracing::warn!(student_id = %uid, full_name = %full_name, "Talaba HEMIS ro'yxatida bo'lmagani (bitirgan) sababli nofaol qilindi");
+
+                            if let Ok(unreturned_books) = RentalRepository::get_unreturned_books_by_user_id(pool, uid).await {
+                                if !unreturned_books.is_empty() {
+                                    users_with_debt.push(UserDebtSummary {
+                                        user_id: uid.clone(),
+                                        full_name,
+                                        role: "student".to_string(),
+                                        department: dept,
+                                        group_or_position: group,
+                                        phone,
+                                        books: unreturned_books,
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // 2. XODIMLAR VA O'QITUVCHILAR STATUSINI TEKSHIRISH
         let mut emp_page: i64 = 1;
         let mut emp_total_pages: i64 = 1;
+        let mut hemis_active_emp_ids = std::collections::HashSet::new();
 
         loop {
             let url = format!(
@@ -877,6 +1068,7 @@ impl HemisService {
                                     }
                                 } else {
                                     // HEMIS da faol bo'lsa (ishga qaytgan bo'lsa), faol holatga keltirish
+                                    hemis_active_emp_ids.insert(uid.to_string());
                                     let _ = UserRepository::set_user_active(pool, uid, true).await;
                                 }
                             }
@@ -893,6 +1085,60 @@ impl HemisService {
                 break;
             }
             emp_page += 1;
+        }
+
+        // 2.1. HEMIS ro'yxatida umuman bo'lmagan (ishdan bo'shagan) xodimlarni aniqlash va nofaol qilish
+        if let Ok(db_active_emps) = UserRepository::find_active_user_ids_by_roles(pool, &["teacher", "employee", "staff"]).await {
+            let missing_emps: Vec<String> = db_active_emps
+                .into_iter()
+                .filter(|id| {
+                    !hemis_active_emp_ids.contains(id)
+                        && id != &config.admin_login
+                        && id != "admin"
+                        && id != "superadmin"
+                })
+                .collect();
+
+            if !missing_emps.is_empty() {
+                tracing::info!(
+                    count = missing_emps.len(),
+                    "Haftalik tekshiruv: HEMIS ro'yxatida yo'q bo'lgan xodimlar (bo'shaganlar) tekshirilmoqda..."
+                );
+
+                for uid in &missing_emps {
+                    let user_opt = UserRepository::find_by_user_id_any(pool, uid).await.unwrap_or(None);
+                    let actual_role = user_opt.as_ref().map(|u| u.role.clone()).unwrap_or_else(|| "employee".to_string());
+                    if actual_role == "admin" {
+                        continue;
+                    }
+
+                    if let Ok(was_changed) = UserRepository::set_user_active(pool, uid, false).await {
+                        if was_changed {
+                            deactivated_count += 1;
+                            let full_name = user_opt.as_ref().map(|u| u.full_name.clone()).unwrap_or_else(|| "Noma'lum".to_string());
+                            let dept = user_opt.as_ref().and_then(|u| u.department_name.clone());
+                            let position = user_opt.as_ref().and_then(|u| u.staff_position.clone());
+                            let phone = user_opt.as_ref().and_then(|u| u.phone.clone());
+
+                            tracing::warn!(employee_id = %uid, full_name = %full_name, role = %actual_role, "Xodim HEMIS ro'yxatida bo'lmagani (bo'shagan) sababli nofaol qilindi");
+
+                            if let Ok(unreturned_books) = RentalRepository::get_unreturned_books_by_user_id(pool, uid).await {
+                                if !unreturned_books.is_empty() {
+                                    users_with_debt.push(UserDebtSummary {
+                                        user_id: uid.clone(),
+                                        full_name,
+                                        role: actual_role,
+                                        department: dept,
+                                        group_or_position: position,
+                                        phone,
+                                        books: unreturned_books,
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         // 3. ADMIN VA KUTUBXONA XODIMLARIGA OGOHLANTIRISH XABARI YUBORISH

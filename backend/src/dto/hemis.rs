@@ -112,6 +112,7 @@ pub struct SyncResponse {
     pub message: String,
     pub created: i64,
     pub updated: i64,
+    pub deactivated: i64,
     pub total: i64,
 }
 

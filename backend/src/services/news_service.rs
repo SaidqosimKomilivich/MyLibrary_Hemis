@@ -122,13 +122,83 @@ impl NewsService {
     // Public API
     // ─────────────────────────────────────────────────────────
 
+    /// HTML kontentni xavfsiz sanitizatsiya qilish (XSS himoyasi)
+    /// TinyMCE formatlari, rasmlar va jadvallarni saqlaydi, lekin xavfli skriptlarni tozalaydi
+    pub fn sanitize_html(html: &str) -> String {
+        let mut builder = ammonia::Builder::default();
+        builder
+            .add_tags(&[
+                "table", "thead", "tbody", "tfoot", "tr", "th", "td",
+                "figure", "figcaption", "span", "div", "h1", "h2", "h3", "h4", "h5", "h6",
+                "p", "br", "hr", "strong", "b", "em", "i", "u", "s", "strike", "blockquote",
+                "ul", "ol", "li", "code", "pre", "a", "img"
+            ])
+            .add_tag_attributes("img", &["src", "alt", "title", "width", "height", "style", "class", "loading"])
+            .add_tag_attributes("table", &["class", "style", "border", "cellpadding", "cellspacing"])
+            .add_tag_attributes("td", &["class", "style", "colspan", "rowspan", "align", "valign"])
+            .add_tag_attributes("th", &["class", "style", "colspan", "rowspan", "align", "valign"])
+            .add_tag_attributes("span", &["class", "style"])
+            .add_tag_attributes("div", &["class", "style"])
+            .add_tag_attributes("p", &["class", "style", "align"])
+            .add_tag_attributes("a", &["href", "title", "target", "rel", "class", "style"]);
+
+        builder.clean(html).to_string()
+    }
+
+    /// HTML matndan rasmlarning URL larini avtomatik ajratib olish
+    pub fn extract_image_urls(html: &str) -> Vec<String> {
+        let mut images = Vec::new();
+        let pattern = "<img ";
+        let mut cursor = 0;
+        while let Some(pos) = html[cursor..].find(pattern) {
+            let img_start = cursor + pos + pattern.len();
+            if let Some(tag_end) = html[img_start..].find('>') {
+                let tag_slice = &html[img_start..img_start + tag_end];
+                if let Some(src_pos) = tag_slice.find("src=\"") {
+                    let val_start = src_pos + 5;
+                    if let Some(val_end) = tag_slice[val_start..].find('"') {
+                        let url = tag_slice[val_start..val_start + val_end].to_string();
+                        if !url.is_empty() && !images.contains(&url) {
+                            images.push(url);
+                        }
+                    }
+                } else if let Some(src_pos) = tag_slice.find("src='") {
+                    let val_start = src_pos + 5;
+                    if let Some(val_end) = tag_slice[val_start..].find('\'') {
+                        let url = tag_slice[val_start..val_start + val_end].to_string();
+                        if !url.is_empty() && !images.contains(&url) {
+                            images.push(url);
+                        }
+                    }
+                }
+                cursor = img_start + tag_end;
+            } else {
+                break;
+            }
+        }
+        images
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // Public API
+    // ─────────────────────────────────────────────────────────
+
     /// Yangi yangilik yaratish
     pub async fn create(
         pool: &PgPool,
-        req: CreateNewsRequest,
+        mut req: CreateNewsRequest,
         author_id: Option<Uuid>,
     ) -> Result<News, AppError> {
         Self::validate_create(&req)?;
+
+        // HTML sanitizatsiyasi (Backend XSS himoyasi)
+        req.content = Self::sanitize_html(&req.content);
+
+        // Agar alohida rasmlar massivi berilmagan bo'lsa, TinyMCE kontentidagi rasmlarni avtomatik saqlash
+        if req.images.is_empty() {
+            req.images = Self::extract_image_urls(&req.content);
+        }
+
         let slug = Self::make_unique_slug(pool, &req.title).await?;
         let attachments = req.attachments.clone();
 
@@ -175,9 +245,33 @@ impl NewsService {
         let (news, total, per_page) = NewsRepository::list(pool, &params).await?;
         let total_pages = (total + per_page - 1) / per_page;
 
+        let news_ids: Vec<Uuid> = news.iter().map(|n| n.id).collect();
+        let all_attachments = NewsRepository::find_attachments_by_news_ids(pool, &news_ids).await.unwrap_or_default();
+
+        use std::collections::HashMap;
+        let mut att_map: HashMap<Uuid, Vec<crate::dto::news::AttachmentResponse>> = HashMap::new();
+        for att in all_attachments {
+            att_map.entry(att.news_id).or_default().push(crate::dto::news::AttachmentResponse {
+                id: att.id,
+                file_url: att.file_url,
+                file_name: att.file_name,
+                file_size: att.file_size,
+                file_type: att.file_type,
+            });
+        }
+
+        let data = news.into_iter().map(|n| {
+            let n_id = n.id;
+            let mut resp = NewsResponse::from(n);
+            if let Some(atts) = att_map.remove(&n_id) {
+                resp.attachments = atts;
+            }
+            resp
+        }).collect();
+
         Ok(PaginatedNewsResponse {
             success: true,
-            data: news.into_iter().map(NewsResponse::from).collect(),
+            data,
             pagination: NewsPagination {
                 current_page: page,
                 per_page,
@@ -191,9 +285,21 @@ impl NewsService {
     pub async fn update(
         pool: &PgPool,
         id: Uuid,
-        req: UpdateNewsRequest,
+        mut req: UpdateNewsRequest,
     ) -> Result<News, AppError> {
         Self::validate_update(&req)?;
+
+        // HTML sanitizatsiyasi (agar content yangilansa)
+        if let Some(ref content) = req.content {
+            let clean_html = Self::sanitize_html(content);
+            if req.images.as_ref().map(|imgs| imgs.is_empty()).unwrap_or(true) {
+                let extracted = Self::extract_image_urls(&clean_html);
+                if !extracted.is_empty() {
+                    req.images = Some(extracted);
+                }
+            }
+            req.content = Some(clean_html);
+        }
 
         // Sarlavha o'zgarsa — yangi slug ham generatsiya qilinadi
         let new_slug = if let Some(title) = &req.title {

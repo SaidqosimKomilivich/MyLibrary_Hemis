@@ -22,7 +22,7 @@ function getSyncLabel(progress: number): string {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function useHemisSync(syncFn: () => Promise<any>, reloadFn: () => Promise<void>) {
     const [progress, setProgress] = useState(0)
-    const [syncResult, setSyncResult] = useState<{ created: number; updated: number; total: number } | null>(null)
+    const [syncResult, setSyncResult] = useState<{ created: number; updated: number; deactivated?: number; total: number } | null>(null)
 
     const handleSync = useCallback(async () => {
         setProgress(10)
@@ -38,7 +38,7 @@ function useHemisSync(syncFn: () => Promise<any>, reloadFn: () => Promise<void>)
 
             if (resp.success) {
                 setProgress(100)
-                setSyncResult({ created: resp.created, updated: resp.updated, total: resp.total })
+                setSyncResult({ created: resp.created, updated: resp.updated, deactivated: resp.deactivated, total: resp.total })
                 toast.success(resp.message || 'Sinxronlash muvaffaqiyatli')
                 await reloadFn()
             } else {
@@ -727,7 +727,7 @@ export default function AdminEmployeesPage() {
                                         <div className="flex items-center justify-between mb-2">
                                             <span className="text-[0.8rem] font-medium text-text-muted">
                                                 {employeeSync.progress === 100 && employeeSync.syncResult
-                                                    ? `${employeeSync.syncResult.created} ta yangi, ${employeeSync.syncResult.updated} ta yangilandi`
+                                                    ? `${employeeSync.syncResult.created} ta yangi, ${employeeSync.syncResult.updated} ta yangilandi${employeeSync.syncResult.deactivated ? `, ${employeeSync.syncResult.deactivated} ta nofaol qilindi` : ''}`
                                                     : getSyncLabel(employeeSync.progress)}
                                             </span>
                                             <span className={`text-[0.85rem] font-bold tabular-nums ${employeeSync.progress === 100 ? 'text-emerald-400' : 'text-indigo-400'}`}>

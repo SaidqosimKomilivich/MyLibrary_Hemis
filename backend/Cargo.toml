@@ -47,4 +47,6 @@ futures = { version = "0.3.32", features = ["std"] }
 async-stream = "0.3.6"
 rand = "0.8"
 base64 = "0.22"
+infer = "0.16"
+ammonia = "4.0"
 

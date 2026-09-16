@@ -2,19 +2,27 @@ import { useState } from 'react'
 
 interface NewsCoverImageProps {
     images?: string[] | null
+    content?: string | null
     alt?: string
     className?: string
     fallbackClassName?: string
 }
 
+function extractFirstImageFromHtml(html?: string | null): string | null {
+    if (!html) return null
+    const match = html.match(/<img[^>]+src=["']([^"']+)["']/i)
+    return match ? match[1] : null
+}
+
 export default function NewsCoverImage({
     images,
+    content,
     alt = "Yangilik rasmi",
     className = "w-full h-full object-cover group-hover:scale-105 transition-transform duration-500",
     fallbackClassName = "w-20 h-20 object-contain opacity-35 filter grayscale group-hover:grayscale-0 group-hover:opacity-75 group-hover:scale-110 transition-all duration-500",
 }: NewsCoverImageProps) {
     const [imgError, setImgError] = useState(false)
-    const coverUrl = images && images.length > 0 ? images[0] : null
+    const coverUrl = images && images.length > 0 ? images[0] : extractFirstImageFromHtml(content)
 
     if (coverUrl && !imgError) {
         return (

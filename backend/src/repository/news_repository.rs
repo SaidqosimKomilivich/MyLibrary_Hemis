@@ -326,6 +326,23 @@ impl NewsRepository {
         Ok(rows)
     }
 
+    /// Bir nechta yangiliklar uchun biriktirilgan hujjatlarni ommaviy olish
+    pub async fn find_attachments_by_news_ids(
+        pool: &PgPool,
+        news_ids: &[Uuid],
+    ) -> Result<Vec<NewsAttachment>, AppError> {
+        if news_ids.is_empty() {
+            return Ok(vec![]);
+        }
+        let rows = sqlx::query_as::<_, NewsAttachment>(
+            "SELECT * FROM news_attachments WHERE news_id = ANY($1) ORDER BY sort_order ASC",
+        )
+        .bind(news_ids)
+        .fetch_all(pool)
+        .await?;
+        Ok(rows)
+    }
+
     /// Yangilikka hujjatlar biriktirish (avvalgilarini o'chirib, yangilarini qo'shish)
     pub async fn save_attachments(
         pool: &PgPool,

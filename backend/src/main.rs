@@ -234,6 +234,14 @@ async fn main() -> std::io::Result<()> {
             // Upload routes
             .route("/api/upload", web::post().to(upload_handler::upload_file))
             .route("/api/upload", web::delete().to(upload_handler::delete_file))
+            .route(
+                "/api/tinymce-upload",
+                web::post().to(upload_handler::upload_tinymce_image),
+            )
+            .route(
+                "/api/upload/tinymce",
+                web::post().to(upload_handler::upload_tinymce_image),
+            )
             // Reading routes
             .service(
                 web::scope("/api/readings")
