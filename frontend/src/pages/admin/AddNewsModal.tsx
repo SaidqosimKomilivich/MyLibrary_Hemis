@@ -291,7 +291,7 @@ export default function AdminNewsModal({
                     {/* 3. Unga biriktirilgan fayllar (Attachments) */}
                     <div>
                         <div className="flex items-center justify-between mb-2">
-                            <label className="block text-sm font-semibold text-text flex items-center gap-1.5">
+                            <label className=" text-sm font-semibold text-text flex items-center gap-1.5">
                                 <Paperclip size={16} className="text-blue-500" />
                                 Biriktirilgan hujjatlar / fayllar (PDF, DOCX va h.k.)
                             </label>

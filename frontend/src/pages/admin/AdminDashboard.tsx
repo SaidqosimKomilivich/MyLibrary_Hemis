@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Users, BookOpen, UserCog, BarChart3, TrendingUp, ChevronLeft, ChevronRight, RefreshCcw, AlertTriangle, Calendar, Clock, ArrowRight, Library, Globe } from 'lucide-react'
+import { Users, BookOpen, BookX, BookCopy, UserCog, BarChart3, TrendingUp, ChevronLeft, ChevronRight, RefreshCcw, AlertTriangle, Calendar, Clock, ArrowRight, Library, Globe } from 'lucide-react'
 import { api } from '../../services/api'
 import { formatDateTime } from '../../utils/dateUtils'
 import type { AdminDashboardResponse, Rental } from '../../services/api'
@@ -113,7 +113,9 @@ export default function AdminDashboard() {
 
     const stats = [
         { label: 'Jami foydalanuvchilar', value: data?.total_users ?? 0, icon: <Users size={22} />, color: 'var(--stat-blue)' },
-        { label: 'Jami kitoblar', value: data?.total_books ?? 0, icon: <BookOpen size={22} />, color: 'var(--stat-green)' },
+        { label: 'Faol kitoblar', value: data?.total_books ?? 0, icon: <BookOpen size={22} />, color: 'var(--stat-green)' },
+        { label: 'Nofaol kitoblar', value: data?.inactive_books ?? 0, icon: <BookX size={22} />, color: 'var(--stat-red)' },
+        { label: 'Kitob nusxalari', value: data?.total_copies ?? data?.books_by_category?.reduce((s, c) => s + (c.total_copies ?? 0), 0) ?? 0, icon: <BookCopy size={22} />, color: 'var(--stat-teal)' },
         { label: "Oy davomidagi ijaralar", value: data?.active_rentals ?? 0, icon: <UserCog size={22} />, color: 'var(--stat-purple)' },
         { label: "Qarzdorliklar (Oy bo'yicha)", value: data?.overdue_rentals ?? 0, icon: <BarChart3 size={22} />, color: 'var(--stat-orange)' },
     ]

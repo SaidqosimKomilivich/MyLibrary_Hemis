@@ -61,8 +61,15 @@ pub async fn get_admin_dashboard(
         .month
         .unwrap_or_else(|| now.format("%m").to_string().parse().unwrap_or(1));
 
-    let (total_users, total_books, active_rentals, overdue_rentals, pending_requests) =
-        ReportRepository::get_dashboard_kpis(p, year, month).await?;
+    let (
+        total_users,
+        total_books,
+        inactive_books,
+        total_copies,
+        active_rentals,
+        overdue_rentals,
+        pending_requests,
+    ) = ReportRepository::get_dashboard_kpis(p, year, month).await?;
 
     let chart_data = ReportRepository::get_dashboard_chart(p, year, month).await?;
     let recent_activities = ReportRepository::get_dashboard_activities(p, year, month, 10).await?;
@@ -75,6 +82,8 @@ pub async fn get_admin_dashboard(
         "data": AdminDashboardResponse {
             total_users,
             total_books,
+            inactive_books,
+            total_copies,
             active_rentals,
             overdue_rentals,
             pending_requests,

@@ -9,7 +9,8 @@ export interface ClassificationOption {
 // ==========================================
 export const BOOK_CATEGORIES: ClassificationOption[] = [
     { value: 'it_texnologiya', label: 'IT va Axborot texnologiyalari' },
-    { value: 'aniq_tabiiy_fanlar', label: 'Aniq va tabiiy fanlar (Matematika, Fizika, Kimyo)' },
+    { value: 'aniq_fanlar', label: 'Aniq fanlar (Matematika, Mexanika)' },
+    { value: 'tabiiy_fanlar', label: 'Tabiiy fanlar (Fizika, Kimyo, Biologiya, Geografiya)' },
     { value: 'iqtisodiyot_moliya', label: 'Iqtisodiyot, Moliya va Biznes' },
     { value: 'ijtimoiy_gumanitar', label: 'Ijtimoiy-gumanitar fanlar (Tarix, Falsafa)' },
     { value: 'huquqshunoslik', label: 'Huquqshunoslik va Qonunchilik' },
@@ -69,6 +70,7 @@ export const BOOK_LANGUAGES: ClassificationOption[] = [
 
 export function getCategoryLabel(val?: string | null): string {
     if (!val) return '—'
+    if (val === 'aniq_tabiiy_fanlar') return 'Aniq va tabiiy fanlar'
     const found = BOOK_CATEGORIES.find(c => c.value === val)
     if (found) return found.label
     // Format slug nicely if not in predefined list

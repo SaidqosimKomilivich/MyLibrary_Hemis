@@ -316,7 +316,7 @@ impl ReportRepository {
         pool: &PgPool,
         year: i32,
         month: u32,
-    ) -> Result<(i64, i64, i64, i64, i64), AppError> {
+    ) -> Result<(i64, i64, i64, i64, i64, i64, i64), AppError> {
         let start_date = chrono::NaiveDate::from_ymd_opt(year, month, 1)
             .ok_or_else(|| AppError::BadRequest("Noto'g'ri sana".into()))?
             .and_hms_opt(0, 0, 0)
@@ -339,12 +339,25 @@ impl ReportRepository {
                 .fetch_one(pool)
                 .await?;
 
-        // Jami aktiv kitoblar (filtrlanmaydi)
-        let total_books: i64 =
-            sqlx::query_scalar!(r#"SELECT COUNT(*) FROM "book" WHERE "is_active" = true"#)
-                .fetch_one(pool)
-                .await?
-                .unwrap_or(0);
+        #[derive(sqlx::FromRow)]
+        struct BookCounts {
+            total_books: i64,
+            inactive_books: i64,
+            total_copies: i64,
+        }
+
+        let book_counts = sqlx::query_as::<_, BookCounts>(
+            r#"SELECT COUNT(CASE WHEN "is_active" = true THEN 1 END)::BIGINT as total_books,
+                      COUNT(CASE WHEN "is_active" = false THEN 1 END)::BIGINT as inactive_books,
+                      COALESCE(SUM(CASE WHEN "is_active" = true THEN COALESCE(total_quantity, 0) ELSE 0 END), 0)::BIGINT as total_copies
+               FROM "book""#,
+        )
+        .fetch_one(pool)
+        .await?;
+
+        let total_books = book_counts.total_books;
+        let inactive_books = book_counts.inactive_books;
+        let total_copies = book_counts.total_copies;
 
         // O'sha oydagi aktiv ijaralar (shu oy ichida berilgan jami ijaralar)
         let active_rentals: i64 = sqlx::query_scalar!(
@@ -379,6 +392,8 @@ impl ReportRepository {
         Ok((
             total_users,
             total_books,
+            inactive_books,
+            total_copies,
             active_rentals,
             overdue_rentals,
             pending_requests,
@@ -816,11 +831,13 @@ impl ReportRepository {
     pub async fn get_public_stats(
         pool: &PgPool,
     ) -> Result<crate::dto::report::PublicDashboardResponse, AppError> {
-        // 1. Jami kitoblar soni (Barcha tillar, barcha nusxalar)
-        let total_books: i64 = sqlx::query_scalar!(r#"SELECT COUNT(*)::bigint FROM "book""#)
-            .fetch_one(pool)
-            .await?
-            .unwrap_or(0);
+        // 1. Jami faol kitoblar soni (Faqat faol kitoblar ko'rsatiladi)
+        let total_books: i64 = sqlx::query_scalar::<_, i64>(
+            r#"SELECT COUNT(*)::bigint FROM "book" WHERE "is_active" = true"#
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap_or(0);
 
         // 2. Jami foydalanuvchilar (faqat faol o'quvchilar va xodimlar)
         let total_users: i64 =

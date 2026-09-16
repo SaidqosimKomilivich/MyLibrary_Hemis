@@ -72,6 +72,8 @@ pub struct StaffBookCount {
 pub struct AdminDashboardResponse {
     pub total_users: i64,
     pub total_books: i64,
+    pub inactive_books: i64,
+    pub total_copies: i64,
     pub active_rentals: i64,
     pub overdue_rentals: i64,
     pub pending_requests: i64,

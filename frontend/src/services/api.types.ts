@@ -308,6 +308,8 @@ export interface AdminDashboardResponse {
     data: {
         total_users: number
         total_books: number
+        inactive_books: number
+        total_copies: number
         active_rentals: number
         overdue_rentals: number
         pending_requests: number
