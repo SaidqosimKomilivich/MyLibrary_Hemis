@@ -114,17 +114,22 @@ async fn main() -> std::io::Result<()> {
     ));
     tracing::info!("Rental-reminder scheduleri fonda ishga tushirildi");
 
+    // Sinxronlash qulfi (barcha sinxronlash jarayonlari uchun umumiy)
+    let sync_lock_instance = crate::services::hemis_service::SyncLock::new();
+    let sync_lock_data = web::Data::new(sync_lock_instance.clone());
+
     // WEEKLY STATUS SYNC SCHEDULER: fonda ishga tushirish (har yakshanba 02:00 da)
     let weekly_sync_pool = pool.clone();
     let weekly_sync_config = config_data.get_ref().clone();
     let weekly_sync_messages = message_service_instance.clone();
+    let weekly_sync_lock = sync_lock_instance.clone();
     tokio::spawn(scheduler::start_weekly_status_sync_scheduler(
         weekly_sync_pool,
         weekly_sync_config,
         weekly_sync_messages,
+        weekly_sync_lock,
     ));
     tracing::info!("Haftalik status sinxronlash scheduleri fonda ishga tushirildi");
-
 
     HttpServer::new(move || {
         let mut cors = actix_cors::Cors::default()
@@ -148,7 +153,8 @@ async fn main() -> std::io::Result<()> {
             // App data (barcha handler'larga shared state)
             .app_data(config_data.clone())
             .app_data(pool_data.clone())
-            .app_data(message_service.clone())  
+            .app_data(message_service.clone())
+            .app_data(sync_lock_data.clone())  
             // Health check
             .route(
                 "/health",

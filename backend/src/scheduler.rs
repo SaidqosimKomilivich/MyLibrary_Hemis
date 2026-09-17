@@ -371,6 +371,7 @@ pub async fn start_weekly_status_sync_scheduler(
     pool: PgPool,
     config: crate::config::Config,
     message_service: Arc<MessageService>,
+    sync_lock: crate::services::hemis_service::SyncLock,
 ) {
     tracing::info!("🗓️ Haftalik HEMIS status sinxronlash scheduleri ishga tushdi (har yakshanba 02:00 da)");
 
@@ -401,6 +402,15 @@ pub async fn start_weekly_status_sync_scheduler(
         );
 
         sleep(Duration::from_secs(wait_secs as u64)).await;
+
+        let _guard = match sync_lock.try_lock() {
+            Some(g) => g,
+            None => {
+                tracing::warn!("⚠️ Boshqa sinxronlash jarayoni ketayotgani sababli haftalik tekshiruv keyingi safarga qoldirildi");
+                sleep(Duration::from_secs(300)).await;
+                continue;
+            }
+        };
 
         tracing::info!("🔔 Haftalik HEMIS status tekshiruvi boshlandi...");
         match crate::services::hemis_service::HemisService::run_weekly_status_check(

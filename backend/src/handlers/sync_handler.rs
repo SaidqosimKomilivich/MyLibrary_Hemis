@@ -8,7 +8,7 @@ use crate::dto::user::{PaginatedUsersResponse, UserPaginationInfo, UserPaginatio
 use crate::errors::AppError;
 use crate::middleware::auth_middleware::{require_role, Claims};
 use crate::repository::user_repository::UserRepository;
-use crate::services::hemis_service::HemisService;
+use crate::services::hemis_service::{HemisService, SyncLock};
 
 const DEFAULT_PER_PAGE: i64 = 20;
 
@@ -86,10 +86,35 @@ pub async fn sync_students(
     claims: Claims,
     pool: web::Data<PgPool>,
     config: web::Data<Config>,
+    sync_lock: web::Data<SyncLock>,
 ) -> Result<HttpResponse, actix_web::Error> {
     if let Err(resp) = require_role(&claims, &["admin"]) {
         return Ok(resp);
     }
+
+    let guard = match sync_lock.try_lock() {
+        Some(g) => g,
+        None => {
+            tracing::warn!(user = %claims.sub, "Sinxronlash rad etildi: boshqa jarayon ketmoqda");
+            let event = crate::services::hemis_service::SyncProgressEvent {
+                stage: "error".into(),
+                message: "Sinxronlash jarayoni allaqachon bajarilmoqda. Iltimos, u yakunlanishini kuting.".into(),
+                processed: 0,
+                total: 0,
+                created: 0,
+                updated: 0,
+                deactivated: 0,
+                current_page: 0,
+                total_pages: 0,
+            };
+            let json = serde_json::to_string(&event).unwrap_or_default();
+            let sse_data = format!("event: error\ndata: {}\n\n", json);
+            return Ok(HttpResponse::Ok()
+                .content_type("text/event-stream")
+                .insert_header(("Cache-Control", "no-cache"))
+                .body(sse_data));
+        }
+    };
 
     tracing::info!(
         user = %claims.sub,
@@ -105,6 +130,7 @@ pub async fn sync_students(
 
     // Orqa fonda sinxronlashni boshlash
     tokio::spawn(async move {
+        let _guard = guard;
         let result =
             HemisService::sync_students_stream(&pool_clone, &config_clone, tx.clone()).await;
         if let Err(e) = result {
@@ -163,10 +189,35 @@ pub async fn sync_teachers(
     claims: Claims,
     pool: web::Data<PgPool>,
     config: web::Data<Config>,
+    sync_lock: web::Data<SyncLock>,
 ) -> Result<HttpResponse, actix_web::Error> {
     if let Err(resp) = require_role(&claims, &["admin"]) {
         return Ok(resp);
     }
+
+    let guard = match sync_lock.try_lock() {
+        Some(g) => g,
+        None => {
+            tracing::warn!(user = %claims.sub, "Sinxronlash rad etildi: boshqa jarayon ketmoqda");
+            let event = crate::services::hemis_service::SyncProgressEvent {
+                stage: "error".into(),
+                message: "Sinxronlash jarayoni allaqachon bajarilmoqda. Iltimos, u yakunlanishini kuting.".into(),
+                processed: 0,
+                total: 0,
+                created: 0,
+                updated: 0,
+                deactivated: 0,
+                current_page: 0,
+                total_pages: 0,
+            };
+            let json = serde_json::to_string(&event).unwrap_or_default();
+            let sse_data = format!("event: error\ndata: {}\n\n", json);
+            return Ok(HttpResponse::Ok()
+                .content_type("text/event-stream")
+                .insert_header(("Cache-Control", "no-cache"))
+                .body(sse_data));
+        }
+    };
 
     tracing::info!(
         user = %claims.sub,
@@ -180,6 +231,7 @@ pub async fn sync_teachers(
     let config_clone = config.get_ref().clone();
 
     tokio::spawn(async move {
+        let _guard = guard;
         let result = HemisService::sync_employees_stream(
             &pool_clone,
             &config_clone,
@@ -256,10 +308,35 @@ pub async fn sync_employees(
     claims: Claims,
     pool: web::Data<PgPool>,
     config: web::Data<Config>,
+    sync_lock: web::Data<SyncLock>,
 ) -> Result<HttpResponse, actix_web::Error> {
     if let Err(resp) = require_role(&claims, &["admin"]) {
         return Ok(resp);
     }
+
+    let guard = match sync_lock.try_lock() {
+        Some(g) => g,
+        None => {
+            tracing::warn!(user = %claims.sub, "Sinxronlash rad etildi: boshqa jarayon ketmoqda");
+            let event = crate::services::hemis_service::SyncProgressEvent {
+                stage: "error".into(),
+                message: "Sinxronlash jarayoni allaqachon bajarilmoqda. Iltimos, u yakunlanishini kuting.".into(),
+                processed: 0,
+                total: 0,
+                created: 0,
+                updated: 0,
+                deactivated: 0,
+                current_page: 0,
+                total_pages: 0,
+            };
+            let json = serde_json::to_string(&event).unwrap_or_default();
+            let sse_data = format!("event: error\ndata: {}\n\n", json);
+            return Ok(HttpResponse::Ok()
+                .content_type("text/event-stream")
+                .insert_header(("Cache-Control", "no-cache"))
+                .body(sse_data));
+        }
+    };
 
     tracing::info!(
         user = %claims.sub,
@@ -273,6 +350,7 @@ pub async fn sync_employees(
     let config_clone = config.get_ref().clone();
 
     tokio::spawn(async move {
+        let _guard = guard;
         let result = HemisService::sync_employees_stream(
             &pool_clone,
             &config_clone,
@@ -666,10 +744,22 @@ pub async fn trigger_weekly_status_check(
     pool: web::Data<PgPool>,
     config: web::Data<Config>,
     message_service: web::Data<std::sync::Arc<crate::services::message_service::MessageService>>,
+    sync_lock: web::Data<SyncLock>,
 ) -> Result<HttpResponse, actix_web::Error> {
     if let Err(resp) = require_role(&claims, &["admin"]) {
         return Ok(resp);
     }
+
+    let _guard = match sync_lock.try_lock() {
+        Some(g) => g,
+        None => {
+            tracing::warn!(admin = %claims.sub, "Haftalik tekshiruv rad etildi: boshqa jarayon ketmoqda");
+            return Ok(HttpResponse::Conflict().json(serde_json::json!({
+                "success": false,
+                "message": "Sinxronlash jarayoni allaqachon bajarilmoqda. Iltimos, u yakunlanishini kuting."
+            })));
+        }
+    };
 
     tracing::info!(admin = %claims.sub, "Admin qo'lda haftalik status tekshiruvini ishga tushirdi");
 

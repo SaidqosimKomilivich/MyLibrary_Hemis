@@ -38,6 +38,56 @@ pub struct SyncProgressEvent {
     pub total_pages: i64,
 }
 
+use std::sync::atomic::{AtomicBool, Ordering};
+
+/// Sinxronlash jarayonlari bir vaqtda parallel ishlab ketishining oldini oluvchi qulf
+#[derive(Clone, Default)]
+pub struct SyncLock {
+    is_running: Arc<AtomicBool>,
+}
+
+impl SyncLock {
+    pub fn new() -> Self {
+        Self {
+            is_running: Arc::new(AtomicBool::new(false)),
+        }
+    }
+
+    /// Qulfni olishga urinish. Agar allaqachon boshqa sinxronlash ketayotgan bo'lsa `None` qaytaradi.
+    /// Qaytgan `SyncGuard` obyekti drop bo'lganda (vazifa yakunlanganda yoki xato yuz berganda)
+    /// qulf avtomatik bo'shatiladi (RAII pattern).
+    pub fn try_lock(&self) -> Option<SyncGuard> {
+        if self
+            .is_running
+            .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+            .is_ok()
+        {
+            Some(SyncGuard {
+                is_running: self.is_running.clone(),
+            })
+        } else {
+            None
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn is_syncing(&self) -> bool {
+        self.is_running.load(Ordering::SeqCst)
+    }
+}
+
+/// RAII qulf nazoratchisi
+pub struct SyncGuard {
+    is_running: Arc<AtomicBool>,
+}
+
+impl Drop for SyncGuard {
+    fn drop(&mut self) {
+        self.is_running.store(false, Ordering::SeqCst);
+        tracing::info!("🔓 Sinxronlash qulfi bo'shatildi");
+    }
+}
+
 pub struct HemisService;
 
 impl HemisService {
@@ -136,7 +186,7 @@ impl HemisService {
                 AppError::InternalError(format!("HTTP client yaratishda xatolik: {}", e))
             })?;
 
-        let page_size = 200;
+        let page_size = 100;
         let mut page: i64 = 1;
         let mut total_pages: i64 = 1; // birinchi sahifadan aniqlanadi
         let mut total_items: i64 = 0;
@@ -203,9 +253,26 @@ impl HemisService {
                 return Err(AppError::InternalError(err_msg));
             }
 
-            let hemis_response: HemisApiResponse = response.json().await.map_err(|e| {
-                AppError::InternalError(format!("HEMIS javobini parse qilishda xatolik: {}", e))
-            })?;
+            let hemis_response: HemisApiResponse = match response.json::<HemisApiResponse>().await {
+                Ok(data) => data,
+                Err(e) => {
+                    let err_msg = format!("HEMIS talabalar javobini o'qishda (JSON) xatolik: {}", e);
+                    let _ = tx
+                        .send(SyncProgressEvent {
+                            stage: "error".into(),
+                            message: err_msg.clone(),
+                            processed: global_processed,
+                            total: total_items,
+                            created: global_created,
+                            updated: global_updated,
+                            deactivated: global_deactivated,
+                            current_page: page,
+                            total_pages,
+                        })
+                        .await;
+                    return Err(AppError::InternalError(err_msg));
+                }
+            };
 
             if !hemis_response.success {
                 let err_msg = "HEMIS API success: false qaytardi".to_string();
@@ -235,10 +302,15 @@ impl HemisService {
 
             let mut students = hemis_response.data.items;
 
-            // ── Yaroqsiz yozuvlarni tozalash ──
+            // ── Yaroqsiz va takroriy (dublikat) yozuvlarni tozalash ──
+            let mut seen_page_ids = std::collections::HashSet::new();
             students.retain(|s| {
                 if let Some(id) = &s.student_id_number {
-                    !id.is_empty()
+                    if !id.is_empty() && seen_page_ids.insert(id.clone()) {
+                        true
+                    } else {
+                        false
+                    }
                 } else {
                     false
                 }
@@ -250,7 +322,7 @@ impl HemisService {
                     let is_active = s.student_status
                         .as_ref()
                         .and_then(|st| st.code.as_deref())
-                        .map(|code| code == "11")
+                        .map(|code| code != "14" && code != "15")
                         .unwrap_or(true);
                     if is_active {
                         all_hemis_active_student_ids.insert(id.clone());
@@ -294,7 +366,7 @@ impl HemisService {
                     let is_active = s.student_status
                         .as_ref()
                         .and_then(|st| st.code.as_deref())
-                        .map(|code| code == "11")
+                        .map(|code| code != "14" && code != "15")
                         .unwrap_or(true);
                     (
                         s.student_id_number.as_deref().unwrap(),
@@ -330,7 +402,7 @@ impl HemisService {
                     let is_active = s.student_status
                         .as_ref()
                         .and_then(|st| st.code.as_deref())
-                        .map(|code| code == "11")
+                        .map(|code| code != "14" && code != "15")
                         .unwrap_or(true);
                     (
                         s.student_id_number.as_deref().unwrap(),
@@ -394,42 +466,47 @@ impl HemisService {
 
         // ── 2-bosqich: Solishtirish (Reconciliation) ──
         // HEMIS ro'yxatida bo'lmagan (o'qishni bitirgan, chetlashtirilgan) talabalarni nofaol qilish
-        let _ = tx
-            .send(SyncProgressEvent {
-                stage: "processing".into(),
-                message: "Bitirgan va o'qishdan ketgan talabalar tekshirilmoqda...".into(),
-                processed: global_processed,
-                total: total_items,
-                created: global_created,
-                updated: global_updated,
-                deactivated: global_deactivated,
-                current_page: total_pages,
-                total_pages,
-            })
-            .await;
+        // XAVFSIZLIK (Circuit Breaker): Faqat HEMIS dan kamida 1 ta faol talaba olingandagina solishtirish o'tkaziladi
+        if !all_hemis_active_student_ids.is_empty() && global_processed > 0 {
+            let _ = tx
+                .send(SyncProgressEvent {
+                    stage: "processing".into(),
+                    message: "Bitirgan va o'qishdan ketgan talabalar tekshirilmoqda...".into(),
+                    processed: global_processed,
+                    total: total_items,
+                    created: global_created,
+                    updated: global_updated,
+                    deactivated: global_deactivated,
+                    current_page: total_pages,
+                    total_pages,
+                })
+                .await;
 
-        let db_active_students = UserRepository::find_active_user_ids_by_role(pool, "student").await?;
-        let missing_student_ids: Vec<String> = db_active_students
-            .into_iter()
-            .filter(|id| {
-                !all_hemis_active_student_ids.contains(id)
-                    && id != &config.admin_login
-                    && id != "admin"
-                    && id != "superadmin"
-            })
-            .collect();
+            let db_active_students = UserRepository::find_active_user_ids_by_role(pool, "student").await?;
+            let missing_student_ids: Vec<String> = db_active_students
+                .into_iter()
+                .filter(|id| {
+                    !all_hemis_active_student_ids.contains(id)
+                        && id != &config.admin_login
+                        && id != "admin"
+                        && id != "superadmin"
+                })
+                .collect();
 
-        if !missing_student_ids.is_empty() {
-            tracing::info!(
-                count = missing_student_ids.len(),
-                "HEMIS ro'yxatida yo'q bo'lgan talabalar nofaol (active=false) qilinmoqda..."
-            );
-            let deactivated = UserRepository::bulk_set_users_active(pool, &missing_student_ids, false).await?;
-            global_deactivated = deactivated as i64;
-            tracing::warn!(
-                deactivated = global_deactivated,
-                "Bitirgan yoki o'qishdan ketgan talabalar muvaffaqiyatli nofaol qilindi"
-            );
+            if !missing_student_ids.is_empty() {
+                tracing::info!(
+                    count = missing_student_ids.len(),
+                    "HEMIS ro'yxatida yo'q bo'lgan talabalar nofaol (active=false) qilinmoqda..."
+                );
+                let deactivated = UserRepository::bulk_set_users_active(pool, &missing_student_ids, false).await?;
+                global_deactivated = deactivated as i64;
+                tracing::warn!(
+                    deactivated = global_deactivated,
+                    "Bitirgan yoki o'qishdan ketgan talabalar muvaffaqiyatli nofaol qilindi"
+                );
+            }
+        } else {
+            tracing::warn!("⚠️ HEMIS dan talabalar ro'yxati olinmadi yoki bo'sh keldi. Xavfsizlik yuzasidan talabalarni nofaol qilish bekor qilindi!");
         }
 
         // ── Yakuniy xabar ──
@@ -575,12 +652,26 @@ impl HemisService {
                 return Err(AppError::InternalError(err_msg));
             }
 
-            let hemis_response: HemisEmployeeApiResponse = response.json().await.map_err(|e| {
-                AppError::InternalError(format!(
-                    "HEMIS Employee javobini parse qilishda xatolik: {}",
-                    e
-                ))
-            })?;
+            let hemis_response: HemisEmployeeApiResponse = match response.json::<HemisEmployeeApiResponse>().await {
+                Ok(data) => data,
+                Err(e) => {
+                    let err_msg = format!("HEMIS xodimlar javobini o'qishda (JSON) xatolik: {}", e);
+                    let _ = tx
+                        .send(SyncProgressEvent {
+                            stage: "error".into(),
+                            message: err_msg.clone(),
+                            processed: global_processed,
+                            total: total_items,
+                            created: global_created,
+                            updated: global_updated,
+                            deactivated: global_deactivated,
+                            current_page: page,
+                            total_pages,
+                        })
+                        .await;
+                    return Err(AppError::InternalError(err_msg));
+                }
+            };
 
             if !hemis_response.success {
                 let err_msg = "HEMIS Employee API success: false qaytardi".to_string();
@@ -605,23 +696,47 @@ impl HemisService {
                 total_items = (total_pages as i64) * (page_size as i64);
             }
 
-            let employees = hemis_response.data.items;
+            let mut employees = hemis_response.data.items;
 
-            let mut created_in_page: i64 = 0;
-            let mut updated_in_page: i64 = 0;
+            // ── Yaroqsiz va takroriy (dublikat) xodimlarni tozalash ──
+            let mut seen_emp_ids = std::collections::HashSet::new();
+            employees.retain(|e| {
+                if let Some(id) = &e.employee_id_number {
+                    if !id.is_empty() && id != "0" && seen_emp_ids.insert(id.clone()) {
+                        true
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                }
+            });
 
-            for employee in &employees {
-                let is_active = employee
-                    .employee_status
-                    .as_ref()
-                    .and_then(|s| s.code.as_deref())
-                    .map(|code| code == "11")
-                    .unwrap_or(false);
+            // ── Sahifadagi ID larni aniqlash va bazadan tekshirish ──
+            let page_user_ids: Vec<String> = employees
+                .iter()
+                .filter_map(|e| e.employee_id_number.clone())
+                .filter(|id| !id.is_empty() && id != "0")
+                .collect();
 
+            let existing_ids = UserRepository::find_existing_user_ids(pool, &page_user_ids).await?;
+
+            let mut to_update = Vec::new();
+            let mut to_create = Vec::new();
+
+            for employee in employees {
                 let user_id = match &employee.employee_id_number {
                     Some(id) if !id.is_empty() && id != "0" => id.clone(),
                     _ => continue,
                 };
+
+                // Xodim holati: "14" = bo'shagan, "11" (asosiy), "12" (ichki o'rindosh), "13" (tashqi o'rindosh) va null = faol
+                let is_active = employee
+                    .employee_status
+                    .as_ref()
+                    .and_then(|s| s.code.as_deref())
+                    .map(|code| code != "14")
+                    .unwrap_or(true);
 
                 if is_active {
                     all_hemis_active_emp_ids.insert(user_id.clone());
@@ -644,71 +759,83 @@ impl HemisService {
                     .and_then(|s| s.name.clone());
 
                 // Rolni department ga qarab aniqlash:
-                // "AXBOROT RESURS MARKAZI" → "staff" (kutubxonachi), qolganlari → o'zining "role"i ("employee" yoki "teacher")
-                let actual_role = if department_name
-                    .as_deref()
-                    .map(|d| d.to_uppercase().contains("AXBOROT RESURS MARKAZ"))
-                    .unwrap_or(false)
+                // Faqat "employee" bo'lgandagina va bo'lim "AXBOROT RESURS MARKAZI" bo'lsa → "staff" (kutubxonachi)
+                let actual_role = if role == "employee"
+                    && department_name
+                        .as_deref()
+                        .map(|d| d.to_uppercase().contains("AXBOROT RESURS MARKAZ"))
+                        .unwrap_or(false)
                 {
-                    "staff"
+                    "staff".to_string()
                 } else {
-                    role
+                    role.to_string()
                 };
 
-                let existing = UserRepository::find_by_user_id_any(pool, &user_id).await?;
-                // HEMIS rasmlarini olmaslik uchun None beramiz
-                let image_url: Option<&str> = None;
-
-                if let Some(user) = existing {
-                    // Agar mavjud foydalanuvchi tizimda 'admin' deb belgilangan bo'lsa, uning administratorlik rolini
-                    // hech qachon o'zgartirmaymiz. Faqat statusi (active), lavozimi, bo'limi va shaxsiy ma'lumotlari yangilanadi.
-                    let role_to_save = if user.role == "admin" {
-                        tracing::info!(
-                            user_id = %user_id,
-                            is_active = is_active,
-                            "Admin foydalanuvchi sinxronlandi: roli 'admin' saqlab qolindi, statusi yangilandi"
-                        );
-                        "admin"
-                    } else {
-                        actual_role
-                    };
-
-                    UserRepository::update_employee_info(
-                        pool,
-                        &user_id,
-                        role_to_save,
-                        &full_name,
-                        short_name.as_deref(),
+                if existing_ids.contains(&user_id) {
+                    to_update.push((
+                        user_id,
+                        actual_role,
+                        full_name,
+                        short_name,
                         birth_date,
-                        image_url,
-                        department_name.as_deref(),
-                        staff_position.as_deref(),
+                        department_name,
+                        staff_position,
                         is_active,
-                    )
-                    .await?;
-                    updated_in_page += 1;
+                    ));
                 } else {
                     let password_hash = AuthService::hash_password(&user_id)?;
-
-                    UserRepository::create_employee(
-                        pool,
-                        &user_id,
-                        &password_hash,
+                    to_create.push((
+                        user_id,
+                        password_hash,
                         actual_role,
-                        &full_name,
-                        short_name.as_deref(),
+                        full_name,
+                        short_name,
                         birth_date,
-                        image_url,
-                        0i64, // id_card yangi yaratilganda 0 dan boshlanadi
-                        department_name.as_deref(),
-                        staff_position.as_deref(),
+                        department_name,
+                        staff_position,
                         is_active,
-                    )
-                    .await?;
-                    created_in_page += 1;
+                    ));
                 }
             }
-            // employees bu yerda drop bo'ladi — RAM tozalanadi
+
+            // ── Ommaviy yangilash (Bulk Update) ──
+            let updated_in_page = to_update.len() as i64;
+            if !to_update.is_empty() {
+                let update_data = to_update.iter().map(|e| {
+                    (
+                        e.0.as_str(),
+                        e.1.as_str(),
+                        e.2.as_str(),
+                        e.3.as_deref(),
+                        e.4,
+                        None, // image_url
+                        e.5.as_deref(),
+                        e.6.as_deref(),
+                        e.7,
+                    )
+                });
+                UserRepository::bulk_update_employees(pool, update_data).await?;
+            }
+
+            // ── Ommaviy yaratish (Bulk Create) ──
+            let created_in_page = to_create.len() as i64;
+            if !to_create.is_empty() {
+                let create_data = to_create.iter().map(|e| {
+                    (
+                        e.0.as_str(),
+                        e.1.as_str(),
+                        e.2.as_str(),
+                        e.3.as_str(),
+                        e.4.as_deref(),
+                        e.5,
+                        None, // image_url
+                        e.6.as_deref(),
+                        e.7.as_deref(),
+                        e.8,
+                    )
+                });
+                UserRepository::bulk_create_employees(pool, create_data).await?;
+            }
 
             global_created += created_in_page;
             global_updated += updated_in_page;
@@ -750,49 +877,57 @@ impl HemisService {
 
         // ── 2-bosqich: Solishtirish (Reconciliation) ──
         // HEMIS ro'yxatida bo'lmagan (ishdan bo'shagan) o'qituvchi yoki xodimlarni nofaol qilish
-        let _ = tx
-            .send(SyncProgressEvent {
-                stage: "processing".into(),
-                message: format!("{}: Ishdan bo'shagan xodimlar tekshirilmoqda...", label),
-                processed: global_processed,
-                total: total_items,
-                created: global_created,
-                updated: global_updated,
-                deactivated: global_deactivated,
-                current_page: total_pages,
-                total_pages,
-            })
-            .await;
+        // XAVFSIZLIK (Circuit Breaker): Faqat HEMIS dan kamida 1 ta faol xodim olingandagina solishtirish o'tkaziladi
+        if !all_hemis_active_emp_ids.is_empty() && global_processed > 0 {
+            let _ = tx
+                .send(SyncProgressEvent {
+                    stage: "processing".into(),
+                    message: format!("{}: Ishdan bo'shagan xodimlar tekshirilmoqda...", label),
+                    processed: global_processed,
+                    total: total_items,
+                    created: global_created,
+                    updated: global_updated,
+                    deactivated: global_deactivated,
+                    current_page: total_pages,
+                    total_pages,
+                })
+                .await;
 
-        let target_roles: &[&str] = if role == "teacher" {
-            &["teacher"]
+            let target_roles: &[&str] = if role == "teacher" {
+                &["teacher"]
+            } else {
+                &["employee"]
+            };
+
+            let db_active_emps = UserRepository::find_active_user_ids_by_roles(pool, target_roles).await?;
+            let missing_emp_ids: Vec<String> = db_active_emps
+                .into_iter()
+                .filter(|id| {
+                    !all_hemis_active_emp_ids.contains(id)
+                        && id != &config.admin_login
+                        && id != "admin"
+                        && id != "superadmin"
+                })
+                .collect();
+
+            if !missing_emp_ids.is_empty() {
+                tracing::info!(
+                    count = missing_emp_ids.len(),
+                    role = role,
+                    "HEMIS ro'yxatida yo'q bo'lgan xodimlar nofaol (active=false) qilinmoqda..."
+                );
+                let deactivated = UserRepository::bulk_set_users_active(pool, &missing_emp_ids, false).await?;
+                global_deactivated = deactivated as i64;
+                tracing::warn!(
+                    deactivated = global_deactivated,
+                    role = role,
+                    "Ishdan bo'shagan xodimlar muvaffaqiyatli nofaol qilindi"
+                );
+            }
         } else {
-            &["employee", "staff"]
-        };
-
-        let db_active_emps = UserRepository::find_active_user_ids_by_roles(pool, target_roles).await?;
-        let missing_emp_ids: Vec<String> = db_active_emps
-            .into_iter()
-            .filter(|id| {
-                !all_hemis_active_emp_ids.contains(id)
-                    && id != &config.admin_login
-                    && id != "admin"
-                    && id != "superadmin"
-            })
-            .collect();
-
-        if !missing_emp_ids.is_empty() {
-            tracing::info!(
-                count = missing_emp_ids.len(),
-                role = role,
-                "HEMIS ro'yxatida yo'q bo'lgan xodimlar nofaol (active=false) qilinmoqda..."
-            );
-            let deactivated = UserRepository::bulk_set_users_active(pool, &missing_emp_ids, false).await?;
-            global_deactivated = deactivated as i64;
             tracing::warn!(
-                deactivated = global_deactivated,
                 role = role,
-                "Ishdan bo'shagan xodimlar muvaffaqiyatli nofaol qilindi"
+                "⚠️ HEMIS dan xodimlar ro'yxati olinmadi yoki bo'sh keldi. Xavfsizlik yuzasidan xodimlarni nofaol qilish bekor qilindi!"
             );
         }
 
@@ -848,6 +983,7 @@ impl HemisService {
     /// - Statusi o'zgargan (o'qishdan ketgan/bo'shagan) larni nofaol (active=false) qilish
     /// - Agar nomida qaytarilmagan kitob bo'lsa, barcha admin va kutubxonachilarga ogohlantirish yuborish
     /// ═══════════════════════════════════════════════════════════════
+    #[allow(unused_assignments)]
     pub async fn run_weekly_status_check(
         pool: &PgPool,
         config: &Config,
@@ -872,6 +1008,7 @@ impl HemisService {
         let mut page: i64 = 1;
         let mut total_pages: i64 = 1;
         let mut hemis_active_student_ids = std::collections::HashSet::new();
+        let mut student_sync_ok = true;
 
         loop {
             let url = format!(
@@ -887,62 +1024,75 @@ impl HemisService {
 
             match res {
                 Ok(response) if response.status().is_success() => {
-                    if let Ok(api_res) = response.json::<HemisApiResponse>().await {
-                        total_pages = api_res.data.pagination.page_count;
-                        for student in api_res.data.items {
-                            if let Some(uid) = student.student_id_number.as_deref().filter(|s| !s.is_empty()) {
-                                if uid == config.admin_login || uid == "admin" || uid == "superadmin" {
-                                    continue;
-                                }
-                                checked_students += 1;
-                                
-                                // studentStatus tekshiruvi: "11" = Faol (o'qimoqda)
-                                let is_active_in_hemis = student.student_status
-                                    .as_ref()
-                                    .and_then(|s| s.code.as_deref())
-                                    .map(|code| code == "11")
-                                    .unwrap_or(true);
+                    match response.json::<HemisApiResponse>().await {
+                        Ok(api_res) => {
+                            total_pages = api_res.data.pagination.page_count;
+                            for student in api_res.data.items {
+                                if let Some(uid) = student.student_id_number.as_deref().filter(|s| !s.is_empty()) {
+                                    if uid == config.admin_login || uid == "admin" || uid == "superadmin" {
+                                        continue;
+                                    }
+                                    checked_students += 1;
 
-                                if !is_active_in_hemis {
-                                    if let Ok(was_changed) = UserRepository::set_user_active(pool, uid, false).await {
-                                        if was_changed {
-                                            deactivated_count += 1;
-                                            let actual_role = if let Ok(Some(u)) = UserRepository::find_by_user_id_any(pool, uid).await {
-                                                if u.role == "admin" {
-                                                    tracing::info!(student_id = %uid, "Admin sifatida belgilangan talaba HEMIS bo'yicha nofaol qilindi (roli 'admin' saqlab qolindi)");
-                                                }
-                                                u.role
-                                            } else {
-                                                "student".to_string()
-                                            };
-                                            tracing::warn!(student_id = %uid, role = %actual_role, "Talaba HEMIS da nofaol bo'lgani sababli nofaol qilindi");
+                                    // studentStatus tekshiruvi: "14" = Chetlashtirilgan, "15" = Bitirgan
+                                    let is_active_in_hemis = student.student_status
+                                        .as_ref()
+                                        .and_then(|s| s.code.as_deref())
+                                        .map(|code| code != "14" && code != "15")
+                                        .unwrap_or(true);
 
-                                            if let Ok(unreturned_books) = RentalRepository::get_unreturned_books_by_user_id(pool, uid).await {
-                                                if !unreturned_books.is_empty() {
-                                                    users_with_debt.push(UserDebtSummary {
-                                                        user_id: uid.to_string(),
-                                                        full_name: student.full_name.clone().unwrap_or_else(|| "Noma'lum".to_string()),
-                                                        role: actual_role,
-                                                        department: student.department.as_ref().and_then(|d| d.name.clone()),
-                                                        group_or_position: student.group.as_ref().and_then(|g| g.name.clone()),
-                                                        phone: None,
-                                                        books: unreturned_books,
-                                                    });
+                                    if !is_active_in_hemis {
+                                        if let Ok(was_changed) = UserRepository::set_user_active(pool, uid, false).await {
+                                            if was_changed {
+                                                deactivated_count += 1;
+                                                let actual_role = if let Ok(Some(u)) = UserRepository::find_by_user_id_any(pool, uid).await {
+                                                    if u.role == "admin" {
+                                                        tracing::info!(student_id = %uid, "Admin sifatida belgilangan talaba HEMIS bo'yicha nofaol qilindi (roli 'admin' saqlab qolindi)");
+                                                    }
+                                                    u.role
+                                                } else {
+                                                    "student".to_string()
+                                                };
+                                                tracing::warn!(student_id = %uid, role = %actual_role, "Talaba HEMIS da nofaol bo'lgani sababli nofaol qilindi");
+
+                                                if let Ok(unreturned_books) = RentalRepository::get_unreturned_books_by_user_id(pool, uid).await {
+                                                    if !unreturned_books.is_empty() {
+                                                        users_with_debt.push(UserDebtSummary {
+                                                            user_id: uid.to_string(),
+                                                            full_name: student.full_name.clone().unwrap_or_else(|| "Noma'lum".to_string()),
+                                                            role: actual_role,
+                                                            department: student.department.as_ref().and_then(|d| d.name.clone()),
+                                                            group_or_position: student.group.as_ref().and_then(|g| g.name.clone()),
+                                                            phone: None,
+                                                            books: unreturned_books,
+                                                        });
+                                                    }
                                                 }
                                             }
                                         }
+                                    } else {
+                                        // HEMIS da faol bo'lsa (masalan qayta tiklangan bo'lsa), faol holatga keltirish
+                                        hemis_active_student_ids.insert(uid.to_string());
+                                        let _ = UserRepository::set_user_active(pool, uid, true).await;
                                     }
-                                } else {
-                                    // HEMIS da faol bo'lsa (masalan qayta tiklangan bo'lsa), faol holatga keltirish
-                                    hemis_active_student_ids.insert(uid.to_string());
-                                    let _ = UserRepository::set_user_active(pool, uid, true).await;
                                 }
                             }
                         }
+                        Err(e) => {
+                            tracing::error!(page = page, error = %e, "Talabalar javobini parse qilishda xatolik");
+                            student_sync_ok = false;
+                            break;
+                        }
                     }
                 }
-                _ => {
-                    tracing::error!(page = page, "Talabalar sahifasini tekshirishda xatolik yuz berdi");
+                Ok(resp) => {
+                    tracing::error!(page = page, status = %resp.status(), "Talabalar sahifasini olishda HTTP xatosi");
+                    student_sync_ok = false;
+                    break;
+                }
+                Err(e) => {
+                    tracing::error!(page = page, error = %e, "Talabalar sahifasini olishda tarmoq xatosi");
+                    student_sync_ok = false;
                     break;
                 }
             }
@@ -954,190 +1104,231 @@ impl HemisService {
         }
 
         // 1.1. HEMIS ro'yxatida umuman bo'lmagan (bitirgan / ketgan) talabalarni aniqlash va nofaol qilish
-        if let Ok(db_active_students) = UserRepository::find_active_user_ids_by_role(pool, "student").await {
-            let missing_students: Vec<String> = db_active_students
-                .into_iter()
-                .filter(|id| {
-                    !hemis_active_student_ids.contains(id)
-                        && id != &config.admin_login
-                        && id != "admin"
-                        && id != "superadmin"
-                })
-                .collect();
+        // XAVFSIZLIK (Circuit Breaker): Faqat talabalar ro'yxati xatosiz va to'liq olingandagina solishtirish o'tkaziladi
+        if student_sync_ok && checked_students > 0 && !hemis_active_student_ids.is_empty() {
+            if let Ok(db_active_students) = UserRepository::find_active_user_ids_by_role(pool, "student").await {
+                let missing_students: Vec<String> = db_active_students
+                    .into_iter()
+                    .filter(|id| {
+                        !hemis_active_student_ids.contains(id)
+                            && id != &config.admin_login
+                            && id != "admin"
+                            && id != "superadmin"
+                    })
+                    .collect();
 
-            if !missing_students.is_empty() {
-                tracing::info!(
-                    count = missing_students.len(),
-                    "Haftalik tekshiruv: HEMIS ro'yxatida yo'q bo'lgan talabalar (bitiruvchilar) tekshirilmoqda..."
-                );
+                if !missing_students.is_empty() {
+                    tracing::info!(
+                        count = missing_students.len(),
+                        "Haftalik tekshiruv: HEMIS ro'yxatida yo'q bo'lgan talabalar (bitiruvchilar) tekshirilmoqda..."
+                    );
 
-                for uid in &missing_students {
-                    if let Ok(was_changed) = UserRepository::set_user_active(pool, uid, false).await {
-                        if was_changed {
-                            deactivated_count += 1;
-                            let user_opt = UserRepository::find_by_user_id_any(pool, uid).await.unwrap_or(None);
-                            let full_name = user_opt.as_ref().map(|u| u.full_name.clone()).unwrap_or_else(|| "Noma'lum".to_string());
-                            let dept = user_opt.as_ref().and_then(|u| u.department_name.clone());
-                            let group = user_opt.as_ref().and_then(|u| u.group_name.clone());
-                            let phone = user_opt.as_ref().and_then(|u| u.phone.clone());
+                    for uid in &missing_students {
+                        if let Ok(was_changed) = UserRepository::set_user_active(pool, uid, false).await {
+                            if was_changed {
+                                deactivated_count += 1;
+                                let user_opt = UserRepository::find_by_user_id_any(pool, uid).await.unwrap_or(None);
+                                let full_name = user_opt.as_ref().map(|u| u.full_name.clone()).unwrap_or_else(|| "Noma'lum".to_string());
+                                let dept = user_opt.as_ref().and_then(|u| u.department_name.clone());
+                                let group = user_opt.as_ref().and_then(|u| u.group_name.clone());
+                                let phone = user_opt.as_ref().and_then(|u| u.phone.clone());
 
-                            tracing::warn!(student_id = %uid, full_name = %full_name, "Talaba HEMIS ro'yxatida bo'lmagani (bitirgan) sababli nofaol qilindi");
+                                tracing::warn!(student_id = %uid, full_name = %full_name, "Talaba HEMIS ro'yxatida bo'lmagani (bitirgan) sababli nofaol qilindi");
 
-                            if let Ok(unreturned_books) = RentalRepository::get_unreturned_books_by_user_id(pool, uid).await {
-                                if !unreturned_books.is_empty() {
-                                    users_with_debt.push(UserDebtSummary {
-                                        user_id: uid.clone(),
-                                        full_name,
-                                        role: "student".to_string(),
-                                        department: dept,
-                                        group_or_position: group,
-                                        phone,
-                                        books: unreturned_books,
-                                    });
+                                if let Ok(unreturned_books) = RentalRepository::get_unreturned_books_by_user_id(pool, uid).await {
+                                    if !unreturned_books.is_empty() {
+                                        users_with_debt.push(UserDebtSummary {
+                                            user_id: uid.clone(),
+                                            full_name,
+                                            role: "student".to_string(),
+                                            department: dept,
+                                            group_or_position: group,
+                                            phone,
+                                            books: unreturned_books,
+                                        });
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
+        } else if !student_sync_ok {
+            tracing::warn!("⚠️ Talabalar ro'yxatini HEMIS dan olishda xatolik bo'lgani sababli bitiruvchilarni nofaol qilish bekor qilindi (xavfsizlik himoyasi)");
         }
 
-        // 2. XODIMLAR VA O'QITUVCHILAR STATUSINI TEKSHIRISH
-        let mut emp_page: i64 = 1;
-        let mut emp_total_pages: i64 = 1;
-        let mut hemis_active_emp_ids = std::collections::HashSet::new();
+        // 2. O'QITUVCHILAR VA XODIMLAR STATUSINI TEKSHIRISH
+        // HEMIS API da o'qituvchilar (type=teacher) va boshqaruv/xizmat xodimlari (type=employee) alohida saqlanadi.
+        let emp_configs: [(&str, &str, &[&str]); 2] = [
+            ("teacher", "O'qituvchilar", &["teacher"]),
+            ("employee", "Xodimlar", &["employee"]),
+        ];
 
-        loop {
-            let url = format!(
-                "{}/rest/v1/data/employee-list?page={}&limit={}",
-                config.hemis_base_url, emp_page, page_size
-            );
+        for (emp_type, emp_label, target_roles) in emp_configs {
+            let mut emp_page: i64 = 1;
+            let mut emp_total_pages: i64 = 1;
+            let mut hemis_active_ids = std::collections::HashSet::new();
+            let mut emp_type_sync_ok = true;
+            let mut checked_in_type: i64 = 0;
 
-            let res = client
-                .get(&url)
-                .header("Authorization", format!("Bearer {}", config.hemis_token))
-                .send()
-                .await;
+            loop {
+                let url = format!(
+                    "{}/rest/v1/data/employee-list?type={}&page={}&limit={}",
+                    config.hemis_base_url, emp_type, emp_page, page_size
+                );
 
-            match res {
-                Ok(response) if response.status().is_success() => {
-                    if let Ok(api_res) = response.json::<HemisEmployeeApiResponse>().await {
-                        emp_total_pages = api_res.data.pagination.page_count;
-                        for emp in api_res.data.items {
-                            if let Some(uid) = emp.employee_id_number.as_deref().filter(|s| !s.is_empty()) {
-                                if uid == config.admin_login || uid == "admin" || uid == "superadmin" {
-                                    continue;
-                                }
-                                checked_employees += 1;
+                let res = client
+                    .get(&url)
+                    .header("Authorization", format!("Bearer {}", config.hemis_token))
+                    .send()
+                    .await;
 
-                                // employeeStatus tekshiruvi: "11" = Ishlamoqda
-                                let is_active_in_hemis = emp.employee_status
-                                    .as_ref()
-                                    .and_then(|s| s.code.as_deref())
-                                    .map(|code| code == "11")
-                                    .unwrap_or(true);
+                match res {
+                    Ok(response) if response.status().is_success() => {
+                        match response.json::<HemisEmployeeApiResponse>().await {
+                            Ok(api_res) => {
+                                emp_total_pages = api_res.data.pagination.page_count;
+                                for emp in api_res.data.items {
+                                    if let Some(uid) = emp.employee_id_number.as_deref().filter(|s| !s.is_empty()) {
+                                        if uid == config.admin_login || uid == "admin" || uid == "superadmin" {
+                                            continue;
+                                        }
+                                        checked_employees += 1;
+                                        checked_in_type += 1;
 
-                                if !is_active_in_hemis {
-                                    if let Ok(was_changed) = UserRepository::set_user_active(pool, uid, false).await {
-                                        if was_changed {
-                                            deactivated_count += 1;
-                                            let actual_role = if let Ok(Some(u)) = UserRepository::find_by_user_id_any(pool, uid).await {
-                                                if u.role == "admin" {
-                                                    tracing::info!(employee_id = %uid, "Admin sifatida belgilangan xodim HEMIS bo'yicha nofaol qilindi (roli 'admin' saqlab qolindi)");
-                                                }
-                                                u.role
-                                            } else {
-                                                "employee".to_string()
-                                            };
-                                            tracing::warn!(employee_id = %uid, role = %actual_role, "Xodim HEMIS da ishdan bo'shagani sababli nofaol qilindi");
+                                        // employeeStatus tekshiruvi: "14" = Bo'shagan, "11" (asosiy), "12" (ichki o'rindosh), "13" (tashqi o'rindosh) va null = faol
+                                        let is_active_in_hemis = emp.employee_status
+                                            .as_ref()
+                                            .and_then(|s| s.code.as_deref())
+                                            .map(|code| code != "14")
+                                            .unwrap_or(true);
 
-                                            if let Ok(unreturned_books) = RentalRepository::get_unreturned_books_by_user_id(pool, uid).await {
-                                                if !unreturned_books.is_empty() {
-                                                    users_with_debt.push(UserDebtSummary {
-                                                        user_id: uid.to_string(),
-                                                        full_name: emp.full_name.clone().unwrap_or_else(|| "Noma'lum".to_string()),
-                                                        role: actual_role,
-                                                        department: emp.department.as_ref().and_then(|d| d.name.clone()),
-                                                        group_or_position: emp.staff_position.as_ref().and_then(|s| s.name.clone()),
-                                                        phone: None,
-                                                        books: unreturned_books,
-                                                    });
+                                        if !is_active_in_hemis {
+                                            if let Ok(was_changed) = UserRepository::set_user_active(pool, uid, false).await {
+                                                if was_changed {
+                                                    deactivated_count += 1;
+                                                    let actual_role = if let Ok(Some(u)) = UserRepository::find_by_user_id_any(pool, uid).await {
+                                                        if u.role == "admin" {
+                                                            tracing::info!(employee_id = %uid, "Admin sifatida belgilangan xodim HEMIS bo'yicha nofaol qilindi (roli 'admin' saqlab qolindi)");
+                                                        }
+                                                        u.role
+                                                    } else {
+                                                        emp_type.to_string()
+                                                    };
+                                                    tracing::warn!(employee_id = %uid, role = %actual_role, "{} HEMIS da ishdan bo'shagani sababli nofaol qilindi", emp_label);
+
+                                                    if let Ok(unreturned_books) = RentalRepository::get_unreturned_books_by_user_id(pool, uid).await {
+                                                        if !unreturned_books.is_empty() {
+                                                            users_with_debt.push(UserDebtSummary {
+                                                                user_id: uid.to_string(),
+                                                                full_name: emp.full_name.clone().unwrap_or_else(|| "Noma'lum".to_string()),
+                                                                role: actual_role,
+                                                                department: emp.department.as_ref().and_then(|d| d.name.clone()),
+                                                                group_or_position: emp.staff_position.as_ref().and_then(|s| s.name.clone()),
+                                                                phone: None,
+                                                                books: unreturned_books,
+                                                            });
+                                                        }
+                                                    }
                                                 }
                                             }
+                                        } else {
+                                            // HEMIS da faol bo'lsa (ishga qaytgan bo'lsa), faol holatga keltirish
+                                            hemis_active_ids.insert(uid.to_string());
+                                            let _ = UserRepository::set_user_active(pool, uid, true).await;
                                         }
                                     }
-                                } else {
-                                    // HEMIS da faol bo'lsa (ishga qaytgan bo'lsa), faol holatga keltirish
-                                    hemis_active_emp_ids.insert(uid.to_string());
-                                    let _ = UserRepository::set_user_active(pool, uid, true).await;
                                 }
+                            }
+                            Err(e) => {
+                                tracing::error!(emp_type, page = emp_page, error = %e, "{} javobini parse qilishda xatolik", emp_label);
+                                emp_type_sync_ok = false;
+                                break;
                             }
                         }
                     }
+                    Ok(resp) => {
+                        tracing::error!(emp_type, page = emp_page, status = %resp.status(), "{} sahifasini olishda HTTP xatosi", emp_label);
+                        emp_type_sync_ok = false;
+                        break;
+                    }
+                    Err(e) => {
+                        tracing::error!(emp_type, page = emp_page, error = %e, "{} sahifasini olishda tarmoq xatosi", emp_label);
+                        emp_type_sync_ok = false;
+                        break;
+                    }
                 }
-                _ => {
-                    tracing::error!(page = emp_page, "Xodimlar sahifasini tekshirishda xatolik yuz berdi");
+
+                if emp_page >= emp_total_pages {
                     break;
                 }
+                emp_page += 1;
             }
 
-            if emp_page >= emp_total_pages {
-                break;
-            }
-            emp_page += 1;
-        }
+            // 2.1. HEMIS ro'yxatida umuman bo'lmagan (ishdan bo'shagan) xodimlarni aniqlash va nofaol qilish
+            // XAVFSIZLIK (Circuit Breaker):
+            // Faqat HEMIS dan sahifalar muvaffaqiyatli olingan va kamida 1 ta xodim topilgandagina solishtirish o'tkaziladi.
+            if emp_type_sync_ok && checked_in_type > 0 && !hemis_active_ids.is_empty() {
+                if let Ok(db_active_emps) = UserRepository::find_active_user_ids_by_roles(pool, target_roles).await {
+                    let missing_emps: Vec<String> = db_active_emps
+                        .into_iter()
+                        .filter(|id| {
+                            !hemis_active_ids.contains(id)
+                                && id != &config.admin_login
+                                && id != "admin"
+                                && id != "superadmin"
+                        })
+                        .collect();
 
-        // 2.1. HEMIS ro'yxatida umuman bo'lmagan (ishdan bo'shagan) xodimlarni aniqlash va nofaol qilish
-        if let Ok(db_active_emps) = UserRepository::find_active_user_ids_by_roles(pool, &["teacher", "employee", "staff"]).await {
-            let missing_emps: Vec<String> = db_active_emps
-                .into_iter()
-                .filter(|id| {
-                    !hemis_active_emp_ids.contains(id)
-                        && id != &config.admin_login
-                        && id != "admin"
-                        && id != "superadmin"
-                })
-                .collect();
+                    if !missing_emps.is_empty() {
+                        tracing::info!(
+                            count = missing_emps.len(),
+                            emp_type,
+                            "Haftalik tekshiruv: HEMIS ro'yxatida yo'q bo'lgan {} (bo'shaganlar) tekshirilmoqda...",
+                            emp_label
+                        );
 
-            if !missing_emps.is_empty() {
-                tracing::info!(
-                    count = missing_emps.len(),
-                    "Haftalik tekshiruv: HEMIS ro'yxatida yo'q bo'lgan xodimlar (bo'shaganlar) tekshirilmoqda..."
-                );
+                        for uid in &missing_emps {
+                            let user_opt = UserRepository::find_by_user_id_any(pool, uid).await.unwrap_or(None);
+                            let actual_role = user_opt.as_ref().map(|u| u.role.clone()).unwrap_or_else(|| emp_type.to_string());
+                            if actual_role == "admin" || actual_role == "staff" {
+                                continue;
+                            }
 
-                for uid in &missing_emps {
-                    let user_opt = UserRepository::find_by_user_id_any(pool, uid).await.unwrap_or(None);
-                    let actual_role = user_opt.as_ref().map(|u| u.role.clone()).unwrap_or_else(|| "employee".to_string());
-                    if actual_role == "admin" {
-                        continue;
-                    }
+                            if let Ok(was_changed) = UserRepository::set_user_active(pool, uid, false).await {
+                                if was_changed {
+                                    deactivated_count += 1;
+                                    let full_name = user_opt.as_ref().map(|u| u.full_name.clone()).unwrap_or_else(|| "Noma'lum".to_string());
+                                    let dept = user_opt.as_ref().and_then(|u| u.department_name.clone());
+                                    let position = user_opt.as_ref().and_then(|u| u.staff_position.clone());
+                                    let phone = user_opt.as_ref().and_then(|u| u.phone.clone());
 
-                    if let Ok(was_changed) = UserRepository::set_user_active(pool, uid, false).await {
-                        if was_changed {
-                            deactivated_count += 1;
-                            let full_name = user_opt.as_ref().map(|u| u.full_name.clone()).unwrap_or_else(|| "Noma'lum".to_string());
-                            let dept = user_opt.as_ref().and_then(|u| u.department_name.clone());
-                            let position = user_opt.as_ref().and_then(|u| u.staff_position.clone());
-                            let phone = user_opt.as_ref().and_then(|u| u.phone.clone());
+                                    tracing::warn!(employee_id = %uid, full_name = %full_name, role = %actual_role, "{} HEMIS ro'yxatida bo'lmagani (bo'shagan) sababli nofaol qilindi", emp_label);
 
-                            tracing::warn!(employee_id = %uid, full_name = %full_name, role = %actual_role, "Xodim HEMIS ro'yxatida bo'lmagani (bo'shagan) sababli nofaol qilindi");
-
-                            if let Ok(unreturned_books) = RentalRepository::get_unreturned_books_by_user_id(pool, uid).await {
-                                if !unreturned_books.is_empty() {
-                                    users_with_debt.push(UserDebtSummary {
-                                        user_id: uid.clone(),
-                                        full_name,
-                                        role: actual_role,
-                                        department: dept,
-                                        group_or_position: position,
-                                        phone,
-                                        books: unreturned_books,
-                                    });
+                                    if let Ok(unreturned_books) = RentalRepository::get_unreturned_books_by_user_id(pool, uid).await {
+                                        if !unreturned_books.is_empty() {
+                                            users_with_debt.push(UserDebtSummary {
+                                                user_id: uid.clone(),
+                                                full_name,
+                                                role: actual_role,
+                                                department: dept,
+                                                group_or_position: position,
+                                                phone,
+                                                books: unreturned_books,
+                                            });
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
                 }
+            } else if !emp_type_sync_ok {
+                tracing::warn!(
+                    emp_type,
+                    "⚠️ {} ro'yxatini HEMIS dan olishda xatolik yuz bergani sababli xodimlarni nofaol qilish bekor qilindi (xavfsizlik himoyasi)",
+                    emp_label
+                );
             }
         }
 

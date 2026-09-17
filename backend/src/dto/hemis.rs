@@ -14,13 +14,24 @@ pub struct HemisApiResponse {
 #[derive(Debug, Deserialize)]
 pub struct HemisData {
     pub items: Vec<HemisStudentItem>,
+    #[serde(default)]
     pub pagination: HemisPagination,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct HemisPagination {
-    #[serde(rename = "pageCount")]
+    #[serde(alias = "pageCount", alias = "page_count", alias = "totalPages", alias = "total_pages", default = "default_page_count")]
     pub page_count: i64,
+}
+
+fn default_page_count() -> i64 {
+    1
+}
+
+impl Default for HemisPagination {
+    fn default() -> Self {
+        Self { page_count: 1 }
+    }
 }
 
 /// HEMIS API dagi {code, name} formatidagi maydonlar
@@ -50,6 +61,7 @@ pub struct HemisGroup {
 
 /// HEMIS API dan keladigan bitta talaba ma'lumotlari
 #[derive(Debug, Deserialize, Clone)]
+#[allow(dead_code)]
 pub struct HemisStudentItem {
     pub full_name: Option<String>,
     pub short_name: Option<String>,
@@ -81,13 +93,16 @@ pub struct HemisEmployeeApiResponse {
 #[derive(Debug, Deserialize)]
 pub struct HemisEmployeeData {
     pub items: Vec<HemisEmployeeItem>,
+    #[serde(default)]
     pub pagination: HemisPagination,
 }
 
 /// HEMIS API dan keladigan bitta xodim/o'qituvchi ma'lumotlari
 #[derive(Debug, Deserialize, Clone)]
+#[allow(dead_code)]
 pub struct HemisEmployeeItem {
-    pub id: i64,
+    #[serde(default)]
+    pub id: Option<serde_json::Value>,
     pub full_name: Option<String>,
     pub short_name: Option<String>,
     pub employee_id_number: Option<String>,

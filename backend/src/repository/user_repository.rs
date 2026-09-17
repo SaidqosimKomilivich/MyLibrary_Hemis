@@ -292,6 +292,7 @@ impl UserRepository {
                 $5::date[], $6::text[], $7::text[], $8::bigint[],
                 $9::text[], $10::text[], $11::text[], $12::text[], $13::boolean[]
             )
+            ON CONFLICT ("user_id") DO NOTHING
             "#,
         )
         .bind(&user_ids)
@@ -368,8 +369,8 @@ impl UserRepository {
                 "full_name" = c.full_name,
                 "short_name" = c.short_name,
                 "birth_date" = c.birth_date,
-                "image_url" = c.image_url,
-                "email" = c.email,
+                "image_url" = COALESCE(c.image_url, u."image_url"),
+                "email" = COALESCE(c.email, u."email"),
                 "department_name" = c.department_name,
                 "specialty_name" = c.specialty_name,
                 "group_name" = c.group_name,
@@ -488,8 +489,166 @@ impl UserRepository {
         Ok(users)
     }
 
+    /// Ommaviy tarzda yangi xodimlarni yaratish (HEMIS sinxronlash uchun)
+    pub async fn bulk_create_employees<'a>(
+        pool: &PgPool,
+        employees: impl Iterator<
+            Item = (
+                &'a str,           // user_id
+                &'a str,           // password_hash
+                &'a str,           // role
+                &'a str,           // full_name
+                Option<&'a str>,   // short_name
+                Option<NaiveDate>, // birth_date
+                Option<&'a str>,   // image_url
+                Option<&'a str>,   // department_name
+                Option<&'a str>,   // staff_position
+                bool,              // active
+            ),
+        >,
+    ) -> Result<(), AppError> {
+        let mut user_ids = Vec::new();
+        let mut password_hashes = Vec::new();
+        let mut roles = Vec::new();
+        let mut full_names = Vec::new();
+        let mut short_names = Vec::new();
+        let mut birth_dates = Vec::new();
+        let mut image_urls = Vec::new();
+        let mut department_names = Vec::new();
+        let mut staff_positions = Vec::new();
+        let mut actives = Vec::new();
+
+        for e in employees {
+            user_ids.push(e.0);
+            password_hashes.push(e.1);
+            roles.push(e.2);
+            full_names.push(e.3);
+            short_names.push(e.4);
+            birth_dates.push(e.5);
+            image_urls.push(e.6);
+            department_names.push(e.7);
+            staff_positions.push(e.8);
+            actives.push(e.9);
+        }
+
+        if user_ids.is_empty() {
+            return Ok(());
+        }
+
+        sqlx::query(
+            r#"
+            INSERT INTO "users" (
+                "user_id", "password", "role", "full_name", "short_name",
+                "birth_date", "image_url", "id_card",
+                "department_name", "staff_position", "active"
+            )
+            SELECT
+                user_id, password, role, full_name, short_name,
+                birth_date, image_url, 0::bigint,
+                department_name, staff_position, active
+            FROM UNNEST (
+                $1::text[], $2::text[], $3::text[], $4::text[], $5::text[],
+                $6::date[], $7::text[], $8::text[], $9::text[], $10::boolean[]
+            ) AS t(user_id, password, role, full_name, short_name, birth_date, image_url, department_name, staff_position, active)
+            ON CONFLICT ("user_id") DO NOTHING
+            "#,
+        )
+        .bind(&user_ids)
+        .bind(&password_hashes)
+        .bind(&roles)
+        .bind(&full_names)
+        .bind(&short_names)
+        .bind(&birth_dates)
+        .bind(&image_urls)
+        .bind(&department_names)
+        .bind(&staff_positions)
+        .bind(&actives)
+        .execute(pool)
+        .await?;
+
+        Ok(())
+    }
+
+    /// Ommaviy tarzda xodimlarni yangilash (HEMIS dagi statusi bilan birgalikda)
+    pub async fn bulk_update_employees<'a>(
+        pool: &PgPool,
+        employees: impl Iterator<
+            Item = (
+                &'a str,           // user_id
+                &'a str,           // role
+                &'a str,           // full_name
+                Option<&'a str>,   // short_name
+                Option<NaiveDate>, // birth_date
+                Option<&'a str>,   // image_url
+                Option<&'a str>,   // department_name
+                Option<&'a str>,   // staff_position
+                bool,              // active
+            ),
+        >,
+    ) -> Result<(), AppError> {
+        let mut user_ids = Vec::new();
+        let mut roles = Vec::new();
+        let mut full_names = Vec::new();
+        let mut short_names = Vec::new();
+        let mut birth_dates = Vec::new();
+        let mut image_urls = Vec::new();
+        let mut department_names = Vec::new();
+        let mut staff_positions = Vec::new();
+        let mut actives = Vec::new();
+
+        for e in employees {
+            user_ids.push(e.0);
+            roles.push(e.1);
+            full_names.push(e.2);
+            short_names.push(e.3);
+            birth_dates.push(e.4);
+            image_urls.push(e.5);
+            department_names.push(e.6);
+            staff_positions.push(e.7);
+            actives.push(e.8);
+        }
+
+        if user_ids.is_empty() {
+            return Ok(());
+        }
+
+        sqlx::query(
+            r#"
+            UPDATE "users" AS u SET
+                "role" = CASE WHEN u."role" IN ('admin', 'staff') THEN u."role" ELSE c.role END,
+                "full_name" = c.full_name,
+                "short_name" = c.short_name,
+                "birth_date" = c.birth_date,
+                "image_url" = COALESCE(c.image_url, u."image_url"),
+                "department_name" = c.department_name,
+                "staff_position" = c.staff_position,
+                "active" = c.active
+            FROM (
+                SELECT * FROM UNNEST (
+                    $1::text[], $2::text[], $3::text[], $4::text[],
+                    $5::date[], $6::text[], $7::text[], $8::text[], $9::boolean[]
+                ) AS t(user_id, role, full_name, short_name, birth_date, image_url, department_name, staff_position, active)
+            ) AS c
+            WHERE u."user_id" = c.user_id
+            "#,
+        )
+        .bind(&user_ids)
+        .bind(&roles)
+        .bind(&full_names)
+        .bind(&short_names)
+        .bind(&birth_dates)
+        .bind(&image_urls)
+        .bind(&department_names)
+        .bind(&staff_positions)
+        .bind(&actives)
+        .execute(pool)
+        .await?;
+
+        Ok(())
+    }
+
     /// Yangi xodim/o'qituvchi yaratish (HEMIS sinxronlash uchun)
-    #[allow(clippy::too_many_arguments)]
+    #[allow(clippy::too_many_arguments, dead_code)]
     pub async fn create_employee(
         pool: &PgPool,
         user_id: &str,
@@ -531,7 +690,7 @@ impl UserRepository {
     }
 
     /// Xodim/o'qituvchi ma'lumotlarini yangilash (HEMIS dagi statusi bilan birgalikda)
-    #[allow(clippy::too_many_arguments)]
+    #[allow(clippy::too_many_arguments, dead_code)]
     pub async fn update_employee_info(
         pool: &PgPool,
         user_id: &str,
@@ -648,6 +807,7 @@ impl UserRepository {
     }
 
     /// user_id lar ro'yxati bo'yicha foydalanuvchilarni olish
+    #[allow(dead_code)]
     pub async fn find_users_by_user_ids(
         pool: &PgPool,
         user_ids: &[String],
