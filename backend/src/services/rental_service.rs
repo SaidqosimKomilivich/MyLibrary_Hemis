@@ -36,8 +36,19 @@ impl RentalService {
             ));
         }
 
+        // Agar user_id UUID sifatida yuborilgan bo'lsa (eski qoldiq), uni HEMIS user_id ga aylantiramiz
+        let final_user_id = if let Ok(uuid_val) = uuid::Uuid::parse_str(&req.user_id) {
+            if let Some(u) = crate::repository::user_repository::UserRepository::find_by_id_any(pool, uuid_val).await? {
+                u.user_id
+            } else {
+                req.user_id.clone()
+            }
+        } else {
+            req.user_id.clone()
+        };
+
         // Dublikat tekshirish: foydalanuvchida bu kitob allaqachon aktiv ijarada bormi?
-        if RentalRepository::find_active_by_user_and_book(pool, &req.user_id, &req.book_id).await? {
+        if RentalRepository::find_active_by_user_and_book(pool, &final_user_id, &req.book_id).await? {
             return Err(AppError::BadRequest(
                 "bu kitobni siz avval olgansiz va hali qaytarmagansiz, kitobni berish munkin emas".to_string(),
             ));
@@ -54,7 +65,7 @@ impl RentalService {
         // Ijara yaratish
         let id = RentalRepository::create(
             pool,
-            &req.user_id,
+            &final_user_id,
             &req.book_id,
             due_date,
             &req.invoice_number,
@@ -64,7 +75,7 @@ impl RentalService {
 
         tracing::info!(
             rental_id = %id,
-            user_id = %req.user_id,
+            user_id = %final_user_id,
             book_id = %req.book_id,
             "Kitob topshirildi"
         );

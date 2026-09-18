@@ -418,7 +418,7 @@ impl UserRepository {
 
         if search.is_some() {
             query.push_str(&format!(
-                r#" AND (LOWER("full_name") LIKE LOWER(${0}::text) OR LOWER(COALESCE("department_name",'')) LIKE LOWER(${0}::text) OR LOWER(COALESCE("group_name",'')) LIKE LOWER(${0}::text) OR LOWER(COALESCE("staff_position",'')) LIKE LOWER(${0}::text))"#,
+                r#" AND (LOWER("full_name") LIKE LOWER(${0}::text) OR LOWER("user_id") LIKE LOWER(${0}::text) OR LOWER(COALESCE("department_name",'')) LIKE LOWER(${0}::text) OR LOWER(COALESCE("group_name",'')) LIKE LOWER(${0}::text) OR LOWER(COALESCE("staff_position",'')) LIKE LOWER(${0}::text))"#,
                 param_idx
             ));
             param_idx += 1;
@@ -458,7 +458,7 @@ impl UserRepository {
 
         if search.is_some() {
             query.push_str(&format!(
-                r#" AND (LOWER("full_name") LIKE LOWER(${0}::text) OR LOWER(COALESCE("department_name",'')) LIKE LOWER(${0}::text) OR LOWER(COALESCE("group_name",'')) LIKE LOWER(${0}::text) OR LOWER(COALESCE("staff_position",'')) LIKE LOWER(${0}::text))"#,
+                r#" AND (LOWER("full_name") LIKE LOWER(${0}::text) OR LOWER("user_id") LIKE LOWER(${0}::text) OR LOWER(COALESCE("department_name",'')) LIKE LOWER(${0}::text) OR LOWER(COALESCE("group_name",'')) LIKE LOWER(${0}::text) OR LOWER(COALESCE("staff_position",'')) LIKE LOWER(${0}::text))"#,
                 param_idx
             ));
             param_idx += 1;

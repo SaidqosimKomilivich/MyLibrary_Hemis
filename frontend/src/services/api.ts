@@ -423,7 +423,7 @@ export const api = {
     },
 
     getUserById(id: string) {
-        return request<{ success: boolean; data: UserData }>(`/users/${id}`)
+        return request<{ success: boolean; data: UserData }>(`/users/${encodeURIComponent(id.trim())}`)
     },
 
     updateUserRole(id: string, role: string) {

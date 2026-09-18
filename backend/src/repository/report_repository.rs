@@ -43,7 +43,7 @@ impl ReportRepository {
                 u."staff_position" as staff_position
             FROM "book_rentals" r
             LEFT JOIN "book" b ON b."id"::text = r."book_id"
-            LEFT JOIN "users" u ON u."user_id" = r."user_id"
+            LEFT JOIN "users" u ON (u."user_id" = r."user_id" OR u."id"::text = r."user_id")
             ORDER BY r."loan_date" DESC
             LIMIT $1"#,
         )
@@ -59,21 +59,20 @@ impl ReportRepository {
         pool: &PgPool,
         limit: i64,
     ) -> Result<Vec<ControlResponse>, AppError> {
-        let records = sqlx::query_as!(
-            ControlWithDetails,
+        let records = sqlx::query_as::<_, ControlWithDetails>(
             r#"SELECT 
                 c."id", c."user_id", c."arrival", c."departure",
-                u."full_name" as "full_name?",
-                u."role" as "role?",
-                u."department_name" as "department_name?",
-                u."group_name" as "group_name?",
-                u."staff_position" as "staff_position?"
+                u."full_name",
+                u."role",
+                u."department_name",
+                u."group_name",
+                u."staff_position"
             FROM "control" c
-            LEFT JOIN "users" u ON u."user_id" = c."user_id"
+            LEFT JOIN "users" u ON (u."user_id" = c."user_id" OR u."id"::text = c."user_id")
             ORDER BY c."arrival" DESC
             LIMIT $1"#,
-            limit
         )
+        .bind(limit)
         .fetch_all(pool)
         .await?;
 

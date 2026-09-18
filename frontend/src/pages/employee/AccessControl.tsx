@@ -112,6 +112,40 @@ export default function AccessControl() {
         }
     }
 
+// QR skanerlangan matndan ID ni ajratib olish (URL yoki JSON bo'lsa ham)
+function extractIdFromScannedText(rawText: string): string {
+    const text = rawText.trim()
+    if (!text) return ''
+
+    // URL bo'lsa (masalan https://.../student?code=395211... yoki .../student/395211...)
+    if (text.startsWith('http://') || text.startsWith('https://')) {
+        try {
+            const url = new URL(text)
+            const codeParam = url.searchParams.get('code') || url.searchParams.get('id') || url.searchParams.get('user_id')
+            if (codeParam) return codeParam.trim()
+            const segments = url.pathname.split('/').filter(Boolean)
+            if (segments.length > 0) {
+                return segments[segments.length - 1].trim()
+            }
+        } catch {
+            // oddiy satr sifatida davom etamiz
+        }
+    }
+
+    // JSON formatda bo'lsa
+    if (text.startsWith('{') && text.endsWith('}')) {
+        try {
+            const parsed = JSON.parse(text)
+            const idVal = parsed.user_id || parsed.id || parsed.code || text
+            return String(idVal).trim()
+        } catch {
+            // oddiy satr
+        }
+    }
+
+    return text
+}
+
     // 1. Scanner instance ref
     const scannerRef = useRef<Html5Qrcode | null>(null);
     const [, setScannerActive] = useState(false);
@@ -123,15 +157,9 @@ export default function AccessControl() {
         if (scannerRef.current?.isScanning) return; // allaqachon ishlayapti
 
         setTimeout(() => {
-            // QR + Shtrix kod formatlari
+            // Faqat QR-kod formati (tez va aniq o'qish uchun)
             const formatsToSupport = [
                 Html5QrcodeSupportedFormats.QR_CODE,
-                Html5QrcodeSupportedFormats.CODE_128,
-                Html5QrcodeSupportedFormats.CODE_39,
-                Html5QrcodeSupportedFormats.EAN_13,
-                Html5QrcodeSupportedFormats.EAN_8,
-                Html5QrcodeSupportedFormats.UPC_A,
-                Html5QrcodeSupportedFormats.UPC_E,
             ];
 
             const scanner = new Html5Qrcode("qr-reader", { formatsToSupport, verbose: false });
@@ -140,12 +168,17 @@ export default function AccessControl() {
             scanner.start(
                 selectedDeviceId,
                 {
-                    fps: 10,
+                    fps: 15,
+                    videoConstraints: {
+                        deviceId: { exact: selectedDeviceId },
+                        width: { min: 640, ideal: 1280, max: 1920 },
+                        height: { min: 480, ideal: 720, max: 1080 },
+                    },
                     // Responsiv qrbox: konteyner hajmiga qarab moslashadi
                     qrbox: (viewfinderWidth, viewfinderHeight) => {
                         const size = Math.min(viewfinderWidth, viewfinderHeight);
-                        const qrboxSize = Math.floor(size * 0.7); // 70% hajmda
-                        return { width: Math.max(qrboxSize, 150), height: Math.max(qrboxSize, 150) };
+                        const qrboxSize = Math.floor(size * 0.75);
+                        return { width: Math.max(qrboxSize, 180), height: Math.max(qrboxSize, 180) };
                     },
                     aspectRatio: 1.333334,
                 },
@@ -200,7 +233,8 @@ export default function AccessControl() {
 
     // ──── Scanner logic ────
     const handleScan = async (scannedId?: string) => {
-        const queryId = typeof scannedId === 'string' ? scannedId.trim() : scanInput.trim()
+        const rawText = typeof scannedId === 'string' ? scannedId : scanInput
+        const queryId = extractIdFromScannedText(rawText)
 
         if (!queryId) {
             if (typeof scannedId !== 'string') {
@@ -218,7 +252,7 @@ export default function AccessControl() {
         setActiveRentals([])
 
         try {
-            // 1. Avval users jadvalidan to'liq ma'lumotni olamiz
+            // 1. Avval users jadvalidan to'liq ma'lumotni olamiz (UUID yoki HEMIS user_id bo'yicha)
             const res = await api.getUserById(queryId)
             const found = res.data
             setScannedUser(found)
@@ -229,7 +263,7 @@ export default function AccessControl() {
             setTodayRecords(freshTodayRecords)
 
             // control.user_id = users.user_id (talaba raqami), queryId esa UUID bo'lishi mumkin
-            const userRecords = freshTodayRecords.filter(rec => rec.user_id === found.user_id)
+            const userRecords = freshTodayRecords.filter(rec => rec.user_id === found.user_id || (found.id && rec.user_id === found.id))
 
             // Eng YANGI yozuvni olish — backend arrival DESC tartibda qaytaradi
             const latestRecord = userRecords.length > 0 ? userRecords[0] : null

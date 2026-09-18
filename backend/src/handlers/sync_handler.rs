@@ -425,21 +425,32 @@ pub async fn get_admins(
     get_users_paginated(pool.get_ref(), &["admin"], query.into_inner()).await
 }
 
-/// GET /api/users/{id} - ID orqali foydalanuvchini olish
-/// Faqat admin yoki staff uchun (xavfsizlik: autentifikatsiyasiz ruxsat yo'q)
+/// GET /api/users/{id} - ID (UUID yoki HEMIS user_id) orqali foydalanuvchini olish
+/// Admin, staff yoki employee (kutubxonachi) uchun ruxsat berilgan
 pub async fn get_user_by_id(
     claims: Claims,
     pool: web::Data<PgPool>,
-    path: web::Path<uuid::Uuid>,
+    path: web::Path<String>,
 ) -> Result<HttpResponse, AppError> {
-    // Faqat admin yoki staff ko'ra oladi
-    if let Err(resp) = require_role(&claims, &["admin", "staff"]) {
+    // Admin, staff yoki employee ko'ra oladi
+    if let Err(resp) = require_role(&claims, &["admin", "staff", "employee"]) {
         return Ok(resp);
     }
 
-    let user_id = path.into_inner();
+    let identifier = path.into_inner().trim().to_string();
 
-    let user = UserRepository::find_by_id_any(pool.get_ref(), user_id).await?;
+    // 1. Agar UUID bo'lsa, avval UUID (id) bo'yicha qidiramiz
+    let user = if let Ok(uuid_val) = uuid::Uuid::parse_str(&identifier) {
+        if let Some(u) = UserRepository::find_by_id_any(pool.get_ref(), uuid_val).await? {
+            Some(u)
+        } else {
+            // UUID sifatida topilmasa, user_id (string) bo'yicha ham tekshiramiz
+            UserRepository::find_by_user_id_any(pool.get_ref(), &identifier).await?
+        }
+    } else {
+        // 2. Aks holda (masalan talaba HEMIS ID: "395211100055"), user_id bo'yicha qidiramiz
+        UserRepository::find_by_user_id_any(pool.get_ref(), &identifier).await?
+    };
 
     if let Some(u) = user {
         let response: crate::dto::user::UserResponse = u.into();

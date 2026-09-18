@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { User, Mail, Phone, Building2, GraduationCap, BookOpen, Calendar, Shield, Lock, Eye, EyeOff, Check, X, Loader2, Download, IdCard, RotateCw, MapPin } from 'lucide-react'
+import { User, Mail, Phone, Building2, GraduationCap, BookOpen, Calendar, Shield, Lock, Eye, EyeOff, Check, X, Loader2, Download, IdCard, RotateCw, MapPin, Printer } from 'lucide-react'
 import { toast } from 'react-toastify'
 import { useAuth } from '../context/AuthContext'
 import { api } from '../services/api'
@@ -27,7 +27,9 @@ export default function ProfilePage() {
     const [showConfirm, setShowConfirm] = useState(false)
     const [loading, setLoading] = useState(false)
     const [downloading, setDownloading] = useState(false)
+    const [printing, setPrinting] = useState(false)
     const [cardFlipped, setCardFlipped] = useState(false)
+    const [imgLoadError, setImgLoadError] = useState(false)
     const frontRef = useRef<HTMLDivElement>(null)
     const backRef = useRef<HTMLDivElement>(null)
 
@@ -60,25 +62,24 @@ export default function ProfilePage() {
         const hasSpecial = /[^A-Za-z0-9]/.test(newPassword);
 
         if (!hasUpper || !hasLower || !hasDigit || !hasSpecial) {
-            toast.error("Parolda kamida bitta katta harf, bitta kichik harf, bitta raqam va bitta maxsus belgi bo'lishi kerak");
-            return;
+            toast.error("Parol kamida 1 ta katta harf, 1 ta kichik harf, 1 ta raqam va 1 ta maxsus belgidan iborat bo'lishi kerak")
+            return
         }
         setLoading(true)
         try {
-            await api.changePassword(oldPassword, newPassword)
-            toast.success("Parol muvaffaqiyatli o'zgartirildi")
-            setOldPassword('')
-            setNewPassword('')
-            setConfirmPassword('')
+            const res = await api.changePassword(oldPassword, newPassword)
+            if (res.success) {
+                toast.success("Parol muvaffaqiyatli o'zgartirildi!")
+                setOldPassword('')
+                setNewPassword('')
+                setConfirmPassword('')
+            } else {
+                toast.error(res.message || "Parolni o'zgartirishda xatolik")
+            }
         }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         catch (err: any) {
-            // If backend endpoint doesn't exist yet (404), show info
-            if (err.status === 404) {
-                toast.info("Parol o'zgartirish funksiyasi hali backend tomonida tayyor emas")
-            } else {
-                toast.error(err.message || "Parolni o'zgartirishda xatolik")
-            }
+            toast.error(err.message || "Eski parol noto'g'ri yoki serverda xatolik")
         } finally {
             setLoading(false)
         }
@@ -89,15 +90,19 @@ export default function ProfilePage() {
         if (!frontRef.current || !backRef.current || downloading) return
         setDownloading(true)
 
-        // Capture options - increased pixelRatio for better quality
-        const opts = { cacheBust: true, pixelRatio: 2, backgroundColor: '#ffffff', skipFonts: false }
+        // Capture options - 10.5cm x 7cm kartani 300 DPI sifatda (1260 x 840 px) eksport qilish
+        const opts = { cacheBust: true, pixelRatio: 3, backgroundColor: '#ffffff', skipFonts: false }
 
         try {
             let dataUrl = ''
             let fileNameSuffix = ''
 
             if (side === 'front') {
-                dataUrl = await toPng(frontRef.current, opts)
+                const frontEl = frontRef.current
+                const prevBackface = frontEl.style.backfaceVisibility
+                frontEl.style.backfaceVisibility = 'visible'
+                dataUrl = await toPng(frontEl, opts)
+                frontEl.style.backfaceVisibility = prevBackface
                 fileNameSuffix = '_old'
             } else {
                 // ── Back side: temporarily make it visible (undo 3D flip) ──
@@ -149,6 +154,134 @@ export default function ProfilePage() {
         document.body.removeChild(link)
         setTimeout(() => { URL.revokeObjectURL(dataUrl) }, 100)
     }
+
+    const handlePrintCard = async () => {
+        if (!frontRef.current || !backRef.current || printing) return
+        setPrinting(true)
+        try {
+            const opts = { cacheBust: true, pixelRatio: 3, backgroundColor: '#ffffff', skipFonts: false }
+            const frontEl = frontRef.current
+            const prevFrontBackface = frontEl.style.backfaceVisibility
+            frontEl.style.backfaceVisibility = 'visible'
+            const frontDataUrl = await toPng(frontEl, opts)
+            frontEl.style.backfaceVisibility = prevFrontBackface
+
+            const backEl = backRef.current
+            const prevTransform = backEl.style.transform
+            const prevBackface = backEl.style.backfaceVisibility
+            backEl.style.transform = 'rotateY(0deg)'
+            backEl.style.backfaceVisibility = 'visible'
+
+            const backDataUrl = await toPng(backEl, opts)
+
+            backEl.style.transform = prevTransform
+            backEl.style.backfaceVisibility = prevBackface
+
+            const printWin = window.open('', '_blank', 'width=900,height=700')
+            if (!printWin) {
+                toast.warning("Chop etish oynasi ochilmadi. Brauzer sozlamalaridan pop-up ga ruxsat bering.")
+                return
+            }
+
+            printWin.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="utf-8">
+                    <title>ID Karta (10.5sm x 7sm) - ${user.full_name || 'ID Karta'}</title>
+                    <style>
+                        @page {
+                            size: 10.5cm 7cm;
+                            margin: 0;
+                        }
+                        @media print {
+                            html, body {
+                                margin: 0;
+                                padding: 0;
+                                width: 10.5cm;
+                                height: 7cm;
+                                -webkit-print-color-adjust: exact;
+                                print-color-adjust: exact;
+                            }
+                            .page-break {
+                                page-break-after: always;
+                                break-after: page;
+                            }
+                        }
+                        body {
+                            margin: 0;
+                            padding: 20px;
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            gap: 20px;
+                            font-family: 'Inter', sans-serif;
+                            background: #f1f5f9;
+                        }
+                        .header-actions {
+                            display: flex;
+                            gap: 16px;
+                            align-items: center;
+                        }
+                        .print-btn {
+                            padding: 10px 24px;
+                            background: #1e2a78;
+                            color: white;
+                            border: none;
+                            border-radius: 8px;
+                            font-size: 15px;
+                            font-weight: 600;
+                            cursor: pointer;
+                            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+                        }
+                        .size-label {
+                            font-size: 14px;
+                            color: #334155;
+                            font-weight: 600;
+                        }
+                        .card-container {
+                            width: 10.5cm;
+                            height: 7cm;
+                            border-radius: 12px;
+                            overflow: hidden;
+                            box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+                            background: white;
+                        }
+                        .card-container img {
+                            width: 100%;
+                            height: 100%;
+                            display: block;
+                            object-fit: fill;
+                        }
+                        @media print {
+                            body { background: transparent; padding: 0; gap: 0; }
+                            .header-actions { display: none !important; }
+                            .card-container { box-shadow: none; border-radius: 0; width: 10.5cm; height: 7cm; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="header-actions">
+                        <span class="size-label">O'lchami: 10.5 sm × 7.0 sm</span>
+                        <button class="print-btn" onclick="window.print()">🖨️ Chop etish (Print)</button>
+                    </div>
+                    <div class="card-container page-break">
+                        <img src="${frontDataUrl}" alt="Old tomoni" />
+                    </div>
+                    <div class="card-container">
+                        <img src="${backDataUrl}" alt="Orqa tomoni" />
+                    </div>
+                </body>
+                </html>
+            `)
+            printWin.document.close()
+        } catch (e) {
+            console.error(e)
+            toast.error("Chop etishda xatolik yuz berdi")
+        } finally {
+            setPrinting(false)
+        }
+    }
     // Role-specific info items
     const commonItems = [
         { icon: <User size={18} />, label: 'F.I.Sh', value: user.full_name },
@@ -195,8 +328,14 @@ export default function ProfilePage() {
             {/* Profile Header Card */}
             <div className="bg-surface rounded-2xl mb-8 p-6 md:p-8 flex flex-col md:flex-row items-center md:items-start gap-6 border border-border shadow-soft relative overflow-hidden isolate">
                 <div className="relative z-10 w-24 h-24 md:w-28 md:h-28 rounded-full border-4 border-surface shadow-md shrink-0 bg-background flex items-center justify-center">
-                    {user.image_url ? (
-                        <img src={getProxyImageUrl(user.image_url)} crossOrigin="anonymous" alt={user.full_name} className="w-full h-full rounded-full object-cover" />
+                    {user.image_url && !imgLoadError ? (
+                        <img
+                            src={getProxyImageUrl(user.image_url)}
+                            crossOrigin="anonymous"
+                            alt={user.full_name}
+                            onError={() => setImgLoadError(true)}
+                            className="w-full h-full rounded-full object-cover"
+                        />
                     ) : (
                         <span className="text-[2.5rem] font-bold text-primary">
                             {(user.full_name || user.user_id || '?').charAt(0).toUpperCase()}
@@ -385,12 +524,20 @@ export default function ProfilePage() {
                 {/* ===== ID CARD TAB ===== */}
                 {activeTab === 'card' && (
                     <div className='grid justify-center'>
-                        <div className='w-105 h-70 cursor-pointer' style={{ perspective: '1000px' }} onClick={() => setCardFlipped(!cardFlipped)}>
+                        {/* 10.5 sm x 7 sm o'lcham indikatori */}
+                        <div className="flex items-center justify-between mb-3 px-1 text-xs">
+                            <span className="font-semibold text-text">ID Karta formati:</span>
+                            <span className="bg-primary/10 text-primary-light font-bold px-2.5 py-0.5 rounded-md border border-primary/20">
+                                10,5 sm × 7,0 sm
+                            </span>
+                        </div>
+
+                        <div className='w-105 h-70 cursor-pointer' style={{ perspective: '1000px', width: '420px', height: '280px' }} onClick={() => setCardFlipped(!cardFlipped)}>
                             <div className='relative w-full h-full transition-transform duration-700' style={{ transformStyle: 'preserve-3d', transform: cardFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)' }}>
 
                                 {/* frontRef shu yerga */}
-                                <div ref={frontRef} className='absolute inset-0 bg-white/40 rounded-2xl flex items-center justify-center' style={{ backfaceVisibility: 'hidden' }}>
-                                    <svg width="420" height="280" viewBox="0 0 420 280" className='rounded-2xl'>
+                                <div ref={frontRef} style={{ width: '420px', height: '280px', position: 'relative', overflow: 'hidden', borderRadius: '16px', backgroundColor: '#ffffff', backfaceVisibility: 'hidden', boxShadow: '0 4px 16px rgba(0,0,0,0.12)', fontFamily: "'Inter', -apple-system, sans-serif" }}>
+                                    <svg width="420" height="280" viewBox="0 0 420 280" style={{ position: 'absolute', top: 0, left: 0, width: '420px', height: '280px', pointerEvents: 'none' }}>
                                         <defs>
                                             {/* <!-- Ko‘k gradient --> */}
                                             <linearGradient id="blueGrad" x1="0" y1="0" x2="1" y2="0">
@@ -418,81 +565,107 @@ export default function ProfilePage() {
 
                                             {/* <!-- Rounded clip --> */}
                                             <clipPath id="cardClip">
-                                                <rect width="420" height="280" />
+                                                <rect width="420" height="280" rx="16" />
                                             </clipPath>
                                         </defs>
 
-                                        {/* <!-- Karta --> */}
-                                        <rect width="420" height="280" fill="#f4f4f6" filter="url(#shadow)" />
+                                        {/* <!-- Karta foni --> */}
+                                        <rect width="420" height="280" fill="#ffffff" rx="16" />
 
                                         <g clipPath="url(#cardClip)">
-
                                             {/* <!-- Ko‘k qism --> */}
-                                            <path d="M 0 0 L 420 0 L 420 90 C 330 80, 260 75, 200 90 C 140 105, 80 115, 0 100 Z " fill="url(#blueGrad)" />
+                                            <path d="M 0 0 L 420 0 L 420 90 C 330 80, 260 75, 200 90 C 140 105, 80 115, 0 100 Z" fill="url(#blueGrad)" />
 
                                             {/* <!-- 1px och oltin separator --> */}
-                                            <path d="M 0 100 C 100 115, 180 105, 240 90 C 300 75, 360 80, 420 90 L 420 91 C 360 81, 300 86, 240 101 C 180 116, 100 126, 0 111 Z " fill="url(#lightGold)" />
+                                            <path d="M 0 100 C 100 115, 180 105, 240 90 C 300 75, 360 80, 420 90 L 420 91 C 360 81, 300 86, 240 101 C 180 116, 100 126, 0 111 Z" fill="url(#lightGold)" />
 
-                                            {/* <!-- Oltin wave (5px ingichkaroq) --> */}
+                                            {/* <!-- Oltin wave (5px) --> */}
                                             <path d="M 0 106 C 100 121, 180 111, 240 96 C 300 81, 360 86, 420 96 L 420 101 C 360 91, 300 96, 240 111 C 180 126, 100 136, 0 121 Z" fill="url(#goldGrad)" />
                                         </g>
                                     </svg>
-                                    <img src="/icon_arm.png" alt="" className='absolute w-20 h-20 left-3 top-3 bg-white p-1 rounded-full' />
 
-                                    {/* <img src="/logo.png" alt="" className='absolute top-3 left-3 w-20 h-20' /> */}
-                                    <p className='absolute top-3 left-28 uppercase font-medium'>MIRZO ULUG‘BEK NOMIDAGI O‘ZBEKISTON MILLIY UNIVERSITETI JIZZAX FILIALI</p>
-                                    <div className='absolute top-27 left-6 bg-white border border-black w-25 h-35 rounded-2xl overflow-hidden flex items-center justify-center'>
-                                        {user.image_url ? (
-                                            <img src={getProxyImageUrl(user.image_url)} crossOrigin="anonymous" alt={user.full_name} className='w-full h-full object-cover' />
+                                    {/* Universitet logotipi (Oltin hoshiyali doira) */}
+                                    <img
+                                        src="/icon_arm.png"
+                                        alt="ARM Logotipi"
+                                        style={{ position: 'absolute', top: '10px', left: '16px', width: '74px', height: '74px', borderRadius: '50%', backgroundColor: '#ffffff', padding: '2px', border: '2px solid #caa23a', boxShadow: '0 2px 6px rgba(0,0,0,0.18)', zIndex: 10 }}
+                                    />
+
+                                    {/* Universitet nomi (Har doim oq, aniq 3 qator) */}
+                                    <div style={{ position: 'absolute', top: '13px', left: '104px', width: '302px', color: '#ffffff', textTransform: 'uppercase', fontWeight: 700, fontSize: '11px', lineHeight: '1.25', letterSpacing: '0.02em', zIndex: 10 }}>
+                                        <div>MIRZO ULUG‘BEK NOMIDAGI</div>
+                                        <div>O‘ZBEKISTON MILLIY UNIVERSITETI</div>
+                                        <div style={{ color: '#f8fafc' }}>JIZZAX FILIALI</div>
+                                    </div>
+
+                                    {/* Foydalanuvchi fotosurati (Chap tomonda) */}
+                                    <div style={{ position: 'absolute', top: '108px', left: '22px', width: '98px', height: '144px', borderRadius: '16px', backgroundColor: '#ffffff', border: '1.5px solid #0f172a', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.06)', zIndex: 10 }}>
+                                        {user.image_url && !imgLoadError ? (
+                                            <img
+                                                src={getProxyImageUrl(user.image_url)}
+                                                crossOrigin="anonymous"
+                                                alt={user.full_name}
+                                                onError={() => setImgLoadError(true)}
+                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                            />
                                         ) : (
-                                            <div className='w-full h-full flex flex-col items-center justify-center bg-gray-100'>
-                                                <User size={40} className="text-gray-400 mb-2" />
-                                                <span style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e2a78' }}>
+                                            <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8fafc' }}>
+                                                <User size={38} color="#94a3b8" style={{ marginBottom: '4px' }} />
+                                                <span style={{ fontSize: '1.65rem', fontWeight: 800, color: '#1e2a78' }}>
                                                     {(user.full_name || user.user_id || '?').charAt(0).toUpperCase()}
                                                 </span>
                                             </div>
                                         )}
                                     </div>
-                                    <div className='absolute top-30 left-33 text-black flex flex-col gap-1' style={{ maxWidth: '140px' }}>
-                                        <p className='text-sm font-bold capitalize leading-tight'>{user.full_name || user.user_id}</p>
-                                        <p className='text-xs font-semibold' style={{ color: '#1e2a78' }}>{displayRole}</p>
+
+                                    {/* Foydalanuvchi ma'lumotlari (O'rtada) */}
+                                    <div style={{ position: 'absolute', top: '116px', left: '132px', width: '148px', display: 'flex', flexDirection: 'column', gap: '3px', zIndex: 10 }}>
+                                        <p style={{ margin: 0, fontSize: '14.5px', fontWeight: 800, color: '#0f172a', lineHeight: '1.2', textTransform: 'capitalize', wordBreak: 'break-word' }}>
+                                            {user.full_name || user.user_id}
+                                        </p>
+                                        <p style={{ margin: 0, fontSize: '12.5px', fontWeight: 700, color: '#1e2a78', lineHeight: '1.2' }}>
+                                            {displayRole}
+                                        </p>
 
                                         {(role || user.role) === 'student' && user.group_name && (
-                                            <p className='text-[10px] leading-tight' style={{ color: '#444' }}><span className="font-semibold">Guruh:</span> {user.group_name}</p>
+                                            <p style={{ margin: 0, fontSize: '10px', lineHeight: '1.2', color: '#334155', fontWeight: 500 }}>
+                                                <strong style={{ fontWeight: 700 }}>Guruh:</strong> {user.group_name}
+                                            </p>
                                         )}
-                                        {(role || user.role) === 'student' && user.department_name && (
-                                            <p className='text-[10px] leading-tight' style={{ color: '#666' }}>{user.department_name}</p>
+                                        {user.department_name && (
+                                            <p style={{ margin: 0, fontSize: '9.5px', lineHeight: '1.2', color: '#64748b', maxHeight: '34px', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                                                {user.department_name}
+                                            </p>
                                         )}
-
-                                        {((role || user.role) === 'teacher' || (role || user.role) === 'staff' || (role || user.role) === 'employee' || (role || user.role) === 'admin') && user.department_name && (
-                                            <p className='text-[10px] leading-tight' style={{ color: '#444' }}>{user.department_name}</p>
-                                        )}
-                                        {((role || user.role) === 'teacher' || (role || user.role) === 'staff' || (role || user.role) === 'employee' || (role || user.role) === 'admin') && user.staff_position && (
-                                            <p className='text-[10px] leading-tight' style={{ color: '#666' }}>{user.staff_position}</p>
+                                        {user.staff_position && (
+                                            <p style={{ margin: 0, fontSize: '9.5px', lineHeight: '1.2', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                {user.staff_position}
+                                            </p>
                                         )}
                                     </div>
-                                    <div className='absolute top-30 right-3 bg-white border-2 rounded-xl w-30 h-30 flex justify-center items-center overflow-hidden'>
-                                        {/* XAVFSIZLIK: QR kodda ichki UUID ishlatilmaydi — faqat HEMIS user_id */}
-                                        <QRCodeSVG value={user.id} size={105} level='H' />
-                                    </div>
 
+                                    {/* QR kod (O'ng tomonda) */}
+                                    <div style={{ position: 'absolute', top: '114px', right: '18px', width: '112px', height: '112px', borderRadius: '12px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'center', alignItems: 'center', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', overflow: 'hidden', zIndex: 10 }}>
+                                        {/* QR kodda HEMIS user_id ishlatiladi, level='M' va includeMargin bilan yirik modullar */}
+                                        <QRCodeSVG value={user.user_id || user.id} size={104} level='M' includeMargin={true} />
+                                    </div>
                                 </div>
 
                                 {/* backRef shu yerga */}
-                                <div ref={backRef} className='absolute inset-0 bg-white/40 rounded-2xl flex items-center justify-center' style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
-                                    <svg width="420" height="280" viewBox="0 0 420 280" className='rounded-2xl'>
+                                <div ref={backRef} style={{ width: '420px', height: '280px', position: 'absolute', inset: 0, overflow: 'hidden', borderRadius: '16px', backgroundColor: '#ffffff', backfaceVisibility: 'hidden', transform: 'rotateY(180deg)', boxShadow: '0 4px 16px rgba(0,0,0,0.12)', fontFamily: "'Inter', -apple-system, sans-serif" }}>
+                                    <svg width="420" height="280" viewBox="0 0 420 280" style={{ position: 'absolute', top: 0, left: 0, width: '420px', height: '280px', pointerEvents: 'none' }}>
                                         <defs>
-                                            <linearGradient id="blueGrad" x1="0" y1="0" x2="1" y2="0">
+                                            <linearGradient id="blueGradBack" x1="0" y1="0" x2="1" y2="0">
                                                 <stop offset="0%" stopColor="#1e2a78" />
                                                 <stop offset="100%" stopColor="#1f6aa5" />
                                             </linearGradient>
 
-                                            <linearGradient id="darkBlue" x1="0" y1="0" x2="1" y2="0">
+                                            <linearGradient id="darkBlueBack" x1="0" y1="0" x2="1" y2="0">
                                                 <stop offset="0%" stopColor="#1b2a60" />
                                                 <stop offset="100%" stopColor="#174f7a" />
                                             </linearGradient>
 
-                                            <linearGradient id="goldGrad" x1="0" y1="0" x2="1" y2="0">
+                                            <linearGradient id="goldGradBack" x1="0" y1="0" x2="1" y2="0">
                                                 <stop offset="0%" stopColor="#caa23a" />
                                                 <stop offset="50%" stopColor="#f6e27a" />
                                                 <stop offset="100%" stopColor="#b8860b" />
@@ -503,43 +676,51 @@ export default function ProfilePage() {
                                                 <stop offset="100%" stopColor="cyan" />
                                             </linearGradient>
 
-                                            <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-                                                <feDropShadow dx="0" dy="8" stdDeviation="12" floodOpacity="0.25" />
-                                            </filter>
-
-                                            <clipPath id="cardClip">
-                                                <rect width="420" height="280" />
+                                            <clipPath id="cardClipBack">
+                                                <rect width="420" height="280" rx="16" />
                                             </clipPath>
-
                                         </defs>
 
                                         {/* <!-- Asosiy karta --> */}
-                                        <rect width="420" height="280" fill="#f5f5f5" filter="url(#shadow)" />
+                                        <rect width="420" height="280" fill="#f8fafc" rx="16" />
 
                                         <line x1="0" y1="220" x2="420" y2="221" stroke="url(#grad1)" strokeWidth="1" />
 
-                                        <g clipPath="url(#cardClip)">
-
+                                        <g clipPath="url(#cardClipBack)">
                                             {/* <!-- Yuqori ko‘k strip --> */}
-                                            <rect x="0" y="25" width="420" height="45" fill="url(#blueGrad)" />
+                                            <rect x="0" y="25" width="420" height="45" fill="url(#blueGradBack)" />
 
-                                            {/* <!-- Pastki o‘ng ko‘k katta egri (7px past + 7px o‘ng) --> */}
-                                            <path d="M 220 280 C 300 240, 370 220, 427 157 L 427 280 Z" fill="url(#blueGrad)" />
+                                            {/* <!-- Pastki o‘ng ko‘k egri --> */}
+                                            <path d="M 220 280 C 300 240, 370 220, 427 157 L 427 280 Z" fill="url(#blueGradBack)" />
 
                                             {/* <!-- To‘q ko‘k layer --> */}
-                                            <path d="M 240 280 C 310 250, 375 225, 427 172 L 427 205 C 370 250, 305 270, 240 280 Z" fill="url(#darkBlue)" />
+                                            <path d="M 240 280 C 310 250, 375 225, 427 172 L 427 205 C 370 250, 305 270, 240 280 Z" fill="url(#darkBlueBack)" />
 
                                             {/* <!-- Oltin wave --> */}
-                                            <path d="  M 235 280 C 315 245, 380 215, 427 157 L 427 172 C 375 225, 315 255, 255 280 Z" fill="url(#goldGrad)" />
+                                            <path d="M 235 280 C 315 245, 380 215, 427 157 L 427 172 C 375 225, 315 255, 255 280 Z" fill="url(#goldGradBack)" />
                                         </g>
-
                                     </svg>
-                                    <img src="/icon_arm.png" alt="" className='absolute w-16 h-16 right-7 top-3.5 bg-white p-1 rounded-full' />
-                                    <p className='absolute text-white top-8 left-9 text-xl uppercase '>Axborot Resurs Markazi</p>
-                                    <p className='absolute top-62 left-5 flex gap-2 items-center text-blue-500 text-sm'> <Mail size={16} />arm@jbnuu.uz</p>
-                                    <p className='absolute top-56 left-5 flex gap-2 items-center text-blue-500 text-sm'> <Phone size={16} />+998 (72) 226-12-34 </p>
-                                    <p className='absolute top-40 left-5 flex gap-2 items-center text-blue-400 text-sm'> <MapPin size={17} />Jizzax viloyati, Jizzax shahri</p>
-                                    <p className='absolute top-46 left-5 flex gap-5 items-center text-blue-400 text-sm'>Sh.Rashidov shox ko'chasi, 259 uy</p>
+
+                                    <img src="/icon_arm.png" alt="ARM" style={{ position: 'absolute', top: '16px', right: '24px', width: '62px', height: '62px', borderRadius: '50%', backgroundColor: '#ffffff', padding: '2px', border: '2px solid #caa23a', zIndex: 10 }} />
+                                    <p style={{ position: 'absolute', top: '35px', left: '28px', color: '#ffffff', fontSize: '18px', fontWeight: 800, textTransform: 'uppercase', margin: 0, letterSpacing: '0.04em', zIndex: 10 }}>Axborot Resurs Markazi</p>
+
+                                    <div style={{ position: 'absolute', top: '100px', left: '24px', display: 'flex', flexDirection: 'column', gap: '8px', zIndex: 10 }}>
+                                        <p style={{ margin: 0, display: 'flex', gap: '8px', alignItems: 'center', color: '#0369a1', fontSize: '13px', fontWeight: 600 }}>
+                                            <MapPin size={16} /> Jizzax viloyati, Jizzax shahri
+                                        </p>
+                                        <p style={{ margin: 0, paddingLeft: '24px', color: '#0284c7', fontSize: '12px', fontWeight: 500 }}>
+                                            Sh.Rashidov shox ko'chasi, 259 uy
+                                        </p>
+                                    </div>
+
+                                    <div style={{ position: 'absolute', top: '168px', left: '24px', display: 'flex', flexDirection: 'column', gap: '8px', zIndex: 10 }}>
+                                        <p style={{ margin: 0, display: 'flex', gap: '8px', alignItems: 'center', color: '#1e40af', fontSize: '13px', fontWeight: 600 }}>
+                                            <Phone size={16} /> +998 (72) 226-12-34
+                                        </p>
+                                        <p style={{ margin: 0, display: 'flex', gap: '8px', alignItems: 'center', color: '#1e40af', fontSize: '13px', fontWeight: 600 }}>
+                                            <Mail size={16} /> arm@jbnuu.uz
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -550,16 +731,21 @@ export default function ProfilePage() {
                                 {cardFlipped ? "Old tomonni ko'rish" : "Orqa tomonni ko'rish"}
                             </button>
 
-                            <div className='grid grid-cols-2 gap-4'>
-                                <button className='flex justify-center items-center gap-3 p-3 bg-primary hover:bg-primary-hover text-white transition-all active:scale-95 rounded-xl disabled:opacity-60 disabled:cursor-not-allowed font-medium shadow-md cursor-pointer' onClick={() => handleDownloadCard('front')} disabled={downloading}>
+                            <div className='grid grid-cols-2 gap-3'>
+                                <button className='flex justify-center items-center gap-2 p-3 bg-primary hover:bg-primary-hover text-white transition-all active:scale-95 rounded-xl disabled:opacity-60 disabled:cursor-not-allowed font-medium shadow-md cursor-pointer' onClick={() => handleDownloadCard('front')} disabled={downloading}>
                                     {downloading ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
                                     Old tomon
                                 </button>
-                                <button className='flex justify-center items-center gap-3 p-3 bg-primary hover:bg-primary-hover text-white transition-all active:scale-95 rounded-xl disabled:opacity-60 disabled:cursor-not-allowed font-medium shadow-md cursor-pointer' onClick={() => handleDownloadCard('back')} disabled={downloading}>
+                                <button className='flex justify-center items-center gap-2 p-3 bg-primary hover:bg-primary-hover text-white transition-all active:scale-95 rounded-xl disabled:opacity-60 disabled:cursor-not-allowed font-medium shadow-md cursor-pointer' onClick={() => handleDownloadCard('back')} disabled={downloading}>
                                     {downloading ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
                                     Orqa tomon
                                 </button>
                             </div>
+
+                            <button className='flex justify-center items-center gap-2.5 p-3 bg-emerald-600 hover:bg-emerald-700 text-white transition-all active:scale-95 rounded-xl disabled:opacity-60 disabled:cursor-not-allowed font-medium shadow-md cursor-pointer' onClick={handlePrintCard} disabled={printing}>
+                                {printing ? <Loader2 size={18} className="animate-spin" /> : <Printer size={18} />}
+                                10,5 sm × 7 sm o'lchamda chop etish
+                            </button>
                         </div>
                     </div>
                 )}

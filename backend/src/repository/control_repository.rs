@@ -85,8 +85,8 @@ impl ControlRepository {
                  u."group_name",
                  u."staff_position"
                FROM "control" c
-               LEFT JOIN "users" u ON u."user_id" = c."user_id"
-               WHERE c."user_id" = $1
+               LEFT JOIN "users" u ON (u."user_id" = c."user_id" OR u."id"::text = c."user_id")
+               WHERE c."user_id" = $1 OR c."user_id" = (SELECT "id"::text FROM "users" WHERE "user_id" = $1)
                ORDER BY c."arrival" DESC"#,
         )
         .bind(user_id)

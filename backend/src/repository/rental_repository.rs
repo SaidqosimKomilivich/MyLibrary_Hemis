@@ -154,7 +154,7 @@ impl RentalRepository {
                 u."staff_position" as staff_position
             FROM "book_rentals" r
             LEFT JOIN "book" b ON b."id"::text = r."book_id"
-            LEFT JOIN "users" u ON u."user_id" = r."user_id"
+            LEFT JOIN "users" u ON (u."user_id" = r."user_id" OR u."id"::text = r."user_id")
             WHERE r."id" = $1"#,
         )
         .bind(id)
@@ -187,7 +187,7 @@ impl RentalRepository {
                 u."staff_position" as staff_position
             FROM "book_rentals" r
             LEFT JOIN "book" b ON b."id"::text = r."book_id"
-            LEFT JOIN "users" u ON u."user_id" = r."user_id"
+            LEFT JOIN "users" u ON (u."user_id" = r."user_id" OR u."id"::text = r."user_id")
             WHERE 1=1"#,
         );
 
@@ -202,7 +202,10 @@ impl RentalRepository {
         }
 
         if user_id.is_some() {
-            query.push_str(&format!(r#" AND r."user_id" = ${}"#, param_idx));
+            query.push_str(&format!(
+                r#" AND (r."user_id" = ${0} OR u."user_id" = ${0} OR u."id"::text = ${0})"#,
+                param_idx
+            ));
         }
 
         query.push_str(r#" ORDER BY r."loan_date" DESC"#);

@@ -4,7 +4,19 @@ use sqlx::PgPool;
 use crate::dto::control::ControlRequest;
 use crate::errors::AppError;
 use crate::middleware::auth_middleware::Claims;
+use crate::repository::user_repository::UserRepository;
 use crate::services::control_service::ControlService;
+
+/// claims.sub (UUID) dan foydalanuvchining HEMIS user_id sini aniqlash
+async fn resolve_user_id(pool: &PgPool, claims_sub: &str) -> Result<String, AppError> {
+    if let Ok(user_uuid) = uuid::Uuid::parse_str(claims_sub) {
+        if let Some(user) = UserRepository::find_by_id(pool, user_uuid).await? {
+            return Ok(user.user_id);
+        }
+    }
+    // Agar UUID bo'lmasa yoki topilmasa, o'zi qaytadi
+    Ok(claims_sub.to_string())
+}
 
 /// POST /api/control/arrive — Foydalanuvchi keldi
 pub async fn arrive(
@@ -12,18 +24,23 @@ pub async fn arrive(
     claims: Claims,
     payload: Option<web::Json<ControlRequest>>,
 ) -> Result<HttpResponse, AppError> {
-    let mut target_user_id = claims.sub.clone();
+    let mut target_user_id = None;
     
-    // Agar body yuborilgan bo'lsa va so'rov yuboruvchi admin/staff bo'lsa
+    // Agar body yuborilgan bo'lsa va so'rov yuboruvchi admin/staff/employee bo'lsa
     if let Some(req) = payload {
         if let Some(uid) = &req.user_id {
             if claims.role == "admin" || claims.role == "staff" || claims.role == "employee" {
-                target_user_id = uid.clone();
+                target_user_id = Some(uid.clone());
             }
         }
     }
 
-    let response = ControlService::arrive(pool.get_ref(), &target_user_id).await?;
+    let final_user_id = match target_user_id {
+        Some(uid) => resolve_user_id(pool.get_ref(), &uid).await?,
+        None => resolve_user_id(pool.get_ref(), &claims.sub).await?,
+    };
+
+    let response = ControlService::arrive(pool.get_ref(), &final_user_id).await?;
     Ok(HttpResponse::Created().json(response))
 }
 
@@ -33,18 +50,23 @@ pub async fn depart(
     claims: Claims,
     payload: Option<web::Json<ControlRequest>>,
 ) -> Result<HttpResponse, AppError> {
-    let mut target_user_id = claims.sub.clone();
+    let mut target_user_id = None;
     
-    // Agar body yuborilgan bo'lsa va so'rov yuboruvchi admin/staff bo'lsa
+    // Agar body yuborilgan bo'lsa va so'rov yuboruvchi admin/staff/employee bo'lsa
     if let Some(req) = payload {
         if let Some(uid) = &req.user_id {
             if claims.role == "admin" || claims.role == "staff" || claims.role == "employee" {
-                target_user_id = uid.clone();
+                target_user_id = Some(uid.clone());
             }
         }
     }
 
-    let response = ControlService::depart(pool.get_ref(), &target_user_id).await?;
+    let final_user_id = match target_user_id {
+        Some(uid) => resolve_user_id(pool.get_ref(), &uid).await?,
+        None => resolve_user_id(pool.get_ref(), &claims.sub).await?,
+    };
+
+    let response = ControlService::depart(pool.get_ref(), &final_user_id).await?;
     Ok(HttpResponse::Ok().json(response))
 }
 
@@ -53,8 +75,8 @@ pub async fn get_history(
     pool: web::Data<PgPool>,
     claims: Claims,
 ) -> Result<HttpResponse, AppError> {
-    let user_id = &claims.sub;
-    let response = ControlService::get_user_history(pool.get_ref(), user_id).await?;
+    let hemis_id = resolve_user_id(pool.get_ref(), &claims.sub).await?;
+    let response = ControlService::get_user_history(pool.get_ref(), &hemis_id).await?;
     Ok(HttpResponse::Ok().json(response))
 }
 

@@ -13,7 +13,7 @@ pub async fn create_rental(
     claims: Claims,
     body: web::Json<CreateRentalRequest>,
 ) -> Result<HttpResponse, AppError> {
-    if let Err(resp) = auth_middleware::require_role(&claims, &["admin", "staff"]) {
+    if let Err(resp) = auth_middleware::require_role(&claims, &["admin", "staff", "employee"]) {
         return Ok(resp);
     }
 
@@ -21,14 +21,14 @@ pub async fn create_rental(
     Ok(HttpResponse::Created().json(response))
 }
 
-/// PUT /api/rentals/{id}/return — Kitobni qaytarish (faqat admin/staff)
+/// PUT /api/rentals/{id}/return — Kitobni qaytarish (admin/staff/employee)
 pub async fn return_rental(
     pool: web::Data<PgPool>,
     claims: Claims,
     path: web::Path<Uuid>,
     body: web::Json<ReturnRentalRequest>,
 ) -> Result<HttpResponse, AppError> {
-    if let Err(resp) = auth_middleware::require_role(&claims, &["admin", "staff"]) {
+    if let Err(resp) = auth_middleware::require_role(&claims, &["admin", "staff", "employee"]) {
         return Ok(resp);
     }
 
@@ -38,13 +38,13 @@ pub async fn return_rental(
     Ok(HttpResponse::Ok().json(response))
 }
 
-/// GET /api/rentals — Barcha ijaralar (filtr bilan, faqat admin/staff)
+/// GET /api/rentals — Barcha ijaralar (filtr bilan, admin/staff/employee)
 pub async fn get_rentals(
     pool: web::Data<PgPool>,
     claims: Claims,
     query: web::Query<RentalFilterParams>,
 ) -> Result<HttpResponse, AppError> {
-    if let Err(resp) = auth_middleware::require_role(&claims, &["admin", "staff"]) {
+    if let Err(resp) = auth_middleware::require_role(&claims, &["admin", "staff", "employee"]) {
         return Ok(resp);
     }
 
@@ -58,13 +58,13 @@ pub async fn get_rentals(
     Ok(HttpResponse::Ok().json(response))
 }
 
-/// GET /api/rentals/{id} — Bitta ijara (faqat admin/staff)
+/// GET /api/rentals/{id} — Bitta ijara (admin/staff/employee)
 pub async fn get_rental(
     pool: web::Data<PgPool>,
     claims: Claims,
     path: web::Path<Uuid>,
 ) -> Result<HttpResponse, AppError> {
-    if let Err(resp) = auth_middleware::require_role(&claims, &["admin", "staff"]) {
+    if let Err(resp) = auth_middleware::require_role(&claims, &["admin", "staff", "employee"]) {
         return Ok(resp);
     }
 

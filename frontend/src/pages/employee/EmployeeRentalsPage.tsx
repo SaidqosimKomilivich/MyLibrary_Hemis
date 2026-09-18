@@ -64,10 +64,13 @@ export default function EmployeeRentalsPage() {
     // and we need "due_soon" logic here.
     const filteredRentals = useMemo(() => {
         return rentals.filter(r => {
-            // Search logic
+            // Search logic (ism, kitob nomi, talaba HEMIS ID, invois raqami)
+            const searchLower = search.toLowerCase()
             const matchSearch =
-                (r.book_title?.toLowerCase().includes(search.toLowerCase())) ||
-                (r.user_full_name?.toLowerCase().includes(search.toLowerCase()))
+                (r.book_title?.toLowerCase().includes(searchLower)) ||
+                (r.user_full_name?.toLowerCase().includes(searchLower)) ||
+                (r.user_id?.toLowerCase().includes(searchLower)) ||
+                (r.invoice_number?.toLowerCase().includes(searchLower))
 
             if (!matchSearch) return false;
 
@@ -98,7 +101,7 @@ export default function EmployeeRentalsPage() {
             return { color: '#fbbf24', bg: 'rgba(251, 191, 36, 0.1)', icon: <Clock size={16} />, label: "Muddati kelgan" }
         }
 
-        return { color: '#60a5fa', bg: 'rgba(96, 165, 250, 0.1)', icon: <BookOpen size={16} />, label: "Topshirmagan (Ijarada)" }
+        return { color: '#60a5fa', bg: 'rgba(96, 165, 250, 0.1)', icon: <Clock size={16} />, label: 'Ijarada' }
     }
 
     const formatDate = (dateStr: string) => {
@@ -109,14 +112,31 @@ export default function EmployeeRentalsPage() {
         return `${day}.${month}.${year}`
     }
 
-    const getInitials = (name?: string) => {
-        if (!name) return '?'
-        return name.substring(0, 2).toUpperCase()
+    const getInitials = (name: string) => {
+        return name
+            .split(' ')
+            .map(n => n[0])
+            .slice(0, 2)
+            .join('')
+            .toUpperCase() || 'U'
     }
 
     return (
-        <div className="p-8 md:p-10 max-w-400 mx-auto min-h-screen">
-            <div className="flex w-full gap-3 mb-6 overflow-x-auto pb-3 hide-scrollbar">
+        <div className="w-full">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                <div>
+                    <h1 className="text-[2rem] font-bold text-text tracking-tight m-0 mb-2">
+                        Ijaralar boshqaruvi
+                    </h1>
+                    <p className="text-text-muted text-[1.05rem] m-0">
+                        Kitoblar ijarasi holatini nazorat qilish, muddati o'tganlarni aniqlash
+                    </p>
+                </div>
+            </div>
+
+            {/* Filters */}
+            <div className="flex flex-wrap items-center gap-3 mb-8 bg-surface/50 p-2 rounded-2xl border border-border">
                 <button className={`flex-1 w-full flex items-center justify-center px-4 py-3 rounded-xl border font-semibold text-[0.95rem] whitespace-nowrap transition-all ${filter === 'all' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400 shadow-[0_4px_12px_-4px_rgba(59,130,246,0.3)]' : 'bg-surface-hover/50 border-border text-text-muted hover:bg-surface-hover hover:text-text'}`} onClick={() => setFilter('all')}>
                     Barcha ijara qilinganlar
                 </button>
@@ -138,7 +158,7 @@ export default function EmployeeRentalsPage() {
                 <Search size={22} className="absolute left-5 top-1/2 -translate-y-1/2 text-text-muted" />
                 <input
                     type="text"
-                    placeholder="Talaba ismi yoki kitob qidirish..."
+                    placeholder="Talaba ismi, ID karta raqami, kitob yoki invois raqami..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     className="w-full bg-surface border border-border py-4.5 pr-5 pl-14 rounded-2xl text-text text-[1.05rem] transition-all focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-400/15 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.2)] backdrop-blur-md"
@@ -174,10 +194,18 @@ export default function EmployeeRentalsPage() {
                                                 {r.role === 'student' ? 'Talaba' : r.role === 'staff' ? 'Xodim (Kutubxonachi)' : r.role === 'employee' ? 'Xodim' : r.role === 'teacher' ? 'O\'qituvchi' : r.role}
                                             </span>
                                         </h3>
-                                        <p className="m-0 mt-1.5 text-[0.9rem] text-text-muted font-mono">Ijara raqami: #{r.id.split('-')[0]}</p>
+                                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                            <p className="m-0 text-[0.85rem] text-text-muted font-mono">
+                                                ID: <span className="text-text font-semibold">{highlightText(r.user_id, search)}</span>
+                                            </p>
+                                            <span className="text-border">•</span>
+                                            <p className="m-0 text-[0.85rem] text-text-muted font-mono">
+                                                Ijara: #{r.id.split('-')[0]}
+                                            </p>
+                                        </div>
                                         {r.invoice_number && (
                                             <p className="m-0 mt-1 text-[0.88rem] text-text-muted font-mono flex items-center gap-1.5">
-                                                🧾 Invois: <span className="text-text font-semibold">{r.invoice_number}</span>
+                                                🧾 Invois: <span className="text-text font-semibold">{highlightText(r.invoice_number, search)}</span>
                                             </p>
                                         )}
                                         {r.phone && (
