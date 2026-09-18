@@ -49,3 +49,23 @@ export function formatDate(dateStr: string | null | undefined): string {
         return dateStr;
     }
 }
+
+/**
+ * Date obyektini yoki hozirgi vaqtni mahalliy (Toshkent / foydalanuvchi) vaqti bo'yicha
+ * "YYYY-MM-DD" formatiga o'tkazish.
+ * Bu d.toISOString().split('T')[0] kabi UTC tufayli 1 kun orqaga surilib ketish muammosini hal qiladi!
+ */
+export function formatLocalDate(date: Date = new Date()): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+/**
+ * Bugungi kun sanasini YYYY-MM-DD ko'rinishida olish (mahalliy vaqt)
+ */
+export function getTodayDateString(): string {
+    return formatLocalDate(new Date());
+}
+

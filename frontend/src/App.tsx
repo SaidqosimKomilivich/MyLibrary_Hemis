@@ -15,6 +15,7 @@ import PublicCatalog from './pages/PublicCatalog'
 import PublicLayout from './components/PublicLayout'
 import DashboardLayout from './components/DashboardLayout'
 import GlobalParticles from './components/GlobalParticles'
+import ErrorBoundary from './components/ErrorBoundary'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import NewsPage from './pages/admin/NewsPage'
 import NewsDetailPage from './pages/NewsDetailPage'
@@ -147,7 +148,9 @@ function AppContent() {
             draggable
             theme={theme}
           />
-          <AnimatedRoutes />
+          <ErrorBoundary>
+            <AnimatedRoutes />
+          </ErrorBoundary>
           <AudioPlayerModal />
           <AccessibilityToolbar />
           <ScreenReaderHover />

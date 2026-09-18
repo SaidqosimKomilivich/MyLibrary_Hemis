@@ -16,7 +16,7 @@ import { api, type Rental, type Book, type ControlRecord, type UserData } from '
 import { toast } from 'react-toastify'
 import { CustomSelect } from '../../components/CustomSelect'
 import { getFileUrl } from '../../utils/fileUrl'
-import { formatDateTime } from '../../utils/dateUtils'
+import { formatDateTime, formatLocalDate, getTodayDateString } from '../../utils/dateUtils'
 import { DatePicker } from '../../components/DatePicker'
 
 /* ────────────────────────────────────────────────
@@ -80,7 +80,7 @@ export default function AccessControl() {
 
     const [todayRecords, setTodayRecords] = useState<ControlRecord[]>([])
     const [todayLoading, setTodayLoading] = useState(false)
-    const [historyDate, setHistoryDate] = useState(new Date().toISOString().split('T')[0])
+    const [historyDate, setHistoryDate] = useState(getTodayDateString())
     const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
     const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
     const [permissionGranted, setPermissionGranted] = useState(false);
@@ -95,14 +95,14 @@ export default function AccessControl() {
         setTodayLoading(true)
         try {
             // Bugungi bo'lsa getControlToday, bo'lmasa getReportPreview ishlatamiz
-            const todayStr = new Date().toISOString().split('T')[0]
+            const todayStr = getTodayDateString()
             if (historyDate === todayStr) {
                 const res = await api.getControlToday()
-                setTodayRecords(res.data)
+                setTodayRecords(res.data || [])
             } else {
                 const res = await api.getReportPreview('gate_control', historyDate, historyDate)
                 if (res.success) {
-                    setTodayRecords(res.data)
+                    setTodayRecords(res.data || [])
                 }
             }
         } catch {
@@ -324,7 +324,7 @@ function extractIdFromScannedText(rawText: string): string {
         try {
             await api.controlArrive(scannedUser?.user_id)
             toast.success(`${userName} — kirish qayd etildi ✅`)
-            loadHistoryRecords()
+            await loadHistoryRecords()
             // Tozalash + kamerani qayta yoqish
             clearUser()
         }
@@ -339,7 +339,7 @@ function extractIdFromScannedText(rawText: string): string {
         try {
             await api.controlDepart(scannedUser?.user_id)
             toast.success(`${userName} — chiqish qayd etildi ✅`)
-            loadHistoryRecords()
+            await loadHistoryRecords()
             // Tozalash + kamerani qayta yoqish
             clearUser()
         }
@@ -407,7 +407,7 @@ function extractIdFromScannedText(rawText: string): string {
     }
 
     // ──── Sana hisoblash ────
-    const defaultDue = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    const defaultDue = formatLocalDate(new Date(Date.now() + 15 * 24 * 60 * 60 * 1000))
 
     // ──── Sort rentals: overdue first, then by deadline ────
     const sortedRentals = useMemo(() => {
@@ -718,7 +718,7 @@ function extractIdFromScannedText(rawText: string): string {
                 <div className="flex items-center justify-between p-5 border-b border-border bg-surface-hover/40">
                     <h2 className="flex items-center gap-2.5 text-lg font-bold text-text m-0">
                         <Clock size={20} className="text-primary-light" />
-                        {historyDate === new Date().toISOString().split('T')[0] ? "Bugungi" : `${historyDate} sanasidagi`} tashrif buyurganlar
+                        {historyDate === getTodayDateString() ? "Bugungi" : `${historyDate} sanasidagi`} tashrif buyurganlar
                         {todayRecords.length > 0 && (
                             <span className="bg-indigo-500/15 text-primary-light px-2.5 py-0.5 rounded-full text-xs font-bold">{todayRecords.length}</span>
                         )}
@@ -726,7 +726,7 @@ function extractIdFromScannedText(rawText: string): string {
                     <div className="flex items-center gap-3 ml-auto">
                         <DatePicker
                             value={historyDate}
-                            onChange={(d) => setHistoryDate(d ? d.toISOString().split('T')[0] : new Date().toISOString().split('T')[0])}
+                            onChange={(d) => setHistoryDate(d ? formatLocalDate(d) : getTodayDateString())}
                             className="w-44"
                         />
                         <button className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-transparent border border-border rounded-lg text-text-muted text-xs font-medium hover:bg-surface-hover hover:text-text transition-colors" onClick={loadHistoryRecords} disabled={todayLoading}>
@@ -758,7 +758,7 @@ function extractIdFromScannedText(rawText: string): string {
                                 </tr>
                             </thead>
                             <tbody>
-                                {todayRecords.map((rec, i) => {
+                                {(todayRecords || []).map((rec, i) => {
                                     const isStillInside = rec.arrival === rec.departure
                                     const roleStr = rec.role || ''
                                     const displayRoleInfo = roleStr === 'student'
@@ -882,7 +882,7 @@ function extractIdFromScannedText(rawText: string): string {
                                             placeholder="Tanlang (default 15 kun)"
                                             value={dueDate || (typeof defaultDue === 'string' ? defaultDue : '')}
                                             minDate={new Date(Date.now() + 24 * 60 * 60 * 1000)}
-                                            onChange={(d) => setDueDate(d ? d.toISOString().split('T')[0] : '')}
+                                            onChange={(d) => setDueDate(d ? formatLocalDate(d) : '')}
                                             className="w-full"
                                         />
                                     </div>

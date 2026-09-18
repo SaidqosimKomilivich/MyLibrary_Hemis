@@ -30,6 +30,7 @@ import { useTheme } from '../context/ThemeContext'
 import { Sun, Moon } from 'lucide-react'
 import NotificationBell from './NotificationBell'
 import { getFileUrl } from '../utils/fileUrl'
+import ErrorBoundary from './ErrorBoundary'
 
 export type UserRole = 'admin' | 'staff' | 'teacher' | 'student' | 'employee'
 interface NavItem {
@@ -291,7 +292,9 @@ export default function DashboardLayout({ role }: DashboardLayoutProps) {
                 {/* Page content */}
                 <main className="flex-1 p-6 max-md:p-4 relative">
                     <div key={location.pathname} className="page-transition-wrapper w-full h-full">
-                        <Outlet />
+                        <ErrorBoundary>
+                            <Outlet />
+                        </ErrorBoundary>
                     </div>
                 </main>
             </div>

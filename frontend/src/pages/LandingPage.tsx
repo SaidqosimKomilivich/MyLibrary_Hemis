@@ -24,22 +24,22 @@ export default function LandingPage() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [statsRes, newsRes, booksRes] = await Promise.all([
+                const [statsRes, newsRes, booksRes] = await Promise.allSettled([
                     api.getPublicStats(),
                     api.getPublicNewsList({ limit: 8 }),
                     api.getPublicBooks({ limit: 10, page: 1 })
                 ]);
-                if (statsRes.success) {
-                    setStats(statsRes.data)
+                if (statsRes.status === 'fulfilled' && statsRes.value?.success) {
+                    setStats(statsRes.value.data)
                 }
-                if (newsRes.success) {
-                    setNews(newsRes.data)
+                if (newsRes.status === 'fulfilled' && newsRes.value?.success) {
+                    setNews(newsRes.value.data || [])
                 }
-                if (booksRes.success) {
-                    setLatestBooks(booksRes.data)
+                if (booksRes.status === 'fulfilled' && booksRes.value?.success) {
+                    setLatestBooks(booksRes.value.data || [])
                 }
-            } catch {
-                console.error("Failed to fetch public data")
+            } catch (error) {
+                console.error("Failed to fetch public data:", error)
             } finally {
                 setIsLoading(false)
             }
@@ -112,15 +112,15 @@ export default function LandingPage() {
                             <div className="flex w-max overflow-hidden group/marquee">
                                 {/* First set of items */}
                                 <div className="flex w-max animate-marquee group-hover/marquee:animation-paused items-center gap-6 pr-6">
-                                    {latestBooks.map((book, i) => (
+                                    {(latestBooks || []).map((book, i) => (
                                         <Link
                                             key={`first-${book.id}-${i}`}
-                                            to={`/search?q=${encodeURIComponent(book.title)}`}
+                                            to={`/search?q=${encodeURIComponent(book.title || '')}`}
                                             className="flex flex-col items-center bg-surface border border-border/50 p-3 rounded-2xl hover:bg-surface-hover hover:border-emerald-500/30 transition-all shadow-sm shrink-0 w-35 group/card"
                                         >
                                             <div className="w-25 h-35 bg-canvas rounded-xl overflow-hidden shadow-sm border border-border/30 mb-3 relative group-hover/card:shadow-md transition-shadow">
                                                 {book.cover_image_url ? (
-                                                    <img src={book.cover_image_url} alt={book.title} className="w-full h-full object-cover group-hover/card:scale-105 transition-transform duration-500" />
+                                                    <img src={getFileUrl(book.cover_image_url)} alt={book.title || ''} className="w-full h-full object-cover group-hover/card:scale-105 transition-transform duration-500" />
                                                 ) : (
                                                     <div className="w-full h-full flex flex-col items-center justify-center bg-emerald-500/5 text-emerald-500">
                                                         <BookOpen size={24} className="opacity-50 mb-1" />
@@ -130,24 +130,24 @@ export default function LandingPage() {
                                                 <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity"></div>
                                             </div>
                                             <div className="w-full text-center">
-                                                <span className="block text-sm font-bold text-text truncate mb-0.5" title={book.title}>{book.title}</span>
-                                                <span className="block text-[11px] text-text-muted truncate" title={book.author}>{book.author}</span>
+                                                <span className="block text-sm font-bold text-text truncate mb-0.5" title={book.title || ''}>{book.title || 'Nomsiz'}</span>
+                                                <span className="block text-[11px] text-text-muted truncate" title={book.author || ''}>{book.author || ''}</span>
                                             </div>
                                         </Link>
                                     ))}
                                 </div>
                                 {/* Second identical set of items for seamless looping */}
                                 <div className="flex w-max animate-marquee group-hover/marquee:animation-paused items-center gap-6 pr-6 aria-hidden">
-                                    {latestBooks.map((book, i) => (
+                                    {(latestBooks || []).map((book, i) => (
                                         <Link
                                             key={`second-${book.id}-${i}`}
-                                            to={`/search?q=${encodeURIComponent(book.title)}`}
+                                            to={`/search?q=${encodeURIComponent(book.title || '')}`}
                                             tabIndex={-1}
                                             className="flex flex-col items-center bg-surface border border-border/50 p-3 rounded-2xl hover:bg-surface-hover hover:border-emerald-500/30 transition-all shadow-sm shrink-0 w-35 group/card"
                                         >
                                             <div className="w-25 h-35 bg-canvas rounded-xl overflow-hidden shadow-sm border border-border/30 mb-3 relative group-hover/card:shadow-md transition-shadow">
                                                 {book.cover_image_url ? (
-                                                    <img src={book.cover_image_url} alt={book.title} className="w-full h-full object-cover group-hover/card:scale-105 transition-transform duration-500" />
+                                                    <img src={getFileUrl(book.cover_image_url)} alt={book.title || ''} className="w-full h-full object-cover group-hover/card:scale-105 transition-transform duration-500" />
                                                 ) : (
                                                     <div className="w-full h-full flex flex-col items-center justify-center bg-emerald-500/5 text-emerald-500">
                                                         <BookOpen size={24} className="opacity-50 mb-1" />
@@ -156,8 +156,8 @@ export default function LandingPage() {
                                                 <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity"></div>
                                             </div>
                                             <div className="w-full text-center">
-                                                <span className="block text-sm font-bold text-text truncate mb-0.5" title={book.title}>{book.title}</span>
-                                                <span className="block text-[11px] text-text-muted truncate" title={book.author}>{book.author}</span>
+                                                <span className="block text-sm font-bold text-text truncate mb-0.5" title={book.title || ''}>{book.title || 'Nomsiz'}</span>
+                                                <span className="block text-[11px] text-text-muted truncate" title={book.author || ''}>{book.author || ''}</span>
                                             </div>
                                         </Link>
                                     ))}

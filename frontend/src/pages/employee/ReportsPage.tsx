@@ -4,7 +4,7 @@ import { CustomSelect, type SelectOption } from '../../components/CustomSelect'
 import { Loader2, ArrowRightLeft, BookOpen, Clock, AlertCircle, Users, Download } from 'lucide-react'
 import { toast } from 'react-toastify'
 import { DatePicker } from '../../components/DatePicker'
-import { formatDateTime } from '../../utils/dateUtils'
+import { formatDateTime, formatLocalDate, getTodayDateString } from '../../utils/dateUtils'
 
 type ReportType = 'rentals' | 'controls' | 'submissions' | 'users_statistics' | 'book_inventory' | 'overdue_rentals' | 'gate_control' | 'book_requests' | 'books_added' | 'staff_book_counts'
 
@@ -186,7 +186,7 @@ const REPORT_CONFIGS: ReportConfig[] = [
 ]
 
 function ReportSection({ config }: { config: ReportConfig }) {
-    const today = new Date().toISOString().split('T')[0]
+    const today = getTodayDateString()
 
     // Date filters (for non-users reports)
     const [startDate, setStartDate] = useState(today)
@@ -394,13 +394,13 @@ function ReportSection({ config }: { config: ReportConfig }) {
                             <DatePicker
                                 label="dan"
                                 value={startDate}
-                                onChange={(d) => setStartDate(d ? d.toISOString().split('T')[0] : '')}
+                                onChange={(d) => setStartDate(d ? formatLocalDate(d) : '')}
                                 className="h-10"
                             />
                             <DatePicker
                                 label="gacha"
                                 value={endDate}
-                                onChange={(d) => setEndDate(d ? d.toISOString().split('T')[0] : '')}
+                                onChange={(d) => setEndDate(d ? formatLocalDate(d) : '')}
                                 className="h-10"
                             />
                         </>

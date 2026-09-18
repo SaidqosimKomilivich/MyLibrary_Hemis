@@ -100,10 +100,14 @@ async function performTokenRefresh(): Promise<boolean> {
 async function request<T>(url: string, options?: RequestInit, isRetry = false): Promise<T> {
     const res = await fetch(`${API_BASE}${url}`, {
         credentials: 'include',
+        cache: 'no-store',
+        ...options,
         headers: {
             'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            ...options?.headers,
         },
-        ...options,
     })
 
     // 401 Unauthorized holatini interceptor orqali ushlab, tokenni yangilash va qayta so'rash

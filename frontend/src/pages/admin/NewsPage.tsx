@@ -61,9 +61,9 @@ export default function NewsPage() {
             }
             const res = await api.getNewsList(params)
             if (res.success) {
-                setNews(res.data)
-                setTotalPages(res.pagination.total_pages || 1)
-                setTotalItems(res.pagination.total_items || 0)
+                setNews(res.data || [])
+                setTotalPages(res.pagination?.total_pages || 1)
+                setTotalItems(res.pagination?.total_items || 0)
             }
         } catch (error: any) {
             toast.error(error.message || "Yangiliklarni yuklashda xatolik")
@@ -273,14 +273,14 @@ export default function NewsPage() {
                                         Yuklanmoqda...
                                     </td>
                                 </tr>
-                            ) : news.length === 0 ? (
+                            ) : (news || []).length === 0 ? (
                                 <tr>
                                     <td colSpan={5} className="px-6 py-12 text-center text-text-muted">
                                         Yangiliklar topilmadi
                                     </td>
                                 </tr>
                             ) : (
-                                news.map((item) => (
+                                (news || []).map((item) => (
                                     <tr
                                         key={item.id}
                                         className={`hover:bg-surface-hover/50 transition-colors group ${

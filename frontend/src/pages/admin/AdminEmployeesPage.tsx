@@ -8,6 +8,7 @@ import { getProxyImageUrl } from '../../utils/fileUrl'
 import { useAuth } from '../../context/AuthContext'
 import { toast } from 'react-toastify'
 import { highlightText } from '../../utils/highlightText'
+import { getTodayDateString } from '../../utils/dateUtils'
 
 // Sync progress helper
 function getSyncLabel(progress: number): string {
@@ -197,11 +198,11 @@ export default function AdminEmployeesPage() {
                 status: statusFilter !== 'all' ? statusFilter : undefined,
             })
             if (resp.success) {
-                setStaff(resp.data)
+                setStaff(resp.data || [])
                 setPag(prev => ({
                     ...prev,
-                    totalItems: resp.pagination.total_items,
-                    totalPages: resp.pagination.total_pages,
+                    totalItems: resp.pagination?.total_items || 0,
+                    totalPages: resp.pagination?.total_pages || 1,
                 }))
             }
         } catch (e) { console.error('Kutubxonachilarni yuklashda xato:', e) }
@@ -233,7 +234,7 @@ export default function AdminEmployeesPage() {
             const url = window.URL.createObjectURL(blob)
             const a = document.createElement('a')
             a.href = url
-            a.download = `kutubxona_xodimlari_kitob_statistikasi_${new Date().toISOString().split('T')[0]}.xlsx`
+            a.download = `kutubxona_xodimlari_kitob_statistikasi_${getTodayDateString()}.xlsx`
             document.body.appendChild(a)
             a.click()
             window.URL.revokeObjectURL(url)
@@ -257,11 +258,11 @@ export default function AdminEmployeesPage() {
                 status: statusFilter !== 'all' ? statusFilter : undefined,
             })
             if (resp.success) {
-                setAdmins(resp.data)
+                setAdmins(resp.data || [])
                 setAdminsPag(prev => ({
                     ...prev,
-                    totalItems: resp.pagination.total_items,
-                    totalPages: resp.pagination.total_pages,
+                    totalItems: resp.pagination?.total_items || 0,
+                    totalPages: resp.pagination?.total_pages || 1,
                 }))
             }
         } catch (e) { console.error('Adminlarni yuklashda xato:', e) }
@@ -432,7 +433,7 @@ export default function AdminEmployeesPage() {
                             <Loader2 size={20} className="animate-spin" />
                             <span>Kutubxonachilar yuklanmoqda...</span>
                         </div>
-                    ) : staff.length === 0 ? (
+                    ) : (staff || []).length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-12 gap-3 text-text-muted">
                             <AlertCircle size={32} />
                             <p className="text-[0.875rem]">Xodim topilmadi</p>
@@ -451,7 +452,7 @@ export default function AdminEmployeesPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {staff.map((u, i) => (
+                                {(staff || []).map((u, i) => (
                                     <tr key={u.id} className="transition-colors hover:bg-surface-hover/50 group border-b border-border/50">
                                         <td className="py-3 px-4 text-[0.875rem] text-text-muted">{(pag.currentPage - 1) * pag.perPage + i + 1}</td>
                                         <td className="py-3 px-4">
@@ -459,7 +460,7 @@ export default function AdminEmployeesPage() {
                                                 {u.image_url ? (
                                                     <img src={getProxyImageUrl(u.image_url)} crossOrigin="anonymous" alt={u.full_name} className="w-8 h-8 rounded-full object-cover shrink-0 ring-2 ring-indigo-500/20" />
                                                 ) : (
-                                                    <div className="w-8 h-8 rounded-full bg-linear-to-br from-indigo-500 to-indigo-600 text-white flex items-center justify-center font-bold text-[0.85rem] shrink-0 shadow-sm">{u.full_name.charAt(0)}</div>
+                                                    <div className="w-8 h-8 rounded-full bg-linear-to-br from-indigo-500 to-indigo-600 text-white flex items-center justify-center font-bold text-[0.85rem] shrink-0 shadow-sm">{(u.full_name || '?').charAt(0)}</div>
                                                 )}
                                                 <span className="truncate max-w-50">{highlightText(u.full_name, debouncedSearch)}</span>
                                             </div>
@@ -498,7 +499,7 @@ export default function AdminEmployeesPage() {
                             <Loader2 size={20} className="animate-spin" />
                             <span>Adminlar yuklanmoqda...</span>
                         </div>
-                    ) : admins.length === 0 ? (
+                    ) : (admins || []).length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-12 gap-3 text-text-muted">
                             <AlertCircle size={32} />
                             <p className="text-[0.875rem]">Admin topilmadi</p>
@@ -517,7 +518,7 @@ export default function AdminEmployeesPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {admins.map((u, i) => (
+                                {(admins || []).map((u, i) => (
                                     <tr key={u.id} className="transition-colors hover:bg-surface-hover/50 group border-b border-border/50">
                                         <td className="py-3 px-4 text-[0.875rem] text-text-muted">{(adminsPag.currentPage - 1) * adminsPag.perPage + i + 1}</td>
                                         <td className="py-3 px-4">
@@ -525,7 +526,7 @@ export default function AdminEmployeesPage() {
                                                 {u.image_url ? (
                                                     <img src={getProxyImageUrl(u.image_url)} crossOrigin="anonymous" alt={u.full_name} className="w-8 h-8 rounded-full object-cover shrink-0 ring-2 ring-indigo-500/20" />
                                                 ) : (
-                                                    <div className="w-8 h-8 rounded-full bg-linear-to-br from-indigo-500 to-indigo-600 text-white flex items-center justify-center font-bold text-[0.85rem] shrink-0 shadow-sm">{u.full_name.charAt(0)}</div>
+                                                    <div className="w-8 h-8 rounded-full bg-linear-to-br from-indigo-500 to-indigo-600 text-white flex items-center justify-center font-bold text-[0.85rem] shrink-0 shadow-sm">{(u.full_name || '?').charAt(0)}</div>
                                                 )}
                                                 <span className="truncate max-w-50">{highlightText(u.full_name, debouncedSearch)}</span>
                                             </div>
@@ -657,7 +658,7 @@ export default function AdminEmployeesPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {staffCounts.map((item, idx) => (
+                                {(staffCounts || []).map((item, idx) => (
                                     <tr key={item.staff_id} className="transition-colors hover:bg-surface-hover/50 group border-b border-border/50 last:border-0">
                                         <td className="py-3 px-4 text-[0.875rem] text-text-muted">{idx + 1}</td>
                                         <td className="px-4 py-3 whitespace-nowrap text-[0.9rem] font-medium text-text">{item.full_name || '-'}</td>

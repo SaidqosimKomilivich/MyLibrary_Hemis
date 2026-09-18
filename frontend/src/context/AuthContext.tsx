@@ -21,6 +21,7 @@ interface AuthContextType {
     isAuthenticated: boolean
     login: (userId: string, password: string, captchaId?: string, captchaValue?: number) => Promise<string>
     logout: () => Promise<void>
+    refreshUser: () => Promise<UserData | null>
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
@@ -58,6 +59,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null)
     }, [])
 
+    const refreshUser = useCallback(async (): Promise<UserData | null> => {
+        try {
+            const res = await api.getMe()
+            setUser(res.user)
+            return res.user
+        } catch {
+            return null
+        }
+    }, [])
+
     // Token muddati tugaganda avtomatik logout
     useEffect(() => {
         const handleUnauthorized = () => {
@@ -80,6 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 isAuthenticated: !!user,
                 login,
                 logout,
+                refreshUser,
             }}
         >
             {children}

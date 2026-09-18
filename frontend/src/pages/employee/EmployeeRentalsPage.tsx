@@ -63,9 +63,10 @@ export default function EmployeeRentalsPage() {
     // Front-end filtering since backend filter only supports basic states 
     // and we need "due_soon" logic here.
     const filteredRentals = useMemo(() => {
-        return rentals.filter(r => {
+        return (rentals || []).filter(r => {
+            if (!r) return false;
             // Search logic (ism, kitob nomi, talaba HEMIS ID, invois raqami)
-            const searchLower = search.toLowerCase()
+            const searchLower = (search || '').toLowerCase()
             const matchSearch =
                 (r.book_title?.toLowerCase().includes(searchLower)) ||
                 (r.user_full_name?.toLowerCase().includes(searchLower)) ||
@@ -200,7 +201,7 @@ export default function EmployeeRentalsPage() {
                                             </p>
                                             <span className="text-border">•</span>
                                             <p className="m-0 text-[0.85rem] text-text-muted font-mono">
-                                                Ijara: #{r.id.split('-')[0]}
+                                                Ijara: #{r.id ? r.id.split('-')[0] : ''}
                                             </p>
                                         </div>
                                         {r.invoice_number && (

@@ -65,8 +65,8 @@ export default function Library() {
         setIsLoading(true)
         try {
             const res = await api.getBooks({ page, search: debouncedSearch.trim() || undefined })
-            setBooks(res.data)
-            setTotalPages(res.pagination.total_pages)
+            setBooks(res.data || [])
+            setTotalPages(res.pagination?.total_pages || 1)
         } catch {
             toast.error("Kitoblarni yuklashda xatolik")
         } finally {
@@ -272,7 +272,7 @@ export default function Library() {
                 <div className="flex justify-center items-center py-20 min-h-75">
                     <div className="w-10 h-10 border-3 border-border border-t-primary rounded-full animate-spin"></div>
                 </div>
-            ) : books.length === 0 ? (
+            ) : (books || []).length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-24 text-center text-text-muted bg-surface/50 border border-dashed border-border rounded-2xl">
                     <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-4">
                         <Search size={28} className="opacity-50" />
@@ -281,7 +281,7 @@ export default function Library() {
                 </div>
             ) : (
                 <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-6">
-                    {books.map((book) => (
+                    {(books || []).map((book) => (
                         <BookCard
                             key={book.id}
                             book={book}

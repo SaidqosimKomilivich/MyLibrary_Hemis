@@ -7,7 +7,7 @@ import { api } from '../../services/api'
 import logo from '/icon_arm.png'
 
 export default function ContactInfoPage() {
-    const { user, isLoading, logout } = useAuth()
+    const { user, isLoading, logout, refreshUser } = useAuth()
     const navigate = useNavigate()
 
     const [email, setEmail] = useState('')
@@ -58,8 +58,9 @@ export default function ContactInfoPage() {
                 isPhoneMissing ? phone.trim() : undefined
             )
             toast.success("Ma'lumotlar muvaffaqiyatli saqlandi!")
-            // Foydalanuvchi ma'lumotlarini yangilash uchun sahifani qayta yuklaymiz
-            window.location.href = '/student'
+            // Foydalanuvchi ma'lumotlarini qayta yuklab student dashboardga yo'naltiramiz
+            await refreshUser()
+            navigate('/student', { replace: true })
         } catch (error: any) {
             toast.error(error.message || 'Xatolik yuz berdi')
         } finally {

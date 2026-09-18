@@ -294,15 +294,9 @@ export default function AdminNewsModal({
                                                         const formData = new FormData()
                                                         formData.append("file", blobInfo.blob(), blobInfo.filename())
 
-                                                        const token = localStorage.getItem("token")
-                                                        const headers: HeadersInit = {}
-                                                        if (token) {
-                                                            headers["Authorization"] = `Bearer ${token}`
-                                                        }
-
                                                         fetch("/api/tinymce-upload", {
                                                             method: "POST",
-                                                            headers,
+                                                            credentials: "include",
                                                             body: formData,
                                                         })
                                                             .then(async (res) => {

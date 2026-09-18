@@ -86,12 +86,17 @@ export default function PendingBooksPage() {
         }
     }
 
-    const baseDisplayBooks = tab === 'pending' ? books : teacherBooks
-    const displayBooks = baseDisplayBooks.filter(book =>
-        (book.title?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
-        (book.author?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
-        (book.category?.toLowerCase().includes(searchTerm.toLowerCase()) || false)
-    )
+    const baseDisplayBooks = tab === 'pending' ? (books || []) : (teacherBooks || [])
+    const searchLower = (searchTerm || '').trim().toLowerCase()
+    const displayBooks = (baseDisplayBooks || []).filter(book => {
+        if (!book) return false
+        if (!searchLower) return true
+        return Boolean(
+            (book.title?.toLowerCase().includes(searchLower)) ||
+            (book.author?.toLowerCase().includes(searchLower)) ||
+            (book.category?.toLowerCase().includes(searchLower))
+        )
+    })
 
     const ACTION_CONFIG = {
         approve: {

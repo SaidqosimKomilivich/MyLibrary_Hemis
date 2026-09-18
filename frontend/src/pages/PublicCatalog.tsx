@@ -46,9 +46,9 @@ const PublicCatalog = () => {
 
             const res = await api.getPublicBooks(params);
             if (res.success) {
-                setBooks(res.data);
+                setBooks(res.data || []);
                 if (res.pagination) {
-                    setTotalPages(res.pagination.total_pages);
+                    setTotalPages(res.pagination.total_pages || 1);
                 }
             } else {
                 toast.error("Kitoblarni yuklashda xatolik yuz berdi");
@@ -268,10 +268,10 @@ const PublicCatalog = () => {
                             <Loader2 size={32} className="animate-spin text-emerald-500 mb-4" />
                             <p>Kitoblar yuklanmoqda...</p>
                         </div>
-                    ) : books.length > 0 ? (
+                    ) : (books || []).length > 0 ? (
                         <>
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-                                {books.map((book) => (
+                                {(books || []).map((book) => (
                                     <div
                                         key={book.id}
                                         onClick={() => handleBookClick(book.id)}
