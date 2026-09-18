@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { User, Mail, Phone, Building2, GraduationCap, BookOpen, Calendar, Shield, Lock, Eye, EyeOff, Check, X, Loader2, Download, IdCard, RotateCw, MapPin, Printer } from 'lucide-react'
+import { User, Mail, Phone, Building2, GraduationCap, BookOpen, Calendar, Shield, Lock, Eye, EyeOff, Check, X, Loader2, Download, IdCard, RotateCw, MapPin } from 'lucide-react'
 import { toast } from 'react-toastify'
 import { useAuth } from '../context/AuthContext'
 import { api } from '../services/api'
@@ -27,7 +27,6 @@ export default function ProfilePage() {
     const [showConfirm, setShowConfirm] = useState(false)
     const [loading, setLoading] = useState(false)
     const [downloading, setDownloading] = useState(false)
-    const [printing, setPrinting] = useState(false)
     const [cardFlipped, setCardFlipped] = useState(false)
     const [imgLoadError, setImgLoadError] = useState(false)
     const frontRef = useRef<HTMLDivElement>(null)
@@ -155,133 +154,6 @@ export default function ProfilePage() {
         setTimeout(() => { URL.revokeObjectURL(dataUrl) }, 100)
     }
 
-    const handlePrintCard = async () => {
-        if (!frontRef.current || !backRef.current || printing) return
-        setPrinting(true)
-        try {
-            const opts = { cacheBust: true, pixelRatio: 3, backgroundColor: '#ffffff', skipFonts: false }
-            const frontEl = frontRef.current
-            const prevFrontBackface = frontEl.style.backfaceVisibility
-            frontEl.style.backfaceVisibility = 'visible'
-            const frontDataUrl = await toPng(frontEl, opts)
-            frontEl.style.backfaceVisibility = prevFrontBackface
-
-            const backEl = backRef.current
-            const prevTransform = backEl.style.transform
-            const prevBackface = backEl.style.backfaceVisibility
-            backEl.style.transform = 'rotateY(0deg)'
-            backEl.style.backfaceVisibility = 'visible'
-
-            const backDataUrl = await toPng(backEl, opts)
-
-            backEl.style.transform = prevTransform
-            backEl.style.backfaceVisibility = prevBackface
-
-            const printWin = window.open('', '_blank', 'width=900,height=700')
-            if (!printWin) {
-                toast.warning("Chop etish oynasi ochilmadi. Brauzer sozlamalaridan pop-up ga ruxsat bering.")
-                return
-            }
-
-            printWin.document.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="utf-8">
-                    <title>ID Karta (10.5sm x 7sm) - ${user.full_name || 'ID Karta'}</title>
-                    <style>
-                        @page {
-                            size: 10.5cm 7cm;
-                            margin: 0;
-                        }
-                        @media print {
-                            html, body {
-                                margin: 0;
-                                padding: 0;
-                                width: 10.5cm;
-                                height: 7cm;
-                                -webkit-print-color-adjust: exact;
-                                print-color-adjust: exact;
-                            }
-                            .page-break {
-                                page-break-after: always;
-                                break-after: page;
-                            }
-                        }
-                        body {
-                            margin: 0;
-                            padding: 20px;
-                            display: flex;
-                            flex-direction: column;
-                            align-items: center;
-                            gap: 20px;
-                            font-family: 'Inter', sans-serif;
-                            background: #f1f5f9;
-                        }
-                        .header-actions {
-                            display: flex;
-                            gap: 16px;
-                            align-items: center;
-                        }
-                        .print-btn {
-                            padding: 10px 24px;
-                            background: #1e2a78;
-                            color: white;
-                            border: none;
-                            border-radius: 8px;
-                            font-size: 15px;
-                            font-weight: 600;
-                            cursor: pointer;
-                            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-                        }
-                        .size-label {
-                            font-size: 14px;
-                            color: #334155;
-                            font-weight: 600;
-                        }
-                        .card-container {
-                            width: 10.5cm;
-                            height: 7cm;
-                            border-radius: 12px;
-                            overflow: hidden;
-                            box-shadow: 0 4px 14px rgba(0,0,0,0.15);
-                            background: white;
-                        }
-                        .card-container img {
-                            width: 100%;
-                            height: 100%;
-                            display: block;
-                            object-fit: fill;
-                        }
-                        @media print {
-                            body { background: transparent; padding: 0; gap: 0; }
-                            .header-actions { display: none !important; }
-                            .card-container { box-shadow: none; border-radius: 0; width: 10.5cm; height: 7cm; }
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div class="header-actions">
-                        <span class="size-label">O'lchami: 10.5 sm × 7.0 sm</span>
-                        <button class="print-btn" onclick="window.print()">🖨️ Chop etish (Print)</button>
-                    </div>
-                    <div class="card-container page-break">
-                        <img src="${frontDataUrl}" alt="Old tomoni" />
-                    </div>
-                    <div class="card-container">
-                        <img src="${backDataUrl}" alt="Orqa tomoni" />
-                    </div>
-                </body>
-                </html>
-            `)
-            printWin.document.close()
-        } catch (e) {
-            console.error(e)
-            toast.error("Chop etishda xatolik yuz berdi")
-        } finally {
-            setPrinting(false)
-        }
-    }
     // Role-specific info items
     const commonItems = [
         { icon: <User size={18} />, label: 'F.I.Sh', value: user.full_name },
@@ -524,14 +396,6 @@ export default function ProfilePage() {
                 {/* ===== ID CARD TAB ===== */}
                 {activeTab === 'card' && (
                     <div className='grid justify-center'>
-                        {/* 10.5 sm x 7 sm o'lcham indikatori */}
-                        <div className="flex items-center justify-between mb-3 px-1 text-xs">
-                            <span className="font-semibold text-text">ID Karta formati:</span>
-                            <span className="bg-primary/10 text-primary-light font-bold px-2.5 py-0.5 rounded-md border border-primary/20">
-                                10,5 sm × 7,0 sm
-                            </span>
-                        </div>
-
                         <div className='w-105 h-70 cursor-pointer' style={{ perspective: '1000px', width: '420px', height: '280px' }} onClick={() => setCardFlipped(!cardFlipped)}>
                             <div className='relative w-full h-full transition-transform duration-700' style={{ transformStyle: 'preserve-3d', transform: cardFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)' }}>
 
@@ -619,7 +483,7 @@ export default function ProfilePage() {
                                     </div>
 
                                     {/* Foydalanuvchi ma'lumotlari (O'rtada) */}
-                                    <div style={{ position: 'absolute', top: '116px', left: '132px', width: '148px', display: 'flex', flexDirection: 'column', gap: '3px', zIndex: 10 }}>
+                                    <div style={{ position: 'absolute', top: '116px', left: '128px', width: '136px', display: 'flex', flexDirection: 'column', gap: '3px', zIndex: 10 }}>
                                         <p style={{ margin: 0, fontSize: '14.5px', fontWeight: 800, color: '#0f172a', lineHeight: '1.2', textTransform: 'capitalize', wordBreak: 'break-word' }}>
                                             {user.full_name || user.user_id}
                                         </p>
@@ -645,9 +509,9 @@ export default function ProfilePage() {
                                     </div>
 
                                     {/* QR kod (O'ng tomonda) */}
-                                    <div style={{ position: 'absolute', top: '114px', right: '18px', width: '112px', height: '112px', borderRadius: '12px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'center', alignItems: 'center', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', overflow: 'hidden', zIndex: 10 }}>
-                                        {/* QR kodda HEMIS user_id ishlatiladi, level='M' va includeMargin bilan yirik modullar */}
-                                        <QRCodeSVG value={user.user_id || user.id} size={104} level='M' includeMargin={true} />
+                                    <div style={{ position: 'absolute', top: '112px', right: '16px', width: '134px', height: '134px', borderRadius: '12px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'center', alignItems: 'center', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', padding: '2px', overflow: 'hidden', zIndex: 10 }}>
+                                        {/* QR kodda HEMIS user_id ishlatiladi, level='M' va marginSize={2} bilan katta va aniq modullar */}
+                                        <QRCodeSVG value={user.user_id || user.id} size={128} level='M' marginSize={2} />
                                     </div>
                                 </div>
 
@@ -741,11 +605,6 @@ export default function ProfilePage() {
                                     Orqa tomon
                                 </button>
                             </div>
-
-                            <button className='flex justify-center items-center gap-2.5 p-3 bg-emerald-600 hover:bg-emerald-700 text-white transition-all active:scale-95 rounded-xl disabled:opacity-60 disabled:cursor-not-allowed font-medium shadow-md cursor-pointer' onClick={handlePrintCard} disabled={printing}>
-                                {printing ? <Loader2 size={18} className="animate-spin" /> : <Printer size={18} />}
-                                10,5 sm × 7 sm o'lchamda chop etish
-                            </button>
                         </div>
                     </div>
                 )}
