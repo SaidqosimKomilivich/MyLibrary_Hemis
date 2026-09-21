@@ -11,10 +11,62 @@ pub struct CreateRentalRequest {
     pub notes: Option<String>,
 }
 
+/// Bir nechta kitob topshirish uchun element
+#[derive(Debug, Deserialize)]
+pub struct CreateRentalItem {
+    pub book_id: String,
+    pub invoice_number: String,
+    pub due_date: Option<String>,
+    pub notes: Option<String>,
+}
+
+/// Bir nechta kitob topshirish (batch) so'rovi
+#[derive(Debug, Deserialize)]
+pub struct CreateRentalBatchRequest {
+    pub user_id: String,
+    pub due_date: Option<String>, // Umumiy qaytarish muddati
+    pub notes: Option<String>,
+    pub items: Vec<CreateRentalItem>,
+}
+
+/// Bir nechta kitob topshirish javobi
+#[allow(dead_code)]
+#[derive(Debug, Serialize)]
+pub struct CreateRentalBatchResponse {
+    pub success: bool,
+    pub message: String,
+    pub count: usize,
+    pub ids: Vec<Uuid>,
+}
+
 /// Kitobni qaytarish uchun so'rov
 #[derive(Debug, Deserialize)]
 pub struct ReturnRentalRequest {
     pub notes: Option<String>,
+}
+
+/// Bir nechta kitobni qaytarish uchun element
+#[derive(Debug, Deserialize)]
+pub struct ReturnRentalItem {
+    pub rental_id: Uuid,
+    pub notes: Option<String>,
+}
+
+/// Bir nechta kitobni qaytarish (batch) so'rovi
+#[derive(Debug, Deserialize)]
+pub struct ReturnRentalBatchRequest {
+    pub notes: Option<String>, // Umumiy izoh
+    pub items: Vec<ReturnRentalItem>,
+}
+
+/// Bir nechta kitobni qaytarish javobi
+#[allow(dead_code)]
+#[derive(Debug, Serialize)]
+pub struct ReturnRentalBatchResponse {
+    pub success: bool,
+    pub message: String,
+    pub count: usize,
+    pub returned_ids: Vec<Uuid>,
 }
 
 /// Ijaralar uchun filtr parametrlari

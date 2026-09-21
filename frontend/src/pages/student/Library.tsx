@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { Search, Plus, X, Layers, CheckCircle, XCircle, AlertTriangle, BookOpen } from 'lucide-react'
+import { Search, Plus, X, Layers, CheckCircle, XCircle, AlertTriangle, BookOpen, FileSpreadsheet } from 'lucide-react'
 import { api, type Book } from '../../services/api'
 import { toast } from 'react-toastify'
 import { useAuth } from '../../context/AuthContext'
@@ -10,6 +10,7 @@ import BookModal from '../../components/BookModal'
 import DeleteConfirmModal from '../../components/DeleteConfirmModal'
 import { CustomSelect } from '../../components/CustomSelect'
 import PdfViewerModal from '../../components/PdfViewerModal'
+import ExcelImportModal from '../../components/ExcelImportModal'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useDebounce } from '../../hooks/useDebounce'
 
@@ -60,6 +61,9 @@ export default function Library() {
     // Per-book toggle state
     const [toggleBook, setToggleBook] = useState<Book | null>(null)
     const [isToggling, setIsToggling] = useState(false)
+
+    // Excel import modal state
+    const [excelModalOpen, setExcelModalOpen] = useState(false)
 
     const fetchBooks = async () => {
         setIsLoading(true)
@@ -243,13 +247,23 @@ export default function Library() {
                     </p>
                 </div>
                 {canManageBooks && (
-                    <button
-                        className="flex items-center justify-center gap-2 bg-primary text-white border-none py-2.5 px-5 rounded-xl font-semibold cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(99,102,241,0.3)] hover:brightness-110 active:transform-none"
-                        onClick={handleAdd}
-                    >
-                        <Plus size={20} />
-                        <span>Yangi kitob</span>
-                    </button>
+                    <div className="flex flex-wrap items-center gap-3">
+                        <button
+                            className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white border-none py-2.5 px-4.5 rounded-xl font-semibold cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(16,185,129,0.3)] active:transform-none text-sm"
+                            onClick={() => setExcelModalOpen(true)}
+                            title="Excel (.xlsx) orqali kitoblarni yuklash"
+                        >
+                            <FileSpreadsheet size={18} />
+                            <span>Exceldan yuklash</span>
+                        </button>
+                        <button
+                            className="flex items-center justify-center gap-2 bg-primary text-white border-none py-2.5 px-5 rounded-xl font-semibold cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(99,102,241,0.3)] hover:brightness-110 active:transform-none text-sm"
+                            onClick={handleAdd}
+                        >
+                            <Plus size={18} />
+                            <span>Yangi kitob</span>
+                        </button>
+                    </div>
                 )}
             </div>
 
@@ -628,6 +642,16 @@ export default function Library() {
                 </div>,
                 document.body
             )}
+
+            {/* Excel import modal */}
+            <ExcelImportModal
+                isOpen={excelModalOpen}
+                onClose={() => setExcelModalOpen(false)}
+                onSuccess={() => {
+                    fetchBooks()
+                }}
+            />
         </div>
     )
 }
+

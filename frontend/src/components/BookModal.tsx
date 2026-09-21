@@ -310,6 +310,11 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
                 return
             }
 
+            // Muallif bo'sh bo'lsa standart fallback
+            if (!dataToSend.author || String(dataToSend.author).trim() === '') {
+                dataToSend.author = "Noma'lum muallif"
+            }
+
             // When adding new book, set available = total
             if (mode === 'add') {
                 dataToSend.available_quantity = dataToSend.total_quantity

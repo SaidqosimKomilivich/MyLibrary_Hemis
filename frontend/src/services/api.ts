@@ -40,6 +40,8 @@ import type {
     UploadProgress,
     WeeklySyncReportResponse,
     SyncProgressEvent,
+    ImportBooksRequest,
+    ImportBooksResponse,
 } from './api.types'
 import { formatBytes, formatSpeed } from '../utils/formatBytes'
 
@@ -260,6 +262,14 @@ export const api = {
         })
     },
 
+    importBooks(data: ImportBooksRequest) {
+        return request<ImportBooksResponse>('/books/import', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        })
+    },
+
+
     updateBook(id: string, data: Partial<CreateBookRequest>) {
         return request<SingleBookResponse>(`/books/${id}`, {
             method: 'PUT',
@@ -465,10 +475,24 @@ export const api = {
         })
     },
 
+    createRentalBatch(data: { user_id: string; due_date?: string; notes?: string; items: { book_id: string; invoice_number: string; due_date?: string; notes?: string }[] }) {
+        return request<{ success: boolean; message: string; count: number; ids: string[] }>('/rentals/batch', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        })
+    },
+
     returnRental(id: string, notes?: string) {
         return request<{ success: boolean; message: string }>(`/rentals/${id}/return`, {
             method: 'PUT',
             body: JSON.stringify({ notes }),
+        })
+    },
+
+    returnRentalBatch(data: { notes?: string; items: { rental_id: string; notes?: string }[] }) {
+        return request<{ success: boolean; message: string; count: number; returned_ids: string[] }>('/rentals/return-batch', {
+            method: 'POST',
+            body: JSON.stringify(data),
         })
     },
 

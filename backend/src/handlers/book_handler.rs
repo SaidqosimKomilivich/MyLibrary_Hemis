@@ -2,7 +2,9 @@ use actix_web::{web, HttpResponse};
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::dto::book::{CheckDuplicateQuery, CreateBookRequest, PaginationParams, UpdateBookRequest};
+use crate::dto::book::{
+    CheckDuplicateQuery, CreateBookRequest, ImportBooksRequest, PaginationParams, UpdateBookRequest,
+};
 use crate::errors::AppError;
 use crate::middleware::auth_middleware::{self, Claims};
 use crate::services::book_service::BookService;
@@ -232,3 +234,30 @@ pub async fn check_duplicate(
         "data": result
     })))
 }
+
+/// POST /api/books/import — Admin va staff: kitoblarni ommaviy import qilish
+pub async fn import_books(
+    pool: web::Data<PgPool>,
+    claims: Claims,
+    body: web::Json<ImportBooksRequest>,
+) -> Result<HttpResponse, AppError> {
+    if let Err(resp) = auth_middleware::require_role(&claims, &["admin", "staff"]) {
+        return Ok(resp);
+    }
+
+    let added_by = match Uuid::parse_str(&claims.sub) {
+        Ok(u) => u,
+        Err(_) => {
+            if let Some(user) = crate::repository::user_repository::UserRepository::find_by_user_id(pool.get_ref(), &claims.sub).await? {
+                user.id
+            } else {
+                return Err(AppError::BadRequest("Foydalanuvchi topilmadi".into()));
+            }
+        }
+    };
+
+    let result = BookService::import_books(pool.get_ref(), body.into_inner(), added_by).await?;
+    Ok(HttpResponse::Ok().json(result))
+}
+
+

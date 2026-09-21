@@ -163,8 +163,10 @@ impl UserRepository {
     }
 
     /// Foydalanuvchi rolini o'zgartirish (admin uchun)
+    /// Admin tomonidan o'zgartirilganda is_role_custom = TRUE belgilanadi,
+    /// bu sinxronlash jarayonida rolni qaytarib yubormaslikni kafolatlaydi.
     pub async fn update_role(pool: &PgPool, id: Uuid, new_role: &str) -> Result<(), AppError> {
-        sqlx::query(r#"UPDATE "users" SET "role" = $1 WHERE "id" = $2"#)
+        sqlx::query(r#"UPDATE "users" SET "role" = $1, "is_role_custom" = TRUE WHERE "id" = $2"#)
             .bind(new_role)
             .bind(id)
             .execute(pool)
@@ -615,7 +617,10 @@ impl UserRepository {
         sqlx::query(
             r#"
             UPDATE "users" AS u SET
-                "role" = CASE WHEN u."role" IN ('admin', 'staff') THEN u."role" ELSE c.role END,
+                "role" = CASE
+                    WHEN u."is_role_custom" = TRUE OR u."role" IN ('admin', 'staff') THEN u."role"
+                    ELSE c.role
+                END,
                 "full_name" = c.full_name,
                 "short_name" = c.short_name,
                 "birth_date" = c.birth_date,
@@ -706,7 +711,7 @@ impl UserRepository {
         sqlx::query(
             r#"
             UPDATE "users" SET
-                "role" = CASE WHEN "role" = 'admin' THEN 'admin' ELSE $1 END,
+                "role" = CASE WHEN "is_role_custom" = TRUE OR "role" IN ('admin', 'staff') THEN "role" ELSE $1 END,
                 "full_name" = $2,
                 "short_name" = $3,
                 "birth_date" = $4,

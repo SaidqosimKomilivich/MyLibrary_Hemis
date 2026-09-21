@@ -169,3 +169,28 @@ pub struct CheckDuplicateResponse {
     pub match_type: Option<String>,
     pub book: Option<BookResponse>,
 }
+
+/// O'tkazib yuborilgan (allaqachon bazada mavjud bo'lgan) kitob ma'lumoti
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct SkippedBookInfo {
+    pub title: String,
+    pub author: String,
+    pub reason: String,
+}
+
+/// Kitoblarni ommaviy import qilish so'rovi
+#[derive(Debug, Deserialize)]
+pub struct ImportBooksRequest {
+    pub books: Vec<CreateBookRequest>,
+}
+
+/// Kitoblarni ommaviy import qilish javobi
+#[derive(Debug, Serialize)]
+pub struct ImportBooksResponse {
+    pub success: bool,
+    pub message: String,
+    pub imported_count: usize,
+    pub skipped_count: usize,
+    pub skipped_books: Vec<SkippedBookInfo>,
+}
+

@@ -31,6 +31,7 @@ export interface UserData {
     is_password_update: boolean
     is_super_admin?: boolean
     last_login?: string | null
+    is_role_custom?: boolean
 }
 
 export interface LoginResponse {
@@ -158,6 +159,25 @@ export interface CreateBookRequest {
     duration_seconds?: number
 }
 
+export interface SkippedBookInfo {
+    title: string
+    author: string
+    reason: string
+}
+
+export interface ImportBooksRequest {
+    books: CreateBookRequest[]
+}
+
+export interface ImportBooksResponse {
+    success: boolean
+    message: string
+    imported_count: number
+    skipped_count: number
+    skipped_books: SkippedBookInfo[]
+}
+
+
 export interface UploadedFile {
     original_name: string
     filename: string
@@ -272,6 +292,30 @@ export interface RentalListResponse {
     success: boolean
     data: Rental[]
     total: number
+}
+
+export interface CreateRentalBatchItem {
+    book_id: string
+    invoice_number: string
+    due_date?: string
+    notes?: string
+}
+
+export interface CreateRentalBatchRequest {
+    user_id: string
+    due_date?: string
+    notes?: string
+    items: CreateRentalBatchItem[]
+}
+
+export interface ReturnRentalBatchItem {
+    rental_id: string
+    notes?: string
+}
+
+export interface ReturnRentalBatchRequest {
+    notes?: string
+    items: ReturnRentalBatchItem[]
 }
 
 export interface ControlRecord {

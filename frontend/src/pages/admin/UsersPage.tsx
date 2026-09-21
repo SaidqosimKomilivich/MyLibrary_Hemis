@@ -1272,6 +1272,13 @@ export default function UsersPage() {
                                 ]}
                                 buttonClassName="w-full py-2.5 px-3.5 rounded-lg border border-border bg-white/5 text-text text-[0.9rem] outline-none cursor-pointer hover:border-indigo-500/50 focus:border-indigo-500 transition-colors"
                             />
+
+                            <div className="mt-3.5 p-3 rounded-xl bg-primary/10 border border-primary/20 text-xs text-text-muted flex items-start gap-2">
+                                <span className="text-primary font-bold">ℹ️</span>
+                                <span>
+                                    Admin tomonidan o‘zgartirilgan rol HEMIS sinxronlashida saqlanib qoladi va avvalgi roliga qaytarilmaydi.
+                                </span>
+                            </div>
                         </div>
 
                         <div className="flex items-center justify-end gap-2.5 py-4 px-6 border-t border-border bg-white/5">

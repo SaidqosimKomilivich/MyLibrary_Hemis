@@ -789,6 +789,12 @@ export default function AdminEmployeesPage() {
                                 { value: 'employee', label: '👷 Oddiy Xodim' },
                                 { value: 'student', label: '🎓 Talaba' }
                             ]} />
+                            <div className="mt-3.5 p-3 rounded-xl bg-primary/10 border border-primary/20 text-xs text-text-muted flex items-start gap-2">
+                                <span className="text-primary font-bold">ℹ️</span>
+                                <span>
+                                    Admin tomonidan o‘zgartirilgan rol HEMIS sinxronlashida saqlanib qoladi va avvalgi roliga qaytarilmaydi.
+                                </span>
+                            </div>
                         </div>
                         <div className="flex justify-end p-4 border-t border-border">
                             <button className="mr-3 text-text-muted hover:text-text" onClick={() => setRoleUser(null)}>Bekor qilish</button>

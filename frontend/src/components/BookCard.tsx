@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BookOpen, Edit, Trash2, FileText, Headphones, Eye, MapPin, PlusCircle, MinusCircle, ToggleLeft, ToggleRight, Clock, Volume2 } from 'lucide-react'
+import { Edit, Trash2, FileText, Headphones, Eye, MapPin, PlusCircle, MinusCircle, ToggleLeft, ToggleRight, Clock, Volume2 } from 'lucide-react'
 import type { Book } from '../services/api'
 import { highlightText } from '../utils/highlightText'
 import { getFileUrl } from '../utils/fileUrl'
@@ -21,12 +21,15 @@ interface BookCardProps {
 
 export default function BookCard({ book, role, onEdit, onDelete, onToggleActive, onViewPdf, onListenAudio, onAddReading, onRemoveReading, onRequestBook, highlightQuery }: BookCardProps) {
     const [showOverlay, setShowOverlay] = useState(false)
+    const [imgError, setImgError] = useState(false)
     const canManageBooks = role === 'admin' || role === 'staff'
     // Fayl mavjud bo'lsa, format='pdf'/'audio'/'elektron'/'ikkalasi' dan qat'i nazar ko'rsat
     const hasDigitalFile = !!book.digital_file_url
     const isAudioFormat = book.format?.toLowerCase() === 'audio'
     const hasPdf = hasDigitalFile && !isAudioFormat  // audio bo'lmasa → PDF/Elektron
     const hasAudio = hasDigitalFile && isAudioFormat
+
+    const isArmDefault = !book.cover_image_url || book.cover_image_url === '/icon_arm.png' || imgError
 
     const handleSpeak = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -43,12 +46,25 @@ export default function BookCard({ book, role, onEdit, onDelete, onToggleActive,
                 onClick={() => setShowOverlay(!showOverlay)}
                 onMouseLeave={() => setShowOverlay(false)}
             >
-                {book.cover_image_url ? (
-                    <img src={getFileUrl(book.cover_image_url)} alt={book.title} className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 group-focus:scale-110" />
+                {!isArmDefault ? (
+                    <img
+                        src={getFileUrl(book.cover_image_url)}
+                        alt={book.title}
+                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 group-focus:scale-110"
+                        onError={() => setImgError(true)}
+                    />
                 ) : (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-text-muted/40 font-medium transition-transform duration-500 group-hover:scale-110 group-focus:scale-110">
-                        <BookOpen size={48} />
-                        <span>Rasm yo'q</span>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center p-6 bg-linear-to-br from-slate-900 via-indigo-950/90 to-slate-950 text-white select-none transition-transform duration-500 group-hover:scale-105 group-focus:scale-105">
+                        <div className="relative w-24 h-24 rounded-2xl bg-white/10 p-2.5 backdrop-blur-md border border-white/20 shadow-xl flex items-center justify-center mb-3">
+                            <img
+                                src="/icon_arm.png"
+                                alt="ARM Kutubxona"
+                                className="w-full h-full object-contain drop-shadow-md"
+                            />
+                        </div>
+                        <span className="text-[0.65rem] font-bold uppercase tracking-widest text-indigo-200/90 bg-white/10 px-2.5 py-1 rounded-full border border-white/15">
+                            ARM Fondi
+                        </span>
                     </div>
                 )}
 

@@ -209,6 +209,7 @@ async fn main() -> std::io::Result<()> {
                         "/check-duplicate",
                         web::get().to(book_handler::check_duplicate),
                     )
+                    .route("/import", web::post().to(book_handler::import_books))
                     // /{id} routelari — eng oxirida
                     .route("/{id}", web::get().to(book_handler::get_book))
                     .route("/{id}", web::put().to(book_handler::update_book))
@@ -230,6 +231,8 @@ async fn main() -> std::io::Result<()> {
             .service(
                 web::scope("/api/rentals")
                     .route("/my", web::get().to(rental_handler::get_my_rentals))
+                    .route("/batch", web::post().to(rental_handler::create_rental_batch))
+                    .route("/return-batch", web::post().to(rental_handler::return_rental_batch))
                     .route("", web::post().to(rental_handler::create_rental))
                     .route("", web::get().to(rental_handler::get_rentals))
                     .route("/{id}", web::get().to(rental_handler::get_rental))

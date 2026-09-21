@@ -2,12 +2,15 @@ use actix_web::{web, HttpResponse};
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::dto::rental::{CreateRentalRequest, RentalFilterParams, ReturnRentalRequest};
+use crate::dto::rental::{
+    CreateRentalBatchRequest, CreateRentalRequest, RentalFilterParams,
+    ReturnRentalBatchRequest, ReturnRentalRequest,
+};
 use crate::errors::AppError;
 use crate::middleware::auth_middleware::{self, Claims};
 use crate::services::rental_service::RentalService;
 
-/// POST /api/rentals — Kitob topshirish (faqat admin/staff)
+/// POST /api/rentals — Kitob topshirish (faqat admin/staff/employee)
 pub async fn create_rental(
     pool: web::Data<PgPool>,
     claims: Claims,
@@ -19,6 +22,34 @@ pub async fn create_rental(
 
     let response = RentalService::create_rental(pool.get_ref(), body.into_inner()).await?;
     Ok(HttpResponse::Created().json(response))
+}
+
+/// POST /api/rentals/batch — Bir nechta kitob topshirish (admin/staff/employee)
+pub async fn create_rental_batch(
+    pool: web::Data<PgPool>,
+    claims: Claims,
+    body: web::Json<CreateRentalBatchRequest>,
+) -> Result<HttpResponse, AppError> {
+    if let Err(resp) = auth_middleware::require_role(&claims, &["admin", "staff", "employee"]) {
+        return Ok(resp);
+    }
+
+    let response = RentalService::create_rental_batch(pool.get_ref(), body.into_inner()).await?;
+    Ok(HttpResponse::Created().json(response))
+}
+
+/// POST /api/rentals/return-batch — Bir nechta kitobni qaytarish (admin/staff/employee)
+pub async fn return_rental_batch(
+    pool: web::Data<PgPool>,
+    claims: Claims,
+    body: web::Json<ReturnRentalBatchRequest>,
+) -> Result<HttpResponse, AppError> {
+    if let Err(resp) = auth_middleware::require_role(&claims, &["admin", "staff", "employee"]) {
+        return Ok(resp);
+    }
+
+    let response = RentalService::return_rental_batch(pool.get_ref(), body.into_inner()).await?;
+    Ok(HttpResponse::Ok().json(response))
 }
 
 /// PUT /api/rentals/{id}/return — Kitobni qaytarish (admin/staff/employee)

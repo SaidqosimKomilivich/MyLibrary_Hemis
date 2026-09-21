@@ -28,4 +28,7 @@ pub struct User {
     pub last_login: Option<chrono::DateTime<chrono::Utc>>,
     pub active: bool,
     pub is_password_update: bool,
+    #[sqlx(default)]
+    pub is_role_custom: bool,
 }
+

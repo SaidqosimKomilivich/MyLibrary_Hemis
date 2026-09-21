@@ -8,7 +8,11 @@ import {
     Camera,
     Settings2,
     Loader2,
-    Hash
+    Hash,
+    Trash2,
+    Plus,
+    CheckSquare,
+    Square
 } from 'lucide-react'
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode'
 import { highlightText } from '../../utils/highlightText'
@@ -55,7 +59,13 @@ export default function AccessControl() {
     const [activeRentals, setActiveRentals] = useState<Rental[]>([])
     const [rentalsLoading, setRentalsLoading] = useState(false)
 
-    // ──── Book assignment ────
+interface SelectedBookItem {
+    book: Book
+    invoiceNumber: string
+    notes?: string
+}
+
+    // ──── Book assignment (ko'p kitob topshirish) ────
     const [assignModalOpen, setAssignModalOpen] = useState(false)
     const [bookSearch, setBookSearch] = useState('')
     const [searchResults, setSearchResults] = useState<Book[]>([])
@@ -66,15 +76,14 @@ export default function AccessControl() {
             setSearchResults([])
         }
     }, [bookSearch])
-    const [selectedBook, setSelectedBook] = useState<Book | null>(null)
+    const [selectedBooks, setSelectedBooks] = useState<SelectedBookItem[]>([])
     const [dueDate, setDueDate] = useState('')
-    const [invoiceNumber, setInvoiceNumber] = useState('')
     const [assignNotes, setAssignNotes] = useState('')
     const [assignLoading, setAssignLoading] = useState(false)
 
-    // ──── Return ────
+    // ──── Return (bir yoki bir nechta kitobni qabul qilish) ────
     const [returnModalOpen, setReturnModalOpen] = useState(false)
-    const [returningRental, setReturningRental] = useState<Rental | null>(null)
+    const [selectedRentalIds, setSelectedRentalIds] = useState<string[]>([])
     const [returnNotes, setReturnNotes] = useState('')
     const [returnLoading, setReturnLoading] = useState(false)
 
@@ -224,6 +233,8 @@ function extractIdFromScannedText(rawText: string): string {
     const clearUser = useCallback(() => {
         setScannedUser(null)
         setActiveRentals([])
+        setSelectedRentalIds([])
+        setSelectedBooks([])
         setUserIsInside(false)
         setScanInput('')
         isScanningRef.current = false
@@ -349,58 +360,121 @@ function extractIdFromScannedText(rawText: string): string {
         }
     }
 
-    // ──── Book assignment ────
+    // ──── Book assignment (ko'p kitob topshirish) ────
     const handleSearchBooks = async () => {
         if (!bookSearch.trim()) return
         try {
             const res = await api.getBooks({ search: bookSearch })
             setSearchResults(res.data)
         } catch {
-            toast.error("Kitoblarni qidirshda xatolik")
+            toast.error("Kitoblarni qidirishda xatolik")
         }
     }
 
-    const handleAssignBook = async () => {
-        if (!scannedUser || !selectedBook || !dueDate) {
-            toast.warning("Barcha maydonlarni to'ldiring")
+    const handleAddBookToAssign = (book: Book) => {
+        if (selectedBooks.some(item => item.book.id === book.id)) {
+            toast.info(`"${book.title}" allaqachon ro'yxatga qo'shilgan`)
             return
         }
-        if (!invoiceNumber.trim()) {
-            toast.warning("Invois raqamini kiriting")
+        if ((book.available_quantity || 0) <= 0) {
+            toast.warning(`"${book.title}" omborda qolmagan`)
             return
         }
+        setSelectedBooks(prev => [...prev, { book, invoiceNumber: '', notes: '' }])
+        toast.success(`"${book.title}" ro'yxatga qo'shildi`)
+    }
+
+    const handleRemoveBookFromAssign = (bookId: string) => {
+        setSelectedBooks(prev => prev.filter(item => item.book.id !== bookId))
+    }
+
+    const handleUpdateBookInvoice = (bookId: string, invoice: string) => {
+        setSelectedBooks(prev => prev.map(item => item.book.id === bookId ? { ...item, invoiceNumber: invoice } : item))
+    }
+
+    const handleAssignBooks = async () => {
+        if (!scannedUser) {
+            toast.warning("Foydalanuvchi aniqlanmagan")
+            return
+        }
+        if (selectedBooks.length === 0) {
+            toast.warning("Kamida bitta kitob tanlang")
+            return
+        }
+        const missingInvoice = selectedBooks.find(b => !b.invoiceNumber.trim())
+        if (missingInvoice) {
+            toast.warning(`"${missingInvoice.book.title}" kitobi uchun invois raqamini kiriting`)
+            return
+        }
+
+        const finalDue = dueDate || (typeof defaultDue === 'string' ? defaultDue : '')
+        if (!finalDue) {
+            toast.warning("Qaytarish muddatini tanlang")
+            return
+        }
+
         setAssignLoading(true)
         try {
-            await api.createRental(scannedUser.user_id, selectedBook.id, dueDate || defaultDue, invoiceNumber.trim(), assignNotes || undefined)
-            toast.success(`"${selectedBook.title}" kitobi ${scannedUser.full_name}ga berildi`)
+            await api.createRentalBatch({
+                user_id: scannedUser.user_id,
+                due_date: finalDue,
+                notes: assignNotes.trim() || undefined,
+                items: selectedBooks.map(item => ({
+                    book_id: item.book.id,
+                    invoice_number: item.invoiceNumber.trim(),
+                    notes: item.notes?.trim() || undefined,
+                })),
+            })
+            toast.success(`${selectedBooks.length} ta kitob ${scannedUser.full_name}ga muvaffaqiyatli berildi 🎉`)
             setAssignModalOpen(false)
-            setSelectedBook(null)
+            setSelectedBooks([])
             setBookSearch('')
             setSearchResults([])
             setDueDate('')
-            setInvoiceNumber('')
             setAssignNotes('')
             loadUserRentals(scannedUser.user_id)
         } catch (error: any) {
-            toast.error(error.message || "Kitob berishda xatolik")
+            toast.error(error.message || "Kitoblarni topshirishda xatolik yuz berdi")
         } finally {
             setAssignLoading(false)
         }
     }
 
-    // ──── Book return ────
+    // ──── Book return (bir yoki bir nechta kitobni qabul qilish) ────
+    const handleToggleSelectAllRentals = () => {
+        if (sortedRentals.length === 0) return
+        if (selectedRentalIds.length === sortedRentals.length) {
+            setSelectedRentalIds([])
+        } else {
+            setSelectedRentalIds(sortedRentals.map(r => r.id))
+        }
+    }
+
+    const handleToggleSelectRental = (id: string) => {
+        setSelectedRentalIds(prev =>
+            prev.includes(id) ? prev.filter(rId => rId !== id) : [...prev, id]
+        )
+    }
+
     const handleReturnConfirm = async () => {
-        if (!returningRental) return
+        if (selectedRentalIds.length === 0) return
         setReturnLoading(true)
         try {
-            await api.returnRental(returningRental.id, returnNotes || undefined)
-            toast.success(`"${returningRental.book_title}" qaytarildi ✅`)
+            if (selectedRentalIds.length === 1) {
+                await api.returnRental(selectedRentalIds[0], returnNotes.trim() || undefined)
+            } else {
+                await api.returnRentalBatch({
+                    notes: returnNotes.trim() || undefined,
+                    items: selectedRentalIds.map(id => ({ rental_id: id })),
+                })
+            }
+            toast.success(`${selectedRentalIds.length} ta kitob muvaffaqiyatli qabul qilindi ✅`)
             setReturnModalOpen(false)
-            setReturningRental(null)
+            setSelectedRentalIds([])
             setReturnNotes('')
             if (scannedUser) loadUserRentals(scannedUser.user_id)
-        } catch {
-            toast.error("Qaytarishda xatolik")
+        } catch (err: any) {
+            toast.error(err.message || "Kitoblarni qaytarishda xatolik yuz berdi")
         } finally {
             setReturnLoading(false)
         }
@@ -642,6 +716,32 @@ function extractIdFromScannedText(rawText: string): string {
                             </h2>
                         </div>
 
+                        {/* Tanlangan kitoblarni ommaviy qaytarish paneli */}
+                        {selectedRentalIds.length > 0 && (
+                            <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 bg-primary/10 border-b border-primary/20 text-sm animate-in fade-in duration-150">
+                                <div className="flex items-center gap-2">
+                                    <CheckSquare size={16} className="text-primary-light" />
+                                    <span className="font-semibold text-text">
+                                        Tanlangan: <span className="text-primary-light font-bold">{selectedRentalIds.length} ta kitob</span>
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-2 ml-auto">
+                                    <button
+                                        className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-xs font-bold hover:bg-primary-hover shadow-sm transition-all"
+                                        onClick={() => setReturnModalOpen(true)}
+                                    >
+                                        <RotateCcw size={14} /> Tanlanganlarni qabul qilish ({selectedRentalIds.length})
+                                    </button>
+                                    <button
+                                        className="px-3 py-2 text-text-muted hover:text-text text-xs rounded-xl hover:bg-surface-hover transition-colors font-medium"
+                                        onClick={() => setSelectedRentalIds([])}
+                                    >
+                                        Bekor qilish
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
                         {rentalsLoading ? (
                             <div className="p-12 flex items-center justify-center">
                                 <div className="w-8 h-8 rounded-full border-2 border-border border-t-primary animate-spin" />
@@ -656,8 +756,22 @@ function extractIdFromScannedText(rawText: string): string {
                                 <table className="w-full border-collapse min-w-150">
                                     <thead>
                                         <tr>
+                                            <th className="p-4 w-12 text-center border-b border-border">
+                                                <button
+                                                    type="button"
+                                                    className="cursor-pointer text-text-muted hover:text-text transition-colors flex items-center justify-center"
+                                                    onClick={handleToggleSelectAllRentals}
+                                                    title={sortedRentals.length > 0 && selectedRentalIds.length === sortedRentals.length ? "Barchasini bekor qilish" : "Barchasini tanlash"}
+                                                >
+                                                    {sortedRentals.length > 0 && selectedRentalIds.length === sortedRentals.length ? (
+                                                        <CheckSquare size={18} className="text-primary-light" />
+                                                    ) : (
+                                                        <Square size={18} />
+                                                    )}
+                                                </button>
+                                            </th>
                                             <th className="text-left p-4 text-xs font-semibold text-text-muted uppercase tracking-wider border-b border-border">Kitob</th>
-                                            <th className="text-left p-4 text-xs font-semibold text-text-muted uppercase tracking-wider border-b border-border">Muallif</th>
+                                            <th className="text-left p-4 text-xs font-semibold text-text-muted uppercase tracking-wider border-b border-border">Invois</th>
                                             <th className="text-left p-4 text-xs font-semibold text-text-muted uppercase tracking-wider border-b border-border">Olingan sana</th>
                                             <th className="text-left p-4 text-xs font-semibold text-text-muted uppercase tracking-wider border-b border-border">Muddat</th>
                                             <th className="text-left p-4 text-xs font-semibold text-text-muted uppercase tracking-wider border-b border-border">Holat</th>
@@ -667,21 +781,46 @@ function extractIdFromScannedText(rawText: string): string {
                                     <tbody>
                                         {sortedRentals.map(rental => {
                                             const deadline = getDeadlineInfo(rental.due_date)
+                                            const isSelected = selectedRentalIds.includes(rental.id)
                                             return (
-                                                <tr key={rental.id} className="hover:bg-surface-hover/50 transition-colors group">
+                                                <tr key={rental.id} className={`hover:bg-surface-hover/50 transition-colors group ${isSelected ? 'bg-primary/5' : ''}`}>
+                                                    <td className="p-4 border-b border-border text-center">
+                                                        <button
+                                                            type="button"
+                                                            className="cursor-pointer text-text-muted hover:text-text transition-colors flex items-center justify-center"
+                                                            onClick={() => handleToggleSelectRental(rental.id)}
+                                                        >
+                                                            {isSelected ? (
+                                                                <CheckSquare size={18} className="text-primary-light" />
+                                                            ) : (
+                                                                <Square size={18} />
+                                                            )}
+                                                        </button>
+                                                    </td>
                                                     <td className="p-4 border-b border-border">
                                                         <div className="flex items-center gap-3">
                                                             {rental.book_cover ? (
                                                                 <img src={getFileUrl(rental.book_cover)} alt="" className="w-10 h-10 object-cover rounded-lg shadow-sm border border-border" />
                                                             ) : (
-                                                                    <div className="w-10 h-10 bg-surface-hover/30 border border-border rounded-lg text-text-muted flex items-center justify-center">
+                                                                <div className="w-10 h-10 bg-surface-hover/30 border border-border rounded-lg text-text-muted flex items-center justify-center">
                                                                     <BookOpen size={16} />
                                                                 </div>
                                                             )}
-                                                            <span className="font-semibold text-sm text-text">{rental.book_title || 'Noma\'lum'}</span>
+                                                            <div className="flex flex-col">
+                                                                <span className="font-semibold text-sm text-text">{rental.book_title || 'Noma\'lum'}</span>
+                                                                <span className="text-xs text-text-muted">{rental.book_author || '—'}</span>
+                                                            </div>
                                                         </div>
                                                     </td>
-                                                    <td className="p-4 border-b border-border text-sm text-text-muted">{rental.book_author || '—'}</td>
+                                                    <td className="p-4 border-b border-border text-sm">
+                                                        {rental.invoice_number ? (
+                                                            <span className="font-mono text-xs px-2 py-0.5 rounded bg-surface-hover border border-border text-text font-semibold">
+                                                                {rental.invoice_number}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-text-muted text-xs">—</span>
+                                                        )}
+                                                    </td>
                                                     <td className="p-4 border-b border-border text-sm text-text-muted">{formatDateTime(rental.loan_date)}</td>
                                                     <td className="p-4 border-b border-border text-sm text-text-muted font-medium">{formatDateTime(rental.due_date)}</td>
                                                     <td className="p-4 border-b border-border">
@@ -695,7 +834,7 @@ function extractIdFromScannedText(rawText: string): string {
                                                     <td className="p-4 border-b border-border">
                                                         <button
                                                             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-transparent border border-border rounded-lg text-text font-medium text-xs hover:bg-surface-hover transition-colors"
-                                                            onClick={() => { setReturningRental(rental); setReturnModalOpen(true) }}
+                                                            onClick={() => { setSelectedRentalIds([rental.id]); setReturnModalOpen(true) }}
                                                         >
                                                             <RotateCcw size={14} /> Qaytarish
                                                         </button>
@@ -787,95 +926,51 @@ function extractIdFromScannedText(rawText: string): string {
             </div>
 
             {/* ═══════════════════════════════════════
-               BOOK ASSIGNMENT MODAL
+               BOOK ASSIGNMENT MODAL (KO'P KITOB TOPSHIRISH)
                ═══════════════════════════════════════ */}
             {
                 assignModalOpen && createPortal(
-                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-999 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => { setAssignModalOpen(false); setBookSearch(''); setSearchResults([]); setSelectedBook(null); setInvoiceNumber(''); }}>
-                        <div className="bg-surface border border-border rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-999 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => { setAssignModalOpen(false); setBookSearch(''); setSearchResults([]); setSelectedBooks([]); setDueDate(''); setAssignNotes(''); }}>
+                        <div className="bg-surface border border-border rounded-2xl w-full max-w-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
                             <div className="flex items-center justify-between p-5 border-b border-border bg-surface-hover/40">
-                                <h3 className="flex items-center gap-2 text-lg font-bold text-text m-0"><BookPlus size={20} className="text-primary-light" /> Kitob biriktirish</h3>
-                                <button className="p-1.5 rounded-lg text-text-muted hover:bg-surface-hover hover:text-rose-400 transition-colors" onClick={() => { setAssignModalOpen(false); setBookSearch(''); setSearchResults([]); setSelectedBook(null); setInvoiceNumber(''); }}>
+                                <div className="flex items-center gap-2">
+                                    <BookPlus size={22} className="text-primary-light" />
+                                    <div>
+                                        <h3 className="text-lg font-bold text-text m-0">Kitob topshirish (biriktirish)</h3>
+                                        <p className="text-xs text-text-muted m-0">Bir nechta kitobni bir vaqtning o'zida topshirish</p>
+                                    </div>
+                                </div>
+                                <button className="p-1.5 rounded-lg text-text-muted hover:bg-surface-hover hover:text-rose-400 transition-colors" onClick={() => { setAssignModalOpen(false); setBookSearch(''); setSearchResults([]); setSelectedBooks([]); setDueDate(''); setAssignNotes(''); }}>
                                     <X size={20} />
                                 </button>
                             </div>
 
-                            <div className="p-5 flex flex-col gap-4 overflow-y-auto custom-scrollbar">
-                                {/* User info */}
-                                <div className="flex items-center gap-3 text-sm text-text bg-surface-hover/50 p-3 rounded-xl border border-border">
-                                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary-light font-bold text-xs uppercase">
-                                        {scannedUser?.full_name ? scannedUser.full_name.charAt(0) : '?'}
+                            <div className="p-5 flex flex-col gap-5 overflow-y-auto custom-scrollbar">
+                                {/* Foydalanuvchi ma'lumotlari */}
+                                <div className="flex items-center justify-between gap-3 text-sm text-text bg-surface-hover/50 p-3.5 rounded-xl border border-border">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary-light font-bold text-sm uppercase">
+                                            {scannedUser?.full_name ? scannedUser.full_name.charAt(0) : '?'}
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="font-bold text-text">{scannedUser?.full_name}</span>
+                                            <span className="text-[11px] text-text-muted">
+                                                ID: <span className="font-mono font-medium text-text">{scannedUser?.user_id}</span> • {roleLabels[scannedUser?.role || ''] || scannedUser?.role}
+                                            </span>
+                                        </div>
                                     </div>
-                                    <div className="flex flex-col">
-                                        <span className="font-bold">{scannedUser?.full_name}</span>
-                                        <span className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">
-                                            {roleLabels[scannedUser?.role || ''] || scannedUser?.role}
+                                    {scannedUser?.group_name && (
+                                        <span className="text-xs bg-surface border border-border px-2.5 py-1 rounded-lg text-text-muted font-medium">
+                                            {scannedUser.group_name}
                                         </span>
-                                    </div>
+                                    )}
                                 </div>
 
-                                {/* Book search */}
-                                <div className="flex flex-col gap-1.5">
-                                    <label className="text-[0.8rem] font-semibold text-text-muted uppercase tracking-wider">Kitob qidirish</label>
-                                    <div className="flex gap-2">
-                                        <div className="relative flex-1">
-                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-                                            <input
-                                                className="w-full bg-surface-hover/30 border border-border pl-9 pr-3 py-2.5 rounded-xl text-sm text-text outline-none focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)] transition-all"
-                                                placeholder="Kitob nomi yoki muallifi..."
-                                                value={bookSearch}
-                                                onChange={e => setBookSearch(e.target.value)}
-                                                onKeyDown={e => e.key === 'Enter' && handleSearchBooks()}
-                                            />
-                                        </div>
-                                        <button className="flex items-center justify-center px-4 rounded-xl bg-primary text-white hover:bg-primary-hover shadow-lg shadow-primary/20 transition-all active:scale-95" onClick={handleSearchBooks}>
-                                            Qidirish
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* Search results */}
-                                {searchResults.length > 0 && (
-                                    <div className="flex flex-col gap-1 max-h-55 overflow-y-auto border border-border rounded-xl p-1 bg-surface-hover/30">
-                                        {searchResults.map(book => (
-                                            <div
-                                                key={book.id}
-                                                className={`flex items-center justify-between p-2.5 rounded-lg cursor-pointer transition-all ${selectedBook?.id === book.id ? 'bg-primary/20 border-l-4 border-l-primary' : 'hover:bg-surface-hover border-l-4 border-l-transparent'}`}
-                                                onClick={() => setSelectedBook(book)}
-                                            >
-                                                <div className="flex flex-col min-w-0 pr-3">
-                                                    <strong className={`text-sm truncate transition-colors ${selectedBook?.id === book.id ? 'text-primary-light' : 'text-text'}`}>{highlightText(book.title, bookSearch)}</strong>
-                                                    <span className="text-xs text-text-muted truncate">{highlightText(book.author, bookSearch)}</span>
-                                                </div>
-                                                <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full border ${(book.available_quantity || 0) > 0 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
-                                                    {(book.available_quantity || 0) > 0 ? `${book.available_quantity} ta` : 'Yo\'q'}
-                                                </span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-
-                                {selectedBook && (
-                                    <div className="flex flex-col gap-3 p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl mt-1 animate-in slide-in-from-top-2">
-                                        <div className="flex items-center gap-2">
-                                            <CheckCircle2 size={16} className="shrink-0" />
-                                            <span className="text-sm font-semibold">Tanlangan kitob:</span>
-                                        </div>
-                                        <div className="flex items-center gap-3 bg-canvas/30 p-2 rounded-lg">
-                                             {selectedBook.cover_image_url && <img src={getFileUrl(selectedBook.cover_image_url)} className="w-10 h-14 object-cover rounded shadow-sm" alt="" />}
-                                             <div className="flex flex-col min-w-0">
-                                                  <span className="text-sm font-bold text-text truncate">{selectedBook.title}</span>
-                                                  <span className="text-xs text-emerald-400/80 truncate">{selectedBook.author}</span>
-                                             </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Invoice number + Notes */}
-                                <div className="grid grid-cols-1 gap-4 mt-2">
+                                {/* Umumiy sozlamalar (Sana + Izoh) */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-surface-hover/20 p-4 rounded-xl border border-border">
                                     <div className="flex flex-col gap-1.5">
                                         <label className="flex items-center gap-1.5 text-[0.8rem] font-semibold text-text-muted uppercase tracking-wider">
-                                            <Calendar size={14} /> Qaytarish muddati
+                                            <Calendar size={14} /> Umumiy qaytarish muddati <span className="text-rose-400">*</span>
                                         </label>
                                         <DatePicker
                                             label="Muddati"
@@ -887,50 +982,222 @@ function extractIdFromScannedText(rawText: string): string {
                                         />
                                     </div>
 
-                                    {/* Invois raqami */}
                                     <div className="flex flex-col gap-1.5">
-                                        <label className="flex items-center gap-1.5 text-[0.8rem] font-semibold text-text-muted uppercase tracking-wider">
-                                            <Hash size={14} /> Invois raqami <span className="text-rose-400">*</span>
+                                        <label className="text-[0.8rem] font-semibold text-text-muted uppercase tracking-wider">
+                                            Umumiy izoh (ixtiyoriy)
                                         </label>
                                         <input
                                             type="text"
-                                            className="bg-surface-hover/30 border border-border px-3 py-2.5 rounded-xl text-sm text-text outline-none font-mono focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)] transition-all placeholder:font-sans"
-                                            placeholder="Masalan: КТ-0043"
-                                            value={invoiceNumber}
-                                            onChange={e => setInvoiceNumber(e.target.value)}
-                                        />
-                                        <p className="text-[0.72rem] text-text-muted leading-snug">
-                                            Kitobning jismoniy nusxasidagi unikal raqam
-                                        </p>
-                                    </div>
-
-                                    {/* Notes */}
-                                    <div className="flex flex-col gap-1.5">
-                                        <label className="text-[0.8rem] font-semibold text-text-muted uppercase tracking-wider">
-                                            Izoh (ixtiyoriy)
-                                        </label>
-                                        <textarea
-                                            className="bg-surface-hover/30 border border-border px-3 py-2 rounded-xl text-sm text-text outline-none focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)] transition-all resize-none min-h-20"
-                                            placeholder="Kitob holati haqida qayd..."
+                                            className="bg-surface border border-border px-3 py-2.5 rounded-xl text-sm text-text outline-none focus:border-primary transition-all placeholder:text-text-muted/60"
+                                            placeholder="Masalan: Semestr darsliklari..."
                                             value={assignNotes}
                                             onChange={e => setAssignNotes(e.target.value)}
-                                            rows={2}
                                         />
                                     </div>
                                 </div>
+
+                                {/* Kitob qidirish */}
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-[0.8rem] font-semibold text-text-muted uppercase tracking-wider">
+                                        Kitob qidirish va ro'yxatga qo'shish
+                                    </label>
+                                    <div className="flex gap-2">
+                                        <div className="relative flex-1">
+                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                                            <input
+                                                className="w-full bg-surface-hover/30 border border-border pl-9 pr-3 py-2.5 rounded-xl text-sm text-text outline-none focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)] transition-all"
+                                                placeholder="Kitob nomi, muallifi..."
+                                                value={bookSearch}
+                                                onChange={e => setBookSearch(e.target.value)}
+                                                onKeyDown={e => e.key === 'Enter' && handleSearchBooks()}
+                                            />
+                                            {bookSearch && (
+                                                <button
+                                                    type="button"
+                                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text"
+                                                    onClick={() => { setBookSearch(''); setSearchResults([]); }}
+                                                >
+                                                    <X size={14} />
+                                                </button>
+                                            )}
+                                        </div>
+                                        <button
+                                            type="button"
+                                            className="flex items-center justify-center px-4 rounded-xl bg-primary text-white hover:bg-primary-hover shadow-md shadow-primary/20 transition-all font-medium text-sm"
+                                            onClick={handleSearchBooks}
+                                        >
+                                            Qidirish
+                                        </button>
+                                    </div>
+
+                                    {/* Qidiruv natijalari */}
+                                    {searchResults.length > 0 && (
+                                        <div className="flex flex-col gap-1 max-h-52 overflow-y-auto border border-border rounded-xl p-1.5 bg-surface-hover/30 custom-scrollbar">
+                                            {searchResults.map(book => {
+                                                const isAlreadyAdded = selectedBooks.some(item => item.book.id === book.id)
+                                                const isAvailable = (book.available_quantity || 0) > 0
+
+                                                return (
+                                                    <div
+                                                        key={book.id}
+                                                        className={`flex items-center justify-between p-2.5 rounded-lg transition-all ${isAlreadyAdded ? 'bg-primary/10 border-l-4 border-l-primary cursor-default' : isAvailable ? 'hover:bg-surface-hover cursor-pointer border-l-4 border-l-transparent' : 'opacity-50 cursor-not-allowed border-l-4 border-l-transparent'}`}
+                                                        onClick={() => {
+                                                            if (isAvailable && !isAlreadyAdded) {
+                                                                handleAddBookToAssign(book)
+                                                            }
+                                                        }}
+                                                    >
+                                                        <div className="flex items-center gap-3 min-w-0 pr-3">
+                                                            {book.cover_image_url ? (
+                                                                <img src={getFileUrl(book.cover_image_url)} alt="" className="w-8 h-10 object-cover rounded shadow-xs shrink-0" />
+                                                            ) : (
+                                                                <div className="w-8 h-10 bg-surface-hover rounded flex items-center justify-center text-text-muted shrink-0">
+                                                                    <BookOpen size={14} />
+                                                                </div>
+                                                            )}
+                                                            <div className="flex flex-col min-w-0">
+                                                                <strong className="text-sm truncate text-text">{highlightText(book.title, bookSearch)}</strong>
+                                                                <span className="text-xs text-text-muted truncate">{highlightText(book.author, bookSearch)}</span>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="flex items-center gap-2 shrink-0">
+                                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${isAvailable ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
+                                                                {isAvailable ? `${book.available_quantity} ta` : 'Yo\'q'}
+                                                            </span>
+
+                                                            {isAlreadyAdded ? (
+                                                                <span className="inline-flex items-center gap-1 text-xs text-primary-light font-semibold bg-primary/20 px-2 py-1 rounded-md">
+                                                                    <CheckCircle2 size={12} /> Qo'shilgan
+                                                                </span>
+                                                            ) : isAvailable ? (
+                                                                <button
+                                                                    type="button"
+                                                                    className="inline-flex items-center gap-1 text-xs bg-primary text-white hover:bg-primary-hover px-2.5 py-1 rounded-md font-semibold transition-colors"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation()
+                                                                        handleAddBookToAssign(book)
+                                                                    }}
+                                                                >
+                                                                    <Plus size={12} /> Qo'shish
+                                                                </button>
+                                                            ) : null}
+                                                        </div>
+                                                    </div>
+                                                )
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Tanlangan kitoblar ro'yxati */}
+                                <div className="flex flex-col gap-2.5">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[0.8rem] font-bold text-text uppercase tracking-wider">
+                                                Biriktirilayotgan kitoblar ro'yxati
+                                            </span>
+                                            <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-primary/20 text-primary-light border border-primary/30">
+                                                {selectedBooks.length} ta
+                                            </span>
+                                        </div>
+                                        {selectedBooks.length > 0 && (
+                                            <button
+                                                type="button"
+                                                className="text-xs text-rose-400 hover:text-rose-300 transition-colors font-medium"
+                                                onClick={() => setSelectedBooks([])}
+                                            >
+                                                Barchasini tozalash
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {selectedBooks.length === 0 ? (
+                                        <div className="p-8 border-2 border-dashed border-border rounded-2xl flex flex-col items-center justify-center text-center text-text-muted gap-2 bg-surface-hover/10">
+                                            <BookOpen size={36} className="opacity-30 text-primary-light mb-1" />
+                                            <p className="text-sm font-semibold text-text m-0">Hali kitob tanlanmadi</p>
+                                            <p className="text-xs text-text-muted m-0 max-w-md">
+                                                Yuqoridagi qidiruv maydonidan kerakli kitoblarni topib, "Qo'shish" tugmasini bosing va har bir kitobning invois raqamini kiriting.
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col gap-2.5">
+                                            {selectedBooks.map((item, index) => (
+                                                <div
+                                                    key={item.book.id}
+                                                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-surface border border-border rounded-xl shadow-xs hover:border-border/80 transition-all"
+                                                >
+                                                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                        <span className="w-6 h-6 rounded-full bg-surface-hover text-text-muted font-bold text-xs flex items-center justify-center shrink-0">
+                                                            {index + 1}
+                                                        </span>
+                                                        {item.book.cover_image_url ? (
+                                                            <img src={getFileUrl(item.book.cover_image_url)} alt="" className="w-9 h-12 object-cover rounded shadow-xs shrink-0" />
+                                                        ) : (
+                                                            <div className="w-9 h-12 bg-surface-hover rounded flex items-center justify-center text-text-muted shrink-0">
+                                                                <BookOpen size={16} />
+                                                            </div>
+                                                        )}
+                                                        <div className="flex flex-col min-w-0">
+                                                            <span className="text-sm font-bold text-text truncate">{item.book.title}</span>
+                                                            <span className="text-xs text-text-muted truncate">{item.book.author}</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                                                        <div className="relative flex-1 sm:w-44">
+                                                            <Hash size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
+                                                            <input
+                                                                type="text"
+                                                                className="w-full bg-surface-hover/50 border border-border pl-7 pr-2.5 py-1.5 rounded-lg text-xs font-mono text-text outline-none focus:border-primary focus:bg-surface transition-all placeholder:font-sans placeholder:text-text-muted/60"
+                                                                placeholder="Invois raqami *"
+                                                                value={item.invoiceNumber}
+                                                                onChange={e => handleUpdateBookInvoice(item.book.id, e.target.value)}
+                                                            />
+                                                        </div>
+
+                                                        <button
+                                                            type="button"
+                                                            className="p-2 text-text-muted hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors shrink-0"
+                                                            onClick={() => handleRemoveBookFromAssign(item.book.id)}
+                                                            title="Ro'yxatdan o'chirish"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
-                            <div className="flex items-center justify-end gap-3 p-5 border-t border-border bg-surface-hover/40 shrink-0">
-                                <button className="px-5 py-2.5 rounded-xl text-sm font-semibold text-text bg-transparent hover:bg-surface-hover transition-colors" onClick={() => { setAssignModalOpen(false); setBookSearch(''); setSearchResults([]); setSelectedBook(null); setInvoiceNumber(''); }}>
-                                    Bekor qilish
-                                </button>
-                                <button
-                                    className="flex items-center justify-center gap-2 px-6 py-2.5 bg-primary text-white border-none rounded-xl text-sm font-bold hover:bg-primary-hover shadow-lg shadow-primary/25 hover:-translate-y-0.5 transition-all active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                                    onClick={handleAssignBook}
-                                    disabled={!selectedBook || (!(dueDate || defaultDue)) || !invoiceNumber.trim() || assignLoading}
-                                >
-                                    {assignLoading ? <Loader2 size={18} className="animate-spin" /> : <><BookPlus size={18} /> Berish</>}
-                                </button>
+                            <div className="flex items-center justify-between p-5 border-t border-border bg-surface-hover/40 shrink-0">
+                                <span className="text-sm text-text-muted font-medium">
+                                    Jami: <strong className="text-text">{selectedBooks.length} ta kitob</strong>
+                                </span>
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        type="button"
+                                        className="px-5 py-2.5 rounded-xl text-sm font-semibold text-text bg-transparent hover:bg-surface-hover transition-colors"
+                                        onClick={() => { setAssignModalOpen(false); setBookSearch(''); setSearchResults([]); setSelectedBooks([]); setDueDate(''); setAssignNotes(''); }}
+                                    >
+                                        Bekor qilish
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="flex items-center justify-center gap-2 px-6 py-2.5 bg-primary text-white border-none rounded-xl text-sm font-bold hover:bg-primary-hover shadow-lg shadow-primary/25 hover:-translate-y-0.5 transition-all active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                                        onClick={handleAssignBooks}
+                                        disabled={selectedBooks.length === 0 || selectedBooks.some(b => !b.invoiceNumber.trim()) || assignLoading}
+                                    >
+                                        {assignLoading ? <Loader2 size={18} className="animate-spin" /> : (
+                                            <>
+                                                <BookPlus size={18} />
+                                                {selectedBooks.length > 1 ? `${selectedBooks.length} ta kitobni topshirish` : 'Kitobni topshirish'}
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>,
@@ -939,29 +1206,70 @@ function extractIdFromScannedText(rawText: string): string {
             }
 
             {/* ═══════════════════════════════════════
-               BOOK RETURN MODAL
+               BOOK RETURN MODAL (BIR YOKI BIR NECHTA KITOBNI QABUL QILISH)
                ═══════════════════════════════════════ */}
             {
                 returnModalOpen && createPortal(
-                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-1000 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => { setReturnModalOpen(false); setReturningRental(null); setReturnNotes('') }}>
-                        <div className="bg-surface border border-border rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-1000 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => { setReturnModalOpen(false); setSelectedRentalIds([]); setReturnNotes(''); }}>
+                        <div className="bg-surface border border-border rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
                             <div className="flex items-center justify-between p-5 border-b border-border bg-surface-hover/40">
-                                <h3 className="flex items-center gap-2 text-lg font-bold text-text m-0"><RotateCcw size={20} className="text-primary-light" /> Kitobni qaytarish</h3>
-                                <button className="p-1.5 rounded-lg text-text-muted hover:bg-surface-hover hover:text-rose-400 transition-colors" onClick={() => { setReturnModalOpen(false); setReturningRental(null); setReturnNotes('') }}>
+                                <h3 className="flex items-center gap-2 text-lg font-bold text-text m-0">
+                                    <RotateCcw size={20} className="text-primary-light" />
+                                    Kitoblarni qabul qilish (qaytarish)
+                                </h3>
+                                <button className="p-1.5 rounded-lg text-text-muted hover:bg-surface-hover hover:text-rose-400 transition-colors" onClick={() => { setReturnModalOpen(false); setSelectedRentalIds([]); setReturnNotes(''); }}>
                                     <X size={20} />
                                 </button>
                             </div>
 
-                            <div className="p-6 flex flex-col gap-6">
-                                <div className="flex flex-col gap-3">
-                                    <div className="flex items-start gap-3 p-4 bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-xl">
-                                        <AlertTriangle size={20} className="shrink-0 mt-0.5" />
-                                        <div className="flex flex-col gap-1">
-                                            <p className="text-sm font-bold">Diqqat!</p>
-                                            <p className="text-xs leading-relaxed font-medium opacity-90">
-                                                "{returningRental?.book_title}" kitobini qaytarildi deb belgilamoqchimisiz?
-                                            </p>
-                                        </div>
+                            <div className="p-6 flex flex-col gap-5 overflow-y-auto custom-scrollbar">
+                                <div className="flex items-start gap-3 p-4 bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-xl">
+                                    <AlertTriangle size={20} className="shrink-0 mt-0.5" />
+                                    <div className="flex flex-col gap-1">
+                                        <p className="text-sm font-bold m-0">Diqqat!</p>
+                                        <p className="text-xs leading-relaxed font-medium opacity-90 m-0">
+                                            {selectedRentalIds.length === 1 ? (
+                                                `1 ta kitobni kutubxonaga qaytarildi deb belgilamoqchimisiz?`
+                                            ) : (
+                                                `Tanlangan ${selectedRentalIds.length} ta kitobni kutubxonaga qaytarildi deb qabul qilmoqchimisiz?`
+                                            )}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Qaytarilayotgan kitoblar ro'yxati */}
+                                <div className="flex flex-col gap-2">
+                                    <span className="text-[0.8rem] font-bold text-text-muted uppercase tracking-wider">
+                                        Qabul qilinayotgan kitoblar ({selectedRentalIds.length} ta):
+                                    </span>
+                                    <div className="flex flex-col gap-2 max-h-52 overflow-y-auto border border-border rounded-xl p-2 bg-surface-hover/30 custom-scrollbar">
+                                        {sortedRentals.filter(r => selectedRentalIds.includes(r.id)).map(r => {
+                                            const deadline = getDeadlineInfo(r.due_date)
+                                            return (
+                                                <div key={r.id} className="flex items-center justify-between gap-3 p-2.5 bg-surface rounded-lg border border-border/60">
+                                                    <div className="flex items-center gap-2.5 min-w-0">
+                                                        {r.book_cover ? (
+                                                            <img src={getFileUrl(r.book_cover)} alt="" className="w-8 h-10 object-cover rounded shadow-xs shrink-0" />
+                                                        ) : (
+                                                            <div className="w-8 h-10 bg-surface-hover rounded flex items-center justify-center text-text-muted shrink-0">
+                                                                <BookOpen size={14} />
+                                                            </div>
+                                                        )}
+                                                        <div className="flex flex-col min-w-0">
+                                                            <span className="text-xs font-bold text-text truncate">{r.book_title || 'Noma\'lum'}</span>
+                                                            <span className="text-[11px] text-text-muted truncate">{r.book_author || '—'}</span>
+                                                            {r.invoice_number && (
+                                                                <span className="font-mono text-[10px] text-text-muted">Invois: #{r.invoice_number}</span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    <span className={`shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${deadline.color === 'danger' ? 'bg-red-500/15 text-red-400 border-red-500/20' : deadline.color === 'warning' ? 'bg-amber-500/15 text-amber-500 border-amber-500/20' : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20'}`}>
+                                                        {deadline.label}
+                                                    </span>
+                                                </div>
+                                            )
+                                        })}
                                     </div>
                                 </div>
 
@@ -970,25 +1278,35 @@ function extractIdFromScannedText(rawText: string): string {
                                         Izoh (ixtiyoriy)
                                     </label>
                                     <textarea
-                                        className="bg-surface-hover/30 border border-border px-4 py-3 rounded-xl text-sm text-text outline-none focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)] transition-all resize-none min-h-25"
-                                        placeholder="Kitob holati haqida qisqacha ma'lumot (masalan: sahifasi yirtilgan, toza va h.k.)"
+                                        className="bg-surface-hover/30 border border-border px-4 py-3 rounded-xl text-sm text-text outline-none focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)] transition-all resize-none min-h-20"
+                                        placeholder="Kitoblar holati haqida qisqacha ma'lumot (masalan: kitoblar toza, sahifalari butun holatda qabul qilindi)..."
                                         value={returnNotes}
                                         onChange={e => setReturnNotes(e.target.value)}
-                                        rows={3}
+                                        rows={2}
                                     />
                                 </div>
                             </div>
 
-                            <div className="flex items-center justify-end gap-3 p-5 border-t border-border bg-surface-hover/40">
-                                <button className="px-5 py-2.5 rounded-xl text-sm font-semibold text-text bg-transparent hover:bg-surface-hover transition-colors" onClick={() => { setReturnModalOpen(false); setReturningRental(null); setReturnNotes('') }}>
+                            <div className="flex items-center justify-end gap-3 p-5 border-t border-border bg-surface-hover/40 shrink-0">
+                                <button
+                                    type="button"
+                                    className="px-5 py-2.5 rounded-xl text-sm font-semibold text-text bg-transparent hover:bg-surface-hover transition-colors"
+                                    onClick={() => { setReturnModalOpen(false); setSelectedRentalIds([]); setReturnNotes(''); }}
+                                >
                                     Bekor qilish
                                 </button>
                                 <button
+                                    type="button"
                                     className="flex items-center justify-center gap-2 px-6 py-2.5 bg-primary text-white border-none rounded-xl text-sm font-bold hover:bg-primary-hover shadow-lg shadow-primary/25 hover:-translate-y-0.5 transition-all active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none min-w-32.5"
                                     onClick={handleReturnConfirm}
-                                    disabled={returnLoading}
+                                    disabled={returnLoading || selectedRentalIds.length === 0}
                                 >
-                                    {returnLoading ? <Loader2 size={18} className="animate-spin" /> : <><RotateCcw size={18} /> Qaytarish</>}
+                                    {returnLoading ? <Loader2 size={18} className="animate-spin" /> : (
+                                        <>
+                                            <RotateCcw size={18} />
+                                            {selectedRentalIds.length > 1 ? `${selectedRentalIds.length} ta kitobni qabul qilish` : 'Qabul qilish'}
+                                        </>
+                                    )}
                                 </button>
                             </div>
                         </div>
