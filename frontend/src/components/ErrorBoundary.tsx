@@ -64,7 +64,7 @@ export default class ErrorBoundary extends Component<Props, State> {
             const isDev = import.meta.env.DEV
 
             return (
-                <div className="min-h-[360px] w-full h-full flex items-center justify-center p-6 animate-in fade-in duration-300">
+                <div className="min-h-90 w-full h-full flex items-center justify-center p-6 animate-in fade-in duration-300">
                     <div className="bg-surface/90 backdrop-blur-xl border border-border/80 rounded-3xl p-8 max-w-lg w-full text-center shadow-2xl relative overflow-hidden">
                         {/* Background subtle glow */}
                         <div className="absolute -top-12 -left-12 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />

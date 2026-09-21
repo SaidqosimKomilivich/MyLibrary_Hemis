@@ -32,7 +32,7 @@ RUN apt-get update && \
 COPY --from=builder /usr/src/app/target/release/backend /usr/local/bin/backend
 
 # Kerak bo'lishi mumkin bo'lgan kataloglarni yaratamiz
-RUN mkdir -p /app/uploads
+RUN mkdir -p /app/uploads /app/logs
 
 # Port
 EXPOSE 8087

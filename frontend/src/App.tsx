@@ -22,6 +22,7 @@ import NewsDetailPage from './pages/NewsDetailPage'
 import Library from './pages/student/Library'
 import UsersPage from './pages/admin/UsersPage'
 import AdminEmployeesPage from './pages/admin/AdminEmployeesPage'
+import SystemLogsPage from './pages/admin/SystemLogsPage'
 import EmployeeDashboard from './pages/employee/EmployeeDashboard'
 import AccessControl from './pages/employee/AccessControl'
 import TeacherDashboard from './pages/teacher/TeacherDashboard'
@@ -69,6 +70,7 @@ function AnimatedRoutes() {
         <Route path="rentals" element={<EmployeeRentalsPage />} />
         <Route path="requests" element={<EmployeeRequestsPage />} />
         <Route path="employees" element={<AdminEmployeesPage />} />
+        <Route path="system-logs" element={<SystemLogsPage />} />
         <Route path="stats" element={<ReportsPage />} />
         <Route path="messages" element={<MessagesPage />} />
         <Route path="profile" element={<ProfilePage />} />

@@ -42,6 +42,9 @@ import type {
     SyncProgressEvent,
     ImportBooksRequest,
     ImportBooksResponse,
+    SystemLogsResponse,
+    SystemLogQuery,
+    LogFileInfo,
 } from './api.types'
 import { formatBytes, formatSpeed } from '../utils/formatBytes'
 
@@ -1017,5 +1020,33 @@ export const api = {
             })()
 
         return { abort: () => controller.abort() }
-    }
+    },
+
+    // ==========================================
+    // System Logs (Super Admin only)
+    // ==========================================
+    getSystemLogs(params: SystemLogQuery = {}) {
+        const qs = buildQueryString(params as unknown as Record<string, unknown>)
+        return request<SystemLogsResponse>(`/admin/logs${qs}`)
+    },
+
+    getSystemLogFiles() {
+        return request<LogFileInfo[]>('/admin/logs/files')
+    },
+
+    downloadSystemLogFile(filename: string) {
+        return fetch(`${API_BASE}/admin/logs/download?file=${encodeURIComponent(filename)}`, {
+            credentials: 'include',
+        }).then(async (res) => {
+            if (!res.ok) {
+                let msg = 'Log faylini yuklab olishda xatolik yuz berdi'
+                try {
+                    const err = await res.json()
+                    msg = err.message || msg
+                } catch { /* ignored */ }
+                throw new Error(msg)
+            }
+            return res.blob()
+        })
+    },
 }

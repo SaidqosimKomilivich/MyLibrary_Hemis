@@ -131,8 +131,65 @@ impl BookService {
     pub async fn update_book(
         pool: &PgPool,
         id: Uuid,
-        req: UpdateBookRequest,
+        mut req: UpdateBookRequest,
     ) -> Result<BookResponse, AppError> {
+        // 1. Kitob mavjudligini tekshirish
+        let current_book = BookRepository::find_by_id(pool, id)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Kitob topilmadi".to_string()))?;
+
+        // 2. Ayni paytda ijarada turgan nusxalar sonini hisoblash
+        let active_rentals: (i64,) = sqlx::query_as(
+            r#"SELECT COUNT(*) FROM "book_rentals" WHERE "book_id" = $1 AND "status" IN ('active', 'overdue')"#
+        )
+        .bind(id.to_string())
+        .fetch_one(pool)
+        .await?;
+        let active_rentals_count = active_rentals.0 as i32;
+
+        let old_total = current_book.total_quantity.unwrap_or(1);
+        let old_available = current_book.available_quantity.unwrap_or(old_total);
+
+        // 3. Umumiy soni (total_quantity) validatsiyasi va hisobi
+        if let Some(new_total) = req.total_quantity {
+            if new_total < 1 {
+                return Err(AppError::BadRequest("Kitobning umumiy soni kamida 1 ta bo'lishi kerak".to_string()));
+            }
+
+            // Yangi umumiy soni ayni paytda ijarada turgan kitoblar sonidan kam bo'lishi mumkin emas
+            if new_total < active_rentals_count {
+                return Err(AppError::BadRequest(format!(
+                    "Kitobning umumiy sonini {} tadan kam qilib bo'lmaydi, chunki ayni paytda {} ta kitob foydalanuvchilar tomonidan ijaraga olingan",
+                    active_rentals_count, active_rentals_count
+                )));
+            }
+
+            // Agar available_quantity alohida ko'rsatilmagan bo'lsa:
+            // Yangi qo'shilgan farqni (delta) avtomatik ombordagi mavjud soniga qo'shamiz
+            if req.available_quantity.is_none() {
+                let delta = new_total - old_total;
+                let new_available = (old_available + delta).max(0).min(new_total - active_rentals_count);
+                req.available_quantity = Some(new_available);
+            }
+        }
+
+        // 4. Mavjud soni (available_quantity) validatsiyasi
+        if let Some(new_available) = req.available_quantity {
+            let target_total = req.total_quantity.unwrap_or(old_total);
+            let max_allowed_available = target_total - active_rentals_count;
+
+            if new_available < 0 {
+                return Err(AppError::BadRequest("Mavjud kitoblar soni 0 dan kam bo'lishi mumkin emas".to_string()));
+            }
+            if new_available > max_allowed_available {
+                return Err(AppError::BadRequest(format!(
+                    "Mavjud kitoblar soni {} tadan oshmasligi kerak (jami: {} ta, ayni paytda ijarada: {} ta)",
+                    max_allowed_available, target_total, active_rentals_count
+                )));
+            }
+        }
+
+        // 5. Yangilash
         let book = BookRepository::update(pool, id, &req)
             .await?
             .ok_or_else(|| AppError::NotFound("Kitob topilmadi".to_string()))?;

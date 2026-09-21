@@ -15,6 +15,7 @@ use tracing_actix_web::TracingLogger;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
 use crate::config::Config;
+use crate::handlers::admin_log_handler;
 use crate::handlers::auth_handler;
 use crate::handlers::book_handler;
 use crate::handlers::control_handler;
@@ -362,6 +363,13 @@ async fn main() -> std::io::Result<()> {
                         "/{id}/status",
                         web::put().to(sync_handler::update_user_status),
                     ),
+            )
+            // Admin log routes (faqat Super Admin)
+            .service(
+                web::scope("/api/admin/logs")
+                    .route("", web::get().to(admin_log_handler::get_logs))
+                    .route("/files", web::get().to(admin_log_handler::get_log_files))
+                    .route("/download", web::get().to(admin_log_handler::download_log)),
             )
             .configure(message_handler::config)
             // Static files (uploads papkasini brauzerdan ko'rish uchun explicit streaming NamedFile route)

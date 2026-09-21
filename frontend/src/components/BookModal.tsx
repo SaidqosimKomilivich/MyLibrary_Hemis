@@ -176,6 +176,32 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
         }))
     }
 
+    const handleTotalQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const valStr = e.target.value
+        const newTotal = valStr === '' ? 0 : Math.max(0, Number(valStr))
+
+        setFormData(prev => {
+            if (mode === 'add') {
+                return {
+                    ...prev,
+                    total_quantity: newTotal,
+                    available_quantity: newTotal,
+                }
+            } else {
+                const oldTotal = prev.total_quantity || 1
+                const delta = newTotal - oldTotal
+                const currentAvail = prev.available_quantity ?? oldTotal
+                const newAvail = Math.max(0, Math.min(newTotal, currentAvail + delta))
+
+                return {
+                    ...prev,
+                    total_quantity: newTotal,
+                    available_quantity: newAvail,
+                }
+            }
+        })
+    }
+
     const processCoverFile = async (file: File) => {
         if (!file.type.startsWith('image/')) {
             toast.error("Faqat rasm fayllari (JPG, PNG, WEBP) qabul qilinadi")
@@ -315,9 +341,16 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
                 dataToSend.author = "Noma'lum muallif"
             }
 
-            // When adding new book, set available = total
-            if (mode === 'add') {
-                dataToSend.available_quantity = dataToSend.total_quantity
+            const totalQty = Math.max(1, Number(formData.total_quantity) || 1)
+            const availQty = Math.max(0, Math.min(totalQty, Number(formData.available_quantity) ?? totalQty))
+
+            dataToSend.total_quantity = totalQty
+            dataToSend.available_quantity = availQty
+
+            if (availQty > totalQty) {
+                toast.error("Mavjud kitoblar soni umumiy fond sonidan oshmasligi kerak")
+                setIsLoading(false)
+                return
             }
 
             if (mode === 'edit' && book) {
@@ -487,10 +520,44 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
                             <input className="w-full bg-surface/50 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]" name="isbn_13" value={formData.isbn_13} onChange={handleChange} maxLength={13} placeholder="9781234567890" />
                         </div>
 
-                        {/* Total quantity */}
+                        {/* Total quantity & Available quantity */}
                         <div className="flex flex-col gap-1.5 min-w-0">
-                            <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide">Umumiy soni</label>
-                            <input className="w-full bg-surface/50 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]" type="number" min="1" name="total_quantity" value={formData.total_quantity} onChange={handleChange} />
+                            <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide flex items-center justify-between">
+                                <span>Umumiy soni (Jami fondda) *</span>
+                                {mode === 'edit' && book && (
+                                    <span className="text-[0.75rem] font-normal text-text-muted">
+                                        Oldingi: {book.total_quantity || 1} ta
+                                    </span>
+                                )}
+                            </label>
+                            <input
+                                className="w-full bg-surface/50 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
+                                type="number"
+                                min="1"
+                                name="total_quantity"
+                                value={formData.total_quantity}
+                                onChange={handleTotalQuantityChange}
+                            />
+                        </div>
+
+                        <div className="flex flex-col gap-1.5 min-w-0">
+                            <label className="text-[0.85rem] font-semibold text-text-muted tracking-wide flex items-center justify-between">
+                                <span>Mavjud soni (Omborda) *</span>
+                                {mode === 'edit' && book && (
+                                    <span className="text-[0.75rem] font-normal text-amber-400">
+                                        Ijarada: {Math.max(0, (book.total_quantity || 0) - (book.available_quantity || 0))} ta
+                                    </span>
+                                )}
+                            </label>
+                            <input
+                                className="w-full bg-surface/50 border border-border text-text py-2.5 px-3 rounded-xl text-[0.95rem] outline-none transition-all placeholder:text-text-muted/50 focus:border-primary focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
+                                type="number"
+                                min="0"
+                                max={formData.total_quantity}
+                                name="available_quantity"
+                                value={formData.available_quantity}
+                                onChange={handleChange}
+                            />
                         </div>
 
                         {/* Publisher */}

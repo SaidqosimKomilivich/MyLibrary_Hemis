@@ -145,13 +145,12 @@ export default function BookCard({ book, role, onEdit, onDelete, onToggleActive,
                 <h3 className="m-0 mb-1 text-[1.1rem] font-bold text-text line-clamp-2 leading-[1.3] group-hover:text-primary transition-colors" title={book.title}>{highlightText(book.title, highlightQuery || '')}</h3>
                 <p className="m-0 mb-3 text-[0.9rem] text-text-muted/80 font-medium truncate">{highlightText(book.author, highlightQuery || '')}</p>
 
-                {canManageBooks && (
-                    <div className="flex items-center justify-end mt-auto pt-4 border-t border-border">
-                        <span className={`text-[0.75rem] font-bold shrink-0 ${(book.available_quantity || 0) > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                            {(book.available_quantity || 0) > 0 ? `${book.available_quantity} ta` : 'Yo\'q'}
+                    <div className="flex items-center justify-between mt-auto pt-3 border-t border-border text-xs">
+                        <span className="text-text-muted text-[0.75rem]">Fond miqdori:</span>
+                        <span className={`text-[0.78rem] font-bold shrink-0 ${(book.available_quantity || 0) > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            Mavjud: {book.available_quantity ?? 0} / Jami: {book.total_quantity ?? 0} ta
                         </span>
                     </div>
-                )}
 
                 {book.shelf_location && (role === 'admin' || role === 'staff') && (
                     <div className="flex items-center gap-1.5 mt-3 text-[0.8rem] text-text-muted bg-black/20 p-2 rounded-lg border border-white/5">

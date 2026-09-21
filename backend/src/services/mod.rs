@@ -1,3 +1,4 @@
+pub mod admin_log_service;
 pub mod auth_service;
 pub mod book_service;
 pub mod captcha_service;

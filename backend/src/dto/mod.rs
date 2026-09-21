@@ -1,3 +1,4 @@
+pub mod admin_log;
 pub mod auth;
 pub mod book;
 pub mod control;

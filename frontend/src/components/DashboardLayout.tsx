@@ -21,6 +21,7 @@ import {
     Music2,
     Maximize2,
     Megaphone,
+    Terminal,
 } from 'lucide-react'
 
 import { toast } from 'react-toastify'
@@ -116,7 +117,14 @@ export default function DashboardLayout({ role }: DashboardLayoutProps) {
     const { user, isLoading, isAuthenticated, logout } = useAuth()
     const { book, isMini, isPlaying, togglePlay, expandPlayer } = useAudio()
     const { theme, toggleTheme } = useTheme()
-    const navItems = navByRole[role]
+    const isSuperAdmin = user?.role === 'admin' && user?.is_super_admin === true
+    const navItems = role === 'admin' && isSuperAdmin
+        ? [
+            ...navByRole.admin.slice(0, -1),
+            { label: 'Tizim loglari', path: '/admin/system-logs', icon: <Terminal size={20} /> },
+            navByRole.admin[navByRole.admin.length - 1],
+        ]
+        : navByRole[role]
 
     // Role mismatch check - logs the user out if they try to access a page meant for another role
     // This MUST be called here, before any early returns (like if (isLoading)) to obey the Rules of Hooks.

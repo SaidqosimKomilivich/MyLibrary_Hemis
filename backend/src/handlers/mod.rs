@@ -1,3 +1,4 @@
+pub mod admin_log_handler;
 pub mod auth_handler;
 pub mod book_handler;
 pub mod control_handler;

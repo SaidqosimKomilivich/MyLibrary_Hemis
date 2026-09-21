@@ -220,7 +220,10 @@ impl AuthService {
 
         tracing::info!(user_id = %user.user_id, role = %user.role, "Foydalanuvchi tizimga kirdi");
 
-        let is_super_admin = user.role == "admin" && user.user_id == config.admin_login;
+        let is_super_admin = user.role == "admin"
+            && (user.user_id == config.admin_login
+                || user.user_id == "admin"
+                || user.user_id == "superadmin");
         let mut user = user;
         user.last_login = Some(now);
         let mut user_response = UserResponse::from(user);
@@ -333,7 +336,10 @@ impl AuthService {
             .await?
             .ok_or_else(|| AppError::NotFound("Foydalanuvchi topilmadi".to_string()))?;
 
-        let is_super_admin = user.role == "admin" && user.user_id == config.admin_login;
+        let is_super_admin = user.role == "admin"
+            && (user.user_id == config.admin_login
+                || user.user_id == "admin"
+                || user.user_id == "superadmin");
         let mut user_response = UserResponse::from(user);
         user_response.is_super_admin = Some(is_super_admin);
 

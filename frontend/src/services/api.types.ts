@@ -634,3 +634,58 @@ export interface SyncResult {
     total: number
 }
 
+export interface SystemLogEntry {
+    id: string
+    timestamp: string
+    level: 'INFO' | 'WARN' | 'ERROR' | 'DEBUG' | string
+    message: string
+    target: string
+    module: 'auth' | 'http' | 'scheduler' | 'db' | 'system' | 'other' | string
+    http_method?: string
+    http_route?: string
+    http_status?: number
+    client_ip?: string
+    user_id?: string
+    request_id?: string
+    error_details?: string
+    fields: Record<string, unknown>
+    span?: Record<string, unknown>
+    raw_json: string
+}
+
+export interface LogStats {
+    total: number
+    error_count: number
+    warn_count: number
+    info_count: number
+    debug_count: number
+}
+
+export interface LogFileInfo {
+    filename: string
+    date: string
+    size_bytes: number
+    is_current: boolean
+}
+
+export interface SystemLogsResponse {
+    files: LogFileInfo[]
+    current_file: string
+    stats: LogStats
+    logs: SystemLogEntry[]
+    total_filtered: number
+    page: number
+    per_page: number
+    total_pages: number
+}
+
+export interface SystemLogQuery {
+    file?: string
+    level?: string
+    module?: string
+    status_code?: number
+    search?: string
+    page?: number
+    per_page?: number
+}
+

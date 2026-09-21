@@ -47,6 +47,7 @@ services:
       - "8087"
     volumes:
       - kutubxona_uploads:/app/uploads
+      - kutubxona_logs:/app/logs
     networks:
       - kutubxona_net
     restart: always
@@ -105,6 +106,7 @@ services:
 volumes:
   kutubxona_bdata:
   kutubxona_uploads:
+  kutubxona_logs:
 
 # ===================================================
 # Network — faqat ushbu loyiha konteynerlari uchun
