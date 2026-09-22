@@ -123,7 +123,7 @@ export interface Book {
 
 export interface CheckDuplicateResponse {
     exists: boolean
-    match_type: 'isbn' | 'title_author' | null
+    match_type: 'isbn' | 'title_author_year' | 'title_author' | null
     book: Book | null
 }
 
@@ -157,12 +157,18 @@ export interface CreateBookRequest {
     cover_image_url?: string
     digital_file_url?: string
     duration_seconds?: number
+    allow_duplicate?: boolean
 }
 
 export interface SkippedBookInfo {
     title: string
     author: string
     reason: string
+    category?: string
+    language?: string
+    genre?: string
+    publication_date?: number
+    total_quantity?: number
 }
 
 export interface ImportBooksRequest {

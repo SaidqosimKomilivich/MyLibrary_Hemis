@@ -90,7 +90,7 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
 
     // Duplicate detection states
     const [duplicateBook, setDuplicateBook] = useState<Book | null>(null)
-    const [duplicateMatchType, setDuplicateMatchType] = useState<'isbn' | 'title_author' | null>(null)
+    const [duplicateMatchType, setDuplicateMatchType] = useState<'isbn' | 'title_author_year' | 'title_author' | null>(null)
     const [isCheckingDuplicate, setIsCheckingDuplicate] = useState(false)
     const [duplicateDismissed, setDuplicateDismissed] = useState(false)
 
@@ -106,6 +106,7 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
         const titleTrimmed = (formData.title || '').trim()
         const authorTrimmed = (formData.author || '').trim()
         const isbnTrimmed = (formData.isbn_13 || '').trim()
+        const pubDate = formData.publication_date ? Number(formData.publication_date) : undefined
 
         const canCheck = isbnTrimmed.length >= 3 || (titleTrimmed.length >= 2 && authorTrimmed.length >= 2)
 
@@ -122,6 +123,7 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
                     title: titleTrimmed || undefined,
                     author: authorTrimmed || undefined,
                     isbn: isbnTrimmed || undefined,
+                    publication_date: pubDate,
                 })
                 if (res.data && res.data.exists && res.data.book) {
                     setDuplicateBook(res.data.book)
@@ -139,7 +141,7 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
         }, 500)
 
         return () => clearTimeout(timer)
-    }, [formData.title, formData.author, formData.isbn_13, mode, isOpen])
+    }, [formData.title, formData.author, formData.isbn_13, formData.publication_date, mode, isOpen])
 
     const handleApplyDuplicateBook = () => {
         if (!duplicateBook) return
@@ -353,6 +355,16 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
                 return
             }
 
+            if (mode === 'add' && duplicateBook && !duplicateDismissed) {
+                toast.warning("Ushbu kitob bazada allaqachon mavjud! Agar baribir yangi nusxa sifatida qo'shmoqchi bo'lsangiz, 'E'tiborsiz qoldirish' tugmasini bosing.")
+                setIsLoading(false)
+                return
+            }
+
+            if (duplicateDismissed) {
+                dataToSend.allow_duplicate = true
+            }
+
             if (mode === 'edit' && book) {
                 await api.updateBook(book.id, dataToSend as unknown as Partial<CreateBookRequest>)
                 toast.success("Kitob muvaffaqiyatli yangilandi")
@@ -401,7 +413,11 @@ export default function BookModal({ isOpen, mode, book, onClose, onSuccess }: Bo
                                                 Tizimda ushbu kitob allaqachon mavjud!
                                             </span>
                                             <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-medium">
-                                                {duplicateMatchType === 'isbn' ? 'ISBN mosligi' : 'Nomi va muallif mosligi'}
+                                                {duplicateMatchType === 'isbn'
+                                                    ? 'ISBN mosligi'
+                                                    : duplicateMatchType === 'title_author_year'
+                                                    ? 'Nomi, muallifi va nashr yili mosligi'
+                                                    : 'Nomi va muallif mosligi'}
                                             </span>
                                         </div>
                                         <p className="m-0 text-sm text-text-muted">

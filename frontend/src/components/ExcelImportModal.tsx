@@ -20,6 +20,8 @@ import {
     generateArmExcelTemplate,
     parseBooksFromExcel,
     convertParsedRowsToCreateRequests,
+    exportSkippedBooksToExcel,
+    exportInvalidPreviewRowsToExcel,
     type ParsedBookRow,
 } from '../utils/excelBookParser'
 import { getCategoryLabel, getGenreLabel, getLanguageLabel } from '../constants/bookClassification'
@@ -310,10 +312,21 @@ export default function ExcelImportModal({ isOpen, onClose, onSuccess }: ExcelIm
                                         Yaroqli: <b>{validCount} ta</b>
                                     </span>
                                     {errorCount > 0 && (
-                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20">
-                                            <XCircle size={13} />
-                                            Xatolik: <b>{errorCount} ta</b>
-                                        </span>
+                                        <>
+                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                                                <XCircle size={13} />
+                                                Xatolik: <b>{errorCount} ta</b>
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => exportInvalidPreviewRowsToExcel(parsedRows)}
+                                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-rose-500/15 text-rose-300 hover:bg-rose-500/25 border border-rose-500/30 transition-all cursor-pointer"
+                                                title="250 belgidan oshgan yoki xatosi bor qatorlarni Excel fayl shaklida yuklab olish"
+                                            >
+                                                <Download size={13} />
+                                                <span>Xatolikli kitoblarni yuklab olish ({errorCount})</span>
+                                            </button>
+                                        </>
                                     )}
                                 </div>
                             </div>
@@ -448,12 +461,12 @@ export default function ExcelImportModal({ isOpen, onClose, onSuccess }: ExcelIm
                                         <Info size={24} />
                                     </div>
                                     <div>
-                                        <h4 className="text-sm font-semibold text-text">O'tkazib yuborildi (Mavjud)</h4>
+                                        <h4 className="text-sm font-semibold text-text">Qo'shilmadi (Mavjud yoki cheklov)</h4>
                                         <p className="text-2xl font-bold text-amber-400 mt-1">
                                             {importResult.skippedCount} ta kitob
                                         </p>
                                         <p className="text-xs text-text-muted mt-1">
-                                            Bazada allaqachon mavjud bo'lgani sababli qayta qo'shilmadi
+                                            Bazada mavjudligi yoki belgilar soni 250 tadan oshganligi sababli qo'shilmadi
                                         </p>
                                     </div>
                                 </div>
@@ -462,11 +475,21 @@ export default function ExcelImportModal({ isOpen, onClose, onSuccess }: ExcelIm
                             {/* O'tkazib yuborilgan kitoblar ro'yxati */}
                             {importResult.skippedBooks.length > 0 && (
                                 <div className="border border-amber-500/20 bg-amber-500/5 rounded-2xl p-4">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <AlertTriangle size={16} className="text-amber-400" />
-                                        <h5 className="text-xs font-semibold text-text uppercase tracking-wider">
-                                            Qayta qo'shilmagan kitoblar tafsiloti ({importResult.skippedBooks.length} ta)
-                                        </h5>
+                                    <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+                                        <div className="flex items-center gap-2">
+                                            <AlertTriangle size={16} className="text-amber-400" />
+                                            <h5 className="text-xs font-semibold text-text uppercase tracking-wider">
+                                                Qayta qo'shilmagan kitoblar tafsiloti ({importResult.skippedBooks.length} ta)
+                                            </h5>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => exportSkippedBooksToExcel(importResult.skippedBooks, 'Qayta_qoshilmagan_kitoblar_hisoboti.xlsx')}
+                                            className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-slate-950 font-semibold text-xs transition-all border border-amber-500/30 cursor-pointer shadow-xs"
+                                        >
+                                            <Download size={14} />
+                                            <span>Hisobotni Excel (.xlsx) da yuklab olish</span>
+                                        </button>
                                     </div>
 
                                     <div className="max-h-56 overflow-y-auto border border-border/70 rounded-xl bg-surface">
@@ -552,12 +575,24 @@ export default function ExcelImportModal({ isOpen, onClose, onSuccess }: ExcelIm
                         )}
 
                         {step === 'result' && (
-                            <button
-                                onClick={handleCloseModal}
-                                className="px-6 py-2.5 rounded-xl bg-primary text-white font-semibold text-xs hover:brightness-110 active:scale-95 transition-all shadow-md cursor-pointer border-none"
-                            >
-                                Oynani yopish va Katalogga qaytish
-                            </button>
+                            <div className="flex items-center gap-3">
+                                {importResult && importResult.skippedBooks.length > 0 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => exportSkippedBooksToExcel(importResult.skippedBooks, 'Qayta_qoshilmagan_kitoblar_hisoboti.xlsx')}
+                                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-surface border border-border hover:bg-surface-hover text-text font-semibold text-xs transition-all cursor-pointer shadow-xs"
+                                    >
+                                        <Download size={14} className="text-amber-400" />
+                                        <span>Qayta qo'shilmaganlarni yuklab olish ({importResult.skippedBooks.length})</span>
+                                    </button>
+                                )}
+                                <button
+                                    onClick={handleCloseModal}
+                                    className="px-6 py-2.5 rounded-xl bg-primary text-white font-semibold text-xs hover:brightness-110 active:scale-95 transition-all shadow-md cursor-pointer border-none"
+                                >
+                                    Oynani yopish va Katalogga qaytish
+                                </button>
+                            </div>
                         )}
                     </div>
                 </div>

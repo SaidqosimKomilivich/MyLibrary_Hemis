@@ -26,6 +26,7 @@ pub struct CreateBookRequest {
     pub shelf_location: Option<String>,
     pub total_quantity: Option<i32>,
     pub available_quantity: Option<i32>,
+    pub allow_duplicate: Option<bool>,
 }
 
 /// Kitobni tahrirlash uchun DTO (barcha maydonlar ixtiyoriy)
@@ -160,6 +161,7 @@ pub struct CheckDuplicateQuery {
     pub title: Option<String>,
     pub author: Option<String>,
     pub isbn: Option<String>,
+    pub publication_date: Option<i32>,
 }
 
 /// Dublikat tekshiruvi natijasi
@@ -170,12 +172,22 @@ pub struct CheckDuplicateResponse {
     pub book: Option<BookResponse>,
 }
 
-/// O'tkazib yuborilgan (allaqachon bazada mavjud bo'lgan) kitob ma'lumoti
+/// O'tkazib yuborilgan (allaqachon bazada mavjud yoki xatoligi bo'lgan) kitob ma'lumoti
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SkippedBookInfo {
     pub title: String,
     pub author: String,
     pub reason: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub category: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub language: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub genre: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub publication_date: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total_quantity: Option<i32>,
 }
 
 /// Kitoblarni ommaviy import qilish so'rovi

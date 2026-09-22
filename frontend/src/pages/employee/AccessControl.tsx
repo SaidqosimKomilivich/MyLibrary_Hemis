@@ -48,6 +48,13 @@ const roleLabels: Record<string, string> = {
     student: 'Talaba',
 }
 
+function formatPublicationYear(book: Book): string | null {
+    const year = book.publication_date || book.published_year
+    if (!year) return null
+    const str = String(year).trim()
+    return str.endsWith('yil') ? str : `${str}-yil`
+}
+
 export default function AccessControl() {
     // ──── Scanner state ────
     const [scanInput, setScanInput] = useState('')
@@ -480,8 +487,19 @@ function extractIdFromScannedText(rawText: string): string {
         }
     }
 
-    // ──── Sana hisoblash ────
-    const defaultDue = formatLocalDate(new Date(Date.now() + 15 * 24 * 60 * 60 * 1000))
+    // ──── Sana hisoblash (15 kunlik standart muddat) ────
+    const getDefaultDueDate = (days = 15): string => {
+        const d = new Date()
+        d.setDate(d.getDate() + days)
+        return formatLocalDate(d)
+    }
+    const defaultDue = getDefaultDueDate(15)
+    const tomorrowDate = useMemo(() => {
+        const d = new Date()
+        d.setDate(d.getDate() + 1)
+        return d
+    }, [])
+
 
     // ──── Sort rentals: overdue first, then by deadline ────
     const sortedRentals = useMemo(() => {
@@ -691,7 +709,13 @@ function extractIdFromScannedText(rawText: string): string {
                                 <button className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500/10 border border-red-500 text-red-500 rounded-lg text-sm font-semibold hover:bg-red-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" onClick={handleDepart} disabled={!userIsInside}>
                                     <LogOut size={18} /> Chiqish
                                 </button>
-                                <button className="col-span-2 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white border border-transparent rounded-lg text-sm font-semibold hover:bg-primary-hover transition-colors" onClick={() => setAssignModalOpen(true)}>
+                                <button
+                                    className="col-span-2 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white border border-transparent rounded-lg text-sm font-semibold hover:bg-primary-hover transition-colors"
+                                    onClick={() => {
+                                        setDueDate(getDefaultDueDate(15))
+                                        setAssignModalOpen(true)
+                                    }}
+                                >
                                     <BookPlus size={18} /> Kitob berish
                                 </button>
                             </div>
@@ -866,7 +890,7 @@ function extractIdFromScannedText(rawText: string): string {
                         <DatePicker
                             value={historyDate}
                             onChange={(d) => setHistoryDate(d ? formatLocalDate(d) : getTodayDateString())}
-                            className="w-44"
+                            className="w-52"
                         />
                         <button className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-transparent border border-border rounded-lg text-text-muted text-xs font-medium hover:bg-surface-hover hover:text-text transition-colors" onClick={loadHistoryRecords} disabled={todayLoading}>
                             <RotateCcw size={14} /> Yangilash
@@ -969,17 +993,50 @@ function extractIdFromScannedText(rawText: string): string {
                                 {/* Umumiy sozlamalar (Sana + Izoh) */}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-surface-hover/20 p-4 rounded-xl border border-border">
                                     <div className="flex flex-col gap-1.5">
-                                        <label className="flex items-center gap-1.5 text-[0.8rem] font-semibold text-text-muted uppercase tracking-wider">
-                                            <Calendar size={14} /> Umumiy qaytarish muddati <span className="text-rose-400">*</span>
-                                        </label>
+                                        <div className="flex items-center justify-between">
+                                            <label className="flex items-center gap-1.5 text-[0.8rem] font-semibold text-text-muted uppercase tracking-wider">
+                                                <Calendar size={14} /> Umumiy qaytarish muddati <span className="text-rose-400">*</span>
+                                            </label>
+                                            <span className="text-[11px] text-primary font-medium">Standart: 15 kun</span>
+                                        </div>
                                         <DatePicker
                                             label="Muddati"
-                                            placeholder="Tanlang (default 15 kun)"
-                                            value={dueDate || (typeof defaultDue === 'string' ? defaultDue : '')}
-                                            minDate={new Date(Date.now() + 24 * 60 * 60 * 1000)}
+                                            placeholder="Tanlang (standart 15 kun)"
+                                            value={dueDate || defaultDue}
+                                            minDate={tomorrowDate}
                                             onChange={(d) => setDueDate(d ? formatLocalDate(d) : '')}
+                                            presets={[
+                                                { label: '+10 kun', daysFromToday: 10 },
+                                                { label: '+15 kun (standart)', daysFromToday: 15 },
+                                                { label: '+30 kun (1 oy)', daysFromToday: 30 },
+                                            ]}
                                             className="w-full"
                                         />
+                                        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                            <span className="text-[11px] text-text-muted mr-0.5">Tezkor:</span>
+                                            {[
+                                                { label: '10 kun', days: 10 },
+                                                { label: '15 kun (standart)', days: 15 },
+                                                { label: '30 kun (1 oy)', days: 30 },
+                                            ].map((item, idx) => {
+                                                const targetDate = getDefaultDueDate(item.days)
+                                                const isActive = (dueDate || defaultDue) === targetDate
+                                                return (
+                                                    <button
+                                                        key={idx}
+                                                        type="button"
+                                                        onClick={() => setDueDate(targetDate)}
+                                                        className={`px-2 py-0.5 text-xs rounded-md border transition-all ${
+                                                            isActive
+                                                                ? 'bg-primary text-white border-primary font-semibold shadow-xs'
+                                                                : 'bg-surface hover:bg-surface-hover text-text-muted hover:text-text border-border'
+                                                        }`}
+                                                    >
+                                                        {item.label}
+                                                    </button>
+                                                )
+                                            })}
+                                        </div>
                                     </div>
 
                                     <div className="flex flex-col gap-1.5">
@@ -1036,6 +1093,7 @@ function extractIdFromScannedText(rawText: string): string {
                                             {searchResults.map(book => {
                                                 const isAlreadyAdded = selectedBooks.some(item => item.book.id === book.id)
                                                 const isAvailable = (book.available_quantity || 0) > 0
+                                                const pubYear = formatPublicationYear(book)
 
                                                 return (
                                                     <div
@@ -1057,7 +1115,15 @@ function extractIdFromScannedText(rawText: string): string {
                                                             )}
                                                             <div className="flex flex-col min-w-0">
                                                                 <strong className="text-sm truncate text-text">{highlightText(book.title, bookSearch)}</strong>
-                                                                <span className="text-xs text-text-muted truncate">{highlightText(book.author, bookSearch)}</span>
+                                                                <div className="flex items-center gap-1.5 text-xs text-text-muted mt-0.5">
+                                                                    <span className="truncate">{highlightText(book.author, bookSearch)}</span>
+                                                                    {pubYear && (
+                                                                        <span className="shrink-0 inline-flex items-center gap-1 text-[11px] font-medium text-text-muted bg-surface/90 border border-border px-1.5 py-0.5 rounded-md">
+                                                                            <Calendar size={11} className="text-primary-light" />
+                                                                            {highlightText(pubYear, bookSearch)}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
                                                             </div>
                                                         </div>
 
@@ -1122,27 +1188,37 @@ function extractIdFromScannedText(rawText: string): string {
                                         </div>
                                     ) : (
                                         <div className="flex flex-col gap-2.5">
-                                            {selectedBooks.map((item, index) => (
-                                                <div
-                                                    key={item.book.id}
-                                                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-surface border border-border rounded-xl shadow-xs hover:border-border/80 transition-all"
-                                                >
-                                                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                                                        <span className="w-6 h-6 rounded-full bg-surface-hover text-text-muted font-bold text-xs flex items-center justify-center shrink-0">
-                                                            {index + 1}
-                                                        </span>
-                                                        {item.book.cover_image_url ? (
-                                                            <img src={getFileUrl(item.book.cover_image_url)} alt="" className="w-9 h-12 object-cover rounded shadow-xs shrink-0" />
-                                                        ) : (
-                                                            <div className="w-9 h-12 bg-surface-hover rounded flex items-center justify-center text-text-muted shrink-0">
-                                                                <BookOpen size={16} />
+                                            {selectedBooks.map((item, index) => {
+                                                const pubYear = formatPublicationYear(item.book)
+                                                return (
+                                                    <div
+                                                        key={item.book.id}
+                                                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-surface border border-border rounded-xl shadow-xs hover:border-border/80 transition-all"
+                                                    >
+                                                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                            <span className="w-6 h-6 rounded-full bg-surface-hover text-text-muted font-bold text-xs flex items-center justify-center shrink-0">
+                                                                {index + 1}
+                                                            </span>
+                                                            {item.book.cover_image_url ? (
+                                                                <img src={getFileUrl(item.book.cover_image_url)} alt="" className="w-9 h-12 object-cover rounded shadow-xs shrink-0" />
+                                                            ) : (
+                                                                <div className="w-9 h-12 bg-surface-hover rounded flex items-center justify-center text-text-muted shrink-0">
+                                                                    <BookOpen size={16} />
+                                                                </div>
+                                                            )}
+                                                            <div className="flex flex-col min-w-0">
+                                                                <span className="text-sm font-bold text-text truncate">{item.book.title}</span>
+                                                                <div className="flex items-center gap-1.5 text-xs text-text-muted mt-0.5">
+                                                                    <span className="truncate">{item.book.author}</span>
+                                                                    {pubYear && (
+                                                                        <span className="shrink-0 inline-flex items-center gap-1 text-[11px] font-medium text-text-muted bg-surface-hover/80 border border-border px-1.5 py-0.5 rounded-md">
+                                                                            <Calendar size={11} className="text-primary-light" />
+                                                                            {pubYear}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
                                                             </div>
-                                                        )}
-                                                        <div className="flex flex-col min-w-0">
-                                                            <span className="text-sm font-bold text-text truncate">{item.book.title}</span>
-                                                            <span className="text-xs text-text-muted truncate">{item.book.author}</span>
                                                         </div>
-                                                    </div>
 
                                                     <div className="flex items-center gap-2 w-full sm:w-auto">
                                                         <div className="relative flex-1 sm:w-44">
@@ -1166,8 +1242,9 @@ function extractIdFromScannedText(rawText: string): string {
                                                         </button>
                                                     </div>
                                                 </div>
-                                            ))}
-                                        </div>
+                                            );
+                                        })}
+                                    </div>
                                     )}
                                 </div>
                             </div>

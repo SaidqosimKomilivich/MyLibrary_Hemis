@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx'
-import type { CreateBookRequest } from '../services/api.types'
+import type { CreateBookRequest, SkippedBookInfo } from '../services/api.types'
 
 export interface ParsedBookRow {
     rawIndex: number
@@ -401,15 +401,24 @@ export async function parseBooksFromExcel(file: File): Promise<ParseResult> {
         const errors: string[] = []
         const warnings: string[] = []
 
-        // Nomi tekshiruvi
+        // Nomi tekshiruvi (250 belgidan oshmasligi shart)
         if (!titleRaw) {
             errors.push("Kitob nomi ko'rsatilmagan")
+        } else if (titleRaw.length > 250) {
+            errors.push(`Kitob nomi 250 ta belgidan oshib ketgan (hozirda ${titleRaw.length} ta belgi)`)
         }
 
-        // Muallif tekshiruvi
+        // Muallif tekshiruvi (250 belgidan oshmasligi shart)
         const author = authorRaw || "Noma'lum muallif"
         if (!authorRaw) {
             warnings.push("Muallif ko'rsatilmagan, standart 'Noma'lum muallif' qilib olindi")
+        } else if (authorRaw.length > 250) {
+            errors.push(`Muallif nomi 250 ta belgidan oshib ketgan (hozirda ${authorRaw.length} ta belgi)`)
+        }
+
+        // Fan nomi tekshiruvi
+        if (categoryRaw && categoryRaw.length > 250) {
+            errors.push(`Fan nomi 250 ta belgidan oshib ketgan (hozirda ${categoryRaw.length} ta belgi)`)
         }
 
         // Normallashtirishlar
@@ -497,3 +506,104 @@ export function convertParsedRowsToCreateRequests(rows: ParsedBookRow[]): Create
             format: 'bosma', // ARM umumiy fondi uchun odatda bosma kitob
         }))
 }
+
+// ==========================================
+// 5. RAD ETILGAN VA XATOLIKLI KITOBLARNI EXCELGA EKSPORT QILISH
+// ==========================================
+
+export interface ExportSkippedItem {
+    title: string
+    author: string
+    reason: string
+    category?: string
+    language?: string
+    publicationDate?: number
+    genre?: string
+    totalQuantity?: number
+}
+
+/**
+ * Rad etilgan yoki bazaga qo'shilmagan kitoblarni Excel (.xlsx) fayl shaklida yuklab berish
+ */
+export function exportSkippedBooksToExcel(
+    items: (SkippedBookInfo | ExportSkippedItem)[],
+    customFileName = 'Qayta_qoshilmagan_kitoblar_hisoboti.xlsx'
+): void {
+    if (!items || items.length === 0) return
+
+    const headers = [
+        '№',
+        'Fan nomi (Kategoriya)',
+        'Kitob nomi',
+        'Muallifi',
+        'Tili',
+        'Nashr yili',
+        'Adabiyot turi',
+        'Nusxalar soni',
+        'Rad etilish / O‘tkazib yuborilish sababi',
+    ]
+
+    const rows = items.map((item, idx) => {
+        const pubYear = ('publication_date' in item ? item.publication_date : undefined) ?? 
+                        ('publicationDate' in item ? (item as any).publicationDate : undefined) ?? '—'
+        const totalQty = ('total_quantity' in item ? item.total_quantity : undefined) ?? 
+                         ('totalQuantity' in item ? (item as any).totalQuantity : undefined) ?? 1
+
+        return [
+            idx + 1,
+            item.category || '—',
+            item.title || '—',
+            item.author || '—',
+            item.language || '—',
+            pubYear,
+            item.genre || '—',
+            totalQty,
+            item.reason,
+        ]
+    })
+
+    const data = [headers, ...rows]
+    const worksheet = XLSX.utils.aoa_to_sheet(data)
+
+    worksheet['!cols'] = [
+        { wch: 6 },  // №
+        { wch: 26 }, // Fan nomi
+        { wch: 45 }, // Kitob nomi
+        { wch: 28 }, // Muallifi
+        { wch: 14 }, // Tili
+        { wch: 12 }, // Nashr yili
+        { wch: 20 }, // Adabiyot turi
+        { wch: 14 }, // Nusxalar soni
+        { wch: 55 }, // Sababi
+    ]
+
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Qayta qo‘shilmaganlar')
+
+    XLSX.writeFile(workbook, customFileName)
+}
+
+/**
+ * Preview bosqichida xatosi bor (masalan, 250 belgidan oshgan) qatorlarni Excelga yuklab berish
+ */
+export function exportInvalidPreviewRowsToExcel(
+    rows: ParsedBookRow[],
+    customFileName = 'Xatolikli_kitoblar_royxati.xlsx'
+): void {
+    const invalidRows = rows.filter(r => !r.isValid)
+    if (invalidRows.length === 0) return
+
+    const items: ExportSkippedItem[] = invalidRows.map(r => ({
+        title: r.title,
+        author: r.author,
+        category: r.originalCategory || r.category,
+        language: r.originalLanguage || r.language,
+        publicationDate: r.publicationDate,
+        genre: r.originalGenre || r.genre,
+        totalQuantity: r.totalQuantity,
+        reason: r.errors.join('; ') || 'Noma\'lum xatolik',
+    }))
+
+    exportSkippedBooksToExcel(items, customFileName)
+}
+

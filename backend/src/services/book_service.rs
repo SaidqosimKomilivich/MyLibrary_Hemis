@@ -82,6 +82,28 @@ impl BookService {
         if req.author.trim().is_empty() {
             req.author = "Noma'lum muallif".to_string();
         }
+
+        // Dublikat tekshiruvi (agar ruxsat etilmagan bo'lsa)
+        if !req.allow_duplicate.unwrap_or(false) {
+            let isbn_clean = req.isbn_13.as_deref().or(req.isbn_10.as_deref());
+            let (dup, match_type) = BookRepository::check_duplicate(
+                pool,
+                Some(&req.title),
+                Some(&req.author),
+                isbn_clean,
+                req.publication_date,
+            ).await?;
+
+            if let Some(_) = dup {
+                let err_msg = match match_type {
+                    Some("isbn") => "Ushbu ISBN bilan kitob tizimda allaqachon mavjud".to_string(),
+                    Some("title_author_year") => "Ushbu nom, muallif va nashr yili bilan kitob tizimda allaqachon mavjud".to_string(),
+                    _ => "Ushbu nom va muallif bilan kitob tizimda allaqachon mavjud".to_string(),
+                };
+                return Err(AppError::BadRequest(err_msg));
+            }
+        }
+
         let book = BookRepository::create(pool, &req, added_by).await?;
         tracing::info!(book_id = %book.id, title = %book.title, "Yangi kitob yaratildi");
         Ok(BookResponse::from(book))
@@ -96,6 +118,22 @@ impl BookService {
         if req.author.trim().is_empty() {
             req.author = "Noma'lum muallif".to_string();
         }
+
+        if !req.allow_duplicate.unwrap_or(false) {
+            let isbn_clean = req.isbn_13.as_deref().or(req.isbn_10.as_deref());
+            let (dup, _) = BookRepository::check_duplicate(
+                pool,
+                Some(&req.title),
+                Some(&req.author),
+                isbn_clean,
+                req.publication_date,
+            ).await?;
+
+            if let Some(_) = dup {
+                return Err(AppError::BadRequest("Ushbu kitob kutubxona fondida allaqachon mavjud".to_string()));
+            }
+        }
+
         let book = BookRepository::create_submitted(pool, &req, submitted_by).await?;
         tracing::info!(book_id = %book.id, teacher = %submitted_by, "O'qituvchi kitob taqdim etdi");
         Ok(BookResponse::from(book))
@@ -225,6 +263,7 @@ impl BookService {
             params.title.as_deref(),
             params.author.as_deref(),
             params.isbn.as_deref(),
+            params.publication_date,
         )
         .await?;
 
@@ -272,15 +311,55 @@ impl BookService {
                     title: "Nomsiz qator".to_string(),
                     author: author.clone(),
                     reason: "Kitob nomi kiritilmagan".to_string(),
+                    category: book_item.category.clone(),
+                    language: book_item.language.clone(),
+                    genre: book_item.genre.clone(),
+                    publication_date: book_item.publication_date,
+                    total_quantity: book_item.total_quantity,
                 });
                 continue;
             }
 
-            // A. Fayl ichidagi dublikatlarni aniqlash
+            // 1. Belgilar soni 250 tadan oshib ketgan bo'lsa, xabar berib bazaga qo'shmaslik
+            let title_len = title.chars().count();
+            if title_len > 250 {
+                skipped_count += 1;
+                skipped_books.push(SkippedBookInfo {
+                    title: title.clone(),
+                    author: author.clone(),
+                    reason: format!("Kitob nomi 250 ta belgidan oshib ketgan (hozirda {} ta belgi)", title_len),
+                    category: book_item.category.clone(),
+                    language: book_item.language.clone(),
+                    genre: book_item.genre.clone(),
+                    publication_date: book_item.publication_date,
+                    total_quantity: book_item.total_quantity,
+                });
+                continue;
+            }
+
+            let author_len = author.chars().count();
+            if author_len > 250 {
+                skipped_count += 1;
+                skipped_books.push(SkippedBookInfo {
+                    title: title.clone(),
+                    author: author.clone(),
+                    reason: format!("Muallif nomi 250 ta belgidan oshib ketgan (hozirda {} ta belgi)", author_len),
+                    category: book_item.category.clone(),
+                    language: book_item.language.clone(),
+                    genre: book_item.genre.clone(),
+                    publication_date: book_item.publication_date,
+                    total_quantity: book_item.total_quantity,
+                });
+                continue;
+            }
+
+            // A. Fayl ichidagi dublikatlarni aniqlash (nomi, muallifi va nashr yili bo'yicha)
+            let year_str = book_item.publication_date.map(|y| y.to_string()).unwrap_or_default();
             let norm_key = format!(
-                "{}:{}",
+                "{}:{}:{}",
                 title.to_lowercase().split_whitespace().collect::<Vec<_>>().join(" "),
-                author.to_lowercase().split_whitespace().collect::<Vec<_>>().join(" ")
+                author.to_lowercase().split_whitespace().collect::<Vec<_>>().join(" "),
+                year_str
             );
             if !seen_keys.insert(norm_key) {
                 skipped_count += 1;
@@ -288,6 +367,11 @@ impl BookService {
                     title: title.clone(),
                     author: author.clone(),
                     reason: "Faylning o'zida takroriy kiritilgan".to_string(),
+                    category: book_item.category.clone(),
+                    language: book_item.language.clone(),
+                    genre: book_item.genre.clone(),
+                    publication_date: book_item.publication_date,
+                    total_quantity: book_item.total_quantity,
                 });
                 continue;
             }
@@ -299,12 +383,14 @@ impl BookService {
                 Some(&title),
                 Some(&author),
                 isbn_clean,
+                book_item.publication_date,
             )
             .await?;
 
             if let Some(_) = dup {
                 let reason = match match_type {
                     Some("isbn") => "Bazada ushbu ISBN bilan kitob allaqachon mavjud".to_string(),
+                    Some("title_author_year") => "Bazada ushbu nom, muallif va nashr yili bilan kitob allaqachon mavjud".to_string(),
                     _ => "Bazada ushbu nom va muallif bilan kitob allaqachon mavjud".to_string(),
                 };
                 skipped_count += 1;
@@ -312,6 +398,11 @@ impl BookService {
                     title,
                     author,
                     reason,
+                    category: book_item.category.clone(),
+                    language: book_item.language.clone(),
+                    genre: book_item.genre.clone(),
+                    publication_date: book_item.publication_date,
+                    total_quantity: book_item.total_quantity,
                 });
                 continue;
             }

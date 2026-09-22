@@ -253,7 +253,7 @@ export const api = {
         return request<SingleBookResponse>(`/books/${id}`)
     },
 
-    checkBookDuplicate(params: { title?: string; author?: string; isbn?: string }) {
+    checkBookDuplicate(params: { title?: string; author?: string; isbn?: string; publication_date?: number }) {
         const qs = buildQueryString(params)
         return request<{ success: boolean; data: CheckDuplicateResponse }>(`/books/check-duplicate${qs}`)
     },

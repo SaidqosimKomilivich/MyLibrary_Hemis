@@ -25,8 +25,8 @@ impl BookRepository {
 
         if search.is_some() {
             query.push_str(&format!(
-                r#" AND (LOWER("title") LIKE LOWER(${}::text) OR LOWER("author") LIKE LOWER(${}::text))"#,
-                param_idx, param_idx
+                r#" AND (LOWER("title") LIKE LOWER(${}::text) OR LOWER("author") LIKE LOWER(${}::text) OR CAST("publication_date" AS TEXT) LIKE ${}::text)"#,
+                param_idx, param_idx, param_idx
             ));
             param_idx += 1;
         }
@@ -95,8 +95,8 @@ impl BookRepository {
 
         if search.is_some() {
             query.push_str(&format!(
-                r#" AND (LOWER("title") LIKE LOWER(${}::text) OR LOWER("author") LIKE LOWER(${}::text))"#,
-                param_idx, param_idx
+                r#" AND (LOWER("title") LIKE LOWER(${}::text) OR LOWER("author") LIKE LOWER(${}::text) OR CAST("publication_date" AS TEXT) LIKE ${}::text)"#,
+                param_idx, param_idx, param_idx
             ));
             param_idx += 1;
         }
@@ -383,12 +383,13 @@ impl BookRepository {
         Ok(result.rows_affected())
     }
 
-    /// Dublikat kitobni tekshirish (ISBN yoki Sarlavha+Muallif bo'yicha)
+    /// Dublikat kitobni tekshirish (ISBN yoki Sarlavha+Muallif+Nashr yili bo'yicha)
     pub async fn check_duplicate(
         pool: &PgPool,
         title: Option<&str>,
         author: Option<&str>,
         isbn: Option<&str>,
+        publication_date: Option<i32>,
     ) -> Result<(Option<Book>, Option<&'static str>), AppError> {
         // 1. Agar ISBN kiritilgan bo'lsa, avvalo ISBN bo'yicha qidiramiz
         if let Some(isbn_raw) = isbn {
@@ -413,25 +414,66 @@ impl BookRepository {
             }
         }
 
-        // 2. Agar Nomi va Muallifi kiritilgan bo'lsa, probellarni normallashtirib qidiramiz
+        // 2. Agar Nomi va Muallifi kiritilgan bo'lsa
         if let (Some(t), Some(a)) = (title, author) {
             let trimmed_t = t.trim();
             let trimmed_a = a.trim();
             if !trimmed_t.is_empty() && !trimmed_a.is_empty() {
-                let book = sqlx::query_as::<_, Book>(
-                    r#"SELECT * FROM "book"
-                    WHERE "is_active" = true
-                      AND regexp_replace(trim(lower("title")), '\s+', ' ', 'g') = regexp_replace(trim(lower($1)), '\s+', ' ', 'g')
-                      AND regexp_replace(trim(lower("author")), '\s+', ' ', 'g') = regexp_replace(trim(lower($2)), '\s+', ' ', 'g')
-                    LIMIT 1"#
-                )
-                .bind(trimmed_t)
-                .bind(trimmed_a)
-                .fetch_optional(pool)
-                .await?;
+                // A. Agar nashr yili ham kiritilgan bo'lsa:
+                if let Some(year) = publication_date {
+                    // 1-bosqich: nomi, muallifi va aynan shu nashr yili mos keluvchi kitob
+                    let book_exact = sqlx::query_as::<_, Book>(
+                        r#"SELECT * FROM "book"
+                        WHERE "is_active" = true
+                          AND regexp_replace(trim(lower("title")), '\s+', ' ', 'g') = regexp_replace(trim(lower($1)), '\s+', ' ', 'g')
+                          AND regexp_replace(trim(lower("author")), '\s+', ' ', 'g') = regexp_replace(trim(lower($2)), '\s+', ' ', 'g')
+                          AND "publication_date" = $3
+                        LIMIT 1"#
+                    )
+                    .bind(trimmed_t)
+                    .bind(trimmed_a)
+                    .bind(year)
+                    .fetch_optional(pool)
+                    .await?;
 
-                if let Some(b) = book {
-                    return Ok((Some(b), Some("title_author")));
+                    if let Some(b) = book_exact {
+                        return Ok((Some(b), Some("title_author_year")));
+                    }
+
+                    // 2-bosqich: agar aynan shu yil topilmasa, bazada nashr yili kiritilmagan (NULL) mos kitob bormi deb tekshiramiz
+                    let book_null_year = sqlx::query_as::<_, Book>(
+                        r#"SELECT * FROM "book"
+                        WHERE "is_active" = true
+                          AND regexp_replace(trim(lower("title")), '\s+', ' ', 'g') = regexp_replace(trim(lower($1)), '\s+', ' ', 'g')
+                          AND regexp_replace(trim(lower("author")), '\s+', ' ', 'g') = regexp_replace(trim(lower($2)), '\s+', ' ', 'g')
+                          AND "publication_date" IS NULL
+                        LIMIT 1"#
+                    )
+                    .bind(trimmed_t)
+                    .bind(trimmed_a)
+                    .fetch_optional(pool)
+                    .await?;
+
+                    if let Some(b) = book_null_year {
+                        return Ok((Some(b), Some("title_author")));
+                    }
+                } else {
+                    // B. Nashr yili kiritilmagan bo'lsa: nomi va muallifi bo'yicha qidiramiz
+                    let book = sqlx::query_as::<_, Book>(
+                        r#"SELECT * FROM "book"
+                        WHERE "is_active" = true
+                          AND regexp_replace(trim(lower("title")), '\s+', ' ', 'g') = regexp_replace(trim(lower($1)), '\s+', ' ', 'g')
+                          AND regexp_replace(trim(lower("author")), '\s+', ' ', 'g') = regexp_replace(trim(lower($2)), '\s+', ' ', 'g')
+                        LIMIT 1"#
+                    )
+                    .bind(trimmed_t)
+                    .bind(trimmed_a)
+                    .fetch_optional(pool)
+                    .await?;
+
+                    if let Some(b) = book {
+                        return Ok((Some(b), Some("title_author")));
+                    }
                 }
             }
         }
