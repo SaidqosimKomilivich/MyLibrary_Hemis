@@ -167,35 +167,74 @@ function extractIdFromScannedText(rawText: string): string {
     return text
 }
 
-    // 1. Scanner instance ref
+    // 1. Scanner instance ref va xavfsiz boshqaruv
     const scannerRef = useRef<Html5Qrcode | null>(null);
-    const [, setScannerActive] = useState(false);
+    const [scannerActive, setScannerActive] = useState(false);
     const isScanningRef = useRef(false);
+    const isStoppingRef = useRef(false);
+    const isStartingRef = useRef(false);
 
     // Kamerani to'xtatish (pauza / to'liq resurslarni bo'shatish)
     const stopScanner = useCallback(async () => {
-        const scanner = scannerRef.current;
-        scannerRef.current = null;
-        setScannerActive(false);
-        if (scanner) {
-            try {
-                if (scanner.isScanning) {
-                    await scanner.stop();
+        if (isStoppingRef.current) return;
+        isStoppingRef.current = true;
+        try {
+            const scanner = scannerRef.current;
+            scannerRef.current = null;
+            setScannerActive(false);
+            if (scanner) {
+                try {
+                    if (scanner.isScanning) {
+                        await scanner.stop();
+                    }
+                    scanner.clear();
+                } catch (e) {
+                    console.warn("Skanerni to'xtatishda ogohlantirish:", e);
                 }
-                scanner.clear();
-            } catch (e) {
-                console.warn("Skanerni to'xtatishda ogohlantirish:", e);
             }
+        } finally {
+            isStoppingRef.current = false;
         }
     }, []);
 
-    // Kamerani ishga tushirish
-    const startScanner = useCallback(() => {
-        if (!selectedDeviceId || !permissionGranted || assignModalOpen) return;
-        if (scannerRef.current?.isScanning) return; // allaqachon ishlayapti
+    // Kamerani ishga tushirish (xavfsiz va to'qnashuvlarsiz)
+    const startScanner = useCallback(async () => {
+        if (!selectedDeviceId || !permissionGranted) return;
+        if (isStartingRef.current) return;
 
-        setTimeout(() => {
-            if (scannerRef.current?.isScanning) return;
+        // Agar hozir to'xtatish jarayoni ketayotgan bo'lsa, u to'liq yakunlanishini kutamiz
+        if (isStoppingRef.current) {
+            let waitAttempts = 0;
+            while (isStoppingRef.current && waitAttempts < 15) {
+                await new Promise(res => setTimeout(res, 50));
+                waitAttempts++;
+            }
+        }
+
+        if (scannerRef.current?.isScanning) {
+            setScannerActive(true);
+            return;
+        }
+
+        isStartingRef.current = true;
+        try {
+            // Oldingi eski instansiya qolgan bo'lsa tozalash
+            if (scannerRef.current) {
+                try {
+                    if (scannerRef.current.isScanning) {
+                        await scannerRef.current.stop();
+                    }
+                    scannerRef.current.clear();
+                } catch {
+                    // ignore
+                }
+                scannerRef.current = null;
+            }
+
+            const container = document.getElementById("qr-reader");
+            if (!container) return;
+            container.innerHTML = "";
+
             const formatsToSupport = [
                 Html5QrcodeSupportedFormats.QR_CODE,
             ];
@@ -203,7 +242,7 @@ function extractIdFromScannedText(rawText: string): string {
             const scanner = new Html5Qrcode("qr-reader", { formatsToSupport, verbose: false });
             scannerRef.current = scanner;
 
-            scanner.start(
+            await scanner.start(
                 selectedDeviceId,
                 {
                     fps: 15,
@@ -224,14 +263,18 @@ function extractIdFromScannedText(rawText: string): string {
                     handleScan(decodedText);
                 },
                 () => { /* scan error — ignore */ }
-            ).then(() => {
-                setScannerActive(true);
-            }).catch(err => {
-                console.error("Kamerani yoqishda xatolik:", err);
-            });
-        }, 150);
+            );
+
+            setScannerActive(true);
+        } catch (err: any) {
+            console.error("Kamerani yoqishda xatolik:", err);
+            setScannerActive(false);
+            scannerRef.current = null;
+        } finally {
+            isStartingRef.current = false;
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedDeviceId, permissionGranted, assignModalOpen]);
+    }, [selectedDeviceId, permissionGranted]);
 
     // 2. Kamera tanlanganda avtomatik ishga tushirish
     useEffect(() => {
@@ -255,6 +298,24 @@ function extractIdFromScannedText(rawText: string): string {
         isScanningRef.current = false
         // Kamerani qayta ishga tushirish
         startScanner();
+    }, [startScanner]);
+
+    // ──── Modallarni yopish va kamerani xavfsiz qayta faollashtirish ────
+    const closeAssignModal = useCallback(() => {
+        setAssignModalOpen(false)
+        setBookSearch('')
+        setSearchResults([])
+        setSelectedBooks([])
+        setDueDate('')
+        setAssignNotes('')
+        startScanner()
+    }, [startScanner]);
+
+    const closeReturnModal = useCallback(() => {
+        setReturnModalOpen(false)
+        setSelectedRentalIds([])
+        setReturnNotes('')
+        startScanner()
     }, [startScanner]);
 
     // ──── Scanner logic ────
@@ -501,13 +562,9 @@ function extractIdFromScannedText(rawText: string): string {
                 })),
             })
             toast.success(`${selectedBooks.length} ta kitob ${scannedUser.full_name}ga muvaffaqiyatli berildi 🎉`)
-            setAssignModalOpen(false)
-            setSelectedBooks([])
-            setBookSearch('')
-            setSearchResults([])
-            setDueDate('')
-            setAssignNotes('')
+            closeAssignModal()
             await loadUserRentals(scannedUser.user_id)
+            startScanner()
         } catch (error: any) {
             toast.error(error.message || "Kitoblarni topshirishda xatolik yuz berdi")
         } finally {
@@ -544,10 +601,9 @@ function extractIdFromScannedText(rawText: string): string {
                 })
             }
             toast.success(`${selectedRentalIds.length} ta kitob muvaffaqiyatli qabul qilindi ✅`)
-            setReturnModalOpen(false)
-            setSelectedRentalIds([])
-            setReturnNotes('')
-            if (scannedUser) loadUserRentals(scannedUser.user_id)
+            closeReturnModal()
+            if (scannedUser) await loadUserRentals(scannedUser.user_id)
+            startScanner()
         } catch (err: any) {
             toast.error(err.message || "Kitoblarni qaytarishda xatolik yuz berdi")
         } finally {
@@ -688,6 +744,35 @@ function extractIdFromScannedText(rawText: string): string {
                             </div>
                         )}
 
+                        {/* Kamera to'xtatilgan yoki faol bo'lmagan holat overlay'i */}
+                        {permissionGranted && !scannerActive && !isScanning && (
+                            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-slate-950/85 backdrop-blur-xs text-white p-5 text-center select-none">
+                                <Camera className="w-12 h-12 text-slate-400 mb-2 opacity-80" strokeWidth={1.5} />
+                                <p className="text-sm font-semibold text-slate-200 mb-1">
+                                    {scannedUser ? "Kamera to'xtatilgan (Foydalanuvchi tanlangan)" : "Kamera faol emas"}
+                                </p>
+                                <p className="text-xs text-slate-400 mb-4 max-w-xs leading-relaxed">
+                                    {scannedUser
+                                        ? "Yangi o'quvchini skanerlash uchun tozalang yoki kamerani yoqing"
+                                        : "ID kartani skanerlashni boshlash uchun tugmani bosing"}
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (scannedUser) {
+                                            clearUser()
+                                        } else {
+                                            startScanner()
+                                        }
+                                    }}
+                                    className="px-4 py-2 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-lg shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+                                >
+                                    <RefreshCw size={14} />
+                                    {scannedUser ? "Keyingi o'quvchini skanerlash" : "Kamerani ishga tushirish"}
+                                </button>
+                            </div>
+                        )}
+
                         {/* Animatsiya (Skaner chizig'i) */}
                         {isScanning && (
                             <div className="absolute inset-0 z-20 pointer-events-none">
@@ -770,23 +855,34 @@ function extractIdFromScannedText(rawText: string): string {
                                 </div>
                             </div>
 
-                            <div className="mt-auto grid grid-cols-2 gap-3">
-                                <button className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-500/10 border border-emerald-500 text-emerald-400 rounded-lg text-sm font-semibold hover:bg-emerald-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" onClick={handleArrive} disabled={userIsInside}>
-                                    <LogIn size={18} /> Kirish
-                                </button>
-                                <button className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500/10 border border-red-500 text-red-500 rounded-lg text-sm font-semibold hover:bg-red-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" onClick={handleDepart} disabled={!userIsInside}>
-                                    <LogOut size={18} /> Chiqish
-                                </button>
-                                <button
-                                    className="col-span-2 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white border border-transparent rounded-lg text-sm font-semibold hover:bg-primary-hover transition-colors"
-                                    onClick={() => {
-                                        stopScanner()
-                                        setDueDate(getDefaultDueDate(15))
-                                        setAssignModalOpen(true)
-                                    }}
-                                >
-                                    <BookPlus size={18} /> Kitob berish
-                                </button>
+                            <div className="mt-auto flex flex-col gap-3">
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-500/10 border border-emerald-500 text-emerald-400 rounded-lg text-sm font-semibold hover:bg-emerald-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" onClick={handleArrive} disabled={userIsInside}>
+                                        <LogIn size={18} /> Kirish
+                                    </button>
+                                    <button className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500/10 border border-red-500 text-red-500 rounded-lg text-sm font-semibold hover:bg-red-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" onClick={handleDepart} disabled={!userIsInside}>
+                                        <LogOut size={18} /> Chiqish
+                                    </button>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <button
+                                        className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white border border-transparent rounded-lg text-sm font-semibold hover:bg-primary-hover transition-colors shadow-xs"
+                                        onClick={() => {
+                                            stopScanner()
+                                            setDueDate(getDefaultDueDate(15))
+                                            setAssignModalOpen(true)
+                                        }}
+                                    >
+                                        <BookPlus size={18} /> Kitob berish
+                                    </button>
+                                    <button
+                                        className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-surface hover:bg-surface-hover text-text border border-border rounded-lg text-sm font-semibold transition-colors"
+                                        onClick={clearUser}
+                                        title="Keyingi o'quvchini qabul qilish uchun ma'lumotlarni tozalash"
+                                    >
+                                        <RotateCcw size={16} className="text-primary-light" /> Keyingi o'quvchi
+                                    </button>
+                                </div>
                             </div>
                         </>
                     )}
@@ -1023,7 +1119,7 @@ function extractIdFromScannedText(rawText: string): string {
                ═══════════════════════════════════════ */}
             {
                 assignModalOpen && createPortal(
-                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-999 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => { setAssignModalOpen(false); setBookSearch(''); setSearchResults([]); setSelectedBooks([]); setDueDate(''); setAssignNotes(''); }}>
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-999 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={closeAssignModal}>
                         <div className="bg-surface border border-border rounded-2xl w-full max-w-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
                             <div className="flex items-center justify-between p-5 border-b border-border bg-surface-hover/40">
                                 <div className="flex items-center gap-2">
@@ -1033,7 +1129,7 @@ function extractIdFromScannedText(rawText: string): string {
                                         <p className="text-xs text-text-muted m-0">Bir nechta kitobni bir vaqtning o'zida topshirish</p>
                                     </div>
                                 </div>
-                                <button className="p-1.5 rounded-lg text-text-muted hover:bg-surface-hover hover:text-rose-400 transition-colors" onClick={() => { setAssignModalOpen(false); setBookSearch(''); setSearchResults([]); setSelectedBooks([]); setDueDate(''); setAssignNotes(''); }}>
+                                <button className="p-1.5 rounded-lg text-text-muted hover:bg-surface-hover hover:text-rose-400 transition-colors" onClick={closeAssignModal}>
                                     <X size={20} />
                                 </button>
                             </div>
@@ -1437,7 +1533,7 @@ function extractIdFromScannedText(rawText: string): string {
                                     <button
                                         type="button"
                                         className="px-5 py-2.5 rounded-xl text-sm font-semibold text-text bg-transparent hover:bg-surface-hover transition-colors"
-                                        onClick={() => { setAssignModalOpen(false); setBookSearch(''); setSearchResults([]); setSelectedBooks([]); setDueDate(''); setAssignNotes(''); }}
+                                        onClick={closeAssignModal}
                                     >
                                         Bekor qilish
                                     </button>
@@ -1474,14 +1570,14 @@ function extractIdFromScannedText(rawText: string): string {
                ═══════════════════════════════════════ */}
             {
                 returnModalOpen && createPortal(
-                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-1000 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => { setReturnModalOpen(false); setSelectedRentalIds([]); setReturnNotes(''); }}>
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-1000 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={closeReturnModal}>
                         <div className="bg-surface border border-border rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
                             <div className="flex items-center justify-between p-5 border-b border-border bg-surface-hover/40">
                                 <h3 className="flex items-center gap-2 text-lg font-bold text-text m-0">
                                     <RotateCcw size={20} className="text-primary-light" />
                                     Kitoblarni qabul qilish (qaytarish)
                                 </h3>
-                                <button className="p-1.5 rounded-lg text-text-muted hover:bg-surface-hover hover:text-rose-400 transition-colors" onClick={() => { setReturnModalOpen(false); setSelectedRentalIds([]); setReturnNotes(''); }}>
+                                <button className="p-1.5 rounded-lg text-text-muted hover:bg-surface-hover hover:text-rose-400 transition-colors" onClick={closeReturnModal}>
                                     <X size={20} />
                                 </button>
                             </div>
@@ -1555,7 +1651,7 @@ function extractIdFromScannedText(rawText: string): string {
                                 <button
                                     type="button"
                                     className="px-5 py-2.5 rounded-xl text-sm font-semibold text-text bg-transparent hover:bg-surface-hover transition-colors"
-                                    onClick={() => { setReturnModalOpen(false); setSelectedRentalIds([]); setReturnNotes(''); }}
+                                    onClick={closeReturnModal}
                                 >
                                     Bekor qilish
                                 </button>
