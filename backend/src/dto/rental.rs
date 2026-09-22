@@ -88,6 +88,7 @@ pub struct RentalResponse {
     pub status: String,
     pub invoice_number: Option<String>, // Kitobning fizik nusxasiga berilgan unikal invois raqami
     pub notes: Option<String>,
+    pub issued_by_user_id: Option<String>,
     // Kitob ma'lumotlari
     pub book_title: Option<String>,
     pub book_author: Option<String>,

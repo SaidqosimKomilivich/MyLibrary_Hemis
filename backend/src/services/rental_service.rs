@@ -15,6 +15,7 @@ impl RentalService {
     pub async fn create_rental(
         pool: &PgPool,
         req: CreateRentalRequest,
+        issued_by_user_id: Option<&str>,
     ) -> Result<serde_json::Value, AppError> {
         // due_date ni parse qilish
         let due_date =
@@ -31,22 +32,65 @@ impl RentalService {
         }
 
         // Invois raqami bo'sh emasligini tekshirish
-        if req.invoice_number.trim().is_empty() {
+        let inv_trim = req.invoice_number.trim();
+        if inv_trim.is_empty() {
             return Err(AppError::BadRequest(
                 "Invois raqami kiritilishi shart".to_string(),
             ));
         }
 
-        // Agar user_id UUID sifatida yuborilgan bo'lsa (eski qoldiq), uni HEMIS user_id ga aylantiramiz
-        let final_user_id = if let Ok(uuid_val) = uuid::Uuid::parse_str(&req.user_id) {
-            if let Some(u) = crate::repository::user_repository::UserRepository::find_by_id_any(pool, uuid_val).await? {
-                u.user_id
-            } else {
-                req.user_id.clone()
-            }
+        // 2-QOIDA: Foydalanuvchi mavjudligini tekshirish
+        let user = if let Ok(uuid_val) = uuid::Uuid::parse_str(&req.user_id) {
+            crate::repository::user_repository::UserRepository::find_by_id_any(pool, uuid_val).await?
         } else {
-            req.user_id.clone()
+            crate::repository::user_repository::UserRepository::find_by_user_id_any(pool, &req.user_id).await?
         };
+
+        let user = user.ok_or_else(|| {
+            AppError::NotFound(format!("Foydalanuvchi topilmadi (ID: {})", req.user_id))
+        })?;
+        let final_user_id = user.user_id;
+
+        // 4-QOIDA: Qarzdorlik (muddati o'tgan kitoblar) tekshiruvi
+        let overdue_count: (i64,) = sqlx::query_as(
+            r#"SELECT COUNT(*) FROM "book_rentals"
+               WHERE "user_id" = $1 AND ("status" = 'overdue' OR ("status" = 'active' AND "due_date" < CURRENT_DATE))"#
+        )
+        .bind(&final_user_id)
+        .fetch_one(pool)
+        .await?;
+
+        if overdue_count.0 > 0 {
+            return Err(AppError::BadRequest(format!(
+                "Foydalanuvchida {} ta qaytarilmagan muddati o'tgan kitob mavjud. Avval muddati o'tgan kitoblarni topshirish kerak!",
+                overdue_count.0
+            )));
+        }
+
+        // 5-QOIDA: Kitob olish limiti (Maksimum 10 ta)
+        let current_active_count: (i64,) = sqlx::query_as(
+            r#"SELECT COUNT(*) FROM "book_rentals"
+               WHERE "user_id" = $1 AND "status" = 'active'"#
+        )
+        .bind(&final_user_id)
+        .fetch_one(pool)
+        .await?;
+
+        let max_limit: i64 = 10;
+        if current_active_count.0 >= max_limit {
+            return Err(AppError::BadRequest(format!(
+                "Kitob olish limiti cheklangan (maksimum {} ta). Foydalanuvchida hozirda {} ta faol kitob bor, yangi kitob berish mumkin emas!",
+                max_limit, current_active_count.0
+            )));
+        }
+
+        // 1-QOIDA: Invois raqami ayni paytda faol ijarada bormi?
+        if RentalRepository::is_invoice_active(pool, inv_trim).await? {
+            return Err(AppError::BadRequest(format!(
+                "\"{}\" invois raqamli kitob ayni paytda faol ijarada mavjud (hali qaytarilmagan)",
+                inv_trim
+            )));
+        }
 
         // Dublikat tekshirish: foydalanuvchida bu kitob allaqachon aktiv ijarada bormi?
         if RentalRepository::find_active_by_user_and_book(pool, &final_user_id, &req.book_id).await? {
@@ -63,14 +107,15 @@ impl RentalService {
             ));
         }
 
-        // Ijara yaratish
+        // 3-QOIDA: Ijara yaratish (mas'ul xodim ID si bilan)
         let id = RentalRepository::create(
             pool,
             &final_user_id,
             &req.book_id,
             due_date,
-            &req.invoice_number,
+            inv_trim,
             req.notes.as_deref(),
+            issued_by_user_id,
         )
         .await?;
 
@@ -78,6 +123,7 @@ impl RentalService {
             rental_id = %id,
             user_id = %final_user_id,
             book_id = %req.book_id,
+            issued_by = ?issued_by_user_id,
             "Kitob topshirildi"
         );
 
@@ -92,21 +138,75 @@ impl RentalService {
     pub async fn create_rental_batch(
         pool: &PgPool,
         req: CreateRentalBatchRequest,
+        issued_by_user_id: Option<&str>,
     ) -> Result<serde_json::Value, AppError> {
         if req.items.is_empty() {
             return Err(AppError::BadRequest("Hech qanday kitob tanlanmagan".to_string()));
         }
 
-        // Agar user_id UUID sifatida yuborilgan bo'lsa (eski qoldiq), uni HEMIS user_id ga aylantiramiz
-        let final_user_id = if let Ok(uuid_val) = uuid::Uuid::parse_str(&req.user_id) {
-            if let Some(u) = crate::repository::user_repository::UserRepository::find_by_id_any(pool, uuid_val).await? {
-                u.user_id
-            } else {
-                req.user_id.clone()
-            }
+        // 2-QOIDA: Foydalanuvchi mavjudligini tekshirish
+        let user = if let Ok(uuid_val) = uuid::Uuid::parse_str(&req.user_id) {
+            crate::repository::user_repository::UserRepository::find_by_id_any(pool, uuid_val).await?
         } else {
-            req.user_id.clone()
+            crate::repository::user_repository::UserRepository::find_by_user_id_any(pool, &req.user_id).await?
         };
+
+        let user = user.ok_or_else(|| {
+            AppError::NotFound(format!("Foydalanuvchi topilmadi (ID: {})", req.user_id))
+        })?;
+        let final_user_id = user.user_id;
+
+        // 4-QOIDA: Qarzdorlik (muddati o'tgan kitoblar) tekshiruvi
+        let overdue_count: (i64,) = sqlx::query_as(
+            r#"SELECT COUNT(*) FROM "book_rentals"
+               WHERE "user_id" = $1 AND ("status" = 'overdue' OR ("status" = 'active' AND "due_date" < CURRENT_DATE))"#
+        )
+        .bind(&final_user_id)
+        .fetch_one(pool)
+        .await?;
+
+        if overdue_count.0 > 0 {
+            return Err(AppError::BadRequest(format!(
+                "Foydalanuvchida {} ta qaytarilmagan muddati o'tgan kitob mavjud. Avval muddati o'tgan kitoblarni topshirish kerak!",
+                overdue_count.0
+            )));
+        }
+
+        // 5-QOIDA: Kitob olish limiti (Maksimum 10 ta)
+        let current_active_count: (i64,) = sqlx::query_as(
+            r#"SELECT COUNT(*) FROM "book_rentals"
+               WHERE "user_id" = $1 AND "status" = 'active'"#
+        )
+        .bind(&final_user_id)
+        .fetch_one(pool)
+        .await?;
+
+        let max_limit: i64 = 10;
+        let new_books_count = req.items.len() as i64;
+        if current_active_count.0 + new_books_count > max_limit {
+            let available_slots = (max_limit - current_active_count.0).max(0);
+            return Err(AppError::BadRequest(format!(
+                "Kitob olish limiti cheklangan (maksimum {} ta). Foydalanuvchida hozirda {} ta faol kitob bor. Yana ko'pi bilan {} ta kitob berish mumkin!",
+                max_limit, current_active_count.0, available_slots
+            )));
+        }
+
+        // 1-QOIDA (a): Batch so'rovi ichida dublikat invois raqamlarini tekshirish
+        let mut seen_invoices = std::collections::HashSet::new();
+        for item in &req.items {
+            let inv = item.invoice_number.trim();
+            if inv.is_empty() {
+                return Err(AppError::BadRequest(
+                    "Har bir kitob uchun invois raqami kiritilishi shart".to_string(),
+                ));
+            }
+            if !seen_invoices.insert(inv.to_lowercase()) {
+                return Err(AppError::BadRequest(format!(
+                    "Tanlangan kitoblar ro'yxatida bir xil invois raqami takrorlangan: \"{}\"",
+                    inv
+                )));
+            }
+        }
 
         let today = chrono::Local::now().naive_local().date();
         let default_due_str = req.due_date.as_deref();
@@ -129,11 +229,7 @@ impl RentalService {
                 ));
             }
 
-            if item.invoice_number.trim().is_empty() {
-                return Err(AppError::BadRequest(
-                    "Har bir kitob uchun invois raqami kiritilishi shart".to_string(),
-                ));
-            }
+            let inv_trim = item.invoice_number.trim();
 
             // Kitob nomini olish
             let book_title_opt: Option<(String,)> = sqlx::query_as(
@@ -144,6 +240,22 @@ impl RentalService {
             .await?;
 
             let book_display = book_title_opt.map(|(t,)| format!("\"{}\"", t)).unwrap_or_else(|| format!("ID {}", item.book_id));
+
+            // 1-QOIDA (b): Ushbu invois raqami hozirda boshqa foydalanuvchida faol ijarada bormi?
+            let inv_active_count: (i64,) = sqlx::query_as(
+                r#"SELECT COUNT(*) FROM "book_rentals"
+                   WHERE LOWER("invoice_number") = LOWER($1) AND "status" = 'active'"#
+            )
+            .bind(inv_trim)
+            .fetch_one(&mut *tx)
+            .await?;
+
+            if inv_active_count.0 > 0 {
+                return Err(AppError::BadRequest(format!(
+                    "\"{}\" invois raqamli kitob ayni paytda boshqa ijarada faol turibdi (hali qaytarilmagan)",
+                    inv_trim
+                )));
+            }
 
             // Dublikat tekshirish: foydalanuvchida bu kitob allaqachon aktiv ijarada bormi?
             let active_count: (i64,) = sqlx::query_as(
@@ -179,18 +291,19 @@ impl RentalService {
                 )));
             }
 
-            // Ijara yaratish
+            // 3-QOIDA: Ijara yaratish (mas'ul xodim ID si bilan)
             let notes_to_save = item.notes.as_deref().or(req.notes.as_deref());
             let row: (Uuid,) = sqlx::query_as(
-                r#"INSERT INTO "book_rentals" ("user_id", "book_id", "due_date", "invoice_number", "notes")
-                   VALUES ($1, $2, $3, $4, $5)
+                r#"INSERT INTO "book_rentals" ("user_id", "book_id", "due_date", "invoice_number", "notes", "issued_by_user_id")
+                   VALUES ($1, $2, $3, $4, $5, $6)
                    RETURNING "id""#
             )
             .bind(&final_user_id)
             .bind(&item.book_id)
             .bind(due_date)
-            .bind(item.invoice_number.trim())
+            .bind(inv_trim)
             .bind(notes_to_save)
+            .bind(issued_by_user_id)
             .fetch_one(&mut *tx)
             .await?;
 
@@ -203,6 +316,7 @@ impl RentalService {
         tracing::info!(
             user_id = %final_user_id,
             count = count,
+            issued_by = ?issued_by_user_id,
             "Bir nechta kitob topshirildi"
         );
 

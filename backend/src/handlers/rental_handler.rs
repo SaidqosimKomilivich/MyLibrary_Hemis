@@ -20,7 +20,7 @@ pub async fn create_rental(
         return Ok(resp);
     }
 
-    let response = RentalService::create_rental(pool.get_ref(), body.into_inner()).await?;
+    let response = RentalService::create_rental(pool.get_ref(), body.into_inner(), Some(&claims.sub)).await?;
     Ok(HttpResponse::Created().json(response))
 }
 
@@ -34,7 +34,7 @@ pub async fn create_rental_batch(
         return Ok(resp);
     }
 
-    let response = RentalService::create_rental_batch(pool.get_ref(), body.into_inner()).await?;
+    let response = RentalService::create_rental_batch(pool.get_ref(), body.into_inner(), Some(&claims.sub)).await?;
     Ok(HttpResponse::Created().json(response))
 }
 

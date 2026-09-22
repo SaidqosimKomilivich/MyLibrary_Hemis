@@ -17,6 +17,7 @@ pub struct RentalWithDetails {
     pub status: crate::models::rental::RentalStatus,
     pub invoice_number: Option<String>,
     pub notes: Option<String>,
+    pub issued_by_user_id: Option<String>,
     // Kitob ma'lumotlari
     pub book_title: Option<String>,
     pub book_author: Option<String>,
@@ -43,6 +44,7 @@ impl RentalWithDetails {
             status: self.status.to_string(),
             invoice_number: self.invoice_number,
             notes: self.notes,
+            issued_by_user_id: self.issued_by_user_id,
             book_title: self.book_title,
             book_author: self.book_author,
             book_cover: self.book_cover,
@@ -76,10 +78,11 @@ impl RentalRepository {
         due_date: NaiveDate,
         invoice_number: &str,
         notes: Option<&str>,
+        issued_by_user_id: Option<&str>,
     ) -> Result<Uuid, AppError> {
         let row: (Uuid,) = sqlx::query_as(
-            r#"INSERT INTO "book_rentals" ("user_id", "book_id", "due_date", "invoice_number", "notes")
-               VALUES ($1, $2, $3, $4, $5)
+            r#"INSERT INTO "book_rentals" ("user_id", "book_id", "due_date", "invoice_number", "notes", "issued_by_user_id")
+               VALUES ($1, $2, $3, $4, $5, $6)
                RETURNING "id""#,
         )
         .bind(user_id)
@@ -87,6 +90,7 @@ impl RentalRepository {
         .bind(due_date)
         .bind(invoice_number)
         .bind(notes)
+        .bind(issued_by_user_id)
         .fetch_one(pool)
         .await?;
 
@@ -132,6 +136,22 @@ impl RentalRepository {
         Ok(row.0 > 0)
     }
 
+    /// Ushbu invois raqami faol ijarada mavjudligini tekshirish
+    pub async fn is_invoice_active(
+        pool: &PgPool,
+        invoice_number: &str,
+    ) -> Result<bool, AppError> {
+        let count: (i64,) = sqlx::query_as(
+            r#"SELECT COUNT(*) FROM "book_rentals"
+               WHERE LOWER("invoice_number") = LOWER($1) AND "status" = 'active'"#,
+        )
+        .bind(invoice_number.trim())
+        .fetch_one(pool)
+        .await?;
+
+        Ok(count.0 > 0)
+    }
+
     /// Bitta ijarani topish (kitob va foydalanuvchi bilan)
     pub async fn find_by_id(
         pool: &PgPool,
@@ -142,6 +162,7 @@ impl RentalRepository {
                 r."id", r."user_id", r."book_id",
                 r."loan_date", r."due_date", r."return_date",
                 r."status", r."invoice_number", r."notes",
+                r."issued_by_user_id",
                 b."title" as book_title,
                 b."author" as book_author,
                 b."cover_image_url" as book_cover,
@@ -175,6 +196,7 @@ impl RentalRepository {
                 r."id", r."user_id", r."book_id",
                 r."loan_date", r."due_date", r."return_date",
                 r."status", r."invoice_number", r."notes",
+                r."issued_by_user_id",
                 b."title" as book_title,
                 b."author" as book_author,
                 b."cover_image_url" as book_cover,

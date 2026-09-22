@@ -8,33 +8,41 @@ import React from 'react'
  */
 export function highlightText(text: string | undefined | null, query: string): React.ReactNode {
     if (!text) return text ?? ''
-    if (!query.trim()) return text
+    const q = query.trim()
+    if (!q) return text
 
-    const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    const regex = new RegExp(`(${escaped})`, 'gi')
-    const parts = text.split(regex)
+    try {
+        const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        const regex = new RegExp(`(${escaped})`, 'gi')
+        const parts = text.split(regex)
 
-    if (parts.length <= 1) return text
+        if (parts.length <= 1) return text
 
-    return (
-        <>
-            {parts.map((part, i) =>
-                regex.test(part) ? (
-                    <mark
-                        key={i}
-                        style={{
-                            background: 'rgba(255, 220, 0, 0.75)',
-                            color: '#000',
-                            borderRadius: '2px',
-                            padding: '0 2px',
-                        }}
-                    >
-                        {part}
-                    </mark>
-                ) : (
-                    part
-                )
-            )}
-        </>
-    )
+        const qLower = q.toLowerCase()
+
+        return (
+            <>
+                {parts.map((part, i) => {
+                    const isMatch = part.toLowerCase() === qLower
+                    return isMatch ? (
+                        <mark
+                            key={i}
+                            style={{
+                                background: 'rgba(255, 220, 0, 0.75)',
+                                color: '#000',
+                                borderRadius: '2px',
+                                padding: '0 2px',
+                            }}
+                        >
+                            {part}
+                        </mark>
+                    ) : (
+                        part
+                    )
+                })}
+            </>
+        )
+    } catch {
+        return text
+    }
 }

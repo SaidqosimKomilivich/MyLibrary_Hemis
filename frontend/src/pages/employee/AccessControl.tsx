@@ -55,6 +55,16 @@ function formatPublicationYear(book: Book): string | null {
     return str.endsWith('yil') ? str : `${str}-yil`
 }
 
+interface SelectedBookItem {
+    book: Book
+    invoiceNumber: string
+    dueDate?: string
+    notes?: string
+    showCustomSettings?: boolean
+}
+
+const MAX_RENTAL_LIMIT = 10
+
 export default function AccessControl() {
     // ──── Scanner state ────
     const [scanInput, setScanInput] = useState('')
@@ -66,16 +76,11 @@ export default function AccessControl() {
     const [activeRentals, setActiveRentals] = useState<Rental[]>([])
     const [rentalsLoading, setRentalsLoading] = useState(false)
 
-interface SelectedBookItem {
-    book: Book
-    invoiceNumber: string
-    notes?: string
-}
-
     // ──── Book assignment (ko'p kitob topshirish) ────
     const [assignModalOpen, setAssignModalOpen] = useState(false)
     const [bookSearch, setBookSearch] = useState('')
     const [searchResults, setSearchResults] = useState<Book[]>([])
+    const [isSearchingBooks, setIsSearchingBooks] = useState(false)
 
     // Qidiruv maydoni bo'shatilganda natijalarni ham tozalash
     useEffect(() => {
@@ -167,13 +172,30 @@ function extractIdFromScannedText(rawText: string): string {
     const [, setScannerActive] = useState(false);
     const isScanningRef = useRef(false);
 
+    // Kamerani to'xtatish (pauza / to'liq resurslarni bo'shatish)
+    const stopScanner = useCallback(async () => {
+        const scanner = scannerRef.current;
+        scannerRef.current = null;
+        setScannerActive(false);
+        if (scanner) {
+            try {
+                if (scanner.isScanning) {
+                    await scanner.stop();
+                }
+                scanner.clear();
+            } catch (e) {
+                console.warn("Skanerni to'xtatishda ogohlantirish:", e);
+            }
+        }
+    }, []);
+
     // Kamerani ishga tushirish
     const startScanner = useCallback(() => {
-        if (!selectedDeviceId || !permissionGranted) return;
+        if (!selectedDeviceId || !permissionGranted || assignModalOpen) return;
         if (scannerRef.current?.isScanning) return; // allaqachon ishlayapti
 
         setTimeout(() => {
-            // Faqat QR-kod formati (tez va aniq o'qish uchun)
+            if (scannerRef.current?.isScanning) return;
             const formatsToSupport = [
                 Html5QrcodeSupportedFormats.QR_CODE,
             ];
@@ -207,23 +229,9 @@ function extractIdFromScannedText(rawText: string): string {
             }).catch(err => {
                 console.error("Kamerani yoqishda xatolik:", err);
             });
-        }, 200);
+        }, 150);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedDeviceId, permissionGranted]);
-
-    // Kamerani to'xtatish (pauza)
-    const stopScanner = useCallback(async () => {
-        if (scannerRef.current?.isScanning) {
-            try {
-                await scannerRef.current.stop();
-                scannerRef.current.clear();
-            } catch (e) {
-                console.error("Skanerni to'xtatishda xatolik:", e);
-            }
-        }
-        scannerRef.current = null;
-        setScannerActive(false);
-    }, []);
+    }, [selectedDeviceId, permissionGranted, assignModalOpen]);
 
     // 2. Kamera tanlanganda avtomatik ishga tushirish
     useEffect(() => {
@@ -367,18 +375,51 @@ function extractIdFromScannedText(rawText: string): string {
         }
     }
 
+    // ──── Rental qoidalari va hisoblashlar ────
+    const availableSlots = useMemo(() => {
+        return Math.max(0, MAX_RENTAL_LIMIT - activeRentals.length)
+    }, [activeRentals])
+
+    const hasOverdueRentals = useMemo(() => {
+        return activeRentals.some(r => getDeadlineInfo(r.due_date).color === 'danger')
+    }, [activeRentals])
+
+    const duplicateInvoices = useMemo(() => {
+        const counts: Record<string, number> = {}
+        selectedBooks.forEach(b => {
+            const inv = b.invoiceNumber.trim().toLowerCase()
+            if (inv) counts[inv] = (counts[inv] || 0) + 1
+        })
+        return new Set(Object.keys(counts).filter(k => counts[k] > 1))
+    }, [selectedBooks])
+
     // ──── Book assignment (ko'p kitob topshirish) ────
     const handleSearchBooks = async () => {
-        if (!bookSearch.trim()) return
+        const query = bookSearch.trim()
+        if (!query || isSearchingBooks) return
+        setIsSearchingBooks(true)
         try {
-            const res = await api.getBooks({ search: bookSearch })
-            setSearchResults(res.data)
-        } catch {
-            toast.error("Kitoblarni qidirishda xatolik")
+            const res = await api.getBooks({ search: query, limit: 30 })
+            setSearchResults(res.data || [])
+            if (!res.data || res.data.length === 0) {
+                toast.info("Kitob topilmadi")
+            }
+        } catch (err: any) {
+            toast.error(err?.message || "Kitoblarni qidirishda xatolik")
+        } finally {
+            setIsSearchingBooks(false)
         }
     }
 
     const handleAddBookToAssign = (book: Book) => {
+        if (hasOverdueRentals) {
+            toast.error("Foydalanuvchida muddati o'tgan kitob(lar) mavjud! Avval ularni topshirish kerak.")
+            return
+        }
+        if (selectedBooks.length >= availableSlots) {
+            toast.warning(`Kitob olish limiti cheklangan (maksimum ${MAX_RENTAL_LIMIT} ta). Qo'shimcha kitob qo'shib bo'lmaydi!`)
+            return
+        }
         if (selectedBooks.some(item => item.book.id === book.id)) {
             toast.info(`"${book.title}" allaqachon ro'yxatga qo'shilgan`)
             return
@@ -387,7 +428,7 @@ function extractIdFromScannedText(rawText: string): string {
             toast.warning(`"${book.title}" omborda qolmagan`)
             return
         }
-        setSelectedBooks(prev => [...prev, { book, invoiceNumber: '', notes: '' }])
+        setSelectedBooks(prev => [...prev, { book, invoiceNumber: '', dueDate: '', notes: '', showCustomSettings: false }])
         toast.success(`"${book.title}" ro'yxatga qo'shildi`)
     }
 
@@ -399,18 +440,44 @@ function extractIdFromScannedText(rawText: string): string {
         setSelectedBooks(prev => prev.map(item => item.book.id === bookId ? { ...item, invoiceNumber: invoice } : item))
     }
 
+    const handleUpdateBookDueDate = (bookId: string, customDueDate: string) => {
+        setSelectedBooks(prev => prev.map(item => item.book.id === bookId ? { ...item, dueDate: customDueDate } : item))
+    }
+
+    const handleUpdateBookNotes = (bookId: string, customNotes: string) => {
+        setSelectedBooks(prev => prev.map(item => item.book.id === bookId ? { ...item, notes: customNotes } : item))
+    }
+
+    const handleToggleBookCustomSettings = (bookId: string) => {
+        setSelectedBooks(prev => prev.map(item => item.book.id === bookId ? { ...item, showCustomSettings: !item.showCustomSettings } : item))
+    }
+
     const handleAssignBooks = async () => {
         if (!scannedUser) {
             toast.warning("Foydalanuvchi aniqlanmagan")
+            return
+        }
+        if (hasOverdueRentals) {
+            toast.error("Foydalanuvchida muddati o'tgan kitob(lar) mavjud! Avval qarzdorlikni bartaraf etish kerak.")
             return
         }
         if (selectedBooks.length === 0) {
             toast.warning("Kamida bitta kitob tanlang")
             return
         }
+        if (selectedBooks.length > availableSlots) {
+            toast.warning(`Kitob olish limiti cheklangan (maksimum ${MAX_RENTAL_LIMIT} ta). Siz ko'pi bilan ${availableSlots} ta kitob berishingiz mumkin.`)
+            return
+        }
+
         const missingInvoice = selectedBooks.find(b => !b.invoiceNumber.trim())
         if (missingInvoice) {
             toast.warning(`"${missingInvoice.book.title}" kitobi uchun invois raqamini kiriting`)
+            return
+        }
+
+        if (duplicateInvoices.size > 0) {
+            toast.warning("Tanlangan kitoblar ro'yxatida bir xil invois raqami takrorlangan! Har bir kitob invois raqami unikal bo'lishi shart.")
             return
         }
 
@@ -429,6 +496,7 @@ function extractIdFromScannedText(rawText: string): string {
                 items: selectedBooks.map(item => ({
                     book_id: item.book.id,
                     invoice_number: item.invoiceNumber.trim(),
+                    due_date: item.dueDate || undefined,
                     notes: item.notes?.trim() || undefined,
                 })),
             })
@@ -439,7 +507,7 @@ function extractIdFromScannedText(rawText: string): string {
             setSearchResults([])
             setDueDate('')
             setAssignNotes('')
-            loadUserRentals(scannedUser.user_id)
+            await loadUserRentals(scannedUser.user_id)
         } catch (error: any) {
             toast.error(error.message || "Kitoblarni topshirishda xatolik yuz berdi")
         } finally {
@@ -712,6 +780,7 @@ function extractIdFromScannedText(rawText: string): string {
                                 <button
                                     className="col-span-2 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white border border-transparent rounded-lg text-sm font-semibold hover:bg-primary-hover transition-colors"
                                     onClick={() => {
+                                        stopScanner()
                                         setDueDate(getDefaultDueDate(15))
                                         setAssignModalOpen(true)
                                     }}
@@ -970,25 +1039,49 @@ function extractIdFromScannedText(rawText: string): string {
                             </div>
 
                             <div className="p-5 flex flex-col gap-5 overflow-y-auto custom-scrollbar">
-                                {/* Foydalanuvchi ma'lumotlari */}
-                                <div className="flex items-center justify-between gap-3 text-sm text-text bg-surface-hover/50 p-3.5 rounded-xl border border-border">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary-light font-bold text-sm uppercase">
-                                            {scannedUser?.full_name ? scannedUser.full_name.charAt(0) : '?'}
+                                {/* Foydalanuvchi ma'lumotlari & Limit indikatori */}
+                                <div className="flex flex-col gap-2.5 bg-surface-hover/50 p-4 rounded-xl border border-border">
+                                    <div className="flex items-center justify-between gap-3 text-sm text-text">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary-light font-bold text-sm uppercase">
+                                                {scannedUser?.full_name ? scannedUser.full_name.charAt(0) : '?'}
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className="font-bold text-text">{scannedUser?.full_name}</span>
+                                                <span className="text-[11px] text-text-muted">
+                                                    ID: <span className="font-mono font-medium text-text">{scannedUser?.user_id}</span> • {roleLabels[scannedUser?.role || ''] || scannedUser?.role}
+                                                </span>
+                                            </div>
                                         </div>
-                                        <div className="flex flex-col">
-                                            <span className="font-bold text-text">{scannedUser?.full_name}</span>
-                                            <span className="text-[11px] text-text-muted">
-                                                ID: <span className="font-mono font-medium text-text">{scannedUser?.user_id}</span> • {roleLabels[scannedUser?.role || ''] || scannedUser?.role}
+                                        {scannedUser?.group_name && (
+                                            <span className="text-xs bg-surface border border-border px-2.5 py-1 rounded-lg text-text-muted font-medium">
+                                                {scannedUser.group_name}
                                             </span>
+                                        )}
+                                    </div>
+
+                                    {/* 5-QOIDA: Limit statusi */}
+                                    <div className="flex items-center justify-between pt-2 border-t border-border/60 text-xs">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-text-muted">Kitob olish limiti:</span>
+                                            <span className="font-bold text-text">Maksimum {MAX_RENTAL_LIMIT} ta</span>
+                                            <span className="text-text-muted">• Hozirda ijarada: <strong className={activeRentals.length >= MAX_RENTAL_LIMIT ? 'text-rose-400' : 'text-primary-light'}>{activeRentals.length} ta</strong></span>
+                                        </div>
+                                        <span className={`px-2 py-0.5 rounded-md font-semibold ${availableSlots > 0 ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/15 text-rose-400 border border-rose-500/20'}`}>
+                                            {availableSlots > 0 ? `Yana ${availableSlots} ta olish mumkin` : 'Limit to\'lgan (0 ta)'}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* 4-QOIDA: Qarzdorlik (Muddati o'tgan kitoblar) ogohlantirishi */}
+                                {hasOverdueRentals && (
+                                    <div className="bg-rose-500/15 border border-rose-500/30 text-rose-400 p-3.5 rounded-xl flex items-center gap-3 text-xs sm:text-sm font-medium animate-pulse">
+                                        <AlertTriangle size={22} className="shrink-0 text-rose-400" />
+                                        <div>
+                                            <strong>Diqqat: Qarzdorlik mavjud!</strong> Ushbu foydalanuvchida qaytarish muddati o'tib ketgan kitob(lar) bor. Tizim qoidalariga ko'ra yangi kitob berishdan avval muddati o'tgan kitoblarni qaytarish shart!
                                         </div>
                                     </div>
-                                    {scannedUser?.group_name && (
-                                        <span className="text-xs bg-surface border border-border px-2.5 py-1 rounded-lg text-text-muted font-medium">
-                                            {scannedUser.group_name}
-                                        </span>
-                                    )}
-                                </div>
+                                )}
 
                                 {/* Umumiy sozlamalar (Sana + Izoh) */}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-surface-hover/20 p-4 rounded-xl border border-border">
@@ -1055,9 +1148,14 @@ function extractIdFromScannedText(rawText: string): string {
 
                                 {/* Kitob qidirish */}
                                 <div className="flex flex-col gap-2">
-                                    <label className="text-[0.8rem] font-semibold text-text-muted uppercase tracking-wider">
-                                        Kitob qidirish va ro'yxatga qo'shish
-                                    </label>
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-[0.8rem] font-semibold text-text-muted uppercase tracking-wider">
+                                            Kitob qidirish va ro'yxatga qo'shish
+                                        </label>
+                                        <span className="text-xs text-text-muted">
+                                            Tanlandi: <strong className={selectedBooks.length > availableSlots ? 'text-rose-400 font-bold' : 'text-text'}>{selectedBooks.length} / {availableSlots} ta</strong>
+                                        </span>
+                                    </div>
                                     <div className="flex gap-2">
                                         <div className="relative flex-1">
                                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
@@ -1067,8 +1165,9 @@ function extractIdFromScannedText(rawText: string): string {
                                                 value={bookSearch}
                                                 onChange={e => setBookSearch(e.target.value)}
                                                 onKeyDown={e => e.key === 'Enter' && handleSearchBooks()}
+                                                disabled={hasOverdueRentals || availableSlots <= 0 || isSearchingBooks}
                                             />
-                                            {bookSearch && (
+                                            {bookSearch && !isSearchingBooks && (
                                                 <button
                                                     type="button"
                                                     className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text"
@@ -1080,10 +1179,12 @@ function extractIdFromScannedText(rawText: string): string {
                                         </div>
                                         <button
                                             type="button"
-                                            className="flex items-center justify-center px-4 rounded-xl bg-primary text-white hover:bg-primary-hover shadow-md shadow-primary/20 transition-all font-medium text-sm"
+                                            className="flex items-center justify-center gap-1.5 px-4 rounded-xl bg-primary text-white hover:bg-primary-hover shadow-md shadow-primary/20 transition-all font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                                             onClick={handleSearchBooks}
+                                            disabled={hasOverdueRentals || availableSlots <= 0 || isSearchingBooks}
                                         >
-                                            Qidirish
+                                            {isSearchingBooks ? <Loader2 size={16} className="animate-spin" /> : null}
+                                            {isSearchingBooks ? "Qidirilmoqda..." : "Qidirish"}
                                         </button>
                                     </div>
 
@@ -1139,7 +1240,8 @@ function extractIdFromScannedText(rawText: string): string {
                                                             ) : isAvailable ? (
                                                                 <button
                                                                     type="button"
-                                                                    className="inline-flex items-center gap-1 text-xs bg-primary text-white hover:bg-primary-hover px-2.5 py-1 rounded-md font-semibold transition-colors"
+                                                                    className="inline-flex items-center gap-1 text-xs bg-primary text-white hover:bg-primary-hover px-2.5 py-1 rounded-md font-semibold transition-colors disabled:opacity-50"
+                                                                    disabled={selectedBooks.length >= availableSlots || hasOverdueRentals}
                                                                     onClick={(e) => {
                                                                         e.stopPropagation()
                                                                         handleAddBookToAssign(book)
@@ -1163,8 +1265,8 @@ function extractIdFromScannedText(rawText: string): string {
                                             <span className="text-[0.8rem] font-bold text-text uppercase tracking-wider">
                                                 Biriktirilayotgan kitoblar ro'yxati
                                             </span>
-                                            <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-primary/20 text-primary-light border border-primary/30">
-                                                {selectedBooks.length} ta
+                                            <span className={`px-2 py-0.5 text-xs font-bold rounded-full border ${selectedBooks.length > availableSlots ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' : 'bg-primary/20 text-primary-light border-primary/30'}`}>
+                                                {selectedBooks.length} ta {selectedBooks.length > availableSlots ? `(limitdan ${selectedBooks.length - availableSlots} ta ko'p!)` : ''}
                                             </span>
                                         </div>
                                         {selectedBooks.length > 0 && (
@@ -1183,76 +1285,154 @@ function extractIdFromScannedText(rawText: string): string {
                                             <BookOpen size={36} className="opacity-30 text-primary-light mb-1" />
                                             <p className="text-sm font-semibold text-text m-0">Hali kitob tanlanmadi</p>
                                             <p className="text-xs text-text-muted m-0 max-w-md">
-                                                Yuqoridagi qidiruv maydonidan kerakli kitoblarni topib, "Qo'shish" tugmasini bosing va har bir kitobning invois raqamini kiriting.
+                                                Yuqoridagi qidiruv maydonidan kerakli kitoblarni topib, "Qo'shish" tugmasini bosing va har bir kitobning unikal invois raqamini kiriting.
                                             </p>
                                         </div>
                                     ) : (
-                                        <div className="flex flex-col gap-2.5">
+                                        <div className="flex flex-col gap-3">
                                             {selectedBooks.map((item, index) => {
                                                 const pubYear = formatPublicationYear(item.book)
+                                                const isDuplicateInvoice = item.invoiceNumber.trim() && duplicateInvoices.has(item.invoiceNumber.trim().toLowerCase())
+
                                                 return (
                                                     <div
                                                         key={item.book.id}
-                                                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-surface border border-border rounded-xl shadow-xs hover:border-border/80 transition-all"
+                                                        className={`flex flex-col p-3.5 bg-surface border rounded-xl shadow-xs transition-all ${isDuplicateInvoice ? 'border-rose-500 bg-rose-500/5' : 'border-border hover:border-border/80'}`}
                                                     >
-                                                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                                                            <span className="w-6 h-6 rounded-full bg-surface-hover text-text-muted font-bold text-xs flex items-center justify-center shrink-0">
-                                                                {index + 1}
-                                                            </span>
-                                                            {item.book.cover_image_url ? (
-                                                                <img src={getFileUrl(item.book.cover_image_url)} alt="" className="w-9 h-12 object-cover rounded shadow-xs shrink-0" />
-                                                            ) : (
-                                                                <div className="w-9 h-12 bg-surface-hover rounded flex items-center justify-center text-text-muted shrink-0">
-                                                                    <BookOpen size={16} />
+                                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                                <span className="w-6 h-6 rounded-full bg-surface-hover text-text-muted font-bold text-xs flex items-center justify-center shrink-0">
+                                                                    {index + 1}
+                                                                </span>
+                                                                {item.book.cover_image_url ? (
+                                                                    <img src={getFileUrl(item.book.cover_image_url)} alt="" className="w-9 h-12 object-cover rounded shadow-xs shrink-0" />
+                                                                ) : (
+                                                                    <div className="w-9 h-12 bg-surface-hover rounded flex items-center justify-center text-text-muted shrink-0">
+                                                                        <BookOpen size={16} />
+                                                                    </div>
+                                                                )}
+                                                                <div className="flex flex-col min-w-0">
+                                                                    <span className="text-sm font-bold text-text truncate">{item.book.title}</span>
+                                                                    <div className="flex items-center gap-1.5 text-xs text-text-muted mt-0.5">
+                                                                        <span className="truncate">{item.book.author}</span>
+                                                                        {pubYear && (
+                                                                            <span className="shrink-0 inline-flex items-center gap-1 text-[11px] font-medium text-text-muted bg-surface-hover/80 border border-border px-1.5 py-0.5 rounded-md">
+                                                                                <Calendar size={11} className="text-primary-light" />
+                                                                                {pubYear}
+                                                                            </span>
+                                                                        )}
+                                                                        {item.dueDate && (
+                                                                            <span className="shrink-0 inline-flex items-center gap-1 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-md">
+                                                                                Alohida muddat: {item.dueDate}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
                                                                 </div>
-                                                            )}
-                                                            <div className="flex flex-col min-w-0">
-                                                                <span className="text-sm font-bold text-text truncate">{item.book.title}</span>
-                                                                <div className="flex items-center gap-1.5 text-xs text-text-muted mt-0.5">
-                                                                    <span className="truncate">{item.book.author}</span>
-                                                                    {pubYear && (
-                                                                        <span className="shrink-0 inline-flex items-center gap-1 text-[11px] font-medium text-text-muted bg-surface-hover/80 border border-border px-1.5 py-0.5 rounded-md">
-                                                                            <Calendar size={11} className="text-primary-light" />
-                                                                            {pubYear}
-                                                                        </span>
+                                                            </div>
+
+                                                            <div className="flex items-center gap-2 w-full sm:w-auto">
+                                                                <div className="flex flex-col flex-1 sm:w-48">
+                                                                    <div className="relative">
+                                                                        <Hash size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
+                                                                        <input
+                                                                            type="text"
+                                                                            className={`w-full bg-surface-hover/50 border pl-7 pr-2.5 py-1.5 rounded-lg text-xs font-mono text-text outline-none focus:bg-surface transition-all placeholder:font-sans placeholder:text-text-muted/60 ${isDuplicateInvoice ? 'border-rose-500 focus:border-rose-500' : 'border-border focus:border-primary'}`}
+                                                                            placeholder="Invois raqami *"
+                                                                            value={item.invoiceNumber}
+                                                                            onChange={e => handleUpdateBookInvoice(item.book.id, e.target.value)}
+                                                                        />
+                                                                    </div>
+                                                                    {isDuplicateInvoice && (
+                                                                        <span className="text-[10px] text-rose-400 mt-1 font-medium">Invois takrorlangan!</span>
                                                                     )}
                                                                 </div>
+
+                                                                {/* 8-QOIDA: Alohida sozlamalar (muddat/izoh) tugmasi */}
+                                                                <button
+                                                                    type="button"
+                                                                    className={`px-2 py-1.5 text-xs rounded-lg border transition-colors shrink-0 flex items-center gap-1 ${item.showCustomSettings || item.dueDate || item.notes ? 'bg-primary/20 text-primary-light border-primary/30 font-semibold' : 'bg-surface hover:bg-surface-hover text-text-muted border-border'}`}
+                                                                    onClick={() => handleToggleBookCustomSettings(item.book.id)}
+                                                                    title="Alohida muddat va izoh belgilash"
+                                                                >
+                                                                    <Settings2 size={13} />
+                                                                    <span className="hidden md:inline">Alohida</span>
+                                                                </button>
+
+                                                                <button
+                                                                    type="button"
+                                                                    className="p-2 text-text-muted hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors shrink-0"
+                                                                    onClick={() => handleRemoveBookFromAssign(item.book.id)}
+                                                                    title="Ro'yxatdan o'chirish"
+                                                                >
+                                                                    <Trash2 size={16} />
+                                                                </button>
                                                             </div>
                                                         </div>
 
-                                                    <div className="flex items-center gap-2 w-full sm:w-auto">
-                                                        <div className="relative flex-1 sm:w-44">
-                                                            <Hash size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
-                                                            <input
-                                                                type="text"
-                                                                className="w-full bg-surface-hover/50 border border-border pl-7 pr-2.5 py-1.5 rounded-lg text-xs font-mono text-text outline-none focus:border-primary focus:bg-surface transition-all placeholder:font-sans placeholder:text-text-muted/60"
-                                                                placeholder="Invois raqami *"
-                                                                value={item.invoiceNumber}
-                                                                onChange={e => handleUpdateBookInvoice(item.book.id, e.target.value)}
-                                                            />
-                                                        </div>
-
-                                                        <button
-                                                            type="button"
-                                                            className="p-2 text-text-muted hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors shrink-0"
-                                                            onClick={() => handleRemoveBookFromAssign(item.book.id)}
-                                                            title="Ro'yxatdan o'chirish"
-                                                        >
-                                                            <Trash2 size={16} />
-                                                        </button>
+                                                        {/* 8-QOIDA: Har bir kitob uchun kengaytirilgan alohida muddat va izoh paneli */}
+                                                        {item.showCustomSettings && (
+                                                            <div className="mt-3 pt-3 border-t border-border/60 grid grid-cols-1 sm:grid-cols-2 gap-3 bg-surface-hover/20 p-2.5 rounded-lg">
+                                                                <div className="flex flex-col gap-1">
+                                                                    <label className="text-[11px] font-semibold text-text-muted flex items-center justify-between">
+                                                                        <span>Ushbu kitob uchun alohida muddat:</span>
+                                                                        {item.dueDate && (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => handleUpdateBookDueDate(item.book.id, '')}
+                                                                                className="text-[10px] text-rose-400 hover:underline"
+                                                                            >
+                                                                                Umumiysini qo'llash
+                                                                            </button>
+                                                                        )}
+                                                                    </label>
+                                                                    <DatePicker
+                                                                        label=""
+                                                                        placeholder={dueDate || defaultDue ? `Umumiy: ${dueDate || defaultDue}` : "Alohida muddat tanlang"}
+                                                                        value={item.dueDate || ''}
+                                                                        minDate={tomorrowDate}
+                                                                        onChange={(d) => handleUpdateBookDueDate(item.book.id, d ? formatLocalDate(d) : '')}
+                                                                        presets={[
+                                                                            { label: '+10 kun', daysFromToday: 10 },
+                                                                            { label: '+15 kun', daysFromToday: 15 },
+                                                                            { label: '+30 kun', daysFromToday: 30 },
+                                                                            { label: '+90 kun (semestr)', daysFromToday: 90 },
+                                                                        ]}
+                                                                        className="w-full text-xs"
+                                                                    />
+                                                                </div>
+                                                                <div className="flex flex-col gap-1">
+                                                                    <label className="text-[11px] font-semibold text-text-muted">
+                                                                        Ushbu kitob uchun alohida izoh:
+                                                                    </label>
+                                                                    <input
+                                                                        type="text"
+                                                                        className="bg-surface border border-border px-2.5 py-1.5 rounded-lg text-xs text-text outline-none focus:border-primary transition-all placeholder:text-text-muted/60"
+                                                                        placeholder="Masalan: Holati yaxshi, 1-tom..."
+                                                                        value={item.notes || ''}
+                                                                        onChange={e => handleUpdateBookNotes(item.book.id, e.target.value)}
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
+                                                );
+                                            })}
+                                        </div>
                                     )}
                                 </div>
                             </div>
 
                             <div className="flex items-center justify-between p-5 border-t border-border bg-surface-hover/40 shrink-0">
-                                <span className="text-sm text-text-muted font-medium">
-                                    Jami: <strong className="text-text">{selectedBooks.length} ta kitob</strong>
-                                </span>
+                                <div className="flex flex-col">
+                                    <span className="text-sm text-text-muted font-medium">
+                                        Jami: <strong className={selectedBooks.length > availableSlots ? 'text-rose-400 font-bold' : 'text-text'}>{selectedBooks.length} ta kitob</strong>
+                                    </span>
+                                    {selectedBooks.length > availableSlots && (
+                                        <span className="text-xs text-rose-400 font-medium">
+                                            Limitdan {selectedBooks.length - availableSlots} ta ortiqcha tanlandi!
+                                        </span>
+                                    )}
+                                </div>
                                 <div className="flex items-center gap-3">
                                     <button
                                         type="button"
@@ -1265,7 +1445,14 @@ function extractIdFromScannedText(rawText: string): string {
                                         type="button"
                                         className="flex items-center justify-center gap-2 px-6 py-2.5 bg-primary text-white border-none rounded-xl text-sm font-bold hover:bg-primary-hover shadow-lg shadow-primary/25 hover:-translate-y-0.5 transition-all active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                                         onClick={handleAssignBooks}
-                                        disabled={selectedBooks.length === 0 || selectedBooks.some(b => !b.invoiceNumber.trim()) || assignLoading}
+                                        disabled={
+                                            selectedBooks.length === 0 ||
+                                            selectedBooks.length > availableSlots ||
+                                            hasOverdueRentals ||
+                                            duplicateInvoices.size > 0 ||
+                                            selectedBooks.some(b => !b.invoiceNumber.trim()) ||
+                                            assignLoading
+                                        }
                                     >
                                         {assignLoading ? <Loader2 size={18} className="animate-spin" /> : (
                                             <>

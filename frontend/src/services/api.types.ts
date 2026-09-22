@@ -282,6 +282,7 @@ export interface Rental {
     status: 'active' | 'returned' | 'overdue' | 'lost'
     invoice_number: string | null
     notes: string | null
+    issued_by_user_id?: string | null
     book_title: string | null
     book_author: string | null
     book_cover: string | null
