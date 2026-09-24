@@ -1,5 +1,5 @@
 use actix_files::NamedFile;
-use actix_web::{web, HttpMessage, HttpRequest, HttpResponse};
+use actix_web::{web, HttpRequest, HttpResponse};
 use serde::Deserialize;
 use sqlx::PgPool;
 
@@ -50,19 +50,11 @@ async fn require_super_admin(
 
 /// Tizim loglarini olish va filtrlash (faqat Super Admin)
 pub async fn get_logs(
-    req: HttpRequest,
+    claims: Claims,
     pool: web::Data<PgPool>,
     config: web::Data<Config>,
     query: web::Query<SystemLogQuery>,
 ) -> HttpResponse {
-    let claims = match req.extensions().get::<Claims>().cloned() {
-        Some(c) => c,
-        None => return HttpResponse::Unauthorized().json(serde_json::json!({
-            "error": true,
-            "message": "Avtorizatsiya talab qilinadi"
-        })),
-    };
-
     if let Err(resp) = require_super_admin(&claims, pool.get_ref(), config.get_ref()).await {
         return resp;
     }
@@ -78,18 +70,10 @@ pub async fn get_logs(
 
 /// Mavjud log fayllari ro'yxatini olish (faqat Super Admin)
 pub async fn get_log_files(
-    req: HttpRequest,
+    claims: Claims,
     pool: web::Data<PgPool>,
     config: web::Data<Config>,
 ) -> HttpResponse {
-    let claims = match req.extensions().get::<Claims>().cloned() {
-        Some(c) => c,
-        None => return HttpResponse::Unauthorized().json(serde_json::json!({
-            "error": true,
-            "message": "Avtorizatsiya talab qilinadi"
-        })),
-    };
-
     if let Err(resp) = require_super_admin(&claims, pool.get_ref(), config.get_ref()).await {
         return resp;
     }
@@ -106,18 +90,11 @@ pub struct DownloadLogQuery {
 /// Log faylini to'liq yuklab olish (faqat Super Admin)
 pub async fn download_log(
     req: HttpRequest,
+    claims: Claims,
     pool: web::Data<PgPool>,
     config: web::Data<Config>,
     query: web::Query<DownloadLogQuery>,
 ) -> HttpResponse {
-    let claims = match req.extensions().get::<Claims>().cloned() {
-        Some(c) => c,
-        None => return HttpResponse::Unauthorized().json(serde_json::json!({
-            "error": true,
-            "message": "Avtorizatsiya talab qilinadi"
-        })),
-    };
-
     if let Err(resp) = require_super_admin(&claims, pool.get_ref(), config.get_ref()).await {
         return resp;
     }
