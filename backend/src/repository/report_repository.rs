@@ -31,6 +31,7 @@ impl ReportRepository {
                 r."id", r."user_id", r."book_id",
                 r."loan_date", r."due_date", r."return_date",
                 r."status", r."invoice_number", r."notes",
+                r."issued_by_user_id",
                 b."title" as book_title,
                 b."author" as book_author,
                 b."cover_image_url" as book_cover,
@@ -103,6 +104,7 @@ impl ReportRepository {
                 r."id", r."user_id", r."book_id",
                 r."loan_date", r."due_date", r."return_date",
                 r."status", r."invoice_number", r."notes",
+                r."issued_by_user_id",
                 b."title" as book_title,
                 b."author" as book_author,
                 b."cover_image_url" as book_cover,
@@ -115,7 +117,7 @@ impl ReportRepository {
                 u."staff_position" as staff_position
             FROM "book_rentals" r
             LEFT JOIN "book" b ON b."id"::text = r."book_id"
-            LEFT JOIN "users" u ON u."user_id" = r."user_id"
+            LEFT JOIN "users" u ON (u."user_id" = r."user_id" OR u."id"::text = r."user_id")
             WHERE r."loan_date" >= $1 AND r."loan_date" <= $2
             ORDER BY r."loan_date" DESC"#,
         )
