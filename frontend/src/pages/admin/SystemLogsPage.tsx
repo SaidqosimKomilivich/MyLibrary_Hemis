@@ -26,6 +26,8 @@ import { toast } from 'react-toastify'
 import { useAuth } from '../../context/AuthContext'
 import { api } from '../../services/api'
 import type { SystemLogEntry, LogStats, LogFileInfo, SystemLogQuery } from '../../services/api.types'
+import { CustomSelect } from '../../components/CustomSelect'
+
 
 export default function SystemLogsPage() {
     const { user, isLoading: isAuthLoading } = useAuth()
@@ -201,16 +203,19 @@ export default function SystemLogsPage() {
                     <div className="flex items-center gap-1.5 bg-surface-hover/70 border border-border rounded-xl px-3 py-2 text-xs font-medium text-text">
                         <Clock size={15} className="text-text-muted" />
                         <span>Jonli:</span>
-                        <select
-                            value={autoRefreshSecs}
-                            onChange={(e) => setAutoRefreshSecs(Number(e.target.value))}
-                            className="bg-transparent border-none text-primary font-semibold outline-none cursor-pointer text-xs"
-                        >
-                            <option value={0}>O'chirilgan</option>
-                            <option value={5}>Har 5 sek</option>
-                            <option value={10}>Har 10 sek</option>
-                            <option value={30}>Har 30 sek</option>
-                        </select>
+                        <CustomSelect
+                            value={String(autoRefreshSecs)}
+                            onChange={(v) => setAutoRefreshSecs(Number(v))}
+                            className="w-32"
+                            buttonClassName="py-1 px-2.5 bg-surface-hover/80 border border-border rounded-lg text-xs font-medium text-text outline-none hover:border-primary/50"
+                            fitContent={false}
+                            options={[
+                                { value: '0', label: "O'chirilgan" },
+                                { value: '5', label: 'Har 5 sek' },
+                                { value: '10', label: 'Har 10 sek' },
+                                { value: '30', label: 'Har 30 sek' },
+                            ]}
+                        />
                         {autoRefreshSecs > 0 && (
                             <span className="relative flex h-2 w-2 ml-1">
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -351,20 +356,17 @@ export default function SystemLogsPage() {
                             <Calendar size={13} />
                             Fayl / Sana
                         </label>
-                        <select
+                        <CustomSelect
                             value={currentFile}
-                            onChange={(e) => {
-                                setCurrentFile(e.target.value)
-                                setPage(1)
-                            }}
-                            className="w-full bg-surface-hover/80 border border-border rounded-xl px-3 py-2 text-xs font-medium text-text outline-none focus:border-primary transition cursor-pointer"
-                        >
-                            {files.map((f) => (
-                                <option key={f.filename} value={f.filename}>
-                                    {f.date} {f.is_current ? " (Joriy kun)" : ""} - ({(f.size_bytes / 1024).toFixed(1)} KB)
-                                </option>
-                            ))}
-                        </select>
+                            onChange={(v) => { setCurrentFile(v); setPage(1) }}
+                            className="w-full"
+                            buttonClassName="w-full py-2 px-3 bg-surface-hover/80 border border-border rounded-xl text-xs font-medium text-text outline-none hover:border-primary/50"
+                            fitContent={false}
+                            options={files.map((f) => ({
+                                value: f.filename,
+                                label: `${f.date}${f.is_current ? ' (Joriy kun)' : ''} — ${(f.size_bytes / 1024).toFixed(1)} KB`,
+                            }))}
+                        />
                     </div>
 
                     {/* Log darajasi (Level) */}
@@ -373,20 +375,20 @@ export default function SystemLogsPage() {
                             <AlertCircle size={13} />
                             Daraja (Level)
                         </label>
-                        <select
+                        <CustomSelect
                             value={selectedLevel}
-                            onChange={(e) => {
-                                setSelectedLevel(e.target.value)
-                                setPage(1)
-                            }}
-                            className="w-full bg-surface-hover/80 border border-border rounded-xl px-3 py-2 text-xs font-medium text-text outline-none focus:border-primary transition cursor-pointer"
-                        >
-                            <option value="ALL">Barchasi (Hammasi)</option>
-                            <option value="ERROR">🔴 ERROR (Xatoliklar)</option>
-                            <option value="WARN">🟡 WARN (Ogohlantirishlar)</option>
-                            <option value="INFO">🟢 INFO (Axborot)</option>
-                            <option value="DEBUG">⚪ DEBUG (Tuzatish)</option>
-                        </select>
+                            onChange={(v) => { setSelectedLevel(v); setPage(1) }}
+                            className="w-full"
+                            buttonClassName="w-full py-2 px-3 bg-surface-hover/80 border border-border rounded-xl text-xs font-medium text-text outline-none hover:border-primary/50"
+                            fitContent={false}
+                            options={[
+                                { value: 'ALL', label: 'Barchasi (Hammasi)' },
+                                { value: 'ERROR', label: '🔴 ERROR (Xatoliklar)' },
+                                { value: 'WARN', label: '🟡 WARN (Ogohlantirishlar)' },
+                                { value: 'INFO', label: '🟢 INFO (Axborot)' },
+                                { value: 'DEBUG', label: '⚪ DEBUG (Tuzatish)' },
+                            ]}
+                        />
                     </div>
 
                     {/* Tizim Moduli (Module) */}
@@ -395,22 +397,22 @@ export default function SystemLogsPage() {
                             <Cpu size={13} />
                             Modul
                         </label>
-                        <select
+                        <CustomSelect
                             value={selectedModule}
-                            onChange={(e) => {
-                                setSelectedModule(e.target.value)
-                                setPage(1)
-                            }}
-                            className="w-full bg-surface-hover/80 border border-border rounded-xl px-3 py-2 text-xs font-medium text-text outline-none focus:border-primary transition cursor-pointer"
-                        >
-                            <option value="all">Barcha modullar</option>
-                            <option value="auth">🔑 Autentifikatsiya (Auth/Login)</option>
-                            <option value="http">🌐 HTTP So'rovlar (API/Middleware)</option>
-                            <option value="scheduler">⏰ Rejalashtiruvchi (Schedulers)</option>
-                            <option value="db">🗄️ Ma'lumotlar bazasi (SQLx/DB)</option>
-                            <option value="system">⚙️ Tizim (Server/Seeder)</option>
-                            <option value="other">Boshqalar</option>
-                        </select>
+                            onChange={(v) => { setSelectedModule(v); setPage(1) }}
+                            className="w-full"
+                            buttonClassName="w-full py-2 px-3 bg-surface-hover/80 border border-border rounded-xl text-xs font-medium text-text outline-none hover:border-primary/50"
+                            fitContent={false}
+                            options={[
+                                { value: 'all', label: 'Barcha modullar' },
+                                { value: 'auth', label: "🔑 Autentifikatsiya (Auth/Login)" },
+                                { value: 'http', label: "🌐 HTTP So'rovlar (API/Middleware)" },
+                                { value: 'scheduler', label: '⏰ Rejalashtiruvchi (Schedulers)' },
+                                { value: 'db', label: "🗄️ Ma'lumotlar bazasi (SQLx/DB)" },
+                                { value: 'system', label: '⚙️ Tizim (Server/Seeder)' },
+                                { value: 'other', label: 'Boshqalar' },
+                            ]}
+                        />
                     </div>
 
                     {/* HTTP Status kodi */}
@@ -419,23 +421,23 @@ export default function SystemLogsPage() {
                             <Zap size={13} />
                             HTTP Status
                         </label>
-                        <select
+                        <CustomSelect
                             value={selectedStatusCode}
-                            onChange={(e) => {
-                                setSelectedStatusCode(e.target.value)
-                                setPage(1)
-                            }}
-                            className="w-full bg-surface-hover/80 border border-border rounded-xl px-3 py-2 text-xs font-medium text-text outline-none focus:border-primary transition cursor-pointer"
-                        >
-                            <option value="all">Barcha statuslar</option>
-                            <option value="2">2xx (Muvaffaqiyatli - 200..299)</option>
-                            <option value="4">4xx (Mijoz xatosi - 400..499)</option>
-                            <option value="400">400 (Bad Request)</option>
-                            <option value="401">401 (Unauthorized)</option>
-                            <option value="403">403 (Forbidden)</option>
-                            <option value="404">404 (Not Found)</option>
-                            <option value="5">5xx (Server xatosi - 500..599)</option>
-                        </select>
+                            onChange={(v) => { setSelectedStatusCode(v); setPage(1) }}
+                            className="w-full"
+                            buttonClassName="w-full py-2 px-3 bg-surface-hover/80 border border-border rounded-xl text-xs font-medium text-text outline-none hover:border-primary/50"
+                            fitContent={false}
+                            options={[
+                                { value: 'all', label: 'Barcha statuslar' },
+                                { value: '2', label: '2xx (Muvaffaqiyatli - 200..299)' },
+                                { value: '4', label: '4xx (Mijoz xatosi - 400..499)' },
+                                { value: '400', label: '400 (Bad Request)' },
+                                { value: '401', label: '401 (Unauthorized)' },
+                                { value: '403', label: '403 (Forbidden)' },
+                                { value: '404', label: '404 (Not Found)' },
+                                { value: '5', label: '5xx (Server xatosi - 500..599)' },
+                            ]}
+                        />
                     </div>
 
                     {/* Matnli qidiruv */}
@@ -478,19 +480,20 @@ export default function SystemLogsPage() {
 
                     <div className="flex items-center gap-3">
                         <span className="hidden sm:inline">Har sahifada:</span>
-                        <select
-                            value={perPage}
-                            onChange={(e) => {
-                                setPerPage(Number(e.target.value))
-                                setPage(1)
-                            }}
-                            className="bg-surface-hover border border-border rounded-lg px-2 py-1 text-xs text-text font-medium outline-none cursor-pointer"
-                        >
-                            <option value={25}>25 ta</option>
-                            <option value={50}>50 ta</option>
-                            <option value={100}>100 ta</option>
-                            <option value={200}>200 ta</option>
-                        </select>
+                        <CustomSelect
+                            value={String(perPage)}
+                            onChange={(v) => { setPerPage(Number(v)); setPage(1) }}
+                            className="w-24"
+                            buttonClassName="py-1 px-2.5 bg-surface-hover/80 border border-border rounded-lg text-xs font-medium text-text outline-none hover:border-primary/50"
+                            dropUp
+                            fitContent={false}
+                            options={[
+                                { value: '25', label: '25 ta' },
+                                { value: '50', label: '50 ta' },
+                                { value: '100', label: '100 ta' },
+                                { value: '200', label: '200 ta' },
+                            ]}
+                        />
                     </div>
                 </div>
 
