@@ -12,6 +12,8 @@ services:
     container_name: kutubxona_db
     env_file:
       - backend/.env
+    environment:
+      - TZ=Asia/Tashkent
     # XAVFSIZLIK: DB porti tashqariga ochilmaydi (faqat ichki network)
     expose:
       - "5432"
@@ -41,6 +43,8 @@ services:
         condition: service_healthy
     env_file:
       - backend/.env
+    environment:
+      - TZ=Asia/Tashkent
     # XAVFSIZLIK: Backend porti tashqariga ochilmaydi
     # Host Nginx uchun emas — frontend Nginx ichki network orqali proksi qiladi
     expose:

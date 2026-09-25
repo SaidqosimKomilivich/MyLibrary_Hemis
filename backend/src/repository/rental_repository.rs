@@ -97,7 +97,7 @@ impl RentalRepository {
         Ok(row.0)
     }
 
-    /// Kitobni qaytarish
+    /// Kitobni qaytarish (faol yoki muddati o'tgan)
     pub async fn return_book(
         pool: &PgPool,
         id: Uuid,
@@ -108,7 +108,7 @@ impl RentalRepository {
                SET "status" = 'returned',
                    "return_date" = CURRENT_DATE,
                    "notes" = COALESCE($2, "notes")
-               WHERE "id" = $1 AND "status" = 'active'"#,
+               WHERE "id" = $1 AND "status" IN ('active', 'overdue')"#,
         )
         .bind(id)
         .bind(notes)
@@ -118,17 +118,19 @@ impl RentalRepository {
         Ok(result.rows_affected() > 0)
     }
 
-    /// Aktiv ijara borligini tekshirish (dublikat oldini olish)
+    /// Aktiv ijara borligini tekshirish (dublikat oldini olish — user_id yoki UUID bo'yicha)
     pub async fn find_active_by_user_and_book(
         pool: &PgPool,
         user_id: &str,
+        user_uuid: &str,
         book_id: &str,
     ) -> Result<bool, AppError> {
         let row: (i64,) = sqlx::query_as(
             r#"SELECT COUNT(*) FROM "book_rentals"
-               WHERE "user_id" = $1 AND "book_id" = $2 AND "status" = 'active'"#,
+               WHERE ("user_id" = $1 OR "user_id" = $2) AND "book_id" = $3 AND "status" = 'active'"#,
         )
         .bind(user_id)
+        .bind(user_uuid)
         .bind(book_id)
         .fetch_one(pool)
         .await?;
@@ -136,18 +138,30 @@ impl RentalRepository {
         Ok(row.0 > 0)
     }
 
-    /// Ushbu invois raqami faol ijarada mavjudligini tekshirish
+    /// Ushbu invois raqami faol yoki muddati o'tgan ijarada mavjudligini tekshirish
     pub async fn is_invoice_active(
         pool: &PgPool,
         invoice_number: &str,
+        book_id: Option<&str>,
     ) -> Result<bool, AppError> {
-        let count: (i64,) = sqlx::query_as(
-            r#"SELECT COUNT(*) FROM "book_rentals"
-               WHERE LOWER("invoice_number") = LOWER($1) AND "status" = 'active'"#,
-        )
-        .bind(invoice_number.trim())
-        .fetch_one(pool)
-        .await?;
+        let count: (i64,) = if let Some(b_id) = book_id {
+            sqlx::query_as(
+                r#"SELECT COUNT(*) FROM "book_rentals"
+                   WHERE LOWER("invoice_number") = LOWER($1) AND "book_id" = $2 AND "status" IN ('active', 'overdue')"#,
+            )
+            .bind(invoice_number.trim())
+            .bind(b_id)
+            .fetch_one(pool)
+            .await?
+        } else {
+            sqlx::query_as(
+                r#"SELECT COUNT(*) FROM "book_rentals"
+                   WHERE LOWER("invoice_number") = LOWER($1) AND "status" IN ('active', 'overdue')"#,
+            )
+            .bind(invoice_number.trim())
+            .fetch_one(pool)
+            .await?
+        };
 
         Ok(count.0 > 0)
     }
@@ -249,8 +263,8 @@ impl RentalRepository {
     pub async fn decrement_book_quantity(pool: &PgPool, book_id: &str) -> Result<bool, AppError> {
         let result = sqlx::query(
             r#"UPDATE "book"
-               SET "available_quantity" = "available_quantity" - 1
-               WHERE "id"::text = $1 AND "available_quantity" > 0"#,
+               SET "available_quantity" = COALESCE("available_quantity", 0) - 1
+               WHERE "id"::text = $1 AND COALESCE("available_quantity", 0) > 0"#,
         )
         .bind(book_id)
         .execute(pool)
@@ -263,7 +277,7 @@ impl RentalRepository {
     pub async fn increment_book_quantity(pool: &PgPool, book_id: &str) -> Result<(), AppError> {
         sqlx::query(
             r#"UPDATE "book"
-               SET "available_quantity" = "available_quantity" + 1
+               SET "available_quantity" = COALESCE("available_quantity", 0) + 1
                WHERE "id"::text = $1"#,
         )
         .bind(book_id)

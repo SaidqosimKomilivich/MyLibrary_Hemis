@@ -485,6 +485,11 @@ function extractIdFromScannedText(rawText: string): string {
             toast.info(`"${book.title}" allaqachon ro'yxatga qo'shilgan`)
             return
         }
+        // Foydalanuvchida bu kitob allaqachon aktiv ijarada bormi?
+        if (activeRentals.some(r => r.book_id === book.id)) {
+            toast.warning(`"${book.title}" kitobini foydalanuvchi allaqachon olgan va hali qaytarmagan!`)
+            return
+        }
         if ((book.available_quantity || 0) <= 0) {
             toast.warning(`"${book.title}" omborda qolmagan`)
             return
@@ -564,7 +569,6 @@ function extractIdFromScannedText(rawText: string): string {
             toast.success(`${selectedBooks.length} ta kitob ${scannedUser.full_name}ga muvaffaqiyatli berildi 🎉`)
             closeAssignModal()
             await loadUserRentals(scannedUser.user_id)
-            startScanner()
         } catch (error: any) {
             toast.error(error.message || "Kitoblarni topshirishda xatolik yuz berdi")
         } finally {
@@ -618,12 +622,11 @@ function extractIdFromScannedText(rawText: string): string {
         return formatLocalDate(d)
     }
     const defaultDue = getDefaultDueDate(15)
-    const tomorrowDate = useMemo(() => {
+    const todayDate = useMemo(() => {
         const d = new Date()
-        d.setDate(d.getDate() + 1)
+        d.setHours(0, 0, 0, 0)
         return d
     }, [])
-
 
     // ──── Sort rentals: overdue first, then by deadline ────
     const sortedRentals = useMemo(() => {
@@ -1192,9 +1195,10 @@ function extractIdFromScannedText(rawText: string): string {
                                             label="Muddati"
                                             placeholder="Tanlang (standart 15 kun)"
                                             value={dueDate || defaultDue}
-                                            minDate={tomorrowDate}
+                                            minDate={todayDate}
                                             onChange={(d) => setDueDate(d ? formatLocalDate(d) : '')}
                                             presets={[
+                                                { label: 'Bugun', daysFromToday: 0 },
                                                 { label: '+10 kun', daysFromToday: 10 },
                                                 { label: '+15 kun (standart)', daysFromToday: 15 },
                                                 { label: '+30 kun (1 oy)', daysFromToday: 30 },
@@ -1289,15 +1293,24 @@ function extractIdFromScannedText(rawText: string): string {
                                         <div className="flex flex-col gap-1 max-h-52 overflow-y-auto border border-border rounded-xl p-1.5 bg-surface-hover/30 custom-scrollbar">
                                             {searchResults.map(book => {
                                                 const isAlreadyAdded = selectedBooks.some(item => item.book.id === book.id)
-                                                const isAvailable = (book.available_quantity || 0) > 0
+                                                const isAlreadyBorrowed = activeRentals.some(r => r.book_id === book.id)
+                                                const isAvailable = (book.available_quantity || 0) > 0 && !isAlreadyBorrowed
                                                 const pubYear = formatPublicationYear(book)
 
                                                 return (
                                                     <div
                                                         key={book.id}
-                                                        className={`flex items-center justify-between p-2.5 rounded-lg transition-all ${isAlreadyAdded ? 'bg-primary/10 border-l-4 border-l-primary cursor-default' : isAvailable ? 'hover:bg-surface-hover cursor-pointer border-l-4 border-l-transparent' : 'opacity-50 cursor-not-allowed border-l-4 border-l-transparent'}`}
+                                                        className={`flex items-center justify-between p-2.5 rounded-lg transition-all ${
+                                                            isAlreadyAdded
+                                                                ? 'bg-primary/10 border-l-4 border-l-primary cursor-default'
+                                                                : isAlreadyBorrowed
+                                                                ? 'bg-amber-500/10 border-l-4 border-l-amber-500 cursor-not-allowed opacity-80'
+                                                                : isAvailable
+                                                                ? 'hover:bg-surface-hover cursor-pointer border-l-4 border-l-transparent'
+                                                                : 'opacity-50 cursor-not-allowed border-l-4 border-l-transparent'
+                                                        }`}
                                                         onClick={() => {
-                                                            if (isAvailable && !isAlreadyAdded) {
+                                                            if (isAvailable && !isAlreadyAdded && !isAlreadyBorrowed) {
                                                                 handleAddBookToAssign(book)
                                                             }
                                                         }}
@@ -1326,12 +1339,16 @@ function extractIdFromScannedText(rawText: string): string {
 
                                                         <div className="flex items-center gap-2 shrink-0">
                                                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${isAvailable ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
-                                                                {isAvailable ? `${book.available_quantity} ta` : 'Yo\'q'}
+                                                                {isAlreadyBorrowed ? 'Ijarada' : isAvailable ? `${book.available_quantity} ta` : 'Yo\'q'}
                                                             </span>
 
                                                             {isAlreadyAdded ? (
                                                                 <span className="inline-flex items-center gap-1 text-xs text-primary-light font-semibold bg-primary/20 px-2 py-1 rounded-md">
                                                                     <CheckCircle2 size={12} /> Qo'shilgan
+                                                                </span>
+                                                            ) : isAlreadyBorrowed ? (
+                                                                <span className="inline-flex items-center gap-1 text-xs text-amber-500 font-semibold bg-amber-500/15 border border-amber-500/20 px-2 py-1 rounded-md" title="Talabada ushbu kitob mavjud (hali qaytarilmagan)">
+                                                                    <Clock size={12} /> Ijarada bor
                                                                 </span>
                                                             ) : isAvailable ? (
                                                                 <button
@@ -1485,9 +1502,10 @@ function extractIdFromScannedText(rawText: string): string {
                                                                         label=""
                                                                         placeholder={dueDate || defaultDue ? `Umumiy: ${dueDate || defaultDue}` : "Alohida muddat tanlang"}
                                                                         value={item.dueDate || ''}
-                                                                        minDate={tomorrowDate}
+                                                                        minDate={todayDate}
                                                                         onChange={(d) => handleUpdateBookDueDate(item.book.id, d ? formatLocalDate(d) : '')}
                                                                         presets={[
+                                                                            { label: 'Bugun', daysFromToday: 0 },
                                                                             { label: '+10 kun', daysFromToday: 10 },
                                                                             { label: '+15 kun', daysFromToday: 15 },
                                                                             { label: '+30 kun', daysFromToday: 30 },
