@@ -843,8 +843,31 @@ export const api = {
         })
     },
 
-
-    // News endpoints (Admin CRUD)
+    /**
+     * getStreamUrl — PDF yoki Audio fayl uchun xavfsiz vaqtinchalik chipta (stream ticket) olib,
+     * imzolangan stream havolasini shakllantiradi.
+     */
+    async getStreamUrl(fileUrl: string): Promise<string> {
+        if (!fileUrl) return fileUrl
+        // Faqat uploads/pdf yoki uploads/audio bo'lsa chipta olamiz
+        if (!fileUrl.includes('uploads/pdf/') && !fileUrl.includes('uploads/audio/')) {
+            return fileUrl
+        }
+        try {
+            const match = fileUrl.match(/(?:\/|^)uploads\/(pdf|audio)\/[^?#]+/)
+            if (!match) return fileUrl
+            const relativePath = match[0].replace(/^(\/)?uploads\//, '')
+            const res = await request<{ success: boolean; stream_url: string }>(
+                `/uploads/stream-ticket?path=${encodeURIComponent(relativePath)}`
+            )
+            if (res.success && res.stream_url) {
+                return res.stream_url
+            }
+        } catch (e) {
+            console.warn('Xavfsiz stream chiptasini olishda xatolik:', e)
+        }
+        return fileUrl
+    },
     getNewsList(params: NewsListParams = {}) {
         const qs = buildQueryString(params as unknown as Record<string, unknown>)
         return request<PaginatedNewsResponse>(`/news${qs}`)

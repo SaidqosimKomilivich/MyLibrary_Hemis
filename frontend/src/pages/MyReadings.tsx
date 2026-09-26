@@ -71,8 +71,13 @@ export default function MyReadings() {
     }
 
     // Audio player
-    const handleListenAudio = (book: Book) => {
-        setAudioBook(book)
+    const handleListenAudio = async (book: Book) => {
+        if (book.digital_file_url) {
+            const secureUrl = await api.getStreamUrl(book.digital_file_url)
+            setAudioBook({ ...book, digital_file_url: secureUrl })
+        } else {
+            setAudioBook(book)
+        }
     }
 
     // O'chirish

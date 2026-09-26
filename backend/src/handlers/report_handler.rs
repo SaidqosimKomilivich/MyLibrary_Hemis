@@ -670,7 +670,7 @@ pub async fn export_excel(
 
     Ok(HttpResponse::Ok()
         .content_type("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-        .append_header((
+        .insert_header((
             "Content-Disposition",
             format!(
                 "attachment; filename=\"report_{}_{}_{}.xlsx\"",

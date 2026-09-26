@@ -77,13 +77,45 @@ export default function PdfViewerModal({ title, fileUrl, bookId, onClose }: PdfV
         return `mylibrary_last_page_${bookId || encodeURIComponent(fileUrl)}`
     }, [bookId, fileUrl])
 
-    // PDF faylni to'g'ridan-to'g'ri URL orqali yuklaymiz (Range Request qo'llab-quvvatlanadi)
+    // PDF faylni vaqtinchalik imzolangan xavfsiz URL (Signed Stream URL) orqali yuklaymiz
     useEffect(() => {
+        let isMounted = true
         setFetchError(false)
         setErrorMessage(null)
         setLoading(true)
         setDownloadProgress(null)
-        setPdfData(fileUrl)
+
+        const initPdfUrl = async () => {
+            try {
+                const secureUrl = await api.getStreamUrl(fileUrl)
+                if (isMounted) {
+                    setPdfData(secureUrl)
+                }
+            } catch {
+                if (isMounted) {
+                    setPdfData(fileUrl)
+                }
+            }
+        }
+
+        initPdfUrl()
+
+        // 50 daqiqada bir marta yangi stream chiptasini orqa fonda yangilab turadi (Silent Refresh)
+        const refreshInterval = setInterval(async () => {
+            try {
+                const refreshedUrl = await api.getStreamUrl(fileUrl)
+                if (isMounted && refreshedUrl) {
+                    setPdfData(refreshedUrl)
+                }
+            } catch {
+                // orqa fonda xatolik bo'lsa e'tiborsiz qoldiriladi
+            }
+        }, 50 * 60 * 1000)
+
+        return () => {
+            isMounted = false
+            clearInterval(refreshInterval)
+        }
     }, [fileUrl])
 
     const handleClose = () => {
@@ -287,6 +319,39 @@ export default function PdfViewerModal({ title, fileUrl, bookId, onClose }: PdfV
             setDefaultDims({ width: pageInfo.originalWidth, height: pageInfo.originalHeight })
         }
     }
+
+    // Canvas darajasidagi o'chmas suv belgisi (Pixel-level Canvas Watermark)
+    const onPageRenderSuccess = useCallback((pageNumber: number) => {
+        if (!watermarkText) return
+        const container = pageRefs.current[pageNumber - 1]
+        if (!container) return
+        const canvas = container.querySelector('canvas')
+        if (!canvas) return
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return
+
+        ctx.save()
+        const fontSize = Math.max(14, Math.floor(canvas.width / 48))
+        ctx.font = `600 ${fontSize}px sans-serif`
+        ctx.fillStyle = 'rgba(30, 41, 59, 0.08)'
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+
+        const angle = -25 * Math.PI / 180
+        const stepX = Math.max(260, canvas.width / 3)
+        const stepY = Math.max(160, canvas.height / 5)
+
+        for (let x = -canvas.width * 0.5; x < canvas.width * 1.5; x += stepX) {
+            for (let y = -canvas.height * 0.5; y < canvas.height * 1.5; y += stepY) {
+                ctx.save()
+                ctx.translate(x, y)
+                ctx.rotate(angle)
+                ctx.fillText(watermarkText, 0, 0)
+                ctx.restore()
+            }
+        }
+        ctx.restore()
+    }, [watermarkText])
 
     // Collect all <mark> elements after render to enable next/prev navigation
     const collectMarks = useCallback(() => {
@@ -652,6 +717,7 @@ export default function PdfViewerModal({ title, fileUrl, bookId, onClose }: PdfV
                                                         renderAnnotationLayer={true}
                                                         customTextRenderer={customTextRenderer}
                                                         onLoadSuccess={onPageLoadSuccess}
+                                                        onRenderSuccess={() => onPageRenderSuccess(page)}
                                                         loading={
                                                             <div
                                                                 className="flex items-center justify-center bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-text-muted text-xs sm:text-sm font-medium"

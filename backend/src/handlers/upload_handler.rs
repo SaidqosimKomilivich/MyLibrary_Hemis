@@ -1,6 +1,8 @@
 use actix_multipart::Multipart;
 use actix_web::{web, HttpResponse};
 use futures_util::TryStreamExt;
+use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
+use serde::{Deserialize, Serialize};
 use std::path::Path;
 use tokio::fs::File as AsyncFile;
 use tokio::io::AsyncWriteExt;
@@ -9,6 +11,23 @@ use uuid::Uuid;
 use crate::config::Config;
 use crate::errors::AppError;
 use crate::middleware::auth_middleware::{require_role, Claims};
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct StreamTicketClaims {
+    pub sub: String,
+    pub path: String,
+    pub exp: usize,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct StreamTicketRequest {
+    pub path: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ServeFileQuery {
+    pub ticket: Option<String>,
+}
 
 /// Kengaytmaga qarab subdirectory rasmmi yoki yo'qligini tekshiradi
 fn is_image_subdir(subdir: &str) -> bool {
@@ -387,30 +406,107 @@ pub async fn delete_file(
     })))
 }
 
+/// GET /api/uploads/stream-ticket?path=pdf/...
+/// Autentifikatsiya qilingan foydalanuvchiga PDF yoki Audio faylni xavfsiz o'qish uchun
+/// 2 soat amal qiluvchi vaqtinchalik imzolangan chipta (ticket) berish
+pub async fn get_stream_ticket(
+    claims: Claims,
+    query: web::Query<StreamTicketRequest>,
+    config: web::Data<Config>,
+) -> Result<HttpResponse, AppError> {
+    let raw_path = query.path.trim();
+
+    // Yo'ldan boshidagi "/uploads/" yoki "/" ni tozalaymiz
+    let clean_path = raw_path
+        .trim_start_matches('/')
+        .trim_start_matches("uploads/")
+        .to_string();
+
+    if clean_path.contains("..") {
+        return Err(AppError::BadRequest("Noto'g'ri fayl yo'li".into()));
+    }
+
+    // Faqat pdf yoki audio papkalariga ticket beriladi
+    if !clean_path.starts_with("pdf/") && !clean_path.starts_with("audio/") {
+        return Err(AppError::BadRequest("Faqat PDF va Audio fayllar uchun chipta beriladi".into()));
+    }
+
+    let exp = (chrono::Utc::now() + chrono::Duration::hours(1)).timestamp() as usize;
+    let ticket_claims = StreamTicketClaims {
+        sub: claims.sub.clone(),
+        path: clean_path.clone(),
+        exp,
+    };
+
+    let token = encode(
+        &Header::default(),
+        &ticket_claims,
+        &EncodingKey::from_secret(config.jwt_secret.as_bytes()),
+    ).map_err(|e| {
+        tracing::error!("Stream chiptasini yaratishda xatolik: {}", e);
+        AppError::InternalError("Xavfsiz chipta yaratib bo'lmadi".into())
+    })?;
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "success": true,
+        "ticket": token,
+        "expires_at": exp,
+        "stream_url": format!("/uploads/{}?ticket={}", clean_path, token)
+    })))
+}
+
 /// GET /uploads/{subdir}/{filename} — Faylni o'qish
 /// - Rasmlar (images): X-Accel-Redirect orqali Nginx tomonidan keshlangan holda tez qaytariladi
-/// - PDF va Audio: faqat autentifikatsiya bo'lgan foydalanuvchilarga, to'g'ridan-to'g'ri stream qilinadi
+/// - PDF va Audio: faqat autentifikatsiya bo'lgan va xavfsiz chiptaga (stream ticket) ega foydalanuvchilarga stream qilinadi
 pub async fn serve_file(
     req: actix_web::HttpRequest,
     claims: Option<Claims>,
     path: web::Path<(String, String)>,
+    query: web::Query<ServeFileQuery>,
     config: web::Data<Config>,
 ) -> Result<HttpResponse, AppError> {
     let (subdir, filename) = path.into_inner();
 
-    // PDF va Audio uchun autentifikatsiya talab qilinadi
-    if !is_image_subdir(&subdir) && claims.is_none() {
-        return Err(AppError::Unauthorized(
-            format!(
-                "{} fayllarini o'qish uchun tizimga kirish talab qilinadi",
-                if subdir == "pdf" { "PDF" } else { "Audio" }
-            ),
-        ));
-    }
-
     // Path traversal xavfsizlik tekshiruvi
     if subdir.contains("..") || filename.contains("..") {
         return Err(AppError::BadRequest("Noto'g'ri fayl yo'li".to_string()));
+    }
+
+    // PDF va Audio uchun xavfsizlik va vaqtinchalik chipta (Signed Ticket) tekshiruvi
+    if !is_image_subdir(&subdir) {
+        let current_path = format!("{}/{}", subdir, filename);
+        let mut access_granted = false;
+
+        // 1. Agar ticket yuborilgan bo'lsa, uni tekshiramiz
+        if let Some(ticket_str) = &query.ticket {
+            let mut validation = Validation::default();
+            validation.validate_exp = true;
+            if let Ok(token_data) = decode::<StreamTicketClaims>(
+                ticket_str,
+                &DecodingKey::from_secret(config.jwt_secret.as_bytes()),
+                &validation,
+            ) {
+                if token_data.claims.path == current_path {
+                    access_granted = true;
+                }
+            }
+        }
+
+        // 2. Agar ticket bo'lmasa, lekin tizim administratori bo'lsa ruxsat beriladi
+        if !access_granted {
+            if let Some(user_claims) = &claims {
+                if user_claims.role == "admin" {
+                    access_granted = true;
+                }
+            }
+        }
+
+        // 3. Agar ruxsat tasdiqlanmasa — 403 Forbidden
+        if !access_granted {
+            return Err(AppError::Forbidden(
+                "Faylga to'g'ridan-to'g'ri kirish taqiqlangan. Xavfsiz stream chiptasi talab qilinadi yoki muddati o'tgan".to_string(),
+            ));
+        }
     }
 
     let filepath = format!("{}/{}/{}", config.upload_dir, subdir, filename);

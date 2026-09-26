@@ -245,6 +245,10 @@ async fn main() -> std::io::Result<()> {
             .route("/api/upload", web::post().to(upload_handler::upload_file))
             .route("/api/upload", web::delete().to(upload_handler::delete_file))
             .route(
+                "/api/uploads/stream-ticket",
+                web::get().to(upload_handler::get_stream_ticket),
+            )
+            .route(
                 "/api/tinymce-upload",
                 web::post().to(upload_handler::upload_tinymce_image),
             )

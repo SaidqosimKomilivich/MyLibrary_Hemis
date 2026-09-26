@@ -4,6 +4,7 @@ import {
     Volume2, VolumeX, BookOpen, Music2,
 } from 'lucide-react'
 import { useAudio } from '../context/AudioContext'
+import { api } from '../services/api'
 import toast from 'react-hot-toast'
 
 function formatTime(s: number): string {
@@ -77,15 +78,24 @@ export default function AudioPlayerModal() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
-    // src o'zgarganda (yangi kitob) — load va play
+    // src o'zgarganda (yangi kitob) — xavfsiz stream chiptasi bilan load va play
     useEffect(() => {
+        let isMounted = true
         const audio = audioRef.current
         if (!audio || !book?.digital_file_url) return
-        audio.src = book.digital_file_url
-        audio.load()
-        audio.play().catch(() => { })
+
+        api.getStreamUrl(book.digital_file_url).then((secureUrl) => {
+            if (!isMounted) return
+            audio.src = secureUrl
+            audio.load()
+            audio.play().catch(() => { })
+        })
+
         // listener'larni qayta bog'lash
-        return bindAudioEvents(audio)
+        return () => {
+            isMounted = false
+            bindAudioEvents(audio)
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [book?.id])
 
