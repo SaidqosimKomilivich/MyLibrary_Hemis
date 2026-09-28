@@ -56,7 +56,7 @@ pub async fn get_all_requests(
     query: web::Query<UserPaginationParams>,
 ) -> Result<HttpResponse, actix_web::Error> {
     // Ruxsat tekshirish
-    if let Err(resp) = require_role(&claims, &["admin", "staff", "employee"]) {
+    if let Err(resp) = require_role(&claims, &["admin", "staff"]) {
         return Ok(resp);
     }
 
@@ -97,19 +97,41 @@ pub async fn update_request_status(
     path: web::Path<Uuid>,
     body: web::Json<UpdateRequestStatusDto>,
 ) -> Result<HttpResponse, actix_web::Error> {
-    if let Err(resp) = require_role(&claims, &["admin", "staff", "employee"]) {
+    if let Err(resp) = require_role(&claims, &["admin", "staff"]) {
         return Ok(resp);
     }
 
     let id = path.into_inner();
     let dto = body.into_inner();
+    let employee_id = Uuid::parse_str(&claims.sub)
+        .map_err(|_| actix_web::error::ErrorBadRequest("Noto'g'ri foydalanuvchi identifikatori"))?;
 
-    RequestRepository::update_request_status(pool.get_ref(), id, dto)
+    RequestRepository::update_request_status(pool.get_ref(), id, employee_id, dto)
         .await
         .map_err(actix_web::error::ErrorInternalServerError)?;
 
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "success": true,
         "message": "So'rov holati yangilandi"
+    })))
+}
+
+/// GET /api/requests/pending-count
+/// Javob berilmagan (pending) so'rovlar soni
+pub async fn get_pending_requests_count(
+    pool: web::Data<PgPool>,
+    claims: Claims,
+) -> Result<HttpResponse, actix_web::Error> {
+    if let Err(resp) = require_role(&claims, &["admin", "staff"]) {
+        return Ok(resp);
+    }
+
+    let count = RequestRepository::get_pending_count(pool.get_ref())
+        .await
+        .map_err(actix_web::error::ErrorInternalServerError)?;
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "success": true,
+        "count": count
     })))
 }

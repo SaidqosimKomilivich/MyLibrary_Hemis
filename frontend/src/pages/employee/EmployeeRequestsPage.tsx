@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { api, type BookRequest } from '../../services/api'
-import { Search, Loader2, X, CheckCircle, XCircle, Clock, AlertCircle, AlertTriangle, BookOpen, Calendar, ChevronLeft, ChevronRight, MessageSquare, Layers, MapPin } from 'lucide-react'
+import { Search, Loader2, X, CheckCircle, XCircle, Clock, AlertCircle, AlertTriangle, BookOpen, Calendar, ChevronLeft, ChevronRight, MessageSquare, Layers, MapPin, ShieldCheck } from 'lucide-react'
 import { toast } from 'react-toastify'
 import { createPortal } from 'react-dom'
 import { CustomSelect } from '../../components/CustomSelect'
@@ -226,6 +226,19 @@ export default function EmployeeRequestsPage() {
                                             </div>
                                         )}
                                     </div>
+
+                                    {/* Javob bergan kutubxona xodimi */}
+                                    {req.employee_name && (
+                                        <div className="mt-2.5 pt-2 border-t border-dashed border-border/60 flex items-center justify-between text-xs text-text-muted">
+                                            <span className="flex items-center gap-1.5 text-blue-400 font-medium truncate" title={req.employee_name}>
+                                                <ShieldCheck size={14} className="shrink-0 text-blue-400" />
+                                                Xodim: {req.employee_name}
+                                            </span>
+                                            <span className="text-[0.75rem] text-text-muted/70 shrink-0">
+                                                {formatDate(req.updated_at)}
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="flex justify-between items-center pt-4 border-t border-dashed border-border">
@@ -294,6 +307,21 @@ export default function EmployeeRequestsPage() {
                                         </span>
                                     </div>
                                 </div>
+
+                                {/* Agar oldinroq xodim javob bergan bo'lsa */}
+                                {selectedRequest.employee_name && (
+                                    <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/25 text-xs">
+                                        <div className="flex items-center gap-2">
+                                            <ShieldCheck size={16} className="text-blue-400 shrink-0" />
+                                            <span className="text-text-muted">
+                                                Javob bergan xodim: <strong className="text-blue-300 font-semibold">{selectedRequest.employee_name}</strong>
+                                            </span>
+                                        </div>
+                                        <span className="text-text-muted/70 text-[0.78rem]">
+                                            {formatDate(selectedRequest.updated_at)}
+                                        </span>
+                                    </div>
+                                )}
 
                                 {/* So'ralgan kitob kartasi */}
                                 <div className="p-4 rounded-xl bg-surface border border-border/80">

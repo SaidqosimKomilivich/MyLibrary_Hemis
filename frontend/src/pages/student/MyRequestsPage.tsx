@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Book, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
+import { Book, Clock, CheckCircle, XCircle, AlertCircle, ShieldCheck } from 'lucide-react'
 import { api, type BookRequest } from '../../services/api'
 import { toast } from 'react-toastify'
 
@@ -119,11 +119,19 @@ export default function MyRequestsPage() {
 
                                 {req.employee_comment && (
                                     <div
-                                        className="bg-surface-hover/50 py-3 px-4 rounded-lg text-[0.9rem] text-text leading-relaxed"
+                                        className="bg-surface-hover/50 py-3.5 px-4 rounded-xl text-[0.9rem] text-text leading-relaxed border border-border/70"
                                         style={{ borderLeft: `4px solid ${sInfo.color}` }}
                                     >
-                                        <strong className="block text-[0.8rem] text-text-muted mb-1">Kutubxonachi javobi:</strong>
-                                        {req.employee_comment}
+                                        <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+                                            <strong className="text-[0.82rem] text-text-muted flex items-center gap-1.5 font-semibold">
+                                                <ShieldCheck size={14} className="text-blue-400 shrink-0" />
+                                                {req.employee_name ? `Kutubxonachi (${req.employee_name}) javobi:` : 'Kutubxonachi javobi:'}
+                                            </strong>
+                                            <span className="text-[0.75rem] text-text-muted/70">
+                                                {formatDate(req.updated_at)}
+                                            </span>
+                                        </div>
+                                        <div className="text-text font-normal">{req.employee_comment}</div>
                                     </div>
                                 )}
                             </div>

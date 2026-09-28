@@ -35,8 +35,9 @@ impl RequestRepository {
             r#"
             SELECT 
                 r."id", r."user_id", r."book_id", r."request_type", 
-                r."status", r."employee_comment", r."created_at", r."updated_at",
+                r."status", r."employee_comment", r."employee_id", r."created_at", r."updated_at",
                 u."full_name" as "user_name",
+                emp."full_name" as "employee_name",
                 b."title" as "book_title",
                 b."author" as "book_author",
                 b."available_quantity",
@@ -46,6 +47,7 @@ impl RequestRepository {
             FROM "book_requests" r
             JOIN "users" u ON r."user_id" = u."id"
             JOIN "book" b ON r."book_id" = b."id"
+            LEFT JOIN "users" emp ON r."employee_id" = emp."id"
             WHERE r."user_id" = $1
             ORDER BY r."created_at" DESC
             "#,
@@ -71,8 +73,9 @@ impl RequestRepository {
             r#"
             SELECT 
                 r."id", r."user_id", r."book_id", r."request_type", 
-                r."status", r."employee_comment", r."created_at", r."updated_at",
+                r."status", r."employee_comment", r."employee_id", r."created_at", r."updated_at",
                 u."full_name" as "user_name",
+                emp."full_name" as "employee_name",
                 b."title" as "book_title",
                 b."author" as "book_author",
                 b."available_quantity",
@@ -82,6 +85,7 @@ impl RequestRepository {
             FROM "book_requests" r
             JOIN "users" u ON r."user_id" = u."id"
             JOIN "book" b ON r."book_id" = b."id"
+            LEFT JOIN "users" emp ON r."employee_id" = emp."id"
             WHERE 1=1
             "#,
         );
@@ -91,6 +95,7 @@ impl RequestRepository {
             FROM "book_requests" r
             JOIN "users" u ON r."user_id" = u."id"
             JOIN "book" b ON r."book_id" = b."id"
+            LEFT JOIN "users" emp ON r."employee_id" = emp."id"
             WHERE 1=1
             "#,
         );
@@ -99,7 +104,7 @@ impl RequestRepository {
 
         if search.is_some() {
             let s_clause = format!(
-                r#" AND (LOWER(u."full_name") LIKE LOWER(${0}::text) OR LOWER(b."title") LIKE LOWER(${0}::text) OR LOWER(b."author") LIKE LOWER(${0}::text))"#,
+                r#" AND (LOWER(u."full_name") LIKE LOWER(${0}::text) OR LOWER(b."title") LIKE LOWER(${0}::text) OR LOWER(b."author") LIKE LOWER(${0}::text) OR LOWER(COALESCE(emp."full_name", '')) LIKE LOWER(${0}::text))"#,
                 param_idx
             );
             query.push_str(&s_clause);
@@ -150,15 +155,17 @@ impl RequestRepository {
     pub async fn update_request_status(
         pool: &PgPool,
         id: Uuid,
+        employee_id: Uuid,
         dto: UpdateRequestStatusDto,
     ) -> Result<(), AppError> {
         let result = sqlx::query(
             r#"UPDATE "book_requests" 
-               SET "status" = $1, "employee_comment" = $2, "updated_at" = CURRENT_TIMESTAMP
-               WHERE "id" = $3"#,
+               SET "status" = $1, "employee_comment" = $2, "employee_id" = $3, "updated_at" = CURRENT_TIMESTAMP
+               WHERE "id" = $4"#,
         )
         .bind(&dto.status)
         .bind(&dto.employee_comment)
+        .bind(employee_id)
         .bind(id)
         .execute(pool)
         .await?;
@@ -168,5 +175,16 @@ impl RequestRepository {
         }
 
         Ok(())
+    }
+
+    /// Kutilayotgan (javob berilmagan) so'rovlar sonini olish
+    pub async fn get_pending_count(pool: &PgPool) -> Result<i64, AppError> {
+        let count = sqlx::query_scalar::<_, i64>(
+            r#"SELECT COUNT(*) FROM "book_requests" WHERE "status" = 'pending'"#,
+        )
+        .fetch_one(pool)
+        .await?;
+
+        Ok(count)
     }
 }

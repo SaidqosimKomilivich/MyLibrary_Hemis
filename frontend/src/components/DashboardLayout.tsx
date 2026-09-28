@@ -32,6 +32,7 @@ import { Sun, Moon } from 'lucide-react'
 import NotificationBell from './NotificationBell'
 import { getFileUrl } from '../utils/fileUrl'
 import ErrorBoundary from './ErrorBoundary'
+import { api } from '../services/api'
 
 export type UserRole = 'admin' | 'staff' | 'teacher' | 'student' | 'employee'
 interface NavItem {
@@ -126,6 +127,32 @@ export default function DashboardLayout({ role }: DashboardLayoutProps) {
         ]
         : navByRole[role]
 
+    // Javob berilmagan so'rovlar soni (faqat admin va staff/kutubxonachi uchun)
+    const [pendingRequestsCount, setPendingRequestsCount] = useState<number>(0)
+
+    useEffect(() => {
+        if (!isAuthenticated || (role !== 'admin' && role !== 'staff')) return
+
+        let isMounted = true
+        const fetchPendingCount = async () => {
+            try {
+                const res = await api.getPendingRequestsCount()
+                if (res.success && isMounted) {
+                    setPendingRequestsCount(res.count)
+                }
+            } catch {
+                // jim xato ushlash
+            }
+        }
+
+        fetchPendingCount()
+        const interval = setInterval(fetchPendingCount, 30000)
+        return () => {
+            isMounted = false
+            clearInterval(interval)
+        }
+    }, [isAuthenticated, role, location.pathname])
+
     // Role mismatch check - logs the user out if they try to access a page meant for another role
     // This MUST be called here, before any early returns (like if (isLoading)) to obey the Rules of Hooks.
     useEffect(() => {
@@ -214,20 +241,33 @@ export default function DashboardLayout({ role }: DashboardLayoutProps) {
                 </div>
 
                 <nav className="flex-1 p-3 flex flex-col gap-0.5 overflow-y-auto">
-                    {navItems.map((item) => (
-                        <NavLink
-                            key={item.path}
-                            to={item.path}
-                            end={item.path === `/${role}`}
-                            className={({ isActive }) =>
-                                `relative flex items-center gap-3 py-2.5 px-3.5 rounded-xl text-[0.9rem] font-medium transition-colors duration-250 border-none bg-transparent cursor-pointer w-full font-inherit hover:bg-surface-hover hover:text-text ${isActive ? 'bg-indigo-500/15 text-primary-light before:content-[""] before:absolute before:left-0 before:w-0.75 before:h-6 before:bg-primary-light before:rounded-r-md' : 'text-text-muted'}`
-                            }
-                            onClick={() => setSidebarOpen(false)}
-                        >
-                            {item.icon}
-                            <span>{item.label}</span>
-                        </NavLink>
-                    ))}
+                    {navItems.map((item) => {
+                        const isRequests = item.path.endsWith('/requests')
+                        const showBadge = isRequests && (role === 'admin' || role === 'staff') && pendingRequestsCount > 0
+
+                        return (
+                            <NavLink
+                                key={item.path}
+                                to={item.path}
+                                end={item.path === `/${role}`}
+                                className={({ isActive }) =>
+                                    `relative flex items-center gap-3 py-2.5 px-3.5 rounded-xl text-[0.9rem] font-medium transition-colors duration-250 border-none bg-transparent cursor-pointer w-full font-inherit hover:bg-surface-hover hover:text-text ${isActive ? 'bg-indigo-500/15 text-primary-light before:content-[""] before:absolute before:left-0 before:w-0.75 before:h-6 before:bg-primary-light before:rounded-r-md' : 'text-text-muted'}`
+                                }
+                                onClick={() => setSidebarOpen(false)}
+                            >
+                                {item.icon}
+                                <span className="truncate flex-1">{item.label}</span>
+                                {showBadge && (
+                                    <span
+                                        className="ml-auto flex items-center justify-center min-w-5 h-5 px-1.5 text-[0.72rem] font-bold rounded-full bg-rose-500 text-white shadow-sm shadow-rose-500/40 shrink-0"
+                                        title={`${pendingRequestsCount} ta yangi (javob berilmagan) so'rov`}
+                                    >
+                                        {pendingRequestsCount > 99 ? '99+' : pendingRequestsCount}
+                                    </span>
+                                )}
+                            </NavLink>
+                        )
+                    })}
                 </nav>
 
                 <div className="p-3 border-t border-border">

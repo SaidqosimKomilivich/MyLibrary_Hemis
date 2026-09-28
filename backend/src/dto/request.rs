@@ -28,6 +28,8 @@ pub struct BookRequestResponse {
     pub cover_image_url: Option<String>,
     pub request_type: String,
     pub status: String,
+    pub employee_id: Option<Uuid>,
+    pub employee_name: Option<String>,
     pub employee_comment: Option<String>,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,

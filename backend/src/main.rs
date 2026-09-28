@@ -270,6 +270,10 @@ async fn main() -> std::io::Result<()> {
                     .route("", web::get().to(request_handler::get_all_requests))
                     .route("/my", web::get().to(request_handler::get_my_requests))
                     .route(
+                        "/pending-count",
+                        web::get().to(request_handler::get_pending_requests_count),
+                    )
+                    .route(
                         "/{id}/status",
                         web::put().to(request_handler::update_request_status),
                     ),

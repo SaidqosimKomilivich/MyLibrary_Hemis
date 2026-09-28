@@ -231,6 +231,8 @@ export interface BookRequest {
     cover_image_url?: string | null
     request_type: string
     status: string
+    employee_id?: string | null
+    employee_name?: string | null
     employee_comment: string | null
     created_at: string
     updated_at: string

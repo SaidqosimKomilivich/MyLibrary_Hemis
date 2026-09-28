@@ -768,6 +768,10 @@ export const api = {
         })
     },
 
+    getPendingRequestsCount() {
+        return request<{ success: boolean; count: number }>('/requests/pending-count')
+    },
+
     // Reports endpoints
     getStaffBookCounts() {
         return request<import('./api.types').StaffBookCountsResponse>('/reports/staff-book-counts')
