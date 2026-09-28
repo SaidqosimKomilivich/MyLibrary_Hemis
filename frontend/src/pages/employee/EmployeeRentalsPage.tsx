@@ -65,13 +65,16 @@ export default function EmployeeRentalsPage() {
     const filteredRentals = useMemo(() => {
         return (rentals || []).filter(r => {
             if (!r) return false;
-            // Search logic (ism, kitob nomi, talaba HEMIS ID, invois raqami)
-            const searchLower = (search || '').toLowerCase()
-            const matchSearch =
-                (r.book_title?.toLowerCase().includes(searchLower)) ||
-                (r.user_full_name?.toLowerCase().includes(searchLower)) ||
-                (r.user_id?.toLowerCase().includes(searchLower)) ||
-                (r.invoice_number?.toLowerCase().includes(searchLower))
+            // Search logic (ism, kitob nomi, talaba HEMIS ID, invois raqami, telefon, email)
+            const searchLower = (search || '').trim().toLowerCase()
+            const matchSearch = !searchLower || (
+                String(r.book_title || '').toLowerCase().includes(searchLower) ||
+                String(r.user_full_name || '').toLowerCase().includes(searchLower) ||
+                String(r.user_id || '').toLowerCase().includes(searchLower) ||
+                String(r.invoice_number || '').toLowerCase().includes(searchLower) ||
+                String(r.phone || '').toLowerCase().includes(searchLower) ||
+                String(r.email || '').toLowerCase().includes(searchLower)
+            )
 
             if (!matchSearch) return false;
 
@@ -105,17 +108,25 @@ export default function EmployeeRentalsPage() {
         return { color: '#60a5fa', bg: 'rgba(96, 165, 250, 0.1)', icon: <Clock size={16} />, label: 'Ijarada' }
     }
 
-    const formatDate = (dateStr: string) => {
-        const d = new Date(dateStr)
-        const day = d.getDate().toString().padStart(2, '0')
-        const month = (d.getMonth() + 1).toString().padStart(2, '0')
-        const year = d.getFullYear()
-        return `${day}.${month}.${year}`
+    const formatDate = (dateStr?: string | null) => {
+        if (!dateStr) return '—'
+        try {
+            const d = new Date(dateStr)
+            if (isNaN(d.getTime())) return String(dateStr)
+            const day = d.getDate().toString().padStart(2, '0')
+            const month = (d.getMonth() + 1).toString().padStart(2, '0')
+            const year = d.getFullYear()
+            return `${day}.${month}.${year}`
+        } catch {
+            return String(dateStr)
+        }
     }
 
-    const getInitials = (name: string) => {
-        return name
+    const getInitials = (name?: string | null) => {
+        if (!name) return 'U'
+        return String(name)
             .split(' ')
+            .filter(Boolean)
             .map(n => n[0])
             .slice(0, 2)
             .join('')

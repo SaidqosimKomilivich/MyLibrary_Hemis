@@ -6,17 +6,18 @@ import React from 'react'
  * @param query - Qidiruv so'zi
  * @returns Highlighted React element(s) yoki oddiy string
  */
-export function highlightText(text: string | undefined | null, query: string): React.ReactNode {
-    if (!text) return text ?? ''
-    const q = query.trim()
-    if (!q) return text
+export function highlightText(text: any, query: string): React.ReactNode {
+    if (text === null || text === undefined) return ''
+    const textStr = String(text)
+    const q = (query || '').trim()
+    if (!q) return textStr
 
     try {
         const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
         const regex = new RegExp(`(${escaped})`, 'gi')
-        const parts = text.split(regex)
+        const parts = textStr.split(regex)
 
-        if (parts.length <= 1) return text
+        if (parts.length <= 1) return textStr
 
         const qLower = q.toLowerCase()
 
@@ -43,6 +44,6 @@ export function highlightText(text: string | undefined | null, query: string): R
             </>
         )
     } catch {
-        return text
+        return textStr
     }
 }

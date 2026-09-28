@@ -397,8 +397,9 @@ function extractIdFromScannedText(rawText: string): string {
         setRentalsLoading(true)
         try {
             const res = await api.getRentals('active', userId)
-            setActiveRentals(res.data)
+            setActiveRentals(Array.isArray(res?.data) ? res.data : [])
         } catch {
+            setActiveRentals([])
             toast.error("Ijaralarni yuklashda xatolik")
         } finally {
             setRentalsLoading(false)
@@ -438,17 +439,17 @@ function extractIdFromScannedText(rawText: string): string {
 
     // ──── Rental qoidalari va hisoblashlar ────
     const availableSlots = useMemo(() => {
-        return Math.max(0, MAX_RENTAL_LIMIT - activeRentals.length)
+        return Math.max(0, MAX_RENTAL_LIMIT - (activeRentals || []).length)
     }, [activeRentals])
 
     const hasOverdueRentals = useMemo(() => {
-        return activeRentals.some(r => getDeadlineInfo(r.due_date).color === 'danger')
+        return (activeRentals || []).some(r => r?.due_date && getDeadlineInfo(r.due_date).color === 'danger')
     }, [activeRentals])
 
     const duplicateInvoices = useMemo(() => {
         const counts: Record<string, number> = {}
-        selectedBooks.forEach(b => {
-            const inv = b.invoiceNumber.trim().toLowerCase()
+        ;(selectedBooks || []).forEach(b => {
+            const inv = String(b?.invoiceNumber || '').trim().toLowerCase()
             if (inv) counts[inv] = (counts[inv] || 0) + 1
         })
         return new Set(Object.keys(counts).filter(k => counts[k] > 1))
@@ -461,8 +462,8 @@ function extractIdFromScannedText(rawText: string): string {
         setIsSearchingBooks(true)
         try {
             const res = await api.getBooks({ search: query, limit: 30 })
-            setSearchResults(res.data || [])
-            if (!res.data || res.data.length === 0) {
+            setSearchResults(Array.isArray(res?.data) ? res.data : [])
+            if (!res?.data || res.data.length === 0) {
                 toast.info("Kitob topilmadi")
             }
         } catch (err: any) {
@@ -481,12 +482,12 @@ function extractIdFromScannedText(rawText: string): string {
             toast.warning(`Kitob olish limiti cheklangan (maksimum ${MAX_RENTAL_LIMIT} ta). Qo'shimcha kitob qo'shib bo'lmaydi!`)
             return
         }
-        if (selectedBooks.some(item => item.book.id === book.id)) {
+        if ((selectedBooks || []).some(item => item?.book?.id === book.id)) {
             toast.info(`"${book.title}" allaqachon ro'yxatga qo'shilgan`)
             return
         }
         // Foydalanuvchida bu kitob allaqachon aktiv ijarada bormi?
-        if (activeRentals.some(r => r.book_id === book.id)) {
+        if ((activeRentals || []).some(r => r && r.book_id === book.id)) {
             toast.warning(`"${book.title}" kitobini foydalanuvchi allaqachon olgan va hali qaytarmagan!`)
             return
         }
@@ -630,9 +631,9 @@ function extractIdFromScannedText(rawText: string): string {
 
     // ──── Sort rentals: overdue first, then by deadline ────
     const sortedRentals = useMemo(() => {
-        return [...activeRentals].sort((a, b) => {
-            const dA = new Date(a.due_date).getTime()
-            const dB = new Date(b.due_date).getTime()
+        return [...(activeRentals || [])].sort((a, b) => {
+            const dA = a?.due_date ? new Date(a.due_date).getTime() : 0
+            const dB = b?.due_date ? new Date(b.due_date).getTime() : 0
             return dA - dB
         })
     }, [activeRentals])
@@ -1289,11 +1290,12 @@ function extractIdFromScannedText(rawText: string): string {
                                     </div>
 
                                     {/* Qidiruv natijalari */}
-                                    {searchResults.length > 0 && (
+                                    {(searchResults || []).length > 0 && (
                                         <div className="flex flex-col gap-1 max-h-52 overflow-y-auto border border-border rounded-xl p-1.5 bg-surface-hover/30 custom-scrollbar">
-                                            {searchResults.map(book => {
-                                                const isAlreadyAdded = selectedBooks.some(item => item.book.id === book.id)
-                                                const isAlreadyBorrowed = activeRentals.some(r => r.book_id === book.id)
+                                            {(searchResults || []).map(book => {
+                                                if (!book) return null
+                                                const isAlreadyAdded = (selectedBooks || []).some(item => item?.book?.id === book.id)
+                                                const isAlreadyBorrowed = (activeRentals || []).some(r => r && r.book_id === book.id)
                                                 const isAvailable = (book.available_quantity || 0) > 0 && !isAlreadyBorrowed
                                                 const pubYear = formatPublicationYear(book)
 

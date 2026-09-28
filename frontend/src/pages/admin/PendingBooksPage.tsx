@@ -92,9 +92,9 @@ export default function PendingBooksPage() {
         if (!book) return false
         if (!searchLower) return true
         return Boolean(
-            (book.title?.toLowerCase().includes(searchLower)) ||
-            (book.author?.toLowerCase().includes(searchLower)) ||
-            (book.category?.toLowerCase().includes(searchLower))
+            String(book.title || '').toLowerCase().includes(searchLower) ||
+            String(book.author || '').toLowerCase().includes(searchLower) ||
+            String(book.category || '').toLowerCase().includes(searchLower)
         )
     })
 
