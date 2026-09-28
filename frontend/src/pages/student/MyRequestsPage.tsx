@@ -77,11 +77,22 @@ export default function MyRequestsPage() {
                             <div key={req.id} className="bg-surface border border-border rounded-xl p-5 flex flex-col gap-4">
                                 <div className="flex justify-between items-start flex-wrap gap-3">
                                     <div className="flex gap-4 items-center">
-                                        <div className="w-12 h-12 rounded-lg bg-surface-hover flex items-center justify-center">
-                                            <Book size={24} className="text-text-muted" />
-                                        </div>
+                                        {req.cover_image_url ? (
+                                            <img
+                                                src={req.cover_image_url}
+                                                alt={req.book_title}
+                                                className="w-12 h-16 object-cover rounded-lg border border-border shadow-sm shrink-0"
+                                            />
+                                        ) : (
+                                            <div className="w-12 h-12 rounded-lg bg-surface-hover flex items-center justify-center shrink-0">
+                                                <Book size={24} className="text-text-muted" />
+                                            </div>
+                                        )}
                                         <div>
                                             <div className="font-semibold text-[1.1rem] text-text">{req.book_title}</div>
+                                            {req.book_author && (
+                                                <div className="text-[0.85rem] text-text-muted mt-0.5">{req.book_author}</div>
+                                            )}
                                             <div className="text-[0.85rem] text-text-muted mt-1">
                                                 Turi: <span className="font-medium text-text">{getTypeLabel(req.request_type)}</span>
                                             </div>

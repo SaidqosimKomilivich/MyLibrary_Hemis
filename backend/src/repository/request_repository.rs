@@ -37,7 +37,12 @@ impl RequestRepository {
                 r."id", r."user_id", r."book_id", r."request_type", 
                 r."status", r."employee_comment", r."created_at", r."updated_at",
                 u."full_name" as "user_name",
-                b."title" as "book_title"
+                b."title" as "book_title",
+                b."author" as "book_author",
+                b."available_quantity",
+                b."total_quantity",
+                b."shelf_location",
+                b."cover_image_url"
             FROM "book_requests" r
             JOIN "users" u ON r."user_id" = u."id"
             JOIN "book" b ON r."book_id" = b."id"
@@ -68,7 +73,12 @@ impl RequestRepository {
                 r."id", r."user_id", r."book_id", r."request_type", 
                 r."status", r."employee_comment", r."created_at", r."updated_at",
                 u."full_name" as "user_name",
-                b."title" as "book_title"
+                b."title" as "book_title",
+                b."author" as "book_author",
+                b."available_quantity",
+                b."total_quantity",
+                b."shelf_location",
+                b."cover_image_url"
             FROM "book_requests" r
             JOIN "users" u ON r."user_id" = u."id"
             JOIN "book" b ON r."book_id" = b."id"
@@ -89,7 +99,7 @@ impl RequestRepository {
 
         if search.is_some() {
             let s_clause = format!(
-                r#" AND (LOWER(u."full_name") LIKE LOWER(${0}::text) OR LOWER(b."title") LIKE LOWER(${0}::text))"#,
+                r#" AND (LOWER(u."full_name") LIKE LOWER(${0}::text) OR LOWER(b."title") LIKE LOWER(${0}::text) OR LOWER(b."author") LIKE LOWER(${0}::text))"#,
                 param_idx
             );
             query.push_str(&s_clause);

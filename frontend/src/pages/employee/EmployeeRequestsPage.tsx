@@ -1,10 +1,17 @@
 import { useState, useEffect } from 'react'
 import { api, type BookRequest } from '../../services/api'
-import { Search, Loader2, X, CheckCircle, XCircle, Clock, AlertCircle, BookOpen, Calendar, ChevronLeft, ChevronRight, MessageSquare } from 'lucide-react'
+import { Search, Loader2, X, CheckCircle, XCircle, Clock, AlertCircle, AlertTriangle, BookOpen, Calendar, ChevronLeft, ChevronRight, MessageSquare, Layers, MapPin } from 'lucide-react'
 import { toast } from 'react-toastify'
 import { createPortal } from 'react-dom'
 import { CustomSelect } from '../../components/CustomSelect'
 import { highlightText } from '../../utils/highlightText'
+
+const getShelfDisplay = (shelf?: string | null): string | null => {
+    if (!shelf) return null
+    const trimmed = shelf.trim()
+    if (!trimmed || trimmed === '-' || trimmed.toLowerCase() === 'null') return null
+    return trimmed
+}
 
 export default function EmployeeRequestsPage() {
     const [requests, setRequests] = useState<BookRequest[]>([])
@@ -163,14 +170,62 @@ export default function EmployeeRequestsPage() {
                                     </div>
                                 </div>
 
-                                <div className="bg-surface-hover/50 border border-border rounded-2xl p-5 mb-6 flex-1">
-                                    <h4 className="text-[1.2rem] font-bold text-text m-0 mb-3 flex items-start gap-2.5 leading-snug">
-                                        <BookOpen size={20} className="text-blue-400 shrink-0 mt-0.5" />
-                                        {highlightText(req.book_title, search)}
-                                    </h4>
-                                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold ${req.request_type === 'physical' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-pink-500/10 text-pink-400'}`}>
-                                        {req.request_type === 'physical' ? '📚 Asl nusxa (Kitob)' : '💻 Elektron variant (PDF/Audio)'}
-                                    </span>
+                                <div className="bg-surface-hover/50 border border-border rounded-2xl p-5 mb-6 flex-1 flex flex-col justify-between">
+                                    <div>
+                                        <h4 className="text-[1.2rem] font-bold text-text m-0 mb-1.5 flex items-start gap-2.5 leading-snug">
+                                            <BookOpen size={20} className="text-blue-400 shrink-0 mt-0.5" />
+                                            {highlightText(req.book_title, search)}
+                                        </h4>
+                                        {req.book_author && (
+                                            <p className="m-0 mb-3 text-[0.88rem] text-text-muted pl-7">
+                                                {highlightText(req.book_author, search)}
+                                            </p>
+                                        )}
+                                        <div className="flex flex-wrap items-center gap-2 mb-3">
+                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold ${req.request_type === 'physical' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-purple-500/10 text-purple-400 border border-purple-500/20'}`}>
+                                                {req.request_type === 'physical' ? '📚 Asl nusxa' : '💻 Elektron variant'}
+                                            </span>
+                                            {(() => {
+                                                const shelf = getShelfDisplay(req.shelf_location)
+                                                if (shelf) {
+                                                    return (
+                                                        <span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-text-muted bg-surface border border-border">
+                                                            <MapPin size={13} className="text-amber-400" />
+                                                            Javon: {shelf}
+                                                        </span>
+                                                    )
+                                                }
+                                                return (
+                                                    <span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-text-muted/60 bg-surface/40 border border-border/40 italic">
+                                                        <MapPin size={13} className="opacity-40" />
+                                                        Javon: Belgilanmagan
+                                                    </span>
+                                                )
+                                            })()}
+                                        </div>
+                                    </div>
+
+                                    {/* Fonddagi nusxalar soni indikatori */}
+                                    <div className="pt-3 border-t border-border/60">
+                                        {(req.available_quantity ?? 0) <= 0 ? (
+                                            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/25 text-red-400 text-xs font-semibold">
+                                                <AlertTriangle size={15} className="shrink-0 text-red-400" />
+                                                <span>Kutubxona fondida yo'q (0 ta mavjud)</span>
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-xs font-semibold">
+                                                <div className="flex items-center gap-1.5">
+                                                    <CheckCircle size={15} className="shrink-0 text-emerald-400" />
+                                                    <span>Fondda mavjud: {req.available_quantity} ta</span>
+                                                </div>
+                                                {req.total_quantity !== undefined && req.total_quantity !== null && (
+                                                    <span className="text-emerald-400/80 text-[0.75rem] font-normal">
+                                                        (jami: {req.total_quantity} ta)
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
 
                                 <div className="flex justify-between items-center pt-4 border-t border-dashed border-border">
@@ -221,19 +276,125 @@ export default function EmployeeRequestsPage() {
                         </div>
 
                         <div className="p-8">
-                            <div className="bg-blue-500/5 border border-blue-500/20 rounded-2xl p-5 mb-6">
-                                <div className="flex items-center gap-3 mb-3">
-                                    <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
+                            <div className="bg-surface-hover border border-border rounded-2xl p-5 mb-6 space-y-4">
+                                {/* Foydalanuvchi qismi */}
+                                <div className="flex items-center gap-3">
+                                    <div className="w-11 h-11 rounded-full bg-linear-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold shrink-0 shadow-md shadow-blue-500/30">
                                         {getInitials(selectedRequest.user_name)}
                                     </div>
-                                    <div>
-                                        <div className="text-text font-semibold">{selectedRequest.user_name}</div>
-                                        <div className="text-text-muted text-[0.85rem]">{formatDate(selectedRequest.created_at)}</div>
+                                    <div className="min-w-0 flex-1">
+                                        <div className="text-text font-semibold text-[1.05rem] truncate">{selectedRequest.user_name}</div>
+                                        <div className="text-text-muted text-[0.82rem] flex items-center gap-1 mt-0.5">
+                                            <Calendar size={13} /> {formatDate(selectedRequest.created_at)}
+                                        </div>
+                                    </div>
+                                    <div className="shrink-0">
+                                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold ${selectedRequest.request_type === 'physical' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-purple-500/10 text-purple-400 border border-purple-500/20'}`}>
+                                            {selectedRequest.request_type === 'physical' ? '📚 Asl nusxa' : '💻 Elektron'}
+                                        </span>
                                     </div>
                                 </div>
-                                <div className="text-text text-[0.95rem] leading-normal bg-surface-hover p-3 rounded-lg">
-                                    <span className="text-blue-400 font-semibold">So'ralgan kitob:</span> {selectedRequest.book_title} <br />
-                                    <span className="text-purple-400 font-semibold">So'rov turi:</span> {selectedRequest.request_type === 'physical' ? 'Asl nusxa' : 'Elektron variant'}
+
+                                {/* So'ralgan kitob kartasi */}
+                                <div className="p-4 rounded-xl bg-surface border border-border/80">
+                                    <div className="flex items-start gap-3.5">
+                                        {selectedRequest.cover_image_url ? (
+                                            <img
+                                                src={selectedRequest.cover_image_url}
+                                                alt={selectedRequest.book_title}
+                                                className="w-12 h-16 object-cover rounded-lg border border-border shadow-sm shrink-0"
+                                            />
+                                        ) : (
+                                            <div className="w-12 h-16 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shrink-0">
+                                                <BookOpen size={24} />
+                                            </div>
+                                        )}
+                                        <div className="min-w-0 flex-1">
+                                            <span className="text-[0.75rem] font-bold text-blue-400 uppercase tracking-wider">So'ralgan kitob</span>
+                                            <h3 className="text-text font-bold text-[1.1rem] m-0 mt-0.5 leading-snug">
+                                                {selectedRequest.book_title}
+                                            </h3>
+                                            {selectedRequest.book_author && (
+                                                <p className="text-text-muted text-[0.85rem] m-0 mt-1">
+                                                    Muallif: <span className="text-text font-medium">{selectedRequest.book_author}</span>
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* KUTUBXONA FONDI MA'LUMOTLARI (FOND CHEGARASI VA MAVJUDLIGI) */}
+                                    <div className="mt-4 pt-3.5 border-t border-border/60">
+                                        {(selectedRequest.available_quantity ?? 0) <= 0 ? (
+                                            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-200">
+                                                <div className="flex items-center gap-2 font-bold text-red-400 text-[1rem]">
+                                                    <AlertTriangle size={20} className="shrink-0 text-red-400" />
+                                                    <span>Kutubxona fondida bu kitob yo'q! (0 ta qolgan)</span>
+                                                </div>
+                                                <p className="m-0 mt-1.5 text-[0.85rem] text-red-200/90 leading-relaxed">
+                                                    Kitobning fonddagi mavjud nusxalari soni <strong>0 ga teng</strong>. 
+                                                    {selectedRequest.total_quantity && selectedRequest.total_quantity > 0 
+                                                        ? ` Jami fondda ${selectedRequest.total_quantity} ta nusxa mavjud, ammo barchasi boshqa kitobxonlarga berilgan.` 
+                                                        : ' Kutubxona fondida ushbu kitobdan nusxa mavjud emas.'}
+                                                </p>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setUpdateStatus('rejected')
+                                                        setUpdateComment("Hurmatli kitobxon, afsuski, so'ralgan kitob ayni vaqtda kutubxona fondida mavjud emas (0 ta qolgan). Yangi nusxalar kelganda yana so'rov yuborishingiz mumkin.")
+                                                    }}
+                                                    className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs font-semibold border border-red-500/40 cursor-pointer transition-colors"
+                                                >
+                                                    <XCircle size={14} />
+                                                    "Rad etish" holatini tanlash va izoh to'ldirish
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-200">
+                                                <div className="flex items-center justify-between flex-wrap gap-2">
+                                                    <div className="flex items-center gap-2 font-bold text-emerald-400 text-[1rem]">
+                                                        <CheckCircle size={20} className="shrink-0 text-emerald-400" />
+                                                        <span>Kutubxona fondida bor: {selectedRequest.available_quantity} ta mavjud</span>
+                                                    </div>
+                                                    {selectedRequest.total_quantity !== undefined && selectedRequest.total_quantity !== null && (
+                                                        <span className="text-xs bg-emerald-500/20 border border-emerald-500/30 px-2.5 py-1 rounded-full text-emerald-300 font-semibold flex items-center gap-1">
+                                                            <Layers size={13} /> Jami: {selectedRequest.total_quantity} ta
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {(() => {
+                                                    const shelf = getShelfDisplay(selectedRequest.shelf_location)
+                                                    if (shelf) {
+                                                        return (
+                                                            <p className="m-0 mt-2 text-[0.85rem] text-emerald-200/90 flex items-center gap-1.5">
+                                                                <MapPin size={15} className="text-amber-400 shrink-0" />
+                                                                <span>Kutubxona javoni:</span>
+                                                                <strong className="text-white bg-black/20 px-2 py-0.5 rounded border border-white/10">{shelf}</strong>
+                                                            </p>
+                                                        )
+                                                    }
+                                                    return (
+                                                        <p className="m-0 mt-2 text-[0.82rem] text-emerald-200/70 flex items-center gap-1.5">
+                                                            <MapPin size={15} className="text-amber-400/50 shrink-0" />
+                                                            <span>Kutubxona javoni:</span>
+                                                            <span className="text-emerald-300/80 italic bg-black/15 px-2 py-0.5 rounded border border-white/5">Bazada belgilanmagan</span>
+                                                        </p>
+                                                    )
+                                                })()}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const shelf = getShelfDisplay(selectedRequest.shelf_location)
+                                                        setUpdateStatus('ready')
+                                                        setUpdateComment(`Hurmatli kitobxon, kitobingiz tayyorlandi. Kutubxonadan kelib olishingiz mumkin.${shelf ? ` (Javon: ${shelf})` : ''}`)
+                                                    }}
+                                                    className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-xs font-semibold border border-emerald-500/40 cursor-pointer transition-colors"
+                                                >
+                                                    <CheckCircle size={14} />
+                                                    "Tayyor" holatini tanlash va izoh to'ldirish
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
@@ -253,25 +414,72 @@ export default function EmployeeRequestsPage() {
                                     ]}
                                     buttonClassName="w-full bg-surface-hover border border-border py-4 px-5 rounded-xl text-text text-[1.05rem] transition-all focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-400/15"
                                 />
+                                {updateStatus === 'ready' && (selectedRequest.available_quantity ?? 0) <= 0 && (
+                                    <div className="mt-2.5 flex items-center gap-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs">
+                                        <AlertTriangle size={16} className="text-amber-400 shrink-0" />
+                                        <span>Diqqat: Ushbu kitob fondda 0 ta (mavjud emas). Tasdiqlashdan avval mavjudligini qayta tekshiring!</span>
+                                    </div>
+                                )}
                             </div>
 
                             <div>
-                                <label className="flex items-center gap-2 mb-3 text-[0.95rem] text-text-muted font-medium">
-                                    <MessageSquare size={18} className="text-purple-400" />
-                                    Izoh qoldirish (Talaba buni ko'radi)
-                                </label>
+                                <div className="flex items-center justify-between mb-2.5">
+                                    <label className="flex items-center gap-2 text-[0.95rem] text-slate-200 font-medium">
+                                        <MessageSquare size={18} className="text-purple-400" />
+                                        <span>Kutubxonachi javob izohi</span>
+                                        <span className="text-xs text-text-muted font-normal">(o'zingiz erkin matn yozishingiz mumkin)</span>
+                                    </label>
+                                    {updateComment && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setUpdateComment('')}
+                                            className="text-xs text-red-400 hover:text-red-300 transition-colors flex items-center gap-1 cursor-pointer bg-transparent border-none p-0"
+                                            title="Izohni tozalash"
+                                        >
+                                            <X size={13} /> Tozalash
+                                        </button>
+                                    )}
+                                </div>
                                 <textarea
                                     value={updateComment}
                                     onChange={(e) => setUpdateComment(e.target.value)}
-                                    placeholder="Masalan: Kitobni kutubxonadan kelib olishingiz mumkin..."
+                                    placeholder="Foydalanuvchiga yuboriladigan javob yoki tushuntirishni bu yerga erkin yozing (masalan: kitob ertaga keladi, boshqa bo'limdan olishingiz mumkin, 3-qavatdagi zaldan oling va h.k.)..."
                                     rows={4}
                                     className="w-full p-4 rounded-2xl bg-surface-hover border border-border text-text outline-none text-[0.95rem] resize-y font-inherit transition-all focus:border-blue-400 focus:ring-4 focus:ring-blue-400/15"
                                 />
+
+                                {/* Tezkor yordamchi iboralar (ixtiyoriy) */}
+                                <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                                    <span className="text-[0.78rem] text-text-muted mr-1">Tezkor shablon qo'shish:</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => setUpdateComment(prev => prev ? `${prev} Kitob tayyorlandi, kutubxonadan kelib olishingiz mumkin.` : 'Kitob tayyorlandi, kutubxonadan kelib olishingiz mumkin.')}
+                                        className="px-2.5 py-1 rounded-lg bg-surface border border-border hover:border-blue-400/40 hover:text-text text-text-muted text-xs cursor-pointer transition-colors"
+                                    >
+                                        + "Kelib olishingiz mumkin"
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setUpdateComment(prev => prev ? `${prev} Barcha nusxalar hozirda boshqa kitobxonlarda, navbatga qo'yildi.` : 'Barcha nusxalar hozirda boshqa kitobxonlarda, navbatga qo\'yildi.')}
+                                        className="px-2.5 py-1 rounded-lg bg-surface border border-border hover:border-blue-400/40 hover:text-text text-text-muted text-xs cursor-pointer transition-colors"
+                                    >
+                                        + "Barcha nusxalar band"
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setUpdateComment(prev => prev ? `${prev} Afsuski, kitob ayni vaqtda fondda mavjud emas.` : 'Afsuski, ushbu kitob ayni vaqtda fondda mavjud emas.')}
+                                        className="px-2.5 py-1 rounded-lg bg-surface border border-border hover:border-blue-400/40 hover:text-text text-text-muted text-xs cursor-pointer transition-colors"
+                                    >
+                                        + "Fondda mavjud emas"
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
                         <div className="bg-surface-hover/50 px-8 py-5 border-t border-border flex justify-end gap-4">
                             <button
+                                type="button"
+                                onClick={() => !isUpdating && setModalOpen(false)}
                                 disabled={isUpdating}
                                 className="px-6 py-3 rounded-xl bg-transparent border border-border text-text font-semibold cursor-pointer transition-all hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed"
                             >

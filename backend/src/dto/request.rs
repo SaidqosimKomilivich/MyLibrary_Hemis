@@ -21,6 +21,11 @@ pub struct BookRequestResponse {
     pub book_id: Uuid,
     pub user_name: String,  // JOIN orqali olinadi
     pub book_title: String, // JOIN orqali olinadi
+    pub book_author: Option<String>,
+    pub available_quantity: Option<i32>,
+    pub total_quantity: Option<i32>,
+    pub shelf_location: Option<String>,
+    pub cover_image_url: Option<String>,
     pub request_type: String,
     pub status: String,
     pub employee_comment: Option<String>,

@@ -224,6 +224,11 @@ export interface BookRequest {
     book_id: string
     user_name: string
     book_title: string
+    book_author?: string | null
+    available_quantity?: number | null
+    total_quantity?: number | null
+    shelf_location?: string | null
+    cover_image_url?: string | null
     request_type: string
     status: string
     employee_comment: string | null
