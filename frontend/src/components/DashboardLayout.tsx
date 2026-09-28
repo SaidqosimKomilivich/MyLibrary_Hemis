@@ -147,9 +147,12 @@ export default function DashboardLayout({ role }: DashboardLayoutProps) {
 
         fetchPendingCount()
         const interval = setInterval(fetchPendingCount, 30000)
+        window.addEventListener('requestStatusUpdated', fetchPendingCount)
+
         return () => {
             isMounted = false
             clearInterval(interval)
+            window.removeEventListener('requestStatusUpdated', fetchPendingCount)
         }
     }, [isAuthenticated, role, location.pathname])
 

@@ -63,6 +63,7 @@ export default function EmployeeRequestsPage() {
         try {
             await api.updateRequestStatus(selectedRequest.id, updateStatus, updateComment || null)
             toast.success("So'rov muvaffaqiyatli yangilandi!")
+            window.dispatchEvent(new Event('requestStatusUpdated'))
             setModalOpen(false)
             setSelectedRequest(null)
             fetchRequests()
@@ -117,7 +118,7 @@ export default function EmployeeRequestsPage() {
                         type="text"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Murojaat id orqali qidirish..."
+                        placeholder="Kitob nomi, muallif yoki kitobxon ismi bo'yicha qidirish..."
                         className="w-full bg-surface-hover border border-border py-4 pr-5 pl-12 rounded-xl text-text text-[1.05rem] transition-all focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-400/15"
                     />
                 </div>
