@@ -50,6 +50,24 @@ export default function EmployeeRequestsPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [page, search, statusFilter])
 
+    // Modal ochiq bo'lganda orqa fon sahifasi skrolini bloklash va Escape bilan yopish
+    useEffect(() => {
+        if (modalOpen) {
+            const originalOverflow = document.body.style.overflow
+            document.body.style.overflow = 'hidden'
+            const handleKeyDown = (e: KeyboardEvent) => {
+                if (e.key === 'Escape' && !isUpdating) {
+                    setModalOpen(false)
+                }
+            }
+            window.addEventListener('keydown', handleKeyDown)
+            return () => {
+                document.body.style.overflow = originalOverflow
+                window.removeEventListener('keydown', handleKeyDown)
+            }
+        }
+    }, [modalOpen, isUpdating])
+
     const handleActionClick = (req: BookRequest) => {
         setSelectedRequest(req)
         setUpdateStatus(req.status === 'pending' ? 'processing' : req.status)
@@ -244,7 +262,7 @@ export default function EmployeeRequestsPage() {
 
                                 <div className="flex justify-between items-center pt-4 border-t border-dashed border-border">
                                     <button className="w-full flex items-center justify-center gap-2 bg-blue-500 text-white border-none py-3 px-6 rounded-xl font-semibold text-[0.95rem] cursor-pointer transition-all shadow-[0_8px_20px_-6px_rgba(59,130,246,0.5)] hover:bg-blue-600 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_-8px_rgba(59,130,246,0.6)]" onClick={() => handleActionClick(req)}>
-                                        Amal bajarish
+                                        Javob berish
                                     </button>
                                 </div>
                             </div>
@@ -277,33 +295,33 @@ export default function EmployeeRequestsPage() {
 
             {/* Action Modal */}
             {modalOpen && selectedRequest && createPortal(
-                <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-9999 animate-in fade-in duration-200 p-4" onClick={() => !isUpdating && setModalOpen(false)}>
-                    <div className="bg-surface border border-border rounded-3xl w-full max-w-137.5 shadow-2xl animate-in fade-in zoom-in-95 duration-200 overflow-hidden relative" onClick={(e) => e.stopPropagation()}>
-                        <div className="bg-surface-hover/50 px-8 py-6 border-b border-border flex justify-between items-center">
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-9999 animate-in fade-in duration-200 p-3 sm:p-4 overflow-y-auto" onClick={() => !isUpdating && setModalOpen(false)}>
+                    <div className="bg-surface border border-border rounded-2xl sm:rounded-3xl w-full max-w-130.5 max-h-[88vh] flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-200 overflow-hidden relative my-auto" onClick={(e) => e.stopPropagation()}>
+                        <div className="bg-surface-hover/50 px-6 py-4.5 border-b border-border flex justify-between items-center shrink-0">
                             <div>
-                                <h2 className="m-0 mb-1 text-[1.4rem] text-text font-bold">So'rov tartibi</h2>
-                                <p className="m-0 text-text-muted text-[0.9rem]">Foydalanuvchiga kerakli javobni taqdim eting</p>
+                                <h2 className="m-0 mb-1 text-[1.25rem] text-text font-bold">So'rov tartibi</h2>
+                                <p className="m-0 text-text-muted text-[0.82rem]">Foydalanuvchiga kerakli javobni taqdim eting</p>
                             </div>
-                            <button onClick={() => !isUpdating && setModalOpen(false)} className="bg-white/10 border-none text-white w-9 h-9 rounded-full flex items-center justify-center cursor-pointer transition-colors hover:bg-white/20">
-                                <X size={20} />
+                            <button onClick={() => !isUpdating && setModalOpen(false)} className="bg-white/10 border-none text-white w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-colors hover:bg-white/20">
+                                <X size={18} />
                             </button>
                         </div>
 
-                        <div className="p-8">
-                            <div className="bg-surface-hover border border-border rounded-2xl p-5 mb-6 space-y-4">
+                        <div className="p-5 sm:p-6 overflow-y-auto flex-1 overscroll-contain custom-scrollbar space-y-5">
+                            <div className="bg-surface-hover border border-border rounded-2xl p-4 space-y-3.5">
                                 {/* Foydalanuvchi qismi */}
                                 <div className="flex items-center gap-3">
-                                    <div className="w-11 h-11 rounded-full bg-linear-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold shrink-0 shadow-md shadow-blue-500/30">
+                                    <div className="w-10 h-10 rounded-full bg-linear-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-bold shrink-0 shadow-md shadow-blue-500/30">
                                         {getInitials(selectedRequest.user_name)}
                                     </div>
                                     <div className="min-w-0 flex-1">
-                                        <div className="text-text font-semibold text-[1.05rem] truncate">{selectedRequest.user_name}</div>
-                                        <div className="text-text-muted text-[0.82rem] flex items-center gap-1 mt-0.5">
+                                        <div className="text-text font-semibold text-[0.98rem] truncate">{selectedRequest.user_name}</div>
+                                        <div className="text-text-muted text-[0.8rem] flex items-center gap-1 mt-0.5">
                                             <Calendar size={13} /> {formatDate(selectedRequest.created_at)}
                                         </div>
                                     </div>
                                     <div className="shrink-0">
-                                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold ${selectedRequest.request_type === 'physical' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-purple-500/10 text-purple-400 border border-purple-500/20'}`}>
+                                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[0.75rem] font-semibold ${selectedRequest.request_type === 'physical' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-purple-500/10 text-purple-400 border border-purple-500/20'}`}>
                                             {selectedRequest.request_type === 'physical' ? '📚 Asl nusxa' : '💻 Elektron'}
                                         </span>
                                     </div>
@@ -311,40 +329,40 @@ export default function EmployeeRequestsPage() {
 
                                 {/* Agar oldinroq xodim javob bergan bo'lsa */}
                                 {selectedRequest.employee_name && (
-                                    <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/25 text-xs">
-                                        <div className="flex items-center gap-2">
-                                            <ShieldCheck size={16} className="text-blue-400 shrink-0" />
+                                    <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-blue-500/10 border border-blue-500/25 text-xs">
+                                        <div className="flex items-center gap-1.5">
+                                            <ShieldCheck size={15} className="text-blue-400 shrink-0" />
                                             <span className="text-text-muted">
-                                                Javob bergan xodim: <strong className="text-blue-300 font-semibold">{selectedRequest.employee_name}</strong>
+                                                Javob bergan: <strong className="text-blue-300 font-semibold">{selectedRequest.employee_name}</strong>
                                             </span>
                                         </div>
-                                        <span className="text-text-muted/70 text-[0.78rem]">
+                                        <span className="text-text-muted/70 text-[0.75rem]">
                                             {formatDate(selectedRequest.updated_at)}
                                         </span>
                                     </div>
                                 )}
 
                                 {/* So'ralgan kitob kartasi */}
-                                <div className="p-4 rounded-xl bg-surface border border-border/80">
-                                    <div className="flex items-start gap-3.5">
+                                <div className="p-3.5 rounded-xl bg-surface border border-border/80">
+                                    <div className="flex items-start gap-3">
                                         {selectedRequest.cover_image_url ? (
                                             <img
                                                 src={selectedRequest.cover_image_url}
                                                 alt={selectedRequest.book_title}
-                                                className="w-12 h-16 object-cover rounded-lg border border-border shadow-sm shrink-0"
+                                                className="w-11 h-15 object-cover rounded-lg border border-border shadow-sm shrink-0"
                                             />
                                         ) : (
-                                            <div className="w-12 h-16 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shrink-0">
-                                                <BookOpen size={24} />
+                                            <div className="w-11 h-15 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shrink-0">
+                                                <BookOpen size={22} />
                                             </div>
                                         )}
                                         <div className="min-w-0 flex-1">
-                                            <span className="text-[0.75rem] font-bold text-blue-400 uppercase tracking-wider">So'ralgan kitob</span>
-                                            <h3 className="text-text font-bold text-[1.1rem] m-0 mt-0.5 leading-snug">
+                                            <span className="text-[0.7rem] font-bold text-blue-400 uppercase tracking-wider">So'ralgan kitob</span>
+                                            <h3 className="text-text font-bold text-[1.02rem] m-0 mt-0.5 leading-snug">
                                                 {selectedRequest.book_title}
                                             </h3>
                                             {selectedRequest.book_author && (
-                                                <p className="text-text-muted text-[0.85rem] m-0 mt-1">
+                                                <p className="text-text-muted text-[0.82rem] m-0 mt-0.5">
                                                     Muallif: <span className="text-text font-medium">{selectedRequest.book_author}</span>
                                                 </p>
                                             )}
@@ -352,14 +370,14 @@ export default function EmployeeRequestsPage() {
                                     </div>
 
                                     {/* KUTUBXONA FONDI MA'LUMOTLARI (FOND CHEGARASI VA MAVJUDLIGI) */}
-                                    <div className="mt-4 pt-3.5 border-t border-border/60">
+                                    <div className="mt-3.5 pt-3 border-t border-border/60">
                                         {(selectedRequest.available_quantity ?? 0) <= 0 ? (
-                                            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-200">
-                                                <div className="flex items-center gap-2 font-bold text-red-400 text-[1rem]">
-                                                    <AlertTriangle size={20} className="shrink-0 text-red-400" />
+                                            <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-200">
+                                                <div className="flex items-center gap-2 font-bold text-red-400 text-[0.92rem]">
+                                                    <AlertTriangle size={18} className="shrink-0 text-red-400" />
                                                     <span>Kutubxona fondida bu kitob yo'q! (0 ta qolgan)</span>
                                                 </div>
-                                                <p className="m-0 mt-1.5 text-[0.85rem] text-red-200/90 leading-relaxed">
+                                                <p className="m-0 mt-1 text-[0.8rem] text-red-200/90 leading-relaxed">
                                                     Kitobning fonddagi mavjud nusxalari soni <strong>0 ga teng</strong>. 
                                                     {selectedRequest.total_quantity && selectedRequest.total_quantity > 0 
                                                         ? ` Jami fondda ${selectedRequest.total_quantity} ta nusxa mavjud, ammo barchasi boshqa kitobxonlarga berilgan.` 
@@ -371,22 +389,22 @@ export default function EmployeeRequestsPage() {
                                                         setUpdateStatus('rejected')
                                                         setUpdateComment("Hurmatli kitobxon, afsuski, so'ralgan kitob ayni vaqtda kutubxona fondida mavjud emas (0 ta qolgan). Yangi nusxalar kelganda yana so'rov yuborishingiz mumkin.")
                                                     }}
-                                                    className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs font-semibold border border-red-500/40 cursor-pointer transition-colors"
+                                                    className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs font-semibold border border-red-500/40 cursor-pointer transition-colors"
                                                 >
                                                     <XCircle size={14} />
                                                     "Rad etish" holatini tanlash va izoh to'ldirish
                                                 </button>
                                             </div>
                                         ) : (
-                                            <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-200">
+                                            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-200">
                                                 <div className="flex items-center justify-between flex-wrap gap-2">
-                                                    <div className="flex items-center gap-2 font-bold text-emerald-400 text-[1rem]">
-                                                        <CheckCircle size={20} className="shrink-0 text-emerald-400" />
+                                                    <div className="flex items-center gap-1.5 font-bold text-emerald-400 text-[0.92rem]">
+                                                        <CheckCircle size={18} className="shrink-0 text-emerald-400" />
                                                         <span>Kutubxona fondida bor: {selectedRequest.available_quantity} ta mavjud</span>
                                                     </div>
                                                     {selectedRequest.total_quantity !== undefined && selectedRequest.total_quantity !== null && (
-                                                        <span className="text-xs bg-emerald-500/20 border border-emerald-500/30 px-2.5 py-1 rounded-full text-emerald-300 font-semibold flex items-center gap-1">
-                                                            <Layers size={13} /> Jami: {selectedRequest.total_quantity} ta
+                                                        <span className="text-[0.72rem] bg-emerald-500/20 border border-emerald-500/30 px-2 py-0.5 rounded-full text-emerald-300 font-semibold flex items-center gap-1">
+                                                            <Layers size={12} /> Jami: {selectedRequest.total_quantity} ta
                                                         </span>
                                                     )}
                                                 </div>
@@ -394,18 +412,18 @@ export default function EmployeeRequestsPage() {
                                                     const shelf = getShelfDisplay(selectedRequest.shelf_location)
                                                     if (shelf) {
                                                         return (
-                                                            <p className="m-0 mt-2 text-[0.85rem] text-emerald-200/90 flex items-center gap-1.5">
-                                                                <MapPin size={15} className="text-amber-400 shrink-0" />
+                                                            <p className="m-0 mt-1.5 text-[0.8rem] text-emerald-200/90 flex items-center gap-1.5">
+                                                                <MapPin size={14} className="text-amber-400 shrink-0" />
                                                                 <span>Kutubxona javoni:</span>
-                                                                <strong className="text-white bg-black/20 px-2 py-0.5 rounded border border-white/10">{shelf}</strong>
+                                                                <strong className="text-white bg-black/20 px-1.5 py-0.5 rounded border border-white/10">{shelf}</strong>
                                                             </p>
                                                         )
                                                     }
                                                     return (
-                                                        <p className="m-0 mt-2 text-[0.82rem] text-emerald-200/70 flex items-center gap-1.5">
-                                                            <MapPin size={15} className="text-amber-400/50 shrink-0" />
+                                                        <p className="m-0 mt-1.5 text-[0.78rem] text-emerald-200/70 flex items-center gap-1.5">
+                                                            <MapPin size={14} className="text-amber-400/50 shrink-0" />
                                                             <span>Kutubxona javoni:</span>
-                                                            <span className="text-emerald-300/80 italic bg-black/15 px-2 py-0.5 rounded border border-white/5">Bazada belgilanmagan</span>
+                                                            <span className="text-emerald-300/80 italic bg-black/15 px-1.5 py-0.5 rounded border border-white/5">Bazada belgilanmagan</span>
                                                         </p>
                                                     )
                                                 })()}
@@ -416,7 +434,7 @@ export default function EmployeeRequestsPage() {
                                                         setUpdateStatus('ready')
                                                         setUpdateComment(`Hurmatli kitobxon, kitobingiz tayyorlandi. Kutubxonadan kelib olishingiz mumkin.${shelf ? ` (Javon: ${shelf})` : ''}`)
                                                     }}
-                                                    className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-xs font-semibold border border-emerald-500/40 cursor-pointer transition-colors"
+                                                    className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-xs font-semibold border border-emerald-500/40 cursor-pointer transition-colors"
                                                 >
                                                     <CheckCircle size={14} />
                                                     "Tayyor" holatini tanlash va izoh to'ldirish
@@ -427,9 +445,9 @@ export default function EmployeeRequestsPage() {
                                 </div>
                             </div>
 
-                            <div className="mb-6">
-                                <label className="flex items-center gap-2 mb-3 text-[0.95rem] text-slate-300 font-medium">
-                                    <AlertCircle size={18} className="text-blue-400" />
+                            <div>
+                                <label className="flex items-center gap-2 mb-2 text-[0.88rem] text-slate-300 font-medium">
+                                    <AlertCircle size={16} className="text-blue-400" />
                                     Joriy holatni yangilang
                                 </label>
                                 <CustomSelect
@@ -441,22 +459,22 @@ export default function EmployeeRequestsPage() {
                                         { value: 'ready', label: 'Tasdiqlash & Tayyor' },
                                         { value: 'rejected', label: 'Rad etish' }
                                     ]}
-                                    buttonClassName="w-full bg-surface-hover border border-border py-4 px-5 rounded-xl text-text text-[1.05rem] transition-all focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-400/15"
+                                    buttonClassName="w-full bg-surface-hover border border-border py-3 px-4 rounded-xl text-text text-[0.95rem] transition-all focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-400/15"
                                 />
                                 {updateStatus === 'ready' && (selectedRequest.available_quantity ?? 0) <= 0 && (
-                                    <div className="mt-2.5 flex items-center gap-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs">
-                                        <AlertTriangle size={16} className="text-amber-400 shrink-0" />
+                                    <div className="mt-2 flex items-center gap-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs">
+                                        <AlertTriangle size={15} className="text-amber-400 shrink-0" />
                                         <span>Diqqat: Ushbu kitob fondda 0 ta (mavjud emas). Tasdiqlashdan avval mavjudligini qayta tekshiring!</span>
                                     </div>
                                 )}
                             </div>
 
                             <div>
-                                <div className="flex items-center justify-between mb-2.5">
-                                    <label className="flex items-center gap-2 text-[0.95rem] text-slate-200 font-medium">
-                                        <MessageSquare size={18} className="text-purple-400" />
+                                <div className="flex items-center justify-between mb-2">
+                                    <label className="flex items-center gap-2 text-[0.88rem] text-slate-200 font-medium">
+                                        <MessageSquare size={16} className="text-purple-400" />
                                         <span>Kutubxonachi javob izohi</span>
-                                        <span className="text-xs text-text-muted font-normal">(o'zingiz erkin matn yozishingiz mumkin)</span>
+                                        <span className="text-xs text-text-muted font-normal">(ixtiyoriy)</span>
                                     </label>
                                     {updateComment && (
                                         <button
@@ -473,31 +491,31 @@ export default function EmployeeRequestsPage() {
                                     value={updateComment}
                                     onChange={(e) => setUpdateComment(e.target.value)}
                                     placeholder="Foydalanuvchiga yuboriladigan javob yoki tushuntirishni bu yerga erkin yozing (masalan: kitob ertaga keladi, boshqa bo'limdan olishingiz mumkin, 3-qavatdagi zaldan oling va h.k.)..."
-                                    rows={4}
-                                    className="w-full p-4 rounded-2xl bg-surface-hover border border-border text-text outline-none text-[0.95rem] resize-y font-inherit transition-all focus:border-blue-400 focus:ring-4 focus:ring-blue-400/15"
+                                    rows={3}
+                                    className="w-full p-3.5 rounded-xl bg-surface-hover border border-border text-text outline-none text-[0.9rem] resize-y font-inherit transition-all focus:border-blue-400 focus:ring-4 focus:ring-blue-400/15"
                                 />
 
                                 {/* Tezkor yordamchi iboralar (ixtiyoriy) */}
-                                <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-                                    <span className="text-[0.78rem] text-text-muted mr-1">Tezkor shablon qo'shish:</span>
+                                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                                    <span className="text-[0.75rem] text-text-muted mr-1">Tezkor shablon:</span>
                                     <button
                                         type="button"
                                         onClick={() => setUpdateComment(prev => prev ? `${prev} Kitob tayyorlandi, kutubxonadan kelib olishingiz mumkin.` : 'Kitob tayyorlandi, kutubxonadan kelib olishingiz mumkin.')}
-                                        className="px-2.5 py-1 rounded-lg bg-surface border border-border hover:border-blue-400/40 hover:text-text text-text-muted text-xs cursor-pointer transition-colors"
+                                        className="px-2 py-1 rounded-lg bg-surface border border-border hover:border-blue-400/40 hover:text-text text-text-muted text-xs cursor-pointer transition-colors"
                                     >
                                         + "Kelib olishingiz mumkin"
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => setUpdateComment(prev => prev ? `${prev} Barcha nusxalar hozirda boshqa kitobxonlarda, navbatga qo'yildi.` : 'Barcha nusxalar hozirda boshqa kitobxonlarda, navbatga qo\'yildi.')}
-                                        className="px-2.5 py-1 rounded-lg bg-surface border border-border hover:border-blue-400/40 hover:text-text text-text-muted text-xs cursor-pointer transition-colors"
+                                        className="px-2 py-1 rounded-lg bg-surface border border-border hover:border-blue-400/40 hover:text-text text-text-muted text-xs cursor-pointer transition-colors"
                                     >
                                         + "Barcha nusxalar band"
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => setUpdateComment(prev => prev ? `${prev} Afsuski, kitob ayni vaqtda fondda mavjud emas.` : 'Afsuski, ushbu kitob ayni vaqtda fondda mavjud emas.')}
-                                        className="px-2.5 py-1 rounded-lg bg-surface border border-border hover:border-blue-400/40 hover:text-text text-text-muted text-xs cursor-pointer transition-colors"
+                                        className="px-2 py-1 rounded-lg bg-surface border border-border hover:border-blue-400/40 hover:text-text text-text-muted text-xs cursor-pointer transition-colors"
                                     >
                                         + "Fondda mavjud emas"
                                     </button>
@@ -505,21 +523,21 @@ export default function EmployeeRequestsPage() {
                             </div>
                         </div>
 
-                        <div className="bg-surface-hover/50 px-8 py-5 border-t border-border flex justify-end gap-4">
+                        <div className="bg-surface-hover/50 px-6 py-4 border-t border-border flex justify-end gap-3 shrink-0">
                             <button
                                 type="button"
                                 onClick={() => !isUpdating && setModalOpen(false)}
                                 disabled={isUpdating}
-                                className="px-6 py-3 rounded-xl bg-transparent border border-border text-text font-semibold cursor-pointer transition-all hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="px-5 py-2.5 rounded-xl bg-transparent border border-border text-text text-[0.9rem] font-semibold cursor-pointer transition-all hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Bekor qilish
                             </button>
                             <button
                                 onClick={handleUpdateSubmit}
                                 disabled={isUpdating}
-                                className="px-7 py-3 rounded-xl bg-linear-to-br from-blue-500 to-purple-500 border-none text-white font-semibold cursor-pointer flex items-center gap-2.5 shadow-[0_8px_16px_-4px_rgba(59,130,246,0.5)] transition-transform hover:-translate-y-0.5 disabled:opacity-50 disabled:transform-none disabled:cursor-not-allowed"
+                                className="px-6 py-2.5 rounded-xl bg-linear-to-br from-blue-500 to-purple-500 border-none text-white text-[0.9rem] font-semibold cursor-pointer flex items-center gap-2 shadow-[0_8px_16px_-4px_rgba(59,130,246,0.5)] transition-transform hover:-translate-y-0.5 disabled:opacity-50 disabled:transform-none disabled:cursor-not-allowed"
                             >
-                                {isUpdating ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle size={18} />}
+                                {isUpdating ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
                                 {isUpdating ? 'Saqlanmoqda...' : 'Saqlash'}
                             </button>
                         </div>

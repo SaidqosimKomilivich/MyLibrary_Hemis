@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { Navigate } from 'react-router-dom'
 import {
     Activity,
@@ -77,6 +78,24 @@ export default function SystemLogsPage() {
         }, 300)
         return () => clearTimeout(timer)
     }, [searchQuery])
+
+    // Modal ochiq bo'lganda orqa fon sahifasi skrolini bloklash va Escape bilan yopish
+    useEffect(() => {
+        if (selectedLog) {
+            const originalOverflow = document.body.style.overflow
+            document.body.style.overflow = 'hidden'
+            const handleKeyDown = (e: KeyboardEvent) => {
+                if (e.key === 'Escape') {
+                    setSelectedLog(null)
+                }
+            }
+            window.addEventListener('keydown', handleKeyDown)
+            return () => {
+                document.body.style.overflow = originalOverflow
+                window.removeEventListener('keydown', handleKeyDown)
+            }
+        }
+    }, [selectedLog])
 
     // Loglarni yuklash
     const fetchLogs = useCallback(
@@ -643,14 +662,20 @@ export default function SystemLogsPage() {
             </div>
 
             {/* Log Tafsilotlari Modali (Inspector Drawer / Modal) */}
-            {selectedLog && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-110 flex items-center justify-center p-3 sm:p-5 animate-fadeIn">
-                    <div className="bg-surface border border-border rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-scaleIn">
+            {selectedLog && createPortal(
+                <div
+                    className="fixed inset-0 bg-black/70 backdrop-blur-md z-9999 flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-in fade-in duration-200"
+                    onClick={() => setSelectedLog(null)}
+                >
+                    <div
+                        className="bg-surface border border-border rounded-2xl max-w-3xl w-full max-h-[88vh] flex flex-col shadow-2xl overflow-hidden relative my-auto animate-in fade-in zoom-in-95 duration-200"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         {/* Modal Header */}
-                        <div className="p-4 sm:p-5 border-b border-border flex items-center justify-between bg-surface-hover/50">
+                        <div className="p-4 sm:p-5 border-b border-border flex items-center justify-between bg-surface-hover/50 shrink-0">
                             <div className="flex items-center gap-3">
                                 <div
-                                    className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                                    className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
                                         selectedLog.level === 'ERROR'
                                             ? 'bg-rose-500/20 text-rose-400'
                                             : selectedLog.level === 'WARN'
@@ -660,13 +685,13 @@ export default function SystemLogsPage() {
                                 >
                                     <Terminal size={19} />
                                 </div>
-                                <div>
-                                    <h3 className="font-bold text-base text-text">Log Yozuvi Tafsiloti</h3>
+                                <div className="min-w-0">
+                                    <h3 className="font-bold text-base text-text truncate">Log Yozuvi Tafsiloti</h3>
                                     <p className="text-xs text-text-muted font-mono">{selectedLog.timestamp}</p>
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 shrink-0">
                                 <button
                                     onClick={() => handleCopy(selectedLog.raw_json, 'modal')}
                                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-hover hover:bg-border text-text text-xs font-semibold border border-border transition cursor-pointer"
@@ -684,7 +709,7 @@ export default function SystemLogsPage() {
                         </div>
 
                         {/* Modal Body */}
-                        <div className="p-5 overflow-y-auto space-y-4 text-xs">
+                        <div className="p-5 overflow-y-auto flex-1 overscroll-contain custom-scrollbar space-y-4 text-xs">
                             {/* Asosiy ma'lumotlar kartasi */}
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3.5 rounded-xl bg-surface-hover/70 border border-border">
                                 <div>
@@ -768,14 +793,20 @@ export default function SystemLogsPage() {
                             {/* To'liq Formatlangan JSON */}
                             <div className="space-y-1.5">
                                 <span className="font-semibold text-text-muted block">To'liq JSON ma'lumoti:</span>
-                                <pre className="p-3.5 rounded-xl bg-black/60 border border-border font-mono text-[11px] text-emerald-400/90 overflow-x-auto leading-relaxed max-h-60">
-                                    {JSON.stringify(JSON.parse(selectedLog.raw_json || '{}'), null, 2)}
+                                <pre className="p-3.5 rounded-xl bg-black/60 border border-border font-mono text-[11px] text-emerald-400/90 overflow-auto custom-scrollbar leading-relaxed max-h-60">
+                                    {(() => {
+                                        try {
+                                            return JSON.stringify(JSON.parse(selectedLog.raw_json || '{}'), null, 2)
+                                        } catch {
+                                            return selectedLog.raw_json || '{}'
+                                        }
+                                    })()}
                                 </pre>
                             </div>
                         </div>
 
                         {/* Modal Footer */}
-                        <div className="p-3.5 border-t border-border flex justify-end bg-surface-hover/30">
+                        <div className="p-3.5 border-t border-border flex justify-end bg-surface-hover/30 shrink-0">
                             <button
                                 onClick={() => setSelectedLog(null)}
                                 className="px-4 py-2 rounded-xl bg-surface-hover hover:bg-border text-text font-semibold text-xs transition cursor-pointer border border-border"
@@ -784,7 +815,8 @@ export default function SystemLogsPage() {
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     )
