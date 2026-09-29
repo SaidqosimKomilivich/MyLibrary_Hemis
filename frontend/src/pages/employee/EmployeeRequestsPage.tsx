@@ -69,8 +69,9 @@ export default function EmployeeRequestsPage() {
     }, [modalOpen, isUpdating])
 
     const handleActionClick = (req: BookRequest) => {
+        if (req.status !== 'pending' || req.employee_name) return
         setSelectedRequest(req)
-        setUpdateStatus(req.status === 'pending' ? 'processing' : req.status)
+        setUpdateStatus('processing')
         setUpdateComment(req.employee_comment || '')
         setModalOpen(true)
     }
@@ -168,6 +169,7 @@ export default function EmployeeRequestsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                     {requests.map((req) => {
                         const style = getStatusStyle(req.status);
+                        const isAnswered = req.status !== 'pending' || Boolean(req.employee_name);
                         return (
                             <div key={req.id} className="bg-surface border border-border rounded-3xl p-6 transition-all duration-300 relative flex flex-col shadow-lg hover:-translate-y-1 hover:border-blue-400/30 hover:shadow-blue-500/20 hover:shadow-2xl group">
                                 <div className="flex items-start justify-between gap-4 mb-6">
@@ -258,12 +260,38 @@ export default function EmployeeRequestsPage() {
                                             </span>
                                         </div>
                                     )}
+
+                                    {/* Javob izohi (agar mavjud bo'lsa) */}
+                                    {req.employee_comment && (
+                                        <div className="mt-2 pt-2 border-t border-dashed border-border/50 text-xs text-text-muted">
+                                            <span className="font-medium text-text/80 flex items-center gap-1 mb-1">
+                                                <MessageSquare size={13} className="text-purple-400 shrink-0" /> Javob izohi:
+                                            </span>
+                                            <p className="m-0 italic line-clamp-2 text-text/80 pl-4">{req.employee_comment}</p>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="flex justify-between items-center pt-4 border-t border-dashed border-border">
-                                    <button className="w-full flex items-center justify-center gap-2 bg-blue-500 text-white border-none py-3 px-6 rounded-xl font-semibold text-[0.95rem] cursor-pointer transition-all shadow-[0_8px_20px_-6px_rgba(59,130,246,0.5)] hover:bg-blue-600 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_-8px_rgba(59,130,246,0.6)]" onClick={() => handleActionClick(req)}>
-                                        Javob berish
-                                    </button>
+                                    {isAnswered ? (
+                                        <button
+                                            type="button"
+                                            disabled
+                                            className="w-full flex items-center justify-center gap-2 bg-surface-hover/80 text-text-muted border border-border/80 py-3 px-6 rounded-xl font-semibold text-[0.95rem] cursor-not-allowed opacity-75 shadow-none select-none"
+                                            title="Ushbu so'rovga allaqachon javob berilgan"
+                                        >
+                                            <CheckCircle size={17} className={req.status === 'rejected' ? 'text-red-400' : 'text-emerald-400'} />
+                                            Javob berilgan
+                                        </button>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            className="w-full flex items-center justify-center gap-2 bg-blue-500 text-white border-none py-3 px-6 rounded-xl font-semibold text-[0.95rem] cursor-pointer transition-all shadow-[0_8px_20px_-6px_rgba(59,130,246,0.5)] hover:bg-blue-600 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_-8px_rgba(59,130,246,0.6)]"
+                                            onClick={() => handleActionClick(req)}
+                                        >
+                                            Javob berish
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         )
