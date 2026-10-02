@@ -27,6 +27,7 @@ export default function EmployeeRequestsPage() {
     const [isUpdating, setIsUpdating] = useState(false)
     const [updateStatus, setUpdateStatus] = useState('processing')
     const [updateComment, setUpdateComment] = useState('')
+    const [commentError, setCommentError] = useState(false)
 
     const fetchRequests = async () => {
         setIsLoading(true)
@@ -73,14 +74,24 @@ export default function EmployeeRequestsPage() {
         setSelectedRequest(req)
         setUpdateStatus('processing')
         setUpdateComment(req.employee_comment || '')
+        setCommentError(false)
         setModalOpen(true)
     }
 
     const handleUpdateSubmit = async () => {
         if (!selectedRequest) return
+
+        const trimmedComment = updateComment.trim()
+        if (!trimmedComment) {
+            setCommentError(true)
+            toast.warning("Foydalanuvchiga javob izohini yozish majburiy!")
+            return
+        }
+
+        setCommentError(false)
         setIsUpdating(true)
         try {
-            await api.updateRequestStatus(selectedRequest.id, updateStatus, updateComment || null)
+            await api.updateRequestStatus(selectedRequest.id, updateStatus, trimmedComment)
             toast.success("So'rov muvaffaqiyatli yangilandi!")
             window.dispatchEvent(new Event('requestStatusUpdated'))
             setModalOpen(false)
@@ -416,6 +427,7 @@ export default function EmployeeRequestsPage() {
                                                     onClick={() => {
                                                         setUpdateStatus('rejected')
                                                         setUpdateComment("Hurmatli kitobxon, afsuski, so'ralgan kitob ayni vaqtda kutubxona fondida mavjud emas (0 ta qolgan). Yangi nusxalar kelganda yana so'rov yuborishingiz mumkin.")
+                                                        setCommentError(false)
                                                     }}
                                                     className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs font-semibold border border-red-500/40 cursor-pointer transition-colors"
                                                 >
@@ -461,6 +473,7 @@ export default function EmployeeRequestsPage() {
                                                         const shelf = getShelfDisplay(selectedRequest.shelf_location)
                                                         setUpdateStatus('ready')
                                                         setUpdateComment(`Hurmatli kitobxon, kitobingiz tayyorlandi. Kutubxonadan kelib olishingiz mumkin.${shelf ? ` (Javon: ${shelf})` : ''}`)
+                                                        setCommentError(false)
                                                     }}
                                                     className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-xs font-semibold border border-emerald-500/40 cursor-pointer transition-colors"
                                                 >
@@ -502,12 +515,15 @@ export default function EmployeeRequestsPage() {
                                     <label className="flex items-center gap-2 text-[0.88rem] text-slate-200 font-medium">
                                         <MessageSquare size={16} className="text-purple-400" />
                                         <span>Kutubxonachi javob izohi</span>
-                                        <span className="text-xs text-text-muted font-normal">(ixtiyoriy)</span>
+                                        <span className="text-xs text-rose-400 font-semibold">* (majburiy)</span>
                                     </label>
                                     {updateComment && (
                                         <button
                                             type="button"
-                                            onClick={() => setUpdateComment('')}
+                                            onClick={() => {
+                                                setUpdateComment('')
+                                                setCommentError(true)
+                                            }}
                                             className="text-xs text-red-400 hover:text-red-300 transition-colors flex items-center gap-1 cursor-pointer bg-transparent border-none p-0"
                                             title="Izohni tozalash"
                                         >
@@ -517,32 +533,55 @@ export default function EmployeeRequestsPage() {
                                 </div>
                                 <textarea
                                     value={updateComment}
-                                    onChange={(e) => setUpdateComment(e.target.value)}
-                                    placeholder="Foydalanuvchiga yuboriladigan javob yoki tushuntirishni bu yerga erkin yozing (masalan: kitob ertaga keladi, boshqa bo'limdan olishingiz mumkin, 3-qavatdagi zaldan oling va h.k.)..."
+                                    onChange={(e) => {
+                                        setUpdateComment(e.target.value)
+                                        if (e.target.value.trim()) {
+                                            setCommentError(false)
+                                        }
+                                    }}
+                                    placeholder="Foydalanuvchiga yuboriladigan javob yoki tushuntirish izohini kiriting (majburiy)..."
                                     rows={3}
-                                    className="w-full p-3.5 rounded-xl bg-surface-hover border border-border text-text outline-none text-[0.9rem] resize-y font-inherit transition-all focus:border-blue-400 focus:ring-4 focus:ring-blue-400/15"
+                                    className={`w-full p-3.5 rounded-xl bg-surface-hover border ${
+                                        commentError
+                                            ? 'border-rose-500/80 focus:border-rose-400 focus:ring-4 focus:ring-rose-500/20'
+                                            : 'border-border focus:border-blue-400 focus:ring-4 focus:ring-blue-400/15'
+                                    } text-text outline-none text-[0.9rem] resize-y font-inherit transition-all`}
                                 />
+                                {commentError && (
+                                    <p className="mt-1.5 text-xs text-rose-400 flex items-center gap-1 font-medium">
+                                        <AlertCircle size={13} /> Foydalanuvchiga javob izohini kiritish majburiy
+                                    </p>
+                                )}
 
-                                {/* Tezkor yordamchi iboralar (ixtiyoriy) */}
+                                {/* Tezkor yordamchi iboralar */}
                                 <div className="mt-2 flex flex-wrap items-center gap-1.5">
                                     <span className="text-[0.75rem] text-text-muted mr-1">Tezkor shablon:</span>
                                     <button
                                         type="button"
-                                        onClick={() => setUpdateComment(prev => prev ? `${prev} Kitob tayyorlandi, kutubxonadan kelib olishingiz mumkin.` : 'Kitob tayyorlandi, kutubxonadan kelib olishingiz mumkin.')}
+                                        onClick={() => {
+                                            setUpdateComment(prev => prev ? `${prev} Kitob tayyorlandi, kutubxonadan kelib olishingiz mumkin.` : 'Kitob tayyorlandi, kutubxonadan kelib olishingiz mumkin.')
+                                            setCommentError(false)
+                                        }}
                                         className="px-2 py-1 rounded-lg bg-surface border border-border hover:border-blue-400/40 hover:text-text text-text-muted text-xs cursor-pointer transition-colors"
                                     >
                                         + "Kelib olishingiz mumkin"
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={() => setUpdateComment(prev => prev ? `${prev} Barcha nusxalar hozirda boshqa kitobxonlarda, navbatga qo'yildi.` : 'Barcha nusxalar hozirda boshqa kitobxonlarda, navbatga qo\'yildi.')}
+                                        onClick={() => {
+                                            setUpdateComment(prev => prev ? `${prev} Barcha nusxalar hozirda boshqa kitobxonlarda, navbatga qo'yildi.` : 'Barcha nusxalar hozirda boshqa kitobxonlarda, navbatga qo\'yildi.')
+                                            setCommentError(false)
+                                        }}
                                         className="px-2 py-1 rounded-lg bg-surface border border-border hover:border-blue-400/40 hover:text-text text-text-muted text-xs cursor-pointer transition-colors"
                                     >
                                         + "Barcha nusxalar band"
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={() => setUpdateComment(prev => prev ? `${prev} Afsuski, kitob ayni vaqtda fondda mavjud emas.` : 'Afsuski, ushbu kitob ayni vaqtda fondda mavjud emas.')}
+                                        onClick={() => {
+                                            setUpdateComment(prev => prev ? `${prev} Afsuski, kitob ayni vaqtda fondda mavjud emas.` : 'Afsuski, ushbu kitob ayni vaqtda fondda mavjud emas.')
+                                            setCommentError(false)
+                                        }}
                                         className="px-2 py-1 rounded-lg bg-surface border border-border hover:border-blue-400/40 hover:text-text text-text-muted text-xs cursor-pointer transition-colors"
                                     >
                                         + "Fondda mavjud emas"

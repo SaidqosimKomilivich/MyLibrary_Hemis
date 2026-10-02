@@ -761,10 +761,10 @@ export const api = {
         return request<PaginatedRequestsResponse>(`/requests${qs}`)
     },
 
-    updateRequestStatus(id: string, status: string, employee_comment: string | null) {
+    updateRequestStatus(id: string, status: string, employee_comment: string) {
         return request<MessageResponse>(`/requests/${id}/status`, {
             method: 'PUT',
-            body: JSON.stringify({ status, employee_comment })
+            body: JSON.stringify({ status, employee_comment: employee_comment.trim() })
         })
     },
 

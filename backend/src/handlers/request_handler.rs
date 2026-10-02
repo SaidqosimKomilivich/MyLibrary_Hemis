@@ -4,6 +4,7 @@ use uuid::Uuid;
 
 use crate::dto::request::{CreateBookRequestDto, UpdateRequestStatusDto, PaginatedRequestsResponse};
 use crate::dto::user::{UserPaginationParams, UserPaginationInfo};
+use crate::errors::AppError;
 use crate::middleware::auth_middleware::{require_role, Claims};
 use crate::repository::request_repository::RequestRepository;
 
@@ -102,7 +103,14 @@ pub async fn update_request_status(
     }
 
     let id = path.into_inner();
-    let dto = body.into_inner();
+    let mut dto = body.into_inner();
+
+    let comment = match dto.employee_comment.as_deref().map(str::trim) {
+        Some(c) if !c.is_empty() => c.to_string(),
+        _ => return Err(AppError::BadRequest("Izoh yozish majburiy".to_string()).into()),
+    };
+    dto.employee_comment = Some(comment);
+
     let employee_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| actix_web::error::ErrorBadRequest("Noto'g'ri foydalanuvchi identifikatori"))?;
 

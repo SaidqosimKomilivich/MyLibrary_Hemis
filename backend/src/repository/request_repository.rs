@@ -158,6 +158,11 @@ impl RequestRepository {
         employee_id: Uuid,
         dto: UpdateRequestStatusDto,
     ) -> Result<(), AppError> {
+        let comment = dto.employee_comment.as_deref().map(str::trim).unwrap_or("");
+        if comment.is_empty() {
+            return Err(AppError::BadRequest("Izoh yozish majburiy".to_string()));
+        }
+
         let result = sqlx::query(
             r#"UPDATE "book_requests" 
                SET "status" = $1, "employee_comment" = $2, "employee_id" = $3, "updated_at" = CURRENT_TIMESTAMP
